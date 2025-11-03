@@ -1,24 +1,54 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { Stack } from "expo-router";
+import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const [fontsLoaded] = useFonts({
+    "Satoshi-Regular": require("../assets/fonts/Satoshi-Regular.otf"),
+    "Satoshi-Medium": require("../assets/fonts/Satoshi-Medium.otf"),
+    "Satoshi-Bold": require("../assets/fonts/Satoshi-Bold.otf"),
+    "Satoshi-Black": require("../assets/fonts/Satoshi-Black.otf"),
+    "Satoshi-Variable": require("../assets/fonts/Satoshi-Variable.ttf"),
+  });
 
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <Stack
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: "#ffffffff",
+        },
+        headerTintColor: "#000000ff",
+        headerTitleStyle: {
+          fontWeight: "bold",
+          fontSize: 18,
+        },
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen
+        name="index"
+        options={{
+          title: "Accueil",
+        }}
+      />
+      <Stack.Screen
+        name="details"
+        options={{
+          title: "Détails",
+        }}
+      />
+    </Stack>
   );
 }
