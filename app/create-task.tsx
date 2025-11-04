@@ -14,6 +14,7 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { StyleSheet } from "react-native";
 import { Image } from "react-native";
+import { taskEmitter } from "../lib/eventEmitter";
 
 export default function CreateTask() {
     const router = useRouter();
@@ -47,6 +48,7 @@ export default function CreateTask() {
             Alert.alert("Succès", "Tâche créée avec succès");
             setName("");
             setDescription("");
+            taskEmitter.emit("taskAdded");
             router.back();
         } catch (error) {
             Alert.alert("Erreur", "Une erreur est survenue");
@@ -85,7 +87,7 @@ export default function CreateTask() {
                             <Text style={styles.label}>
                                 Description
                             </Text>
-                            <Text style={{fontStyle: "italic", opacity : 0.3}} >(facultatif)</Text>
+                            <Text style={{ fontStyle: "italic", opacity: 0.3 }} >(facultatif)</Text>
                         </View>
                         <TextInput
                             style={styles.descriptionInput}
@@ -121,8 +123,8 @@ export default function CreateTask() {
                 style={styles.backButton}
             >
                 <Image
-                style={{ width: 34, height: 34 }}
-                source={require('../assets/images/cancel.png')}
+                    style={{ width: 34, height: 34 }}
+                    source={require('../assets/images/cancel.png')}
                 ></Image>
             </TouchableOpacity>
         </KeyboardAvoidingView>

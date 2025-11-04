@@ -13,8 +13,9 @@ import Animated, {
 } from "react-native-reanimated";
 import { supabase } from "../lib/supabase";
 import { Image } from "react-native";
+import { taskEmitter } from "../lib/eventEmitter";
 
-const TaskItem = ({ item, drag, isActive, handleToggleTask, handleTaskPress, styles }: any) => {
+const TaskItem = ({ item, drag, isActive, handleToggleTask, handleTaskPress, handleDeleteTask, styles }: any) => {
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
@@ -88,6 +89,18 @@ export default function Index() {
 
   useEffect(() => {
     fetchTasks();
+
+    // Écouter l'événement de suppression
+    const handleTaskDeleted = () => {
+      fetchTasks();
+    };
+
+    taskEmitter.on("taskDeleted", handleTaskDeleted);
+    taskEmitter.on("taskAdded", fetchTasks);
+
+    return () => {
+      taskEmitter.off("taskDeleted", handleTaskDeleted);
+    };
   }, []);
 
   const handleAddPress = async () => {
@@ -115,6 +128,11 @@ export default function Index() {
     } catch (error) {
       console.error("Erreur:", error);
     }
+  };
+
+  const handleDeleteTask = (taskId: number) => {
+    // Supprimer la tâche de la liste locale
+    setTasks(tasks.filter(task => task.id !== taskId));
   };
 
   const handleDragEnd = async ({ data }: { data: any[] }) => {
@@ -175,6 +193,7 @@ export default function Index() {
                   isActive={isActive}
                   handleToggleTask={handleToggleTask}
                   handleTaskPress={handleTaskPress}
+                  handleDeleteTask={handleDeleteTask}
                   styles={styles}
                 />
               )}
@@ -288,6 +307,10 @@ const styles = StyleSheet.create({
   },
 
   taskContentContainer: {
+    flex: 1,
+  },
+
+  taskContent: {
     flex: 1,
   },
 

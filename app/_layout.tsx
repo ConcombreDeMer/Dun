@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
+import React from "react";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -47,6 +48,7 @@ export default function RootLayout() {
         name="details"
         options={{
           title: "Détails",
+          presentation: "modal",
         }}
       />
     </Stack>
