@@ -15,12 +15,15 @@ import { supabase } from "../lib/supabase";
 import { StyleSheet } from "react-native";
 import { Image } from "react-native";
 import { taskEmitter } from "../lib/eventEmitter";
+import { useTheme } from "../lib/ThemeContext";
+import { getImageSource } from "../lib/imageHelper";
 
 export default function CreateTask() {
     const router = useRouter();
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [loading, setLoading] = useState(false);
+    const { colors, theme } = useTheme();
 
     const handleCreateTask = async () => {
         if (!name.trim()) {
@@ -61,21 +64,22 @@ export default function CreateTask() {
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.container}
+            style={[styles.container, { backgroundColor: colors.background }]}
         >
-            <Text style={styles.title}>
+            <Text style={[styles.title, { color: colors.text }]}>
                 Créer une tâche
             </Text>
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.mainView}>
 
                     <View style={styles.inputContainer}>
-                        <Text style={styles.label}>
+                        <Text style={[styles.label, { color: colors.text }]}>
                             Nom
                         </Text>
                         <TextInput
-                            style={styles.textInput}
+                            style={[styles.textInput, { backgroundColor: colors.input, borderColor: colors.border, color: colors.text }]}
                             placeholder="Entrez le nom de la tâche"
+                            placeholderTextColor={colors.inputPlaceholder}
                             value={name}
                             onChangeText={setName}
                             editable={!loading}
@@ -84,14 +88,15 @@ export default function CreateTask() {
 
                     <View style={styles.descriptionContainer}>
                         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                            <Text style={styles.label}>
+                            <Text style={[styles.label, { color: colors.text }]}>
                                 Description
                             </Text>
-                            <Text style={{ fontStyle: "italic", opacity: 0.3 }} >(facultatif)</Text>
+                            <Text style={[styles.optionalText, { color: colors.textSecondary }]} >(facultatif)</Text>
                         </View>
                         <TextInput
-                            style={styles.descriptionInput}
+                            style={[styles.descriptionInput, { backgroundColor: colors.input, borderColor: colors.border, color: colors.text }]}
                             placeholder="Entrez la description de la tâche"
+                            placeholderTextColor={colors.inputPlaceholder}
                             value={description}
                             onChangeText={setDescription}
                             multiline
@@ -107,12 +112,12 @@ export default function CreateTask() {
             <TouchableOpacity
                 onPress={handleCreateTask}
                 disabled={loading}
-                style={[styles.createButton, loading && styles.createButtonDisabled]}
+                style={[styles.createButton, loading && styles.createButtonDisabled, { backgroundColor: colors.button }]}
             >
                 {loading ? (
-                    <ActivityIndicator color="#fff" size="small" />
+                    <ActivityIndicator color={colors.buttonText} size="small" />
                 ) : (
-                    <Text style={styles.createButtonText}>
+                    <Text style={[styles.createButtonText, { color: colors.buttonText }]}>
                         Créer la tâche
                     </Text>
                 )}
@@ -120,11 +125,11 @@ export default function CreateTask() {
             <TouchableOpacity
                 onPress={() => router.back()}
                 disabled={loading}
-                style={styles.backButton}
+                style={[styles.backButton, { backgroundColor: colors.button }]}
             >
                 <Image
                     style={{ width: 34, height: 34 }}
-                    source={require('../assets/images/cancel.png')}
+                    source={getImageSource('cancel', theme)}
                 ></Image>
             </TouchableOpacity>
         </KeyboardAvoidingView>
@@ -164,8 +169,6 @@ const styles = StyleSheet.create({
     },
     textInput: {
         borderWidth: 1,
-        borderColor: "#ccc",
-        backgroundColor: "#ebebebff",
         borderRadius: 8,
         padding: 12,
         fontSize: 16,
@@ -173,18 +176,18 @@ const styles = StyleSheet.create({
     descriptionContainer: {
         marginBottom: 30,
     },
+    optionalText: {
+        fontStyle: "italic",
+    },
     descriptionInput: {
         borderWidth: 1,
-        borderColor: "#ccc",
         borderRadius: 8,
         padding: 12,
         fontSize: 16,
         minHeight: 100,
         textAlignVertical: "top",
-        backgroundColor: "#ebebebff",
     },
     createButton: {
-        backgroundColor: "#000000ff",
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
@@ -196,10 +199,9 @@ const styles = StyleSheet.create({
         right: 30,
     },
     createButtonDisabled: {
-        backgroundColor: "#ccc",
+        opacity: 0.5,
     },
     createButtonText: {
-        color: "#fff",
         fontSize: 20,
         fontWeight: "600",
         fontFamily: "Satoshi-Bold",
@@ -210,7 +212,6 @@ const styles = StyleSheet.create({
         height: 70,
         width: 70,
         borderRadius: 100,
-        backgroundColor: "#000000ff",
         position: "absolute",
         bottom: 30,
         left: 30,

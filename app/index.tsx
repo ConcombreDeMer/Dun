@@ -9,11 +9,15 @@ import { supabase } from "../lib/supabase";
 import { Image } from "react-native";
 import { taskEmitter } from "../lib/eventEmitter";
 import { TaskItem } from "../components/TaskItem";
+import { useTheme } from "../lib/ThemeContext";
+import { getImageSource } from "../lib/imageHelper";
+import { StatusBar } from "expo-status-bar";
 
 export default function Index() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { colors, theme } = useTheme();
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -116,18 +120,30 @@ export default function Index() {
   }
 
   return (
+    
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={styles.container}>
+      <StatusBar style={theme=="dark" ? "light" : "auto"} />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
-          <Text style={styles.title}>Tâches</Text>
-          <View style={styles.calendar}></View>
-          <Text style={styles.date}>Aujourd'hui</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={[styles.title, { color: colors.text }]}>Tâches</Text>
+            <Link
+              href={"/settings"}
+              style={[styles.settingsLink, { backgroundColor: colors.border }]}
+            >
+              <Image
+                source={getImageSource('settings', theme)}
+              ></Image>
+            </Link>
+          </View>
+          <View style={[styles.calendar, { backgroundColor: colors.card }]}></View>
+          <Text style={[styles.date, { color: colors.text }]}>Aujourd'hui</Text>
         </View>
 
         <View style={styles.listContainer}>
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#000" />
+              <ActivityIndicator size="large" color={colors.text} />
             </View>
           ) : (
             <DraggableFlatList
@@ -152,17 +168,17 @@ export default function Index() {
                 />
               )}
               ListEmptyComponent={
-                <Text style={styles.emptyText}>Aucune tâche pour aujourd'hui</Text>
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Aucune tâche pour aujourd'hui</Text>
               }
             />
           )}
         </View>
 
-        <Link style={styles.addButton} href="/create-task" asChild>
+        <Link style={[styles.addButton, { backgroundColor: colors.button }]} href="/create-task" asChild>
           <TouchableOpacity onPress={handleAddPress}>
             <Image
               style={{ width: 34, height: 34, transform: [{ rotate: '45deg' }] }}
-              source={require('../assets/images/cancel.png')}
+              source={getImageSource('cancel', theme)}
             ></Image>
           </TouchableOpacity>
         </Link>
@@ -176,6 +192,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 60,
+    backgroundColor: "#fff",
   },
 
   header: {
@@ -191,6 +208,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 55,
     fontFamily: 'Satoshi-Black',
+  },
+
+  settingsLink: {
+    height: 50,
+    width: 50,
+    backgroundColor: '#d2d2d2ff',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 3,
+    
   },
 
   calendar: {

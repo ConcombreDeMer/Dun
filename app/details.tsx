@@ -15,12 +15,15 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { taskEmitter } from "../lib/eventEmitter";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useTheme } from "../lib/ThemeContext";
+import { getImageSource } from "../lib/imageHelper";
 
 export default function Details() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { colors, theme } = useTheme();
 
   useEffect(() => {
     const fetchTask = async () => {
@@ -62,18 +65,18 @@ export default function Details() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#000" />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
 
   if (!task) {
     return (
-      <View style={styles.container}>
-        <Text>Tâche non trouvée</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={{ color: colors.text }}>Tâche non trouvée</Text>
         <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20 }}>
-          <MaterialIcons name="arrow-back" size={24} color="#007AFF" />
+          <MaterialIcons name="arrow-back" size={24} color={colors.button} />
         </TouchableOpacity>
       </View>
     );
@@ -123,34 +126,34 @@ export default function Details() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
       <View style={styles.handleContainer}>
-        <View style={styles.handle} />
+        <View style={[styles.handle, { backgroundColor: colors.border }]} />
       </View>
-      <Text style={styles.title}>Détails</Text>
+      <Text style={[styles.title, { color: colors.text }]}>Détails</Text>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.mainView}>
-        <Text style={styles.taskName}>{task.name}</Text>
+        <Text style={[styles.taskName, { color: colors.text }]}>{task.name}</Text>
 
         {task.description && (
-          <View style={styles.section}>
-            <Text style={styles.label}>Description</Text>
-            <Text style={styles.value}>{task.description}</Text>
+          <View style={[styles.section, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Description</Text>
+            <Text style={[styles.value, { color: colors.textSecondary }]}>{task.description}</Text>
           </View>
         )}
 
-        <View style={styles.section}>
-          <Text style={styles.label}>Statut</Text>
-          <Text style={styles.value}>
+        <View style={[styles.section, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.label, { color: colors.text }]}>Statut</Text>
+          <Text style={[styles.value, { color: colors.textSecondary }]}>
             {task.done ? "✓ Complétée" : "En cours"}
           </Text>
         </View>
 
         {task.date && (
-          <View style={styles.section}>
-            <Text style={styles.label}>Date</Text>
-            <Text style={styles.value}>
+          <View style={[styles.section, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.label, { color: colors.text }]}>Date</Text>
+            <Text style={[styles.value, { color: colors.textSecondary }]}>
               {new Date(task.date).toLocaleDateString("fr-FR")}
             </Text>
           </View>
@@ -158,8 +161,8 @@ export default function Details() {
 
         {task.priority && (
           <View style={styles.section}>
-            <Text style={styles.label}>Priorité</Text>
-            <Text style={styles.value}>{task.priority}</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Priorité</Text>
+            <Text style={[styles.value, { color: colors.textSecondary }]}>{task.priority}</Text>
           </View>
         )}
 
@@ -168,11 +171,11 @@ export default function Details() {
       <TouchableOpacity
         onPress={() => router.push(`/edit-task?id=${id}`)}
         disabled={loading}
-        style={styles.editFloatingButton}
+        style={[styles.editFloatingButton, { backgroundColor: colors.button }]}
       >
         <Image
           style={{ width: 34, height: 34 }}
-          source={require('../assets/images/edit.png')}
+          source={getImageSource('edit', theme)}
         />
       </TouchableOpacity>
       <TouchableOpacity
@@ -195,6 +198,8 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "column",
     justifyContent: "flex-start",
+    borderColor: "#000000",
+    
   },
 
   handleContainer: {

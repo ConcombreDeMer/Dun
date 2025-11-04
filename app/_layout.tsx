@@ -3,10 +3,14 @@ import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import React from "react";
+import { ThemeProvider, useTheme } from "../lib/ThemeContext";
+import { StatusBar } from "expo-status-bar";
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+function RootLayoutContent() {
+  const { colors, isLoading } = useTheme();
+
   const [fontsLoaded] = useFonts({
     "Satoshi-Regular": require("../assets/fonts/Satoshi-Regular.otf"),
     "Satoshi-Medium": require("../assets/fonts/Satoshi-Medium.otf"),
@@ -16,24 +20,27 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontsLoaded && !isLoading) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, isLoading]);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || isLoading) {
     return null;
   }
+
   return (
+    
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: "#ffffffff",
+          backgroundColor: colors.background,
         },
-        headerTintColor: "#000000ff",
+        headerTintColor: colors.text,
         headerTitleStyle: {
           fontWeight: "bold",
           fontSize: 18,
+          color: colors.text,
         },
         headerShown: false,
       }}
@@ -49,8 +56,25 @@ export default function RootLayout() {
         options={{
           title: "Détails",
           presentation: "modal",
+          
+        }}
+      />
+      <Stack.Screen
+        name="settings"
+        options={{
+          title: "Paramètres",
+          animation: "slide_from_left",
+          animationMatchesGesture: true,
         }}
       />
     </Stack>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootLayoutContent />
+    </ThemeProvider>
   );
 }

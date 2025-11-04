@@ -5,6 +5,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring
 } from "react-native-reanimated";
+import { useTheme } from "../lib/ThemeContext";
 
 interface TaskItemProps {
   item: {
@@ -25,6 +26,8 @@ export const TaskItem = ({
   handleToggleTask,
   handleTaskPress,
 }: TaskItemProps) => {
+  const { colors } = useTheme();
+
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
@@ -52,27 +55,33 @@ export const TaskItem = ({
     }
   }, [isActive, item.id, handleTaskPress]);
 
+  const taskItemStyle = item.done ? 
+    [styles.taskItemDone, { backgroundColor: colors.donePrimary }] :
+    [styles.taskItem, { backgroundColor: colors.card }];
+
   return (
     <Animated.View style={[animatedStyle, shadowStyle]}>
       <TouchableOpacity
         onLongPress={drag}
         disabled={isActive}
         delayLongPress={100}
-        style={[
-          item.done ? styles.taskItemDone : styles.taskItem,
-        ]}
+        style={taskItemStyle}
         activeOpacity={0.7}
         onPress={handlePress}
       >
         <View style={styles.taskContent}>
-          <Text style={item.done ? styles.taskNameDone : styles.taskName}>
+          <Text style={[
+            item.done ? styles.taskNameDone : styles.taskName,
+            { color: item.done ? colors.textSecondary : colors.text }
+          ]}>
             {item.name}
           </Text>
         </View>
         <TouchableOpacity
           style={[
             styles.taskCheckbox,
-            item.done && styles.taskCheckboxDone,
+            item.done && { backgroundColor: colors.doneSecondary },
+            !item.done && { backgroundColor: colors.border }
           ]}
           onPress={handleCheckboxPress}
           activeOpacity={0.7}
