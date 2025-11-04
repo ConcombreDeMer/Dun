@@ -120,9 +120,9 @@ export default function Index() {
   }
 
   return (
-    
+
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style={theme=="dark" ? "light" : "auto"} />
+      <StatusBar style={theme == "dark" ? "light" : "auto"} />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 3,
-    
+
   },
 
   calendar: {

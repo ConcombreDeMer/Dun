@@ -145,7 +145,7 @@ export default function Settings() {
             >
                 <Image
                     style={{ width: 34, height: 34 }}
-                    source={getImageSource('cancel', theme)}
+                    source={getImageSource('home', theme)}
                 ></Image>
             </TouchableOpacity>
         </View>
@@ -245,6 +245,6 @@ const styles = StyleSheet.create({
         backgroundColor: "#000000ff",
         position: "absolute",
         bottom: 30,
-        left: 30,
+        right: 30,
     },
 });
