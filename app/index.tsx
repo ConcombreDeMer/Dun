@@ -1,13 +1,68 @@
-import { Link, useFocusEffect } from "expo-router";
-import { Text, View, Pressable, TouchableOpacity, FlatList, ActivityIndicator } from "react-native";
+import { Link, useFocusEffect, useRouter } from "expo-router";
+import { Text, View, Pressable, TouchableOpacity, ActivityIndicator } from "react-native";
 import { StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useState, useCallback } from "react";
+import DraggableFlatList from "react-native-draggable-flatlist";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import Animated, {
+  useAnimatedStyle,
+  interpolate,
+  Extrapolate,
+  withSpring
+} from "react-native-reanimated";
 import { supabase } from "../lib/supabase";
+
+const TaskItem = ({ item, drag, isActive, handleToggleTask, handleTaskPress, styles }: any) => {
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { scale: withSpring(isActive ? 1.02 : 1) },
+      ],
+      opacity: withSpring(isActive ? 1 : 1),
+    };
+  });
+
+  const shadowStyle = useAnimatedStyle(() => {
+    return {
+      shadowOpacity: withSpring(isActive ? 0.3 : 0),
+      elevation: withSpring(isActive ? 5 : 0),
+    };
+  });
+
+  return (
+    <Animated.View style={[animatedStyle, shadowStyle]}>
+      <TouchableOpacity
+        onLongPress={drag}
+        disabled={isActive}
+        style={[
+          item.done ? styles.taskItemDone : styles.taskItem,
+        ]}
+        activeOpacity={0.7}
+        onPress={() => !isActive && handleTaskPress(item.id)}
+      >
+        <View style={styles.taskContent}>
+          <Text style={item.done ? styles.taskNameDone : styles.taskName}>{item.name}</Text>
+        </View>
+        <TouchableOpacity
+          style={[
+            styles.taskCheckbox,
+            item.done && styles.taskCheckboxDone,
+          ]}
+          onPress={() => handleToggleTask(item.id, item.done)}
+          activeOpacity={0.7}
+        >
+          {item.done && <Text style={styles.checkmark}>✓</Text>}
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 
 export default function Index() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -15,7 +70,7 @@ export default function Index() {
       const { data, error } = await supabase
         .from("Tasks")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("order", { ascending: true });
 
       if (error) {
         console.error("Erreur lors de la récupération des tâches:", error);
@@ -40,52 +95,98 @@ export default function Index() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   };
 
+  const handleToggleTask = async (taskId: number, currentDone: boolean) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      const { error } = await supabase
+        .from("Tasks")
+        .update({ done: !currentDone })
+        .eq("id", taskId);
+
+      if (error) {
+        console.error("Erreur lors de la mise à jour de la tâche:", error);
+        return;
+      }
+
+      // Mettre à jour l'état local
+      setTasks(tasks.map(task =>
+        task.id === taskId ? { ...task, done: !currentDone } : task
+      ));
+    } catch (error) {
+      console.error("Erreur:", error);
+    }
+  };
+
+  const handleDragEnd = async ({ data }: { data: any[] }) => {
+    setTasks(data);
+
+    // Mettre à jour l'ordre dans Supabase
+    try {
+      for (let i = 0; i < data.length; i++) {
+        const { error } = await supabase
+          .from("Tasks")
+          .update({ order: i })
+          .eq("id", data[i].id);
+
+        if (error) {
+          console.error("Erreur lors de la mise à jour de l'ordre:", error);
+        }
+      }
+    } catch (error) {
+      console.error("Erreur:", error);
+    }
+    console.log("Nouveau ordre des tâches enregistré dans Supabase");
+  };
+
+  const handleTaskPress = (taskId: number) => {
+    router.push(`/details?id=${taskId}`);
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Tâches</Text>
-        <View style={styles.calendar}></View>
-        <Text style={styles.date}>Aujourd'hui</Text>
-      </View>
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#000" />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Tâches</Text>
+          <View style={styles.calendar}></View>
+          <Text style={styles.date}>Aujourd'hui</Text>
         </View>
-      ) : (
-        <FlatList
-          data={tasks}
-          keyExtractor={(item) => item.id.toString()}
-          scrollEnabled={true}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.flatListContent}
-          renderItem={({ item }) => (
-            <Link href={`/details?id=${item.id}`} asChild>
-              <TouchableOpacity style={item.done ? styles.taskItemDone : styles.taskItem}>
-                <View style={styles.taskContent}>
-                  <Text style={item.done ? styles.taskNameDone : styles.taskName}>{item.name}</Text>
-                </View>
-                <View
-                  style={[
-                    styles.taskCheckbox,
-                    item.done && styles.taskCheckboxDone,
-                  ]}
-                />
-              </TouchableOpacity>
-            </Link>
-          )}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>Aucune tâche pour aujourd'hui</Text>
-          }
-        />
-      )}
 
-      <Link style={styles.addButton} href="/create-task" asChild>
-        <TouchableOpacity onPress={handleAddPress}>
-          <Text style={styles.addButtonText}>+</Text>
-        </TouchableOpacity>
-      </Link>
-    </View>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#000" />
+          </View>
+        ) : (
+          <DraggableFlatList
+            data={tasks}
+            keyExtractor={(item) => item.id.toString()}
+            scrollEnabled={true}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.flatListContent}
+            onDragEnd={handleDragEnd}
+            renderItem={({ item, drag, isActive }) => (
+              <TaskItem
+                item={item}
+                drag={drag}
+                isActive={isActive}
+                handleToggleTask={handleToggleTask}
+                handleTaskPress={handleTaskPress}
+                styles={styles}
+              />
+            )}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>Aucune tâche pour aujourd'hui</Text>
+            }
+          />
+        )}
+
+        <Link style={styles.addButton} href="/create-task" asChild>
+          <TouchableOpacity onPress={handleAddPress}>
+            <Text style={styles.addButtonText}>+</Text>
+          </TouchableOpacity>
+        </Link>
+      </View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -93,13 +194,13 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingLeft: 20,
-    paddingRight: 20,
     paddingTop: 60,
   },
 
   header: {
     paddingBottom: 10,
+    paddingLeft: '5%',
+    paddingRight: '5%',
   },
 
   title: {
@@ -143,6 +244,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#ebebebff',
     justifyContent: 'space-between',
     borderRadius: 10,
+    width: '90%',
+    marginLeft: 'auto',
+    marginRight: 'auto',
   },
 
   taskItemDone: {
@@ -157,9 +261,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#CFE7CB',
     justifyContent: 'space-between',
     borderRadius: 10,
+    width: '90%',
+    marginLeft: 'auto',
+    marginRight: 'auto',
   },
 
-  taskContent: {
+  taskItemActive: {
+    opacity: 0.8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+
+  taskContentContainer: {
     flex: 1,
   },
 
@@ -197,6 +313,14 @@ const styles = StyleSheet.create({
 
   taskCheckboxDone: {
     backgroundColor: '#9DBD99',
+  },
+
+  checkmark: {
+    fontSize: 24,
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    lineHeight: 40,
   },
 
   emptyText: {
