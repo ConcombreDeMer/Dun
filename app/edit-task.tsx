@@ -100,6 +100,9 @@ export default function EditTask() {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={styles.container}
         >
+            <View style={styles.handleContainer}>
+                <View style={styles.handle} />
+            </View>
             <Text style={styles.title}>
                 Modifier la tâche
             </Text>
@@ -170,10 +173,22 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingLeft: 20,
         paddingRight: 20,
-        paddingTop: 60,
+        paddingTop: 20,
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-start",
+    },
+
+    handleContainer: {
+        alignItems: "center",
+        paddingBottom: 20,
+    },
+
+    handle: {
+        width: 40,
+        height: 5,
+        backgroundColor: "#ddd",
+        borderRadius: 2.5,
     },
 
     title: {

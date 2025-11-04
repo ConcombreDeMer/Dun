@@ -1,42 +1,26 @@
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { Text, View, TouchableOpacity, ActivityIndicator, StyleSheet, Animated, PanResponder, Alert } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
-import { useState, useEffect, useRef } from "react";
+import {
+  Text,
+  View,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
+  Image,
+} from "react-native";
+import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import * as Haptics from "expo-haptics";
 import { taskEmitter } from "../lib/eventEmitter";
+import { MaterialIcons } from "@expo/vector-icons";
 
 export default function Details() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const pan = useRef(new Animated.ValueXY()).current;
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        return gestureState.dy > 10;
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        if (gestureState.dy > 0) {
-          Animated.event([null, { dy: pan.y }], {
-            useNativeDriver: false,
-          })(evt, gestureState);
-        }
-      },
-      onPanResponderRelease: (evt, gestureState) => {
-        if (gestureState.dy > 100) {
-          router.back();
-        } else {
-          Animated.spring(pan, {
-            toValue: { x: 0, y: 0 },
-            useNativeDriver: false,
-          }).start();
-        }
-      },
-    })
-  ).current;
 
   useEffect(() => {
     const fetchTask = async () => {
@@ -63,15 +47,17 @@ export default function Details() {
 
     const handleEditTask = () => {
       fetchTask();
-      taskEmitter.on("taskUpdated", handleEditTask);
-    }
+    };
 
     taskEmitter.on("taskUpdated", handleEditTask);
-
 
     if (id) {
       fetchTask();
     }
+
+    return () => {
+      taskEmitter.off("taskUpdated", handleEditTask);
+    };
   }, [id]);
 
   if (loading) {
@@ -108,7 +94,6 @@ export default function Details() {
           text: "Supprimer",
           onPress: async () => {
             try {
-              await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
               const { error } = await supabase
                 .from("Tasks")
                 .delete()
@@ -136,24 +121,16 @@ export default function Details() {
   };
 
   return (
-    <Animated.View
-      style={[
-        styles.container,
-        {
-          transform: [{ translateY: pan.y }],
-        },
-      ]}
-      {...panResponder.panHandlers}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
     >
       <View style={styles.handleContainer}>
         <View style={styles.handle} />
       </View>
-
-      <View style={styles.header}>
-        <Text style={styles.title}>Détails</Text>
-      </View>
-
-      <View style={styles.content}>
+      <Text style={styles.title}>Détails</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.mainView}>
         <Text style={styles.taskName}>{task.name}</Text>
 
         {task.description && (
@@ -165,13 +142,17 @@ export default function Details() {
 
         <View style={styles.section}>
           <Text style={styles.label}>Statut</Text>
-          <Text style={styles.value}>{task.done ? "✓ Complétée" : "En cours"}</Text>
+          <Text style={styles.value}>
+            {task.done ? "✓ Complétée" : "En cours"}
+          </Text>
         </View>
 
         {task.date && (
           <View style={styles.section}>
             <Text style={styles.label}>Date</Text>
-            <Text style={styles.value}>{new Date(task.date).toLocaleDateString("fr-FR")}</Text>
+            <Text style={styles.value}>
+              {new Date(task.date).toLocaleDateString("fr-FR")}
+            </Text>
           </View>
         )}
 
@@ -182,96 +163,142 @@ export default function Details() {
           </View>
         )}
 
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={handleDeleteTask}
-        >
-          <MaterialIcons name="delete" size={20} color="#fff" />
-          <Text style={styles.deleteButtonText}>Supprimer la tâche</Text>
-        </TouchableOpacity>
-
-
-        <TouchableOpacity
-          onPress={() => router.push(`/edit-task?id=${id}`)}
-          style={{ marginTop: 20, alignItems: "center" }}
-        >
-          <Text>EDIT</Text>
-        </TouchableOpacity>
-      </View>
-    </Animated.View>
+        </View>
+      </ScrollView>
+      <TouchableOpacity
+        onPress={() => router.push(`/edit-task?id=${id}`)}
+        disabled={loading}
+        style={styles.editFloatingButton}
+      >
+        <Image
+          style={{ width: 34, height: 34 }}
+          source={require('../assets/images/edit.png')}
+        />
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={handleDeleteTask}
+        disabled={loading}
+        style={styles.deleteFloatingButton}
+      >
+        <MaterialIcons name="delete" size={34} color="#fff" />
+      </TouchableOpacity>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    paddingLeft: 20,
+    paddingRight: 20,
+    paddingTop: 20,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "flex-start",
   },
+
   handleContainer: {
     alignItems: "center",
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingBottom: 20,
   },
+
   handle: {
     width: 40,
     height: 5,
     backgroundColor: "#ddd",
     borderRadius: 2.5,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    paddingTop: 10,
-  },
+
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 55,
+    fontFamily: 'Satoshi-Black',
   },
-  content: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+
+  scrollContent: {
+    marginTop: 50,
   },
+
+  mainView: {
+    paddingBottom: 100,
+  },
+
   taskName: {
     fontSize: 28,
     fontWeight: "bold",
     marginBottom: 30,
     color: "#000",
   },
+
   section: {
     marginBottom: 20,
     paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
   },
+
   label: {
-    fontSize: 14,
-    color: "#999",
-    marginBottom: 8,
+    fontSize: 16,
     fontWeight: "600",
+    marginBottom: 8,
   },
+
   value: {
     fontSize: 16,
     color: "#000",
   },
+
   deleteButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
     backgroundColor: "#FF3B30",
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 10,
     marginTop: 30,
-    gap: 8,
+    alignItems: "center",
   },
+
   deleteButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+
+  editButton: {
+    backgroundColor: "#000000ff",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginTop: 15,
+    alignItems: "center",
+  },
+
+  editButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    fontFamily: "Satoshi-Bold",
+  },
+
+  editFloatingButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    height: 70,
+    width: 70,
+    borderRadius: 100,
+    backgroundColor: "#000000ff",
+    position: "absolute",
+    bottom: 30,
+    right: 30,
+  },
+
+  deleteFloatingButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    height: 70,
+    width: 70,
+    borderRadius: 100,
+    backgroundColor: "#FF3B30",
+    position: "absolute",
+    bottom: 30,
+    left: 30,
   },
 });
