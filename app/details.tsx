@@ -61,6 +61,14 @@ export default function Details() {
       }
     };
 
+    const handleEditTask = () => {
+      fetchTask();
+      taskEmitter.on("taskUpdated", handleEditTask);
+    }
+
+    taskEmitter.on("taskUpdated", handleEditTask);
+
+
     if (id) {
       fetchTask();
     }
@@ -85,6 +93,7 @@ export default function Details() {
     );
   }
 
+
   const handleDeleteTask = async () => {
     Alert.alert(
       "Supprimer la tâche",
@@ -92,7 +101,7 @@ export default function Details() {
       [
         {
           text: "Annuler",
-          onPress: () => {},
+          onPress: () => { },
           style: "cancel",
         },
         {
@@ -146,7 +155,7 @@ export default function Details() {
 
       <View style={styles.content}>
         <Text style={styles.taskName}>{task.name}</Text>
-        
+
         {task.description && (
           <View style={styles.section}>
             <Text style={styles.label}>Description</Text>
@@ -173,12 +182,20 @@ export default function Details() {
           </View>
         )}
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.deleteButton}
           onPress={handleDeleteTask}
         >
           <MaterialIcons name="delete" size={20} color="#fff" />
           <Text style={styles.deleteButtonText}>Supprimer la tâche</Text>
+        </TouchableOpacity>
+
+
+        <TouchableOpacity
+          onPress={() => router.push(`/edit-task?id=${id}`)}
+          style={{ marginTop: 20, alignItems: "center" }}
+        >
+          <Text>EDIT</Text>
         </TouchableOpacity>
       </View>
     </Animated.View>

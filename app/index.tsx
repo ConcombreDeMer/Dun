@@ -97,6 +97,8 @@ export default function Index() {
 
     taskEmitter.on("taskDeleted", handleTaskDeleted);
     taskEmitter.on("taskAdded", fetchTasks);
+    taskEmitter.on("taskUpdated", fetchTasks);
+
 
     return () => {
       taskEmitter.off("taskDeleted", handleTaskDeleted);
