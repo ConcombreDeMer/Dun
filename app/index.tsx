@@ -2,7 +2,7 @@ import { Link, useFocusEffect, useRouter } from "expo-router";
 import { Text, View, Pressable, TouchableOpacity, ActivityIndicator } from "react-native";
 import { StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
@@ -12,6 +12,7 @@ import Animated, {
   withSpring
 } from "react-native-reanimated";
 import { supabase } from "../lib/supabase";
+import { Image } from "react-native";
 
 const TaskItem = ({ item, drag, isActive, handleToggleTask, handleTaskPress, styles }: any) => {
   const animatedStyle = useAnimatedStyle(() => {
@@ -85,11 +86,9 @@ export default function Index() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchTasks();
-    }, [fetchTasks])
-  );
+  useEffect(() => {
+    fetchTasks();
+  }, []);
 
   const handleAddPress = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -152,37 +151,46 @@ export default function Index() {
           <Text style={styles.date}>Aujourd'hui</Text>
         </View>
 
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#000" />
-          </View>
-        ) : (
-          <DraggableFlatList
-            data={tasks}
-            keyExtractor={(item) => item.id.toString()}
-            scrollEnabled={true}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.flatListContent}
-            onDragEnd={handleDragEnd}
-            renderItem={({ item, drag, isActive }) => (
-              <TaskItem
-                item={item}
-                drag={drag}
-                isActive={isActive}
-                handleToggleTask={handleToggleTask}
-                handleTaskPress={handleTaskPress}
-                styles={styles}
-              />
-            )}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>Aucune tâche pour aujourd'hui</Text>
-            }
-          />
-        )}
+        <View style={styles.listContainer}>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#000" />
+            </View>
+          ) : (
+            <DraggableFlatList
+              data={tasks}
+              keyExtractor={(item) => item.id.toString()}
+              scrollEnabled={true}
+              nestedScrollEnabled={true}
+              showsVerticalScrollIndicator={false}
+              persistentScrollbar={true}
+              removeClippedSubviews={false}
+              contentContainerStyle={styles.flatListContent}
+              activationDistance={20}
+              onDragEnd={handleDragEnd}
+              renderItem={({ item, drag, isActive }) => (
+                <TaskItem
+                  item={item}
+                  drag={drag}
+                  isActive={isActive}
+                  handleToggleTask={handleToggleTask}
+                  handleTaskPress={handleTaskPress}
+                  styles={styles}
+                />
+              )}
+              ListEmptyComponent={
+                <Text style={styles.emptyText}>Aucune tâche pour aujourd'hui</Text>
+              }
+            />
+          )}
+        </View>
 
         <Link style={styles.addButton} href="/create-task" asChild>
           <TouchableOpacity onPress={handleAddPress}>
-            <Text style={styles.addButtonText}>+</Text>
+            <Image
+              style={{ width: 34, height: 34, transform: [{ rotate: '45deg' }] }}
+              source={require('../assets/images/cancel.png')}
+            ></Image>
           </TouchableOpacity>
         </Link>
       </View>
@@ -201,6 +209,10 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingLeft: '5%',
     paddingRight: '5%',
+  },
+
+  listContainer: {
+    flex: 1,
   },
 
   title: {
@@ -337,17 +349,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'black',
     color: 'white',
     fontSize: 30,
-    textAlign: 'center',
     lineHeight: 65,
     position: 'absolute',
     bottom: 30,
     right: 30,
-  },
-  addButtonText: {
-    color: 'white',
-    fontSize: 30,
-    textAlign: 'center',
-    lineHeight: 65,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
 });

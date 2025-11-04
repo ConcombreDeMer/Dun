@@ -13,6 +13,7 @@ import {
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { StyleSheet } from "react-native";
+import { Image } from "react-native";
 
 export default function CreateTask() {
     const router = useRouter();
@@ -119,9 +120,10 @@ export default function CreateTask() {
                 disabled={loading}
                 style={styles.backButton}
             >
-                <Text style={styles.backButtonText}>
-                    X
-                </Text>
+                <Image
+                style={{ width: 34, height: 34 }}
+                source={require('../assets/images/cancel.png')}
+                ></Image>
             </TouchableOpacity>
         </KeyboardAvoidingView>
     );
@@ -210,9 +212,5 @@ const styles = StyleSheet.create({
         position: "absolute",
         bottom: 30,
         left: 30,
-    },
-    backButtonText: {
-        color: "#ffffffff",
-        fontSize: 16,
     },
 });
