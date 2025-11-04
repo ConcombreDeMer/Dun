@@ -37,6 +37,7 @@ const TaskItem = ({ item, drag, isActive, handleToggleTask, handleTaskPress, han
       <TouchableOpacity
         onLongPress={drag}
         disabled={isActive}
+        delayLongPress={100}
         style={[
           item.done ? styles.taskItemDone : styles.taskItem,
         ]}
@@ -162,6 +163,10 @@ export default function Index() {
     router.push(`/details?id=${taskId}`);
   };
 
+  const handlePlaceholderIndexChange = async (index: number) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
@@ -188,6 +193,7 @@ export default function Index() {
               contentContainerStyle={styles.flatListContent}
               activationDistance={20}
               onDragEnd={handleDragEnd}
+              onPlaceholderIndexChange={handlePlaceholderIndexChange}
               renderItem={({ item, drag, isActive }) => (
                 <TaskItem
                   item={item}
