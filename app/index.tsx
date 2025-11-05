@@ -178,7 +178,7 @@ export default function Index() {
         <ActionButton
           scale="small"
           content="image"
-          icon="cancel"
+          icon="add"
           position="right"
           onPress={handleAddPress}
         />
