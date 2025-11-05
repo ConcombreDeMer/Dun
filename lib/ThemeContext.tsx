@@ -38,7 +38,7 @@ export const lightColors: Colors = {
     inputPlaceholder: '#999999',
     card: '#f5f5f5',
     button: '#B3B3B3',
-    buttonText: '#ffffff',
+    buttonText: '#ffffffff',
     danger: '#d32f2f',
     dangerText: '#d32f2f',
     icon: '#000000',
@@ -61,7 +61,7 @@ export const darkColors: Colors = {
     inputPlaceholder: '#666666',
     card: '#2a2a2a',
     button: '#343434ff',
-    buttonText: '#abababff',
+    buttonText: '#abababff', // to use for darkmode icon aswell
     danger: '#ff5252',
     dangerText: '#ff5252',
     icon: '#ffffff',

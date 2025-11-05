@@ -99,11 +99,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 12,
-    minHeight: 70,
     marginTop: 10,
-    paddingLeft: 25,
-    paddingRight: 25,
+    paddingHorizontal: 12,
     justifyContent: 'space-between',
     borderRadius: 10,
     width: '90%',
@@ -115,11 +112,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 12,
-    minHeight: 70,
     marginTop: 10,
-    paddingLeft: 25,
-    paddingRight: 25,
+    paddingHorizontal: 12,
     justifyContent: 'space-between',
     borderRadius: 10,
     width: '90%',
@@ -133,19 +127,22 @@ const styles = StyleSheet.create({
 
   taskName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Satoshi-Regular',
   },
 
   taskNameDone: {
     fontSize: 16,
+    fontFamily: 'Satoshi-Regular',
     opacity: 0.6,
   },
 
   taskCheckbox: {
-    width: 40,
-    height: 40,
+    width: 45,
+    height: 45,
     borderRadius: 5,
     marginLeft: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   taskCheckboxDone: {

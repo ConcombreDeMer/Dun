@@ -53,7 +53,7 @@ export const ActionButton = ({
                         source={getImageSource(icon, theme)}
                     />
                 ) : (
-                    <Text style={[styles.text, { color: colors.text }]}>{label}</Text>
+                    <Text style={[styles.text, { color: colors.buttonText }]}>{label}</Text>
                 )}
             </TouchableOpacity>
     );
