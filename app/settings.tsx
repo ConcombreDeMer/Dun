@@ -12,6 +12,7 @@ import {
 import { useState } from "react";
 import { useTheme } from "../lib/ThemeContext";
 import { getImageSource } from "../lib/imageHelper";
+import { ActionButton } from "../components/actionButton";
 
 export default function Settings() {
     const router = useRouter();
@@ -140,7 +141,7 @@ export default function Settings() {
 
                 <View style={styles.bottomSpacer} />
             </ScrollView>
-
+{/* 
             <TouchableOpacity
                 onPress={() => router.back()}
                 style={[styles.backButton, { backgroundColor: colors.actionButton }]}
@@ -149,7 +150,16 @@ export default function Settings() {
                     style={{ width: 34, height: 34 }}
                     source={getImageSource('home', theme)}
                 ></Image>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
+
+            <ActionButton
+                scale="small"
+                content="image"
+                icon="home"
+                position="right"
+                onPress={() => router.back()}
+            />
+            
         </View>
     );
 }

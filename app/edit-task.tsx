@@ -17,6 +17,7 @@ import { Image } from "react-native";
 import { taskEmitter } from "../lib/eventEmitter";
 import { useTheme } from "../lib/ThemeContext";
 import { getImageSource } from "../lib/imageHelper";
+import { ActionButton } from "../components/actionButton";
 
 export default function EditTask() {
     const router = useRouter();
@@ -146,7 +147,7 @@ export default function EditTask() {
 
                 </View>
             </ScrollView>
-            <TouchableOpacity
+            {/* <TouchableOpacity
                 onPress={handleUpdateTask}
                 disabled={saving}
                 style={[styles.createButton, saving && styles.createButtonDisabled, { backgroundColor: colors.actionButton }]}
@@ -168,7 +169,25 @@ export default function EditTask() {
                     style={{ width: 34, height: 34 }}
                     source={getImageSource('cancel', theme)}
                 ></Image>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
+
+            <ActionButton
+                scale="large"
+                content="text"
+                label ="Modifier la tâche"
+                position="right"
+                onPress={handleUpdateTask}
+            />
+            <ActionButton
+                scale="small"
+                content="image"
+                icon="cancel"
+                position="left"
+                onPress={() => router.back()}
+            />
+
+
+
         </KeyboardAvoidingView>
     );
 }

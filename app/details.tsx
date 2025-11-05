@@ -17,6 +17,7 @@ import { taskEmitter } from "../lib/eventEmitter";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "../lib/ThemeContext";
 import { getImageSource } from "../lib/imageHelper";
+import { ActionButton } from "../components/actionButton";
 
 export default function Details() {
   const router = useRouter();
@@ -168,23 +169,24 @@ export default function Details() {
 
         </View>
       </ScrollView>
-      <TouchableOpacity
+
+      <ActionButton
+        scale="small"
+        content="image"
+        icon="edit"
+        position="right"
         onPress={() => router.push(`/edit-task?id=${id}`)}
-        disabled={loading}
-        style={[styles.editFloatingButton, { backgroundColor: colors.actionButton }]}
-      >
-        <Image
-          style={{ width: 34, height: 34 }}
-          source={getImageSource('edit', theme)}
-        />
-      </TouchableOpacity>
-      <TouchableOpacity
+      />
+
+      <ActionButton
+        scale="small"
+        content="image"
+        icon="delete"
+        backColor={colors.danger}
+        position="left"
         onPress={handleDeleteTask}
-        disabled={loading}
-        style={styles.deleteFloatingButton}
-      >
-        <MaterialIcons name="delete" size={34} color="#fff" />
-      </TouchableOpacity>
+      />
+
     </KeyboardAvoidingView>
   );
 }

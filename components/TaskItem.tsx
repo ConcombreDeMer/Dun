@@ -50,12 +50,13 @@ export const TaskItem = ({
   }, [item.id, item.done, handleToggleTask]);
 
   const handlePress = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!isActive) {
       handleTaskPress(item.id);
     }
   }, [isActive, item.id, handleTaskPress]);
 
-  const taskItemStyle = item.done ? 
+  const taskItemStyle = item.done ?
     [styles.taskItemDone, { backgroundColor: colors.taskDone }] :
     [styles.taskItem, { backgroundColor: colors.task }];
 
@@ -86,7 +87,7 @@ export const TaskItem = ({
           onPress={handleCheckboxPress}
           activeOpacity={0.7}
         >
-          {item.done && <Text style={[styles.checkmark, {color: colors.checkMark}]}>✓</Text>}
+          {item.done && <Text style={[styles.checkmark, { color: colors.checkMark }]}>✓</Text>}
         </TouchableOpacity>
       </TouchableOpacity>
     </Animated.View>

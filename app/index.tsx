@@ -60,7 +60,7 @@ export default function Index() {
   }, []);
 
   const handleAddPress = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    router.push("/create-task");
   };
 
   const handleToggleTask = async (taskId: number, currentDone: boolean) => {
@@ -176,10 +176,10 @@ export default function Index() {
         </View>
 
         <ActionButton
-          destination="/create-task"
-          scale="large"
+          scale="small"
           content="image"
           icon="cancel"
+          position="right"
           onPress={handleAddPress}
         />
       </View>

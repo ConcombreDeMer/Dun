@@ -17,6 +17,7 @@ import { Image } from "react-native";
 import { taskEmitter } from "../lib/eventEmitter";
 import { useTheme } from "../lib/ThemeContext";
 import { getImageSource } from "../lib/imageHelper";
+import { ActionButton } from "../components/actionButton";
 
 export default function CreateTask() {
     const router = useRouter();
@@ -109,29 +110,20 @@ export default function CreateTask() {
 
                 </View>
             </ScrollView>
-            <TouchableOpacity
+            <ActionButton
+                scale="large"
+                content="text"
+                label ="Créer la tâche"
+                position="right"
                 onPress={handleCreateTask}
-                disabled={loading}
-                style={[styles.createButton, loading && styles.createButtonDisabled, { backgroundColor: colors.actionButton }]}
-            >
-                {loading ? (
-                    <ActivityIndicator color={colors.buttonText} size="small" />
-                ) : (
-                    <Text style={[styles.createButtonText, { color: colors.buttonText }]}>
-                        Créer la tâche
-                    </Text>
-                )}
-            </TouchableOpacity>
-            <TouchableOpacity
+            />
+            <ActionButton
+                scale="small"
+                content="image"
+                icon="cancel"
+                position="left"
                 onPress={() => router.back()}
-                disabled={loading}
-                style={[styles.backButton, { backgroundColor: colors.actionButton }]}
-            >
-                <Image
-                    style={{ width: 34, height: 34 }}
-                    source={getImageSource('cancel', theme)}
-                ></Image>
-            </TouchableOpacity>
+            />
         </KeyboardAvoidingView>
     );
 }
