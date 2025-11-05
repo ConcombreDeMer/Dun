@@ -1,6 +1,7 @@
 import { Text, View, TouchableOpacity, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
-import { useCallback } from "react";
+import { use, useCallback, useEffect } from "react";
+import { useSharedValue, runOnJS } from "react-native-reanimated";
 import Animated, {
   useAnimatedStyle,
   withSpring
@@ -27,6 +28,8 @@ export const TaskItem = ({
   handleTaskPress,
 }: TaskItemProps) => {
   const { colors } = useTheme();
+  const dotScale = useSharedValue(item.done ? 100 : 1);
+  const isExpanded = useSharedValue(item.done);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -44,10 +47,26 @@ export const TaskItem = ({
     };
   });
 
+  const dotAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      width: withSpring(10 * dotScale.value),
+      height: withSpring(10 * dotScale.value),
+      borderRadius: withSpring(2.5 * dotScale.value),
+    };
+  });
+
   const handleCheckboxPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (isExpanded.value) {
+      dotScale.value = withSpring(1);
+      isExpanded.value = false;
+    } else {
+      dotScale.value = withSpring(100);
+      isExpanded.value = true;
+    }
+
     handleToggleTask(item.id, item.done);
-  }, [item.id, item.done, handleToggleTask]);
+  }, [item.id, item.done, handleToggleTask, dotScale, isExpanded]);
 
   const handlePress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -56,9 +75,18 @@ export const TaskItem = ({
     }
   }, [isActive, item.id, handleTaskPress]);
 
-  const taskItemStyle = item.done ?
-    [styles.taskItemDone, { backgroundColor: colors.taskDone }] :
+  const taskItemStyle =
     [styles.taskItem, { backgroundColor: colors.task }];
+
+  useEffect(() => {
+    if (item.done) {
+      dotScale.value = 100;
+      isExpanded.value = true;
+    } else {
+      dotScale.value = 1;
+      isExpanded.value = false;
+    }
+  }, [item.done, dotScale, isExpanded]);
 
   return (
     <Animated.View style={[animatedStyle, shadowStyle]}>
@@ -78,17 +106,20 @@ export const TaskItem = ({
             {item.name}
           </Text>
         </View>
-        <TouchableOpacity
-          style={[
-            styles.taskCheckbox,
-            item.done && { backgroundColor: colors.checkboxDone },
-            !item.done && { backgroundColor: colors.checkbox }
-          ]}
-          onPress={handleCheckboxPress}
-          activeOpacity={0.7}
-        >
-          {item.done && <Text style={[styles.checkmark, { color: colors.checkMark }]}>✓</Text>}
-        </TouchableOpacity>
+        <View style={styles.checkboxContainer}>
+          <Animated.View style={[styles.checkboxDot, dotAnimatedStyle, { backgroundColor: colors.taskDone }]} />
+          <TouchableOpacity
+            style={[
+              styles.taskCheckbox,
+              item.done && { backgroundColor: colors.checkboxDone },
+              !item.done && { backgroundColor: colors.checkbox }
+            ]}
+            onPress={handleCheckboxPress}
+            activeOpacity={0.7}
+          >
+            {item.done && <Text style={[styles.checkmark, { color: colors.checkMark }]}>✓</Text>}
+          </TouchableOpacity>
+        </View>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -99,26 +130,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    marginTop: 10,
     paddingHorizontal: 12,
+    marginTop: 10,
     justifyContent: 'space-between',
     borderRadius: 10,
     width: '90%',
     marginLeft: 'auto',
     marginRight: 'auto',
+    overflow: 'hidden',
   },
 
   taskItemDone: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    marginTop: 10,
     paddingHorizontal: 12,
+    marginTop: 10,
     justifyContent: 'space-between',
     borderRadius: 10,
     width: '90%',
     marginLeft: 'auto',
     marginRight: 'auto',
+    overflow: 'hidden',
+    backgroundColor: '#475c48ff',
   },
 
   taskContent: {
@@ -128,21 +162,38 @@ const styles = StyleSheet.create({
   taskName: {
     fontSize: 16,
     fontFamily: 'Satoshi-Regular',
+    zIndex: 1,
   },
 
   taskNameDone: {
     fontSize: 16,
     fontFamily: 'Satoshi-Regular',
     opacity: 0.6,
+    zIndex: 1,
   },
 
   taskCheckbox: {
     width: 45,
     height: 45,
     borderRadius: 5,
-    marginLeft: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  checkboxContainer: {
+    position: 'relative',
+    width: 45,
+    height: 45,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  checkboxDot: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 10,
+    zIndex: 0,
   },
 
   taskCheckboxDone: {
