@@ -12,6 +12,7 @@ import { TaskItem } from "../components/TaskItem";
 import { useTheme } from "../lib/ThemeContext";
 import { getImageSource } from "../lib/imageHelper";
 import { StatusBar } from "expo-status-bar";
+import { ActionButton } from "../components/actionButton";
 
 export default function Index() {
   const [tasks, setTasks] = useState<any[]>([]);
@@ -129,7 +130,7 @@ export default function Index() {
             <Text style={[styles.title, { color: colors.text }]}>Tâches</Text>
             <Link
               href={"/settings"}
-              style={[styles.settingsLink, { backgroundColor: colors.border }]}
+              style={[styles.settingsLink, { backgroundColor: colors.button }]}
             >
               <Image
                 source={getImageSource('settings', theme)}
@@ -174,14 +175,13 @@ export default function Index() {
           )}
         </View>
 
-        <Link style={[styles.addButton, { backgroundColor: colors.button }]} href="/create-task" asChild>
-          <TouchableOpacity onPress={handleAddPress}>
-            <Image
-              style={{ width: 34, height: 34, transform: [{ rotate: '45deg' }] }}
-              source={getImageSource('cancel', theme)}
-            ></Image>
-          </TouchableOpacity>
-        </Link>
+        <ActionButton
+          destination="/create-task"
+          scale="large"
+          content="image"
+          icon="cancel"
+          onPress={handleAddPress}
+        />
       </View>
     </GestureHandlerRootView>
   );
@@ -192,7 +192,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 60,
-    backgroundColor: "#fff",
   },
 
   header: {
@@ -213,7 +212,6 @@ const styles = StyleSheet.create({
   settingsLink: {
     height: 50,
     width: 50,
-    backgroundColor: '#d2d2d2ff',
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -223,7 +221,6 @@ const styles = StyleSheet.create({
 
   calendar: {
     marginTop: 20,
-    backgroundColor: '#dcdcdcff',
     borderRadius: 10,
     height: 100,
     width: '100%',
@@ -247,7 +244,6 @@ const styles = StyleSheet.create({
 
   emptyText: {
     fontSize: 16,
-    color: '#999',
     textAlign: 'center',
     marginTop: 20,
   },
@@ -256,7 +252,6 @@ const styles = StyleSheet.create({
     height: 70,
     width: 70,
     borderRadius: 100,
-    backgroundColor: 'black',
     color: 'white',
     fontSize: 30,
     lineHeight: 65,

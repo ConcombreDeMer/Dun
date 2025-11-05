@@ -82,10 +82,7 @@ export default function Settings() {
                 {/* Section Apparence */}
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>Apparence</Text>
-                    <TouchableOpacity
-                        style={[styles.settingButton, { backgroundColor: colors.card }]}
-                        onPress={toggleTheme}
-                    >
+                    <View style={[styles.settingItem, { backgroundColor: colors.card }]}>
                         <View style={styles.settingInfo}>
                             <Text style={[styles.settingLabel, { color: colors.text }]}>
                                 {theme === 'light' ? '☀️ Mode clair' : '🌙 Mode sombre'}
@@ -94,8 +91,13 @@ export default function Settings() {
                                 {theme === 'light' ? 'Passer au mode sombre' : 'Passer au mode clair'}
                             </Text>
                         </View>
-                        <Text style={[styles.settingArrow, { color: colors.text }]}>›</Text>
-                    </TouchableOpacity>
+                        <Switch
+                            value={theme === 'dark'}
+                            onValueChange={toggleTheme}
+                            trackColor={{ false: "#ccc", true: "#000" }}
+                            thumbColor="#fff"
+                        />
+                    </View>
                 </View>
 
                 {/* Section Données */}
@@ -141,7 +143,7 @@ export default function Settings() {
 
             <TouchableOpacity
                 onPress={() => router.back()}
-                style={[styles.backButton, { backgroundColor: colors.button }]}
+                style={[styles.backButton, { backgroundColor: colors.actionButton }]}
             >
                 <Image
                     style={{ width: 34, height: 34 }}

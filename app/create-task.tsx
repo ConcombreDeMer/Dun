@@ -112,7 +112,7 @@ export default function CreateTask() {
             <TouchableOpacity
                 onPress={handleCreateTask}
                 disabled={loading}
-                style={[styles.createButton, loading && styles.createButtonDisabled, { backgroundColor: colors.button }]}
+                style={[styles.createButton, loading && styles.createButtonDisabled, { backgroundColor: colors.actionButton }]}
             >
                 {loading ? (
                     <ActivityIndicator color={colors.buttonText} size="small" />
@@ -125,7 +125,7 @@ export default function CreateTask() {
             <TouchableOpacity
                 onPress={() => router.back()}
                 disabled={loading}
-                style={[styles.backButton, { backgroundColor: colors.button }]}
+                style={[styles.backButton, { backgroundColor: colors.actionButton }]}
             >
                 <Image
                     style={{ width: 34, height: 34 }}

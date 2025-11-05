@@ -149,7 +149,7 @@ export default function EditTask() {
             <TouchableOpacity
                 onPress={handleUpdateTask}
                 disabled={saving}
-                style={[styles.createButton, saving && styles.createButtonDisabled, { backgroundColor: colors.button }]}
+                style={[styles.createButton, saving && styles.createButtonDisabled, { backgroundColor: colors.actionButton }]}
             >
                 {saving ? (
                     <ActivityIndicator color={colors.buttonText} size="small" />
@@ -162,7 +162,7 @@ export default function EditTask() {
             <TouchableOpacity
                 onPress={() => router.back()}
                 disabled={saving}
-                style={[styles.backButton, { backgroundColor: colors.button }]}
+                style={[styles.backButton, { backgroundColor: colors.actionButton }]}
             >
                 <Image
                     style={{ width: 34, height: 34 }}

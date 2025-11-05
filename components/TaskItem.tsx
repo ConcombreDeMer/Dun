@@ -56,8 +56,8 @@ export const TaskItem = ({
   }, [isActive, item.id, handleTaskPress]);
 
   const taskItemStyle = item.done ? 
-    [styles.taskItemDone, { backgroundColor: colors.donePrimary }] :
-    [styles.taskItem, { backgroundColor: colors.card }];
+    [styles.taskItemDone, { backgroundColor: colors.taskDone }] :
+    [styles.taskItem, { backgroundColor: colors.task }];
 
   return (
     <Animated.View style={[animatedStyle, shadowStyle]}>
@@ -80,13 +80,13 @@ export const TaskItem = ({
         <TouchableOpacity
           style={[
             styles.taskCheckbox,
-            item.done && { backgroundColor: colors.doneSecondary },
-            !item.done && { backgroundColor: colors.border }
+            item.done && { backgroundColor: colors.checkboxDone },
+            !item.done && { backgroundColor: colors.checkbox }
           ]}
           onPress={handleCheckboxPress}
           activeOpacity={0.7}
         >
-          {item.done && <Text style={styles.checkmark}>✓</Text>}
+          {item.done && <Text style={[styles.checkmark, {color: colors.checkMark}]}>✓</Text>}
         </TouchableOpacity>
       </TouchableOpacity>
     </Animated.View>
@@ -103,7 +103,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingLeft: 25,
     paddingRight: 25,
-    backgroundColor: '#ebebebff',
     justifyContent: 'space-between',
     borderRadius: 10,
     width: '90%',
@@ -120,7 +119,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingLeft: 25,
     paddingRight: 25,
-    backgroundColor: '#CFE7CB',
     justifyContent: 'space-between',
     borderRadius: 10,
     width: '90%',
@@ -135,12 +133,10 @@ const styles = StyleSheet.create({
   taskName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
   },
 
   taskNameDone: {
     fontSize: 16,
-    color: '#666',
     opacity: 0.6,
   },
 
@@ -149,16 +145,13 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 5,
     marginLeft: 12,
-    backgroundColor: '#D9D9D9',
   },
 
   taskCheckboxDone: {
-    backgroundColor: '#9DBD99',
   },
 
   checkmark: {
     fontSize: 24,
-    color: 'white',
     fontWeight: 'bold',
     textAlign: 'center',
     lineHeight: 40,

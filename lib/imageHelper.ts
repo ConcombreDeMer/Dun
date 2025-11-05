@@ -3,15 +3,15 @@ export const getImageSource = (iconName: string, theme: 'light' | 'dark') => {
   if (theme === 'dark') {
     switch (iconName) {
       case 'cancel':
-        return require('../assets/images/dark/cancel.png');
+        return require('../assets/images/dark2/cancel.png');
       case 'settings':
-        return require('../assets/images/dark/settings.png');
+        return require('../assets/images/dark2/settings.png');
       case 'edit':
-        return require('../assets/images/dark/edit.png');
+        return require('../assets/images/dark2/edit.png');
       case 'home':
-        return require('../assets/images/dark/home.png');
+        return require('../assets/images/dark2/home.png');
       default:
-        return require('../assets/images/dark/cancel.png');
+        return require('../assets/images/dark2/cancel.png');
     }
   } else {
     switch (iconName) {

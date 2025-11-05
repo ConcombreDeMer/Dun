@@ -12,14 +12,22 @@ export interface Colors {
     input: string;
     inputPlaceholder: string;
     card: string;
+    task: string;
+    taskDone: string;
+    checkbox: string;
+    checkboxDone: string;
     button: string;
     buttonText: string;
+    actionButton: string;
     danger: string;
     dangerText: string;
     icon: string;
     donePrimary?: string;
     doneSecondary?: string;
+    checkMark: string;
 }
+
+
 
 export const lightColors: Colors = {
     background: '#ffffff',
@@ -29,13 +37,19 @@ export const lightColors: Colors = {
     input: '#ebebebff',
     inputPlaceholder: '#999999',
     card: '#f5f5f5',
-    button: '#000000ff',
+    button: '#B3B3B3',
     buttonText: '#ffffff',
     danger: '#d32f2f',
     dangerText: '#d32f2f',
     icon: '#000000',
     donePrimary: '#CFE7CB',
     doneSecondary: '#9DBD99',
+    task: '#EFEFEF',
+    checkbox: '#D9D9D9',
+    taskDone: '#CFE7CB',
+    checkboxDone: '#9DBD99',
+    checkMark: 'white',
+    actionButton: 'black'
 };
 
 export const darkColors: Colors = {
@@ -46,15 +60,20 @@ export const darkColors: Colors = {
     input: '#2a2a2a',
     inputPlaceholder: '#666666',
     card: '#2a2a2a',
-    button: '#ffffff',
-    buttonText: '#000000',
+    button: '#343434ff',
+    buttonText: '#abababff',
     danger: '#ff5252',
     dangerText: '#ff5252',
     icon: '#ffffff',
     donePrimary: '#4d714fff',
     doneSecondary: '#73a175ff',
+    task: '#2b2a2aff',
+    checkbox: '#4b4b4bff',
+    taskDone: '#475c48ff',
+    checkboxDone: '#5f7760ff',
+    checkMark: '#333533ff',
+    actionButton: '#343434ff',
 };
-
 interface ThemeContextType {
     theme: Theme;
     colors: Colors;

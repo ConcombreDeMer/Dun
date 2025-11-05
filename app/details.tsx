@@ -171,7 +171,7 @@ export default function Details() {
       <TouchableOpacity
         onPress={() => router.push(`/edit-task?id=${id}`)}
         disabled={loading}
-        style={[styles.editFloatingButton, { backgroundColor: colors.button }]}
+        style={[styles.editFloatingButton, { backgroundColor: colors.actionButton }]}
       >
         <Image
           style={{ width: 34, height: 34 }}
