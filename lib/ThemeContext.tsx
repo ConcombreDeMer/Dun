@@ -25,6 +25,7 @@ export interface Colors {
     donePrimary?: string;
     doneSecondary?: string;
     checkMark: string;
+    textDone?: string;
 }
 
 
@@ -48,6 +49,7 @@ export const lightColors: Colors = {
     checkbox: '#D9D9D9',
     taskDone: '#CFE7CB',
     checkboxDone: '#9DBD99',
+    textDone: '#292929ff',
     checkMark: 'white',
     actionButton: 'black'
 };
@@ -71,6 +73,7 @@ export const darkColors: Colors = {
     checkbox: '#4b4b4bff',
     taskDone: '#475c48ff',
     checkboxDone: '#5f7760ff',
+    textDone: '#c0c0c0ff',
     checkMark: '#333533ff',
     actionButton: '#343434ff',
 };

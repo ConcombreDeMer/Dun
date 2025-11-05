@@ -101,7 +101,7 @@ export const TaskItem = ({
         <View style={styles.taskContent}>
           <Text style={[
             item.done ? styles.taskNameDone : styles.taskName,
-            { color: item.done ? colors.textSecondary : colors.text }
+            { color: item.done ? colors.textDone : colors.text }
           ]}>
             {item.name}
           </Text>

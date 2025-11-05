@@ -107,9 +107,14 @@ export default function EditTask() {
             <View style={styles.handleContainer}>
                 <View style={[styles.handle, { backgroundColor: colors.border }]} />
             </View>
-            <Text style={[styles.title, { color: colors.text }]}>
-                Modifier la tâche
-            </Text>
+            <View>
+                <Text style={[styles.title, { color: colors.text }]}>
+                    Modifier
+                </Text>
+                <Text style={[styles.subtitle, { color: colors.text }]}>
+                    la tâche
+                </Text>
+            </View>
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.mainView}>
 
@@ -147,34 +152,11 @@ export default function EditTask() {
 
                 </View>
             </ScrollView>
-            {/* <TouchableOpacity
-                onPress={handleUpdateTask}
-                disabled={saving}
-                style={[styles.createButton, saving && styles.createButtonDisabled, { backgroundColor: colors.actionButton }]}
-            >
-                {saving ? (
-                    <ActivityIndicator color={colors.buttonText} size="small" />
-                ) : (
-                    <Text style={[styles.createButtonText, { color: colors.buttonText }]}>
-                        Modifier la tâche
-                    </Text>
-                )}
-            </TouchableOpacity>
-            <TouchableOpacity
-                onPress={() => router.back()}
-                disabled={saving}
-                style={[styles.backButton, { backgroundColor: colors.actionButton }]}
-            >
-                <Image
-                    style={{ width: 34, height: 34 }}
-                    source={getImageSource('cancel', theme)}
-                ></Image>
-            </TouchableOpacity> */}
 
             <ActionButton
                 scale="large"
                 content="text"
-                label ="Modifier la tâche"
+                label="Modifier la tâche"
                 position="right"
                 onPress={handleUpdateTask}
             />
@@ -185,8 +167,6 @@ export default function EditTask() {
                 position="left"
                 onPress={() => router.back()}
             />
-
-
 
         </KeyboardAvoidingView>
     );
@@ -217,6 +197,14 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 55,
         fontFamily: 'Satoshi-Black',
+    },
+
+    subtitle: {
+        fontSize: 26,
+        marginLeft: 5,
+        marginTop: -10,
+        fontFamily: 'Satoshi-Regular',
+        opacity: 0.7,
     },
 
     scrollContent: {

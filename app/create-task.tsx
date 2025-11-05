@@ -67,9 +67,14 @@ export default function CreateTask() {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={[styles.container, { backgroundColor: colors.background }]}
         >
-            <Text style={[styles.title, { color: colors.text }]}>
-                Créer une tâche
-            </Text>
+            <View>
+                <Text style={[styles.title, { color: colors.text }]}>
+                    Créer
+                </Text>
+                <Text style={[styles.subtitle, { color: colors.text }]}>
+                    une tâche
+                </Text>
+            </View>
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.mainView}>
 
@@ -113,7 +118,7 @@ export default function CreateTask() {
             <ActionButton
                 scale="large"
                 content="text"
-                label ="Créer la tâche"
+                label="Créer la tâche"
                 position="right"
                 onPress={handleCreateTask}
             />
@@ -142,6 +147,14 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 55,
         fontFamily: 'Satoshi-Black',
+    },
+
+    subtitle: {
+        fontSize: 26,
+        marginLeft: 5,
+        marginTop: -10,
+        fontFamily: 'Satoshi-Regular',
+        opacity: 0.7,
     },
 
     scrollContent: {
