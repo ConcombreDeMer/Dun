@@ -9,7 +9,9 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    Modal,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { StyleSheet } from "react-native";
@@ -26,6 +28,8 @@ export default function EditTask() {
     const [description, setDescription] = useState("");
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [showDatePicker, setShowDatePicker] = useState(false);
     const { colors, theme } = useTheme();
 
     useEffect(() => {
@@ -46,6 +50,7 @@ export default function EditTask() {
 
                 setName(data.name);
                 setDescription(data.description || "");
+                setSelectedDate(data.date ? new Date(data.date) : new Date());
             } catch (error) {
                 Alert.alert("Erreur", "Une erreur est survenue");
                 console.error(error);
@@ -72,6 +77,7 @@ export default function EditTask() {
                 .update({
                     name: name.trim(),
                     description: description.trim(),
+                    date: selectedDate.toDateString(),
                 })
                 .eq("id", id);
 
@@ -89,6 +95,19 @@ export default function EditTask() {
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleDateChange = (event: any, date?: Date) => {
+        if (Platform.OS === "android") {
+            setShowDatePicker(false);
+        }
+        if (date) {
+            setSelectedDate(date);
+        }
+    };
+
+    const handleCloseDatePicker = () => {
+        setShowDatePicker(false);
     };
 
     if (loading) {
@@ -149,6 +168,72 @@ export default function EditTask() {
                             editable={!saving}
                         />
                     </View>
+
+                    <View style={styles.dateContainer}>
+                        <Text style={[styles.label, { color: colors.text }]}>
+                            Date
+                        </Text>
+                        <TouchableOpacity
+                            style={[styles.dateButton, { backgroundColor: colors.input, borderColor: colors.border }]}
+                            onPress={() => setShowDatePicker(true)}
+                            disabled={saving}
+                        >
+                            <Text style={[styles.dateButtonText, { color: colors.text }]}>
+                                {selectedDate.toLocaleDateString("fr-FR", {
+                                    weekday: "long",
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                })}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {showDatePicker && Platform.OS === "ios" && (
+                        <Modal
+                            transparent
+                            visible={showDatePicker}
+                            animationType="fade"
+                            onRequestClose={handleCloseDatePicker}
+                        >
+                            <TouchableOpacity
+                                activeOpacity={1}
+                                style={styles.datePickerOverlay}
+                                onPress={handleCloseDatePicker}
+                            >
+                                <View style={styles.datePickerContainer}>
+                                    <View
+                                        style={styles.datePickerContent}
+                                        onTouchEnd={(e) => e.stopPropagation()}
+                                    >
+                                        <DateTimePicker
+                                            value={selectedDate}
+                                            mode="date"
+                                            display="spinner"
+                                            onChange={handleDateChange}
+                                        />
+                                        <TouchableOpacity
+                                            style={[styles.datePickerCloseButton, { backgroundColor: colors.actionButton }]}
+                                            onPress={handleCloseDatePicker}
+                                        >
+                                            <Text style={[styles.datePickerCloseText, { color: colors.buttonText }]}>
+                                                Fermer
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        </Modal>
+                    )}
+
+                    {showDatePicker && Platform.OS === "android" && (
+                        <DateTimePicker
+                            value={selectedDate}
+                            mode="date"
+                            display="default"
+                            onChange={handleDateChange}
+                        />
+                    )}
 
                 </View>
             </ScrollView>
@@ -270,5 +355,51 @@ const styles = StyleSheet.create({
         position: "absolute",
         bottom: 30,
         left: 30,
+    },
+    dateContainer: {
+        marginBottom: 30,
+    },
+    dateButton: {
+        borderWidth: 1,
+        borderRadius: 8,
+        padding: 12,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    dateButtonText: {
+        fontSize: 16,
+        fontWeight: "500",
+        textTransform: "capitalize",
+    },
+    datePickerOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        justifyContent: "flex-end",
+    },
+    datePickerContainer: {
+        paddingBottom: 20,
+        borderRadius: 10,
+        marginBottom: 10,
+    },
+    datePickerContent: {
+        backgroundColor: "white",
+        paddingBottom: 10,
+        borderRadius: 10,
+        marginLeft: "auto",
+        marginRight: "auto",
+        width: "90%",
+        display: "flex",
+        alignItems: "center",
+    },
+    datePickerCloseButton: {
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        margin: 10,
+        borderRadius: 8,
+        alignItems: "center",
+    },
+    datePickerCloseText: {
+        fontSize: 16,
+        fontWeight: "600",
     },
 });
