@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import {
     Text,
     View,
@@ -9,8 +9,10 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    Modal,
 } from "react-native";
 import { useState } from "react";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { supabase } from "../lib/supabase";
 import { StyleSheet } from "react-native";
 import { Image } from "react-native";
@@ -21,9 +23,14 @@ import { ActionButton } from "../components/actionButton";
 
 export default function CreateTask() {
     const router = useRouter();
+    const params = useLocalSearchParams();
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [loading, setLoading] = useState(false);
+    const [selectedDate, setSelectedDate] = useState<Date>(
+        params.selectedDate ? new Date(params.selectedDate as string) : new Date()
+    );
+    const [showDatePicker, setShowDatePicker] = useState(false);
     const { colors, theme } = useTheme();
 
     const handleCreateTask = async () => {
@@ -31,7 +38,6 @@ export default function CreateTask() {
             Alert.alert("Erreur", "Le nom de la tâche est requis");
             return;
         }
-
         setLoading(true);
         try {
             const { error } = await supabase.from("Tasks").insert([
@@ -39,8 +45,8 @@ export default function CreateTask() {
                     name: name.trim(),
                     description: description.trim(),
                     done: false,
-                    date: new Date().toISOString().split("T")[0],
-                    created_at: new Date().toISOString(),
+                    date: selectedDate.toDateString(),
+                    created_at: new Date().toDateString(),
                 },
             ]);
 
@@ -60,6 +66,19 @@ export default function CreateTask() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleDateChange = (event: any, date?: Date) => {
+        if (Platform.OS === "android") {
+            setShowDatePicker(false);
+        }
+        if (date) {
+            setSelectedDate(date);
+        }
+    };
+
+    const handleCloseDatePicker = () => {
+        setShowDatePicker(false);
     };
 
     return (
@@ -110,8 +129,71 @@ export default function CreateTask() {
                         />
                     </View>
 
-                    {/* ici */}
+                    <View style={styles.dateContainer}>
+                        <Text style={[styles.label, { color: colors.text }]}>
+                            Date
+                        </Text>
+                        <TouchableOpacity
+                            style={[styles.dateButton, { backgroundColor: colors.input, borderColor: colors.border }]}
+                            onPress={() => setShowDatePicker(true)}
+                            disabled={loading}
+                        >
+                            <Text style={[styles.dateButtonText, { color: colors.text }]}>
+                                {selectedDate.toLocaleDateString("fr-FR", {
+                                    weekday: "long",
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                })}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
 
+                    {showDatePicker && Platform.OS === "ios" && (
+                        <Modal
+                            transparent
+                            visible={showDatePicker}
+                            animationType="fade"
+                            onRequestClose={handleCloseDatePicker}
+                        >
+                            <TouchableOpacity
+                                activeOpacity={1}
+                                style={styles.datePickerOverlay}
+                                onPress={handleCloseDatePicker}
+                            >
+                                <View style={styles.datePickerContainer}>
+                                    <View
+                                        style={styles.datePickerContent}
+                                        onTouchEnd={(e) => e.stopPropagation()}
+                                    >
+                                        <DateTimePicker
+                                            value={selectedDate}
+                                            mode="date"
+                                            display="spinner"
+                                            onChange={handleDateChange}
+                                        />
+                                        <TouchableOpacity
+                                            style={[styles.datePickerCloseButton, { backgroundColor: colors.actionButton }]}
+                                            onPress={handleCloseDatePicker}
+                                        >
+                                            <Text style={[styles.datePickerCloseText, { color: colors.buttonText }]}>
+                                                Fermer
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        </Modal>
+                    )}
+
+                    {showDatePicker && Platform.OS === "android" && (
+                        <DateTimePicker
+                            value={selectedDate}
+                            mode="date"
+                            display="default"
+                            onChange={handleDateChange}
+                        />
+                    )}
 
                 </View>
             </ScrollView>
@@ -221,4 +303,52 @@ const styles = StyleSheet.create({
         bottom: 30,
         left: 30,
     },
+    dateContainer: {
+        marginBottom: 30,
+    },
+    dateButton: {
+        borderWidth: 1,
+        borderRadius: 8,
+        padding: 12,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    dateButtonText: {
+        fontSize: 16,
+        fontWeight: "500",
+        textTransform: "capitalize",
+    },
+    datePickerOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        justifyContent: "flex-end",
+    },
+    datePickerContainer: {
+        paddingBottom: 20,
+        borderRadius: 10,
+        marginBottom: 10,
+
+    },
+    datePickerContent: {
+        backgroundColor: "white",
+        paddingBottom: 10,
+        borderRadius: 10,
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        width: "90%",
+        display: "flex",
+        alignItems: "center",
+    },
+    datePickerCloseButton: {
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        margin: 10,
+        borderRadius: 8,
+        alignItems: "center",
+    },
+    datePickerCloseText: {
+        fontSize: 16,
+        fontWeight: "600",
+    },
+
 });

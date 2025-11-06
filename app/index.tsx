@@ -13,10 +13,12 @@ import { useTheme } from "../lib/ThemeContext";
 import { getImageSource } from "../lib/imageHelper";
 import { StatusBar } from "expo-status-bar";
 import { ActionButton } from "../components/actionButton";
+import CalendarComponent from "@/components/calendar";
 
 export default function Index() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const router = useRouter();
   const { colors, theme } = useTheme();
 
@@ -60,7 +62,10 @@ export default function Index() {
   }, []);
 
   const handleAddPress = async () => {
-    router.push("/create-task");
+    router.push({
+      pathname: "/create-task",
+      params: { selectedDate : selectedDate as unknown as string },
+    });
   };
 
   const handleToggleTask = async (taskId: number, currentDone: boolean) => {
@@ -120,6 +125,29 @@ export default function Index() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }
 
+  const [date, setDate] = useState(new Date().toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }));
+
+
+  const changeDate = async (newDate: Date) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    console.log("Date changée:", newDate);
+    setSelectedDate(newDate);
+    const newString = newDate.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+    setDate(newString);
+  }
+
+  // Filtrer les tâches par date sélectionnée
+  const filteredTasks = tasks.filter((task) => {
+    if (!task.date) return false;
+    const taskDate = new Date(task.date);
+    return (
+      taskDate.getDate() === selectedDate.getDate() &&
+      taskDate.getMonth() === selectedDate.getMonth() &&
+      taskDate.getFullYear() === selectedDate.getFullYear()
+    );
+  });
+
+
   return (
 
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -137,8 +165,12 @@ export default function Index() {
               ></Image>
             </Link>
           </View>
-          <View style={[styles.calendar, { backgroundColor: colors.card }]}></View>
-          <Text style={[styles.date, { color: colors.text }]}>Aujourd'hui</Text>
+
+          <CalendarComponent
+            tasks={tasks}
+            onDateSelect={(date) => changeDate(date)}
+          />
+          {/* <Text style={[styles.date, { color: colors.text }]}>{date}</Text> */}
         </View>
 
         <View style={styles.listContainer}>
@@ -148,7 +180,7 @@ export default function Index() {
             </View>
           ) : (
             <DraggableFlatList
-              data={tasks}
+              data={filteredTasks}
               keyExtractor={(item) => item.id.toString()}
               scrollEnabled={true}
               nestedScrollEnabled={true}
@@ -169,7 +201,7 @@ export default function Index() {
                 />
               )}
               ListEmptyComponent={
-                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Aucune tâche pour aujourd'hui</Text>
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Aucune tâche pour cette date</Text>
               }
             />
           )}
