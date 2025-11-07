@@ -13,6 +13,8 @@ import { useState } from "react";
 import { useTheme } from "../lib/ThemeContext";
 import { getImageSource } from "../lib/imageHelper";
 import { ActionButton } from "../components/actionButton";
+import { supabase } from "../lib/supabase";
+import { taskEmitter } from "../lib/eventEmitter";
 
 export default function Settings() {
     const router = useRouter();
@@ -32,9 +34,26 @@ export default function Settings() {
                 },
                 {
                     text: "Supprimer",
-                    onPress: () => {
-                        // Implémenter la logique de suppression
-                        Alert.alert("Succès", "Toutes les tâches ont été supprimées");
+                    onPress: async () => {
+                        try {
+                            const { error } = await supabase
+                                .from("Tasks")
+                                .delete()
+                                .neq("id", 0); // Supprime tous les enregistrements
+
+                            if (error) {
+                                console.error("Erreur lors de la suppression des tâches:", error);
+                                Alert.alert("Erreur", "Impossible de supprimer les tâches");
+                                return;
+                            }
+
+                            // Émettre l'événement de suppression
+                            taskEmitter.emit("taskDeleted");
+                            Alert.alert("Succès", "Toutes les tâches ont été supprimées");
+                        } catch (error) {
+                            console.error("Erreur:", error);
+                            Alert.alert("Erreur", "Une erreur s'est produite");
+                        }
                     },
                     style: "destructive",
                 },
