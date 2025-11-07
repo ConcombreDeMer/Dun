@@ -252,8 +252,10 @@ export default function CalendarComponent({
                     {selectedDate.toDateString() !== new Date().toDateString() && (
                         <TouchableOpacity
                             onPress={() => {
-                                setSelectedDate(new Date());
-                                onDateSelect?.(new Date());
+                                const today = new Date();
+                                setSelectedDate(today);
+                                setCurrentMonth(today);
+                                onDateSelect?.(today);
                             }}
                             style={styles.todayButton}
                         >
@@ -295,7 +297,7 @@ export default function CalendarComponent({
                 {/* En-tête du calendrier */}
                 <View style={[styles.header, { borderBottomColor: colors.border }]}>
                     <TouchableOpacity onPress={previousMonth} style={styles.navButton}>
-                        <Text style={{ color: colors.button, fontSize: 24 }}>←</Text>
+                        <Text style={{ color: colors.textSecondary, fontSize: 24 }}>←</Text>
                     </TouchableOpacity>
 
                     <Text
@@ -310,7 +312,7 @@ export default function CalendarComponent({
                     </Text>
 
                     <TouchableOpacity onPress={nextMonth} style={styles.navButton}>
-                        <Text style={{ color: colors.button, fontSize: 24 }}>→</Text>
+                        <Text style={{ color: colors.textSecondary, fontSize: 24 }}>→</Text>
                     </TouchableOpacity>
                 </View>
 
