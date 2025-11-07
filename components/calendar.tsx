@@ -249,24 +249,26 @@ export default function CalendarComponent({
                 </Text>
 
                 <View style={{ flexDirection: "row", alignItems: "center", position: "relative" }}>
-                    <TouchableOpacity
-                        onPress={() => {
-                            setSelectedDate(new Date());
-                            onDateSelect?.(new Date());
-                        }}
-                        style={styles.todayButton}
-                    >
-                        <Image
-                            style={[
-                                {
-                                    width: '100%',
-                                    height: '100%',
-                                    tintColor: colors.text,
-                                },
-                            ]}
-                            source={getImageSource('today', theme)}>
-                        </Image>
-                    </TouchableOpacity>
+                    {selectedDate.toDateString() !== new Date().toDateString() && (
+                        <TouchableOpacity
+                            onPress={() => {
+                                setSelectedDate(new Date());
+                                onDateSelect?.(new Date());
+                            }}
+                            style={styles.todayButton}
+                        >
+                            <Image
+                                style={[
+                                    {
+                                        width: '100%',
+                                        height: '100%',
+                                        tintColor: colors.text,
+                                    },
+                                ]}
+                                source={getImageSource('today', theme)}>
+                            </Image>
+                        </TouchableOpacity>
+                    )}
 
                     <TouchableOpacity
                         onPress={toggleExpanded}
