@@ -14,11 +14,18 @@ import { getImageSource } from "../lib/imageHelper";
 import { StatusBar } from "expo-status-bar";
 import { ActionButton } from "../components/actionButton";
 import CalendarComponent from "@/components/calendar";
+import { AIAnalysisModal } from "@/components/AIAnalysisModal";
+import { analyzeTasksWithAI } from "@/lib/aiAnalysis";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function Index() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [aiModalVisible, setAiModalVisible] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<string>("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | undefined>();
   const router = useRouter();
   const { colors, theme } = useTheme();
 
@@ -136,6 +143,27 @@ export default function Index() {
     setDate(newString);
   }
 
+  const handleAIPress = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setAiModalVisible(true);
+    setAiLoading(true);
+    setAiError(undefined);
+
+    try {
+      const analysis = await analyzeTasksWithAI(filteredTasks, selectedDate);
+      setAiAnalysis(analysis);
+    } catch (error) {
+      console.error("Erreur IA:", error);
+      setAiError(
+        error instanceof Error
+          ? error.message
+          : "Une erreur est survenue lors de l'analyse"
+      );
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   // Filtrer les tâches par date sélectionnée
   const filteredTasks = tasks.filter((task) => {
     if (!task.date) return false;
@@ -156,14 +184,23 @@ export default function Index() {
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={[styles.title, { color: colors.text }]}>Tâches</Text>
-            <Link
-              href={"/settings"}
-              style={[styles.settingsLink, { backgroundColor: colors.button }]}
-            >
-              <Image
-                source={getImageSource('settings', theme)}
-              ></Image>
-            </Link>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                style={[styles.aiButton, { backgroundColor: colors.button }]}
+                onPress={handleAIPress}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="sparkles" size={24} color={colors.text} />
+              </TouchableOpacity>
+              <Link
+                href={"/settings"}
+                style={[styles.settingsLink, { backgroundColor: colors.button }]}
+              >
+                <Image
+                  source={getImageSource('settings', theme)}
+                ></Image>
+              </Link>
+            </View>
           </View>
 
           <CalendarComponent
@@ -214,6 +251,14 @@ export default function Index() {
           position="right"
           onPress={handleAddPress}
         />
+
+        <AIAnalysisModal
+          visible={aiModalVisible}
+          analysis={aiAnalysis}
+          loading={aiLoading}
+          error={aiError}
+          onClose={() => setAiModalVisible(false)}
+        />
       </View>
     </GestureHandlerRootView>
   );
@@ -248,7 +293,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 3,
+  },
 
+  aiButton: {
+    height: 50,
+    width: 50,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   calendar: {
