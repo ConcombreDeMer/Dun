@@ -20,94 +20,46 @@ export default function StartScreen() {
     const styles = createStyles(colors);
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-            <View style={styles.content}>
-                {/* Header Section */}
-                <View style={styles.headerSection}>
-                    <View style={styles.animationContainer}>
-                        <LottieView
-                            source={require("../../assets/animations/Logo.json")}
-                            autoPlay
-                            loop={false}
-                            style={styles.lottieAnimation}
-                        />
-                    </View>
-                    <Text style={[styles.appTagline, { color: colors.textSecondary }]}>
-                        Bienvenue dans Dun 👋
-                    </Text>
-                </View>
-
-                {/* Illustration/Feature Section */}
-                <View style={styles.middleSection}>
-                    <View
-                        style={[
-                            styles.illustrationBox,
-                            { backgroundColor: colors.card, borderColor: colors.border },
-                        ]}
-                    >
-                        <Text style={[styles.featureIcon, { color: colors.button }]}>✓</Text>
-                        <Text style={[styles.featureText, { color: colors.text }]}>
-                            Organisez votre journée
-                        </Text>
-                    </View>
-
-                    <View
-                        style={[
-                            styles.illustrationBox,
-                            { backgroundColor: colors.card, borderColor: colors.border },
-                        ]}
-                    >
-                        <Text style={[styles.featureIcon, { color: colors.button }]}>📅</Text>
-                        <Text style={[styles.featureText, { color: colors.text }]}>
-                            Planifiez facilement
-                        </Text>
-                    </View>
-
-                    <View
-                        style={[
-                            styles.illustrationBox,
-                            { backgroundColor: colors.card, borderColor: colors.border },
-                        ]}
-                    >
-                        <Text style={[styles.featureIcon, { color: colors.button }]}>🎯</Text>
-                        <Text style={[styles.featureText, { color: colors.text }]}>
-                            Atteignez vos objectifs
-                        </Text>
-                    </View>
-                </View>
-
-                {/* Button Section */}
-                <View style={styles.buttonSection}>
-                    {/* Register Button */}
-                    <TouchableOpacity
-                        style={[styles.primaryButton, { backgroundColor: colors.actionButton }]}
-                        onPress={() => router.push('/onboarding/register')}
-                    >
-                        <Text style={[styles.primaryButtonText, { color: colors.buttonText }]}>
-                            Créer un compte
-                        </Text>
-                    </TouchableOpacity>
-
-                    {/* Login Button */}
-                    <TouchableOpacity
-                        style={[
-                            styles.secondaryButton,
-                            { borderColor: colors.border, borderWidth: 1.5 },
-                        ]}
-                        onPress={() => router.push('/onboarding/login')}
-                    >
-                        <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
-                            Se connecter
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Footer Info */}
-                <Text style={[styles.footerInfo, { color: colors.textSecondary }]}>
-                    Aucune donnée personnelle ne sera partagée
-                </Text>
+        <View style={styles.content}>
+            <View style={styles.animationContainer}>
+                <LottieView
+                    source={require("../../assets/animations/Onboard.json")}
+                    autoPlay
+                    loop={false}
+                    style={styles.lottieAnimation}
+                />
             </View>
-        </SafeAreaView>
+            {/* Button Section */}
+            <View style={styles.buttonSection}>
+                {/* Register Button */}
+                <TouchableOpacity
+                    style={[styles.primaryButton, { backgroundColor: colors.actionButton }]}
+                    onPress={() => router.push('/onboarding/register')}
+                >
+                    <Text style={[styles.primaryButtonText, { color: colors.buttonText }]}>
+                        Créer un compte
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Login Button */}
+                <TouchableOpacity
+                    style={[
+                        styles.secondaryButton,
+                        { borderColor: colors.border, borderWidth: 1.5 },
+                    ]}
+                    onPress={() => router.push('/onboarding/login')}
+                >
+                    <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
+                        Se connecter
+                    </Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* Footer Info */}
+            <Text style={[styles.footerInfo, { color: colors.textSecondary }]}>
+                Aucune donnée personnelle ne sera partagée
+            </Text>
+        </View>
     );
 }
 
@@ -118,8 +70,6 @@ const createStyles = (colors: any) =>
         },
         content: {
             flex: 1,
-            paddingHorizontal: 20,
-            paddingVertical: 20,
             justifyContent: 'space-between',
         },
         headerSection: {
@@ -162,6 +112,12 @@ const createStyles = (colors: any) =>
         },
         buttonSection: {
             marginBottom: 30,
+            zIndex: 2,
+            position: 'absolute',
+            bottom: 80,
+            width: '90%',
+            paddingHorizontal: 20,
+            alignSelf: 'center',
         },
         primaryButton: {
             paddingVertical: 16,
@@ -189,16 +145,22 @@ const createStyles = (colors: any) =>
         footerInfo: {
             fontSize: 12,
             textAlign: 'center',
-            marginBottom: 10,
+            position: 'absolute',
+            bottom: 40,
+            width: '100%',
         },
         animationContainer: {
-            height: 150,
+            height: '100%',
+            width: '100%',
             justifyContent: 'center',
             alignItems: 'center',
+            backgroundColor: 'red',
+            zIndex: 0,
+            position: 'absolute',
         },
 
         lottieAnimation: {
-            width: 100,
-            aspectRatio: 1,
+            width: '100%',
+            height: '100%',
         },
     });
