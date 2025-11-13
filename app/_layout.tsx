@@ -1,15 +1,21 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import React from "react";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 import { StatusBar } from "expo-status-bar";
+import { supabase } from "../lib/supabase";
+import { Session } from "@supabase/supabase-js";
 
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
   const { colors, isLoading } = useTheme();
+  const router = useRouter();
+  const segments = useSegments();
+  const [session, setSession] = useState<Session | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   const [fontsLoaded] = useFonts({
     "Satoshi-Regular": require("../assets/fonts/Satoshi-Regular.otf"),
@@ -19,13 +25,52 @@ function RootLayoutContent() {
     "Satoshi-Variable": require("../assets/fonts/Satoshi-Variable.ttf"),
   });
 
+  // Écouter les changements d'authentification
   useEffect(() => {
-    if (fontsLoaded && !isLoading) {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setIsAuthLoading(false);
+      }
+    );
+
+    // Vérifier l'état de session actuel
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsAuthLoading(false);
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (fontsLoaded && !isLoading && !isAuthLoading) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, isLoading]);
+  }, [fontsLoaded, isLoading, isAuthLoading]);
 
-  if (!fontsLoaded || isLoading) {
+  // Redirection basée sur l'authentification
+  useEffect(() => {
+    if (isAuthLoading) return;
+
+    const isOnboarding = segments[0] === "onboarding";
+
+    if (!session) {
+      // Pas authentifié → rediriger vers onboarding/start
+      if (!isOnboarding) {
+        router.replace("/onboarding/start");
+      }
+    } else {
+      // Authentifié → rediriger vers l'app principale
+      if (isOnboarding) {
+        router.replace("/");
+      }
+    }
+  }, [session, isAuthLoading, segments]);
+
+  if (!fontsLoaded || isLoading || isAuthLoading) {
     return null;
   }
 
@@ -45,6 +90,12 @@ function RootLayoutContent() {
         headerShown: false,
       }}
     >
+      <Stack.Screen
+        name="onboarding"
+        options={{
+          headerShown: false,
+        }}
+      />
       <Stack.Screen
         name="index"
         options={{

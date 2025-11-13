@@ -20,15 +20,46 @@ export default function Index() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [userName, setUserName] = useState<string>('');
   const router = useRouter();
   const { colors, theme } = useTheme();
+
+  useEffect(() => {
+    const fetchUserName = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          // Essayer de récupérer le nom depuis les métadonnées utilisateur
+          const name = user.user_metadata?.name || user.email?.split('@')[0] || 'Utilisateur';
+          setUserName(name);
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération du nom utilisateur:', error);
+      }
+    };
+
+    fetchUserName();
+  }, []);
 
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true);
+      
+      // Récupérer l'utilisateur connecté
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.error("Utilisateur non connecté");
+        setTasks([]);
+        return;
+      }
+
+      // Récupérer les tâches de l'utilisateur connecté
       const { data, error } = await supabase
         .from("Tasks")
         .select("*")
+        .eq("user", user.id)
         .order("order", { ascending: true });
 
       if (error) {
@@ -156,7 +187,7 @@ export default function Index() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={[styles.title, { color: colors.text }]}>Tâches</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Hello {userName}</Text>
             <Link
               href={"/settings"}
               style={[styles.settingsLink, { backgroundColor: colors.button }]}
@@ -247,7 +278,7 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 55,
+    fontSize: 40,
     fontFamily: 'Satoshi-Black',
   },
 

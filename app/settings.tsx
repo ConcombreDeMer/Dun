@@ -68,6 +68,41 @@ export default function Settings() {
         );
     };
 
+    const handleLogout = () => {
+        Alert.alert(
+            "Déconnexion",
+            "Êtes-vous sûr de vouloir vous déconnecter ?",
+            [
+                {
+                    text: "Annuler",
+                    onPress: () => { },
+                    style: "cancel",
+                },
+                {
+                    text: "Déconnecter",
+                    onPress: async () => {
+                        try {
+                            const { error } = await supabase.auth.signOut();
+
+                            if (error) {
+                                console.error("Erreur lors de la déconnexion:", error);
+                                Alert.alert("Erreur", "Impossible de se déconnecter");
+                                return;
+                            }
+
+                            // Rediriger vers le login
+                            router.replace('/onboarding/start');
+                        } catch (error) {
+                            console.error("Erreur:", error);
+                            Alert.alert("Erreur", "Une erreur s'est produite");
+                        }
+                    },
+                    style: "destructive",
+                },
+            ]
+        );
+    };
+
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             <View style={styles.header}>
@@ -155,6 +190,25 @@ export default function Settings() {
                             </Text>
                         </View>
                         <Text style={[styles.settingArrow, { color: colors.text }]}>›</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Section Compte */}
+                <View style={styles.section}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Compte</Text>
+                    <TouchableOpacity
+                        style={[styles.settingButton, { backgroundColor: colors.card }]}
+                        onPress={handleLogout}
+                    >
+                        <View style={styles.settingInfo}>
+                            <Text style={[styles.settingLabel, { color: colors.danger }]}>
+                                Déconnexion
+                            </Text>
+                            <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
+                                Quitter votre compte
+                            </Text>
+                        </View>
+                        <Text style={[styles.settingArrow, { color: colors.danger }]}>›</Text>
                     </TouchableOpacity>
                 </View>
 

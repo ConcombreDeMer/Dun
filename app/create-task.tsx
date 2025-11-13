@@ -40,6 +40,15 @@ export default function CreateTask() {
         }
         setLoading(true);
         try {
+            // Récupérer l'utilisateur connecté
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                Alert.alert("Erreur", "Utilisateur non connecté");
+                setLoading(false);
+                return;
+            }
+
             const { error } = await supabase.from("Tasks").insert([
                 {
                     name: name.trim(),
@@ -47,6 +56,7 @@ export default function CreateTask() {
                     done: false,
                     date: selectedDate.toDateString(),
                     created_at: new Date().toDateString(),
+                    user: user.id,
                 },
             ]);
 
