@@ -230,7 +230,7 @@ export default function CalendarComponent({
                             {
                                 backgroundColor: allTasksCompletedForDay(dayNumber)
                                     ? isSelected ? colors.doneSecondary : colors.checkboxDone
-                                    : isSelected ? "white" : colors.button,
+                                    : isSelected ? "white" : colors.textSecondary,
                             },
                         ]}
                     />

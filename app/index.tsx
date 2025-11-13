@@ -14,6 +14,7 @@ import { getImageSource } from "../lib/imageHelper";
 import { StatusBar } from "expo-status-bar";
 import { ActionButton } from "../components/actionButton";
 import CalendarComponent from "@/components/calendar";
+const LottieView = require("lottie-react-native").default;
 
 export default function Index() {
   const [tasks, setTasks] = useState<any[]>([]);
@@ -207,6 +208,15 @@ export default function Index() {
           )}
         </View>
 
+        {/* <View style={styles.animationContainer}>
+          <LottieView
+            source={require("../assets/animations/Logo.json")}
+            autoPlay
+            loop={false}
+            style={styles.lottieAnimation}
+          />
+        </View> */}
+
         <ActionButton
           scale="small"
           content="image"
@@ -278,6 +288,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginTop: 20,
+  },
+
+  animationContainer: {
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  lottieAnimation: {
+    width: 100,
+    aspectRatio: 1,
   },
 
   addButton: {
