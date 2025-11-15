@@ -37,6 +37,18 @@ export default function OnboardingLayout() {
           title: 'Inscription',
         }}
       />
+      <Stack.Screen
+        name="successMail"
+        options={{
+          title: 'Vérification Email',
+        }}
+      />
+      <Stack.Screen
+        name="emailVerif"
+        options={{
+          title: 'Vérification Email',
+        }}
+      />
     </Stack>
   );
 }
