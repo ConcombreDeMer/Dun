@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -34,6 +34,7 @@ import { getImageSource } from '@/lib/imageHelper';
 import { Image } from "react-native";
 import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 const LottieView = require("lottie-react-native").default;
@@ -55,6 +56,20 @@ export default function StartScreen() {
     const [errorMessage, setErrorMessage] = useState('');
     const [page, setPage] = useState(0);
 
+
+    useEffect(() => {
+        const checkEmail = async () => {
+            console.log("Vérification de l'email dans le stockage local...");
+            const email = await AsyncStorage.getItem('verif_email');
+            if(email !== null) {
+                console.log("Email non vérifié détecté, redirection vers la page de re-vérification.");
+                router.replace('/onboarding/reVerifEmail');
+            }
+        };
+        checkEmail();
+    }, []);
+
+
     const getTextInputStyle = () => [
         styles.textInput,
         {
@@ -70,6 +85,7 @@ export default function StartScreen() {
     };
 
     const redirectTo = Linking.createURL('/onboarding/successMail');
+
 
 
     const handleSignUp = async () => {
@@ -107,6 +123,15 @@ export default function StartScreen() {
                 if (profileError) {
                     console.error('Erreur lors de la création du profil:', profileError);
                 }
+
+
+
+                // enregistrer le mail dans le local storage
+                // await AsyncStorage.setItem('verif_email', email.trim());
+                // await AsyncStorage.setItem('verif_name', username.trim());
+
+
+
 
                 // Si email_confirmed_at existe, l'utilisateur est confirmé
                 // Sinon, il doit confirmer son email
@@ -439,6 +464,16 @@ export default function StartScreen() {
                             Se connecter
                         </Text>
                     </TouchableOpacity>
+
+                    {/* <TouchableOpacity
+                        onPress={() => router.push({
+                            pathname: '/onboarding/emailVerif',
+                            params: { email: "yanis.rozier@gmail.com" }
+                        })}
+                        style={[styles.validateButton, { backgroundColor: colors.actionButton }]}
+                    >
+                        <Text>TEST</Text>
+                    </TouchableOpacity> */}
                     {/* Footer Info */}
                     <Text style={[styles.footerInfo, { color: colors.textSecondary }]}>
                         Aucune donnée personnelle ne sera partagée

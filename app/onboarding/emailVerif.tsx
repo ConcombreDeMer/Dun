@@ -19,6 +19,7 @@ import Animated, {
     FadeInUp,
     FadeOutDown,
     ZoomIn,
+    FadeInDown,
 } from 'react-native-reanimated';
 import { getImageSource } from '@/lib/imageHelper';
 import { Image } from 'react-native';
@@ -144,72 +145,60 @@ export default function EmailVerificationScreen() {
         >
             <SafeAreaView style={styles.safeArea}>
                 {/* Header */}
+
                 <Animated.View
-                    entering={FadeInUp.springify()}
                     style={styles.header}
-                >
-                    <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={() => router.back()}
-                    >
-                        <Image
-                            style={styles.backIcon}
-                            source={getImageSource('back', theme)}
-                        />
-                    </TouchableOpacity>
+                    entering={FadeInUp.delay(200).duration(600)}>
+                    <Text style={[styles.title, { color: colors.text }]}>
+                        Vérification
+                    </Text>
+                    <Text style={[styles.subtitle, { color: colors.text }]}>
+                        de ton email
+                    </Text>
                 </Animated.View>
 
                 {/* Content */}
                 <View style={styles.content}>
-                    {/* Icon */}
-                    <Animated.View
-                        entering={FadeIn.springify().delay(200)}
-                        style={styles.iconContainer}
-                    >
-                        <Image
-                            source={getImageSource('mail', theme)}
-                            style={styles.mailIcon}
-                        />
-                    </Animated.View>
 
-                    {/* Title */}
-                    <Animated.Text
-                        entering={FadeInUp.springify().delay(400)}
-                        style={[styles.title, { color: colors.text }]}
-                    >
-                        Vérifiez votre email
-                    </Animated.Text>
+                    {/* Email Address */}
 
-                    {/* Subtitle with email */}
-                    <Animated.Text
-                        entering={FadeInUp.springify().delay(600)}
-                        style={[styles.subtitle, { color: colors.textSecondary }]}
-                    >
-                        Nous avons envoyé un lien de vérification à
-                    </Animated.Text>
+                    <View style={styles.email}>
 
-                    <Animated.Text
-                        entering={FadeInUp.springify().delay(800)}
-                        style={[styles.emailText, { color: colors.actionButton }]}
-                    >
-                        {email}
-                    </Animated.Text>
+                        <Animated.Text
+                            entering={FadeInUp.springify().delay(1000).duration(1000)}
+                            style={[styles.emailText, {
+                                color: colors.actionButton, fontWeight: '300',
+                            }]}
+                        >
+                            <Text>Un email de vérification a été envoyé à</Text>
+                        </Animated.Text>
+
+                        <Animated.Text
+                            entering={FadeInUp.springify().delay(1000).duration(1000)}
+                            style={[styles.emailText, {
+                                color: colors.actionButton, fontWeight: '600',
+                            }]}
+                        >
+                            {email}
+                        </Animated.Text>
+
+                    </View>
 
                     {/* Instructions */}
                     <Animated.View
-                        entering={FadeInUp.springify().delay(1000)}
+                        entering={FadeInUp.springify().delay(1000).duration(1000)}
                         style={styles.instructionsContainer}
                     >
                         <Text style={[styles.instructions, { color: colors.textSecondary }]}>
-                            • Ouvrez votre email{'\n'}
-                            • Cliquez sur le lien de vérification{'\n'}
-                            • Revenez ici pour continuer
+                            • Ouvres tes email{'\n'}
+                            • Cliques sur le lien de vérification{'\n'}
+                            • Reviens ici pour continuer
                         </Text>
                     </Animated.View>
 
                     {/* Timer */}
                     <Animated.View
-                        entering={FadeInUp.springify().delay(1200)}
+                        entering={FadeInUp.springify().delay(1000).duration(1000)}
                         style={[styles.timerContainer, { backgroundColor: colors.input, borderColor: colors.border }]}
                     >
                         <Text style={[styles.timerLabel, { color: colors.textSecondary }]}>
@@ -221,50 +210,40 @@ export default function EmailVerificationScreen() {
                     </Animated.View>
                 </View>
 
-                {/* Footer Buttons */}
+
                 <Animated.View
-                    entering={FadeInUp.springify().delay(1400)}
-                    style={styles.footer}
+                    style={styles.buttonSection}
+                    entering={FadeInDown.springify().delay(200).duration(600)}
+                    exiting={FadeOutDown.springify().delay(100).duration(500)}
+
                 >
-                    {/* Check Button */}
+
                     <TouchableOpacity
                         style={[styles.primaryButton, { backgroundColor: colors.actionButton }]}
                         onPress={checkEmailVerification}
-                    // disabled={checkingVerification || isVerified}
                     >
-                        {checkingVerification ? (
-                            <ActivityIndicator color={colors.buttonText} />
-                        ) : (
-                            <Text style={[styles.primaryButtonText, { color: colors.buttonText }]}>
-                                J'ai vérifié mon email
-                            </Text>
-                        )}
+                        <Text style={[styles.primaryButtonText, { color: colors.buttonText }]}>
+                            J'ai vérifié mon email
+                        </Text>
                     </TouchableOpacity>
 
-                    {/* Resend Button */}
+
                     <TouchableOpacity
                         style={[
                             styles.secondaryButton,
-                            {
-                                borderColor: colors.border,
-                                opacity: loading ? 0.5 : 1,
-                            },
+                            { borderColor: colors.border, borderWidth: 1.5 },
                         ]}
                         onPress={resendVerificationEmail}
                         disabled={loading || timeLeft <= 0}
                     >
-                        {loading ? (
-                            <ActivityIndicator color={colors.text} />
-                        ) : (
-                            <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
-                                {timeLeft <= 0 ? 'Renvoi possible' : 'Renvoyer l\'email'}
-                            </Text>
-                        )}
+                        <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
+                            Renvoyer l'email
+                        </Text>
                     </TouchableOpacity>
 
-                    {/* Info Text */}
-                    <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-                        Vérifiez également votre dossier spam
+                    {/* Footer Info */}
+                    <Text style={[styles.footerInfo, { color: colors.textSecondary }]}>
+                        N'oublie pas de consulter tes spams / indésirables
                     </Text>
                 </Animated.View>
             </SafeAreaView>
@@ -282,52 +261,39 @@ const createStyles = (colors: any) =>
             paddingHorizontal: 20,
         },
         header: {
-            flexDirection: 'row',
-            justifyContent: 'flex-start',
-            marginBottom: 20,
-            marginTop: 10,
+            position: 'absolute',
+            top: 80,
+            left: 20,
+            alignItems: 'flex-start',
         },
-        backButton: {
-            width: 44,
-            height: 44,
-            borderRadius: 50,
-            backgroundColor: colors.input,
-            alignItems: 'center',
-            justifyContent: 'center',
+
+        title: {
+            fontSize: 55,
+            fontFamily: 'Satoshi-Black',
         },
-        backIcon: {
-            width: 24,
-            height: 24,
+
+        subtitle: {
+            fontSize: 26,
+            marginLeft: 5,
+            marginTop: -10,
+            fontFamily: 'Satoshi-Regular',
+            opacity: 0.7,
         },
         content: {
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',
+            marginBottom: 100,
         },
-        iconContainer: {
-            marginBottom: 30,
+
+        email: {
+            marginBottom: 20,
         },
-        mailIcon: {
-            width: 80,
-            height: 80,
-        },
-        title: {
-            fontSize: 28,
-            fontWeight: '700',
-            marginBottom: 16,
-            textAlign: 'center',
-        },
-        subtitle: {
-            fontSize: 14,
-            fontWeight: '400',
-            textAlign: 'center',
-            marginBottom: 4,
-        },
+
         emailText: {
             fontSize: 16,
-            fontWeight: '600',
             textAlign: 'center',
-            marginBottom: 30,
+            marginBottom: 5,
         },
         instructionsContainer: {
             backgroundColor: colors.input,
@@ -362,28 +328,10 @@ const createStyles = (colors: any) =>
         footer: {
             gap: 12,
             paddingBottom: 20,
+            width: '80%',
+            alignSelf: 'center',
         },
-        primaryButton: {
-            paddingVertical: 14,
-            borderRadius: 8,
-            alignItems: 'center',
-            justifyContent: 'center',
-        },
-        primaryButtonText: {
-            fontSize: 16,
-            fontWeight: '600',
-        },
-        secondaryButton: {
-            paddingVertical: 14,
-            borderRadius: 8,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: 1.5,
-        },
-        secondaryButtonText: {
-            fontSize: 16,
-            fontWeight: '600',
-        },
+
         infoText: {
             fontSize: 12,
             textAlign: 'center',
@@ -411,5 +359,61 @@ const createStyles = (colors: any) =>
             fontSize: 16,
             fontWeight: '400',
             textAlign: 'center',
+        },
+        buttonSection: {
+            marginBottom: 30,
+            zIndex: 2,
+            position: 'absolute',
+            bottom: 50,
+            width: '90%',
+            alignSelf: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+        },
+        pin: {
+            alignSelf: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+            borderRadius: 20,
+            position: 'absolute',
+            top: -10,
+            right: 0,
+            zIndex: 2,
+            backgroundColor: colors.input,
+            borderColor: colors.border,
+            borderWidth: 1,
+
+        },
+        primaryButton: {
+            paddingVertical: 16,
+            borderRadius: 50,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 12,
+            borderColor: colors.actionButton,
+            borderWidth: 1.5
+        },
+        primaryButtonText: {
+            fontSize: 16,
+            fontWeight: '600',
+        },
+        secondaryButton: {
+            paddingVertical: 16,
+            borderRadius: 50,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        secondaryButtonText: {
+            fontSize: 16,
+            fontWeight: '600',
+        },
+        footerInfo: {
+            fontSize: 12,
+            textAlign: 'center',
+            width: '100%',
+            marginTop: 20,
         },
     });
