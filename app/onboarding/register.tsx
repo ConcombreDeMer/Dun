@@ -1,56 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  ImageBackground,
+  TextInput,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  ScrollView,
+  Keyboard,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../lib/ThemeContext';
 import { supabase } from '../../lib/supabase';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  SlideInUp,
+  SlideOutDown,
+  ZoomIn,
+  ZoomOut,
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  FadeInUp,
+  FadeOutDown,
+  FadeInDown,
+} from 'react-native-reanimated';
+import { getImageSource } from '@/lib/imageHelper';
+import { Image } from "react-native";
+import * as Haptics from "expo-haptics";
+import * as Linking from "expo-linking";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function RegisterScreen() {
+
+export default function Register() {
+
+  const LottieView = require("lottie-react-native").default;
   const router = useRouter();
-  const { colors } = useTheme();
-  
+  const { colors, theme } = useTheme();
+  const [showForm, setShowForm] = useState(false);
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [page, setPage] = useState(0);
+  const styles = createStyles(colors);
 
-  const handleRegister = async () => {
-    setError('');
-    
-    // Validation
-    if (!name.trim()) {
-      setError('Veuillez entrer votre nom');
-      return;
-    }
-    if (!email.trim()) {
-      setError('Veuillez entrer votre email');
-      return;
-    }
-    if (!password.trim()) {
-      setError('Veuillez entrer un mot de passe');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas');
-      return;
-    }
+  const inputAnimationTitle = FadeInUp.springify().delay(500).duration(1500);
+  const inputAnimation = FadeInUp.springify().delay(800).duration(1500);
+  const inputAnimationNoDelay = FadeInUp.springify().duration(1500);
 
+
+
+  useEffect(() => {
+    setPage(1);
+  }, []);
+
+
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleSignUp = async () => {
     setLoading(true);
     try {
       // Créer le compte avec Supabase Auth
@@ -59,9 +78,9 @@ export default function RegisterScreen() {
         password: password.trim(),
         options: {
           data: {
-            name: name.trim(),
+            name: username.trim(),
           },
-          emailRedirectTo: 'exp://localhost:19000/onboarding/start', // URL de redirection pour Expo
+          emailRedirectTo: Linking.createURL('/onboarding/successMail'),
         },
       });
 
@@ -72,12 +91,12 @@ export default function RegisterScreen() {
       }
 
       if (authData.user) {
-        // Créer ou mettre à jour le profil utilisateur dans la table profiles
+        // Créer ou mettre à jour le profil utilisateur dans la table Profiles
         const { error: profileError } = await supabase
           .from('Profiles')
           .upsert({
             id: authData.user.id,
-            name: name.trim(),
+            name: username.trim(),
             email: email.trim(),
           });
 
@@ -85,14 +104,21 @@ export default function RegisterScreen() {
           console.error('Erreur lors de la création du profil:', profileError);
         }
 
+        // enregistrer le mail dans le local storage
+        // await AsyncStorage.setItem('verif_email', email.trim());
+        // await AsyncStorage.setItem('verif_name', username.trim());
+
         // Si email_confirmed_at existe, l'utilisateur est confirmé
         // Sinon, il doit confirmer son email
-        if (authData.user.email_confirmed_at || !authData.user.user_metadata?.email_verification_sent) {
+        if (authData.user.email_confirmed_at) {
           router.replace('/');
         } else {
-          // Email de vérification envoyé
-          setError('Un email de vérification a été envoyé. Veuillez confirmer votre email.');
+          // Email de vérification envoyé - Navigation vers la page de vérification
           setLoading(false);
+          router.push({
+            pathname: '/onboarding/emailVerif',
+            params: { email: email.trim() }
+          });
         }
       }
     } catch (err: any) {
@@ -101,232 +127,508 @@ export default function RegisterScreen() {
     }
   };
 
-  const styles = createStyles(colors);
+  const handleAnimatePress = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setErrorMessage('');
+
+    // Validation pour chaque page
+    if (page === 1) {
+      if (!username.trim()) {
+        setErrorMessage('Veuillez entrer votre prénom');
+        return;
+      }
+    }
+
+    if (page === 2) {
+      if (!email.trim()) {
+        setErrorMessage('Veuillez entrer votre email');
+        return;
+      }
+      if (!isValidEmail(email.trim())) {
+        setErrorMessage('Veuillez entrer une adresse email valide');
+        return;
+      }
+    }
+
+    if (page === 3) {
+      if (!password.trim()) {
+        setErrorMessage('Veuillez entrer un mot de passe');
+        return;
+      }
+      if (password.length < 6) {
+        setErrorMessage('Le mot de passe doit contenir au moins 6 caractères');
+        return;
+      }
+    }
+
+    if (page === 4) {
+      if (!confirmPassword.trim()) {
+        setErrorMessage('Veuillez confirmer votre mot de passe');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setErrorMessage('Les mots de passe ne correspondent pas');
+        return;
+      }
+    }
+
+    if (page < 6) {
+      setPage(page + 1);
+    }
+  }
+
+  const handleBackPress = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (page == 1) {
+      router.back();
+    } else {
+      setPage(page - 1);
+    }
+  }
+
+  const handleStartPress = () => {
+    router.back();
+  }
+
+  const getTextInputStyle = () => [
+    styles.textInput,
+    {
+      backgroundColor: colors.input,
+      borderColor: colors.border,
+      color: colors.text,
+    }
+  ];
+
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.content}
-      >
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Header */}
-          <View style={styles.headerContainer}>
-            <Text style={[styles.title, { color: colors.text }]}>Créer un compte</Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Rejoignez-nous dès aujourd'hui
-            </Text>
-          </View>
 
-          {/* Form */}
-          <View style={styles.formContainer}>
-            {/* Name Input */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Nom complet</Text>
-              <TextInput
+    <Pressable
+      style={styles.content}
+      onPress={() => Keyboard.dismiss()}
+    >
+      <View style={{ flex: 1, width: '100%', height: '100%' }}>
+
+        {/* ----------------------- HEADER ---------------------------- */}
+
+        <Animated.View
+          entering={FadeIn.springify().delay(1500).duration(1500)}
+          exiting={FadeOut.springify()}
+          style={styles.headerContainer}
+        >
+          <TouchableOpacity
+            style={styles.startButton}
+            onPress={handleStartPress}
+          >
+            <Image
+              style={{ width: 24, height: 24 }}
+              source={require('../../assets/images/dark/cancel.png')}
+            >
+            </Image>
+          </TouchableOpacity>
+
+          <View style={styles.dotsContainer}>
+            {[1, 2, 3, 4, 5].map((index) => (
+              <View
+                key={index}
                 style={[
-                  styles.input,
+                  styles.dot,
                   {
-                    backgroundColor: colors.input,
-                    color: colors.text,
-                    borderColor: colors.border,
-                  },
+                    backgroundColor: index === page ? colors.actionButton : colors.border,
+                  }
                 ]}
-                placeholder="Jean Dupont"
-                placeholderTextColor={colors.inputPlaceholder}
-                autoCapitalize="words"
-                value={name}
-                onChangeText={setName}
-                editable={!loading}
               />
-            </View>
+            ))}
+          </View>
+        </Animated.View>
 
-            {/* Email Input */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+
+
+        {/* ----------------------- FORMULAIRE ---------------------------- */}
+
+        {page == 1 && (
+          <View style={styles.formContainer}>
+            <Animated.View
+              entering={inputAnimationTitle}
+              exiting={FadeOutDown.springify()}
+            >
+              <Text style={styles.label}>Quel est ton <Text style={{ fontWeight: 'bold' }}>prénom</Text> ?</Text>
+            </Animated.View>
+
+            <Animated.View
+              entering={inputAnimation}
+              exiting={FadeOutDown.springify()}
+              style={styles.inputContainer}
+            >
               <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: colors.input,
-                    color: colors.text,
-                    borderColor: colors.border,
-                  },
-                ]}
-                placeholder="votre@email.com"
-                placeholderTextColor={colors.inputPlaceholder}
-                keyboardType="email-address"
-                autoCapitalize="none"
+                style={getTextInputStyle()}
+                placeholder="..."
+                placeholderTextColor={colors.textSecondary}
+                value={username}
+                onChangeText={setUsername}
+              />
+              {errorMessage ? (
+                <Animated.Text
+                  entering={FadeInUp.springify()}
+                  exiting={FadeOut.springify()}
+                  style={[styles.errorText, { color: colors.danger }]}
+                >
+                  {errorMessage}
+                </Animated.Text>
+              ) : null}
+            </Animated.View>
+
+          </View>
+        )}
+
+        {page == 2 && (
+          <View style={styles.formContainer}>
+            <Animated.View
+              entering={inputAnimationTitle}
+              exiting={FadeOutDown.springify()}
+            >
+              <Text style={styles.label}>Quelle est ton adresse <Text style={{ fontWeight: 'bold' }}>e-mail</Text> ?</Text>
+            </Animated.View>
+
+            <Animated.View
+              entering={inputAnimation}
+              exiting={FadeOutDown.springify()}
+              style={styles.inputContainer}
+            >
+              <TextInput
+                style={getTextInputStyle()}
+                placeholder="..."
+                placeholderTextColor={colors.textSecondary}
                 value={email}
                 onChangeText={setEmail}
-                editable={!loading}
+                keyboardType="email-address"
+                autoCapitalize="none"
               />
-            </View>
+              {errorMessage ? (
+                <Animated.Text
+                  entering={FadeInUp.springify()}
+                  exiting={FadeOut.springify()}
+                  style={[styles.errorText, { color: colors.danger }]}
+                >
+                  {errorMessage}
+                </Animated.Text>
+              ) : null}
+            </Animated.View>
+          </View>
+        )}
 
-            {/* Password Input */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Mot de passe</Text>
+        {(page == 3 || page == 4) && (
+          <View style={styles.formContainer}>
+            <Animated.View
+              entering={inputAnimationTitle}
+              exiting={FadeOutDown.springify()}
+            >
+              <Text style={styles.label}>Crée un <Text style={{ fontWeight: 'bold' }}>mot de passe</Text></Text>
+            </Animated.View>
+
+            <Animated.View
+              entering={inputAnimation}
+              exiting={FadeOutDown.springify()}
+              style={styles.inputContainer}
+            >
               <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: colors.input,
-                    color: colors.text,
-                    borderColor: colors.border,
-                  },
-                ]}
-                placeholder="••••••••"
-                placeholderTextColor={colors.inputPlaceholder}
-                secureTextEntry
+                style={getTextInputStyle()}
+                placeholder="..."
+                placeholderTextColor={colors.textSecondary}
                 value={password}
                 onChangeText={setPassword}
-                editable={!loading}
-              />
-            </View>
-
-            {/* Confirm Password Input */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>
-                Confirmer le mot de passe
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: colors.input,
-                    color: colors.text,
-                    borderColor: colors.border,
-                  },
-                ]}
-                placeholder="••••••••"
-                placeholderTextColor={colors.inputPlaceholder}
                 secureTextEntry
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                editable={!loading}
               />
-            </View>
+              {errorMessage && page === 3 ? (
+                <Animated.Text
+                  entering={FadeInUp.springify()}
+                  exiting={FadeOut.springify()}
+                  style={[styles.errorText, { color: colors.danger }]}
+                >
+                  {errorMessage}
+                </Animated.Text>
+              ) : null}
+            </Animated.View>
+            {page == 4 && (
+              <Animated.View
+                entering={inputAnimationNoDelay}
+                exiting={FadeOutDown.springify()}
+                style={styles.inputContainer}
+              >
+                <TextInput
+                  style={getTextInputStyle()}
+                  placeholder="Confirmer le mot de passe"
+                  placeholderTextColor={colors.textSecondary}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                />
+                {errorMessage ? (
+                  <Animated.Text
+                    entering={FadeInUp.springify()}
+                    exiting={FadeOut.springify()}
+                    style={[styles.errorText, { color: colors.danger }]}
+                  >
+                    {errorMessage}
+                  </Animated.Text>
+                ) : null}
+              </Animated.View>
+            )}
+          </View>
+        )}
 
-            {/* Error Message */}
-            {error ? (
-              <Text style={[styles.errorText, { color: colors.danger }]}>
-                {error}
-              </Text>
-            ) : null}
+        {page === 5 && (
+          <Animated.View
+            style={styles.animationContainer}
+            entering={inputAnimation}
+            exiting={FadeOut.springify()}
+          >
+            <Image
+              source={getImageSource('success', theme)}
+              style={{ width: 100, height: 100 }}
+            />
+            <Text
+              style={{ marginTop: 20, fontSize: 24, fontWeight: '500', color: colors.text }}
+            >
+              C'est tout ce qu'il nous faut 🙌
+            </Text>
+            <Text
+              style={{ marginTop: 20, fontSize: 20, fontWeight: '300', color: colors.text }}
+            >
+              Ton profil est prêt à être créer.
+            </Text>
+          </Animated.View>
+        )}
 
-            {/* Register Button */}
+
+        {/* --------------------- FOOTER ------------------------- */}
+
+
+        <Animated.View
+          style={styles.buttonSection2}
+          entering={FadeInUp.springify().delay(1500).duration(1000)}
+          exiting={FadeOutDown.springify().delay(100).duration(1500)}
+        >
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleBackPress}
+          >
+            <Image
+              style={{ width: 44, height: 44, marginRight: 5 }}
+              source={getImageSource('back', theme)}
+            ></Image>
+
+          </TouchableOpacity>
+
+          {page < 5 && (
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.button }]}
-              onPress={handleRegister}
+              style={[styles.validateButton, { backgroundColor: colors.actionButton }]}
+              onPress={handleAnimatePress}
+            >
+              <Text style={[styles.validateButtonText, { color: colors.buttonText }]}>
+                Valider
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {page === 5 && (
+            <TouchableOpacity
+              style={[styles.validateButton, { backgroundColor: colors.actionButton }]}
+              onPress={handleSignUp}
               disabled={loading}
             >
               {loading ? (
                 <ActivityIndicator color={colors.buttonText} />
               ) : (
-                <Text style={[styles.buttonText, { color: colors.buttonText }]}>
-                  S'inscrire
+                <Text style={[styles.validateButtonText, { color: colors.buttonText }]}>
+                  Créer le profil
                 </Text>
               )}
             </TouchableOpacity>
+          )}
 
-            {/* Terms */}
-            <Text style={[styles.termsText, { color: colors.textSecondary }]}>
-              En vous inscrivant, vous acceptez nos conditions d'utilisation
-            </Text>
-          </View>
-
-          {/* Footer */}
-          <View style={styles.footerContainer}>
-            <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-              Vous avez déjà un compte ?{' '}
-            </Text>
-            <TouchableOpacity onPress={() => router.push('/onboarding/login')}>
-              <Text style={[styles.footerLink, { color: colors.button }]}>
-                Se connecter
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        </Animated.View>
+      </View>
+    </Pressable>
   );
 }
 
 const createStyles = (colors: any) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-    },
     content: {
       flex: 1,
-      paddingHorizontal: 20,
-      paddingVertical: 20,
+      justifyContent: 'space-between',
     },
-    headerContainer: {
-      marginTop: 30,
-      marginBottom: 40,
-    },
-    title: {
-      fontSize: 32,
-      fontWeight: '700',
-      marginBottom: 8,
-    },
-    subtitle: {
-      fontSize: 16,
-      fontWeight: '400',
-    },
-    formContainer: {
-      marginVertical: 10,
-    },
-    inputGroup: {
-      marginBottom: 20,
-    },
-    label: {
-      fontSize: 14,
-      fontWeight: '600',
-      marginBottom: 8,
-    },
-    input: {
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderRadius: 8,
+    textInput: {
       borderWidth: 1,
-      fontSize: 16,
-    },
-    errorText: {
-      fontSize: 14,
-      marginBottom: 16,
-      marginTop: -8,
-    },
-    button: {
-      paddingVertical: 14,
       borderRadius: 8,
+      padding: 12,
+      width: '80%',
+      height: 60,
+      textAlign: 'center',
+      fontSize: 18,
+      fontWeight: '600',
+      zIndex: 1,
+    },
+    buttonSection: {
+      marginBottom: 30,
+      zIndex: 2,
+      position: 'absolute',
+      bottom: 50,
+      width: '90%',
+      alignSelf: 'center',
+      display: 'flex',
+      flexDirection: 'column',
+    },
+    pin: {
+      alignSelf: 'center',
+      display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      marginTop: 8,
-      marginBottom: 16,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 20,
+      position: 'absolute',
+      top: -10,
+      right: 0,
+      zIndex: 2,
+      backgroundColor: colors.input,
+      borderColor: colors.border,
+      borderWidth: 1,
+
     },
-    buttonText: {
+    primaryButton: {
+      paddingVertical: 16,
+      borderRadius: 50,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 12,
+      borderColor: colors.actionButton,
+      borderWidth: 1.5
+    },
+    primaryButtonText: {
       fontSize: 16,
       fontWeight: '600',
     },
-    termsText: {
+    secondaryButton: {
+      paddingVertical: 16,
+      borderRadius: 50,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    secondaryButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    buttonSection2: {
+      zIndex: 2,
+      position: 'absolute',
+      bottom: 50,
+      width: '80%',
+      alignSelf: 'center',
+      display: 'flex',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    validateButton: {
+      height: 70,
+      width: '77%',
+      borderRadius: 100,
+      position: "relative",
+      left: 0,
+      alignItems: "center",
+      justifyContent: "center",
+      alignSelf: 'flex-end',
+    },
+    validateButtonText: {
+      fontSize: 20,
+      fontWeight: "600",
+      fontFamily: "Satoshi-Bold",
+    },
+    footerInfo: {
       fontSize: 12,
       textAlign: 'center',
-      marginBottom: 20,
+      width: '100%',
+      marginTop: 20,
     },
-    footerContainer: {
-      flexDirection: 'row',
+    animationContainer: {
+      height: '100%',
+      width: '100%',
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 20,
+      zIndex: 0,
+      position: 'absolute',
     },
-    footerText: {
-      fontSize: 14,
+
+    lottieAnimation: {
+      width: '100%',
+      height: '100%',
     },
-    footerLink: {
-      fontSize: 14,
-      fontWeight: '600',
-      textDecorationLine: 'underline',
+    label: {
+      fontSize: 22,
+      fontWeight: '300',
+    },
+    backButton: {
+      height: 70,
+      width: 70,
+      backgroundColor: colors.actionButton,
+      borderRadius: 100,
+      alignItems: 'center',
+      justifyContent: 'center',
+      display: 'flex',
+    },
+    backButtonText: {
+      fontSize: 18,
+    },
+    formContainer: {
+      position: 'absolute',
+      top: '50%',
+      left: 0,
+      right: 0,
+      transform: [{ translateY: -100 }],
+      alignItems: 'center',
+      zIndex: 1,
+    },
+    inputContainer: {
+      width: '100%',
+      alignItems: 'center',
+      marginTop: 10,
+    },
+    startButton: {
+      height: 30,
+      width: 30,
+      borderRadius: 100,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 2,
+    },
+    headerContainer: {
+      position: 'absolute',
+      width: '80%',
+      top: 70,
+      alignSelf: 'center',
+      zIndex: 3,
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      display: 'flex',
+      flexDirection: 'row',
+    },
+    dotsContainer: {
+      flexDirection: 'row',
+      gap: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    errorText: {
+      fontSize: 12,
+      fontWeight: '500',
+      marginTop: 8,
+      textAlign: 'center',
+      zIndex: 0,
     },
   });
