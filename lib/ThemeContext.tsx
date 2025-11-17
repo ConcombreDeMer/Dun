@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColorScheme } from 'react-native';
+import { usePathname } from 'expo-router';
 
 export type Theme = 'light' | 'dark';
 
@@ -95,6 +96,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const systemTheme = useColorScheme();
     const [theme, setTheme] = useState<Theme>('light');
     const [isLoading, setIsLoading] = useState(true);
+    const pathname = usePathname();
+    const isOnboarding = pathname?.includes('/onboarding') ?? false;
 
     useEffect(() => {
         loadTheme();
@@ -131,7 +134,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         saveTheme(newTheme);
     };
 
-    const colors = theme === 'light' ? lightColors : darkColors;
+    const colors = isOnboarding ? lightColors : (theme === 'light' ? lightColors : darkColors);
 
     return (
         <ThemeContext.Provider

@@ -35,19 +35,6 @@ export default function StartScreen() {
     const LottieView = require("lottie-react-native").default;
 
 
-    useEffect(() => {
-        const checkEmail = async () => {
-            console.log("Vérification de l'email dans le stockage local...");
-            const email = await AsyncStorage.getItem('verif_email');
-            if (email !== null) {
-                console.log("Email non vérifié détecté, redirection vers la page de re-vérification.");
-                router.replace('/onboarding/reVerifEmail');
-            }
-        };
-        checkEmail();
-    }, []);
-
-
     const goToRegister = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         router.push('/onboarding/register');
@@ -109,7 +96,7 @@ export default function StartScreen() {
                         { borderColor: colors.border, borderWidth: 1.5 },
                     ]}
                     onPress={() => router.push({
-                        pathname: '/onboarding/reVerifEmail',
+                        pathname: '/onboarding/successMail',
                         params: { email: "yanis@gmail.com" }
                     })}
                 >
@@ -118,10 +105,10 @@ export default function StartScreen() {
                 </Text>
             </TouchableOpacity> */}
 
-            <Text style={[styles.footerInfo, { color: colors.textSecondary }]}>
-                Aucune donnée personnelle ne sera partagée
-            </Text>
-        </Animated.View>
+                <Text style={[styles.footerInfo, { color: colors.textSecondary }]}>
+                    Aucune donnée personnelle ne sera partagée
+                </Text>
+            </Animated.View>
 
         </Pressable >
     );

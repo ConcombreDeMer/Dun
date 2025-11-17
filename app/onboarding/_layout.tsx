@@ -40,7 +40,7 @@ export default function OnboardingLayout() {
       <Stack.Screen
         name="successMail"
         options={{
-          title: 'Vérification Email',
+          title: 'Success Email',
         }}
       />
       <Stack.Screen
