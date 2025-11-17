@@ -104,10 +104,6 @@ export default function Register() {
           console.error('Erreur lors de la création du profil:', profileError);
         }
 
-        // enregistrer le mail dans le local storage
-        // await AsyncStorage.setItem('verif_email', email.trim());
-        // await AsyncStorage.setItem('verif_name', username.trim());
-
         // Si email_confirmed_at existe, l'utilisateur est confirmé
         // Sinon, il doit confirmer son email
         if (authData.user.email_confirmed_at) {

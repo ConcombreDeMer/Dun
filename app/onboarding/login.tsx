@@ -9,21 +9,35 @@ import {
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
+    Keyboard,
+    Pressable,
+    Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../lib/ThemeContext';
 import { supabase } from '../../lib/supabase';
+import Animated, {
+    FadeIn,
+    FadeOut,
+    FadeInUp,
+    FadeOutDown,
+    FadeInDown,
+} from 'react-native-reanimated';
+import { getImageSource } from '@/lib/imageHelper';
+import * as Haptics from 'expo-haptics';
 
 export default function LoginScreen() {
     const router = useRouter();
-    const { colors } = useTheme();
+    const { colors, theme } = useTheme();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const styles = createStyles(colors);
 
     const handleLogin = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setError('');
 
         // Validation simple
@@ -44,6 +58,14 @@ export default function LoginScreen() {
             });
 
             if (signInError) {
+                if(signInError.message === 'Email not confirmed') {
+                    router.push({
+                        pathname: '/onboarding/reVerifEmail',
+                        params: { 
+                            email: email.trim(),
+                        }
+                    });
+                }
                 setError(signInError.message);
                 setLoading(false);
                 return;
@@ -58,110 +80,129 @@ export default function LoginScreen() {
         }
     };
 
-    const styles = createStyles(colors);
+    const handleBackPress = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.back();
+    };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.content}
-            >
+        <Pressable
+            style={styles.content}
+            onPress={() => Keyboard.dismiss()}
+        >
+            <View style={[styles.container, { backgroundColor: colors.background }]}>
                 {/* Header */}
-                <View style={styles.headerContainer}>
-                    <Text style={[styles.title, { color: colors.text }]}>Bienvenue</Text>
-                    <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                        Connectez-vous à votre compte
-                    </Text>
-                </View>
+                <Animated.View
+                    entering={FadeIn.springify().delay(1500).duration(1500)}
+                    exiting={FadeOut.springify()}
+                    style={styles.headerContainer}
+                >
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={handleBackPress}
+                    >
+                        <Image
+                            style={{ width: 24, height: 24 }}
+                            source={require('../../assets/images/dark/cancel.png')}
+                        />
+                    </TouchableOpacity>
+                </Animated.View>
 
-                {/* Form */}
+                {/* Form Container */}
                 <View style={styles.formContainer}>
-                    {/* Email Input */}
-                    <View style={styles.inputGroup}>
-                        <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+                    <Animated.View
+                        entering={FadeInUp.springify().delay(500).duration(1500)}
+                        exiting={FadeOutDown.springify()}
+                    >
+                        <Text style={[styles.title, { color: colors.text }]}>Bienvenue</Text>
+                    </Animated.View>
+
+                    <Animated.View
+                        entering={FadeInUp.springify().delay(800).duration(1500)}
+                        exiting={FadeOutDown.springify()}
+                        style={styles.inputContainer}
+                    >
                         <TextInput
                             style={[
-                                styles.input,
+                                styles.textInput,
                                 {
                                     backgroundColor: colors.input,
                                     color: colors.text,
                                     borderColor: colors.border,
                                 },
                             ]}
-                            placeholder="votre@email.com"
-                            placeholderTextColor={colors.inputPlaceholder}
+                            placeholder="Email"
+                            placeholderTextColor={colors.textSecondary}
                             keyboardType="email-address"
                             autoCapitalize="none"
                             value={email}
                             onChangeText={setEmail}
                             editable={!loading}
                         />
-                    </View>
+                    </Animated.View>
 
-                    {/* Password Input */}
-                    <View style={styles.inputGroup}>
-                        <Text style={[styles.label, { color: colors.text }]}>Mot de passe</Text>
+                    <Animated.View
+                        entering={FadeInUp.springify().delay(1100).duration(1500)}
+                        exiting={FadeOutDown.springify()}
+                        style={styles.inputContainer}
+                    >
                         <TextInput
                             style={[
-                                styles.input,
+                                styles.textInput,
                                 {
                                     backgroundColor: colors.input,
                                     color: colors.text,
                                     borderColor: colors.border,
                                 },
                             ]}
-                            placeholder="••••••••"
-                            placeholderTextColor={colors.inputPlaceholder}
+                            placeholder="Mot de passe"
+                            placeholderTextColor={colors.textSecondary}
                             secureTextEntry
                             value={password}
                             onChangeText={setPassword}
                             editable={!loading}
                         />
-                    </View>
+                    </Animated.View>
 
-                    {/* Error Message */}
                     {error ? (
-                        <Text style={[styles.errorText, { color: colors.danger }]}>
+                        <Animated.Text
+                            entering={FadeInUp.springify()}
+                            exiting={FadeOut.springify()}
+                            style={[styles.errorText, { color: colors.danger }]}
+                        >
                             {error}
-                        </Text>
+                        </Animated.Text>
                     ) : null}
+                </View>
 
-                    {/* Login Button */}
+                {/* Footer */}
+                <Animated.View
+                    style={styles.buttonSection}
+                    entering={FadeInUp.springify().delay(1500).duration(1000)}
+                    exiting={FadeOutDown.springify().delay(100).duration(1500)}
+                >
                     <TouchableOpacity
-                        style={[styles.button, { backgroundColor: colors.button }]}
+                        style={[styles.validateButton, { backgroundColor: colors.actionButton }]}
                         onPress={handleLogin}
                         disabled={loading}
                     >
                         {loading ? (
                             <ActivityIndicator color={colors.buttonText} />
                         ) : (
-                            <Text style={[styles.buttonText, { color: colors.buttonText }]}>
+                            <Text style={[styles.validateButtonText, { color: colors.buttonText }]}>
                                 Se connecter
                             </Text>
                         )}
                     </TouchableOpacity>
 
-                    {/* Forgot Password Link */}
-                    <TouchableOpacity>
-                        <Text style={[styles.link, { color: colors.textSecondary }]}>
-                            Mot de passe oublié ?
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Footer */}
-                <View style={styles.footerContainer}>
-                    <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-                        Pas encore de compte ?{' '}
-                    </Text>
                     <TouchableOpacity onPress={() => router.push('/onboarding/register')}>
-                        <Text style={[styles.footerLink, { color: colors.button }]}>
-                            S'inscrire
+                        <Text style={[styles.footerLink, { color: colors.actionButton }]}>
+                            Pas encore de compte ? S'inscrire
                         </Text>
                     </TouchableOpacity>
-                </View>
-            </KeyboardAvoidingView>
-        </SafeAreaView>
+                </Animated.View>
+            </View>
+        </Pressable>
     );
 }
 
@@ -169,78 +210,100 @@ const createStyles = (colors: any) =>
     StyleSheet.create({
         container: {
             flex: 1,
+            justifyContent: 'space-between',
         },
         content: {
             flex: 1,
-            paddingHorizontal: 20,
-            justifyContent: 'space-between',
-            paddingVertical: 20,
+            width: '100%',
+            height: '100%',
         },
         headerContainer: {
-            marginTop: 40,
-            marginBottom: 40,
+            position: 'absolute',
+            width: '80%',
+            top: 70,
+            alignSelf: 'center',
+            zIndex: 3,
+            alignItems: 'flex-start',
+        },
+        backButton: {
+            height: 30,
+            width: 30,
+            borderRadius: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2,
         },
         title: {
-            fontSize: 32,
+            fontSize: 55,
+            fontFamily: 'Satoshi-Black',
             fontWeight: '700',
-            marginBottom: 8,
         },
         subtitle: {
             fontSize: 16,
             fontWeight: '400',
         },
         formContainer: {
-            marginVertical: 20,
+            position: 'absolute',
+            top: '50%',
+            left: 0,
+            right: 0,
+            transform: [{ translateY: -100 }],
+            alignItems: 'center',
+            zIndex: 1,
         },
-        inputGroup: {
-            marginBottom: 20,
+        inputContainer: {
+            width: '100%',
+            alignItems: 'center',
+            marginTop: 10,
         },
-        label: {
-            fontSize: 14,
-            fontWeight: '600',
-            marginBottom: 8,
-        },
-        input: {
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            borderRadius: 8,
+        textInput: {
             borderWidth: 1,
-            fontSize: 16,
+            borderRadius: 8,
+            padding: 12,
+            width: '80%',
+            height: 60,
+            textAlign: 'center',
+            fontSize: 18,
+            fontWeight: '600',
+            zIndex: 1,
         },
         errorText: {
-            fontSize: 14,
-            marginBottom: 16,
-            marginTop: -8,
-        },
-        button: {
-            paddingVertical: 14,
-            borderRadius: 8,
-            alignItems: 'center',
-            justifyContent: 'center',
+            fontSize: 12,
+            fontWeight: '500',
             marginTop: 8,
-        },
-        buttonText: {
-            fontSize: 16,
-            fontWeight: '600',
-        },
-        link: {
-            fontSize: 14,
             textAlign: 'center',
-            marginTop: 16,
-            textDecorationLine: 'underline',
+            zIndex: 0,
         },
-        footerContainer: {
-            flexDirection: 'row',
-            justifyContent: 'center',
+        buttonSection: {
+            zIndex: 2,
+            position: 'absolute',
+            bottom: 50,
+            width: '90%',
+            alignSelf: 'center',
+            display: 'flex',
             alignItems: 'center',
-            marginBottom: 20,
+            gap: 12,
         },
-        footerText: {
-            fontSize: 14,
+        validateButton: {
+            height: 70,
+            width: '80%',
+            borderRadius: 100,
+            position: 'relative',
+            left: 0,
+            alignItems: 'center',
+            justifyContent: 'center',
+            alignSelf: 'center',
+        },
+        validateButtonText: {
+            fontSize: 20,
+            fontWeight: '600',
+            fontFamily: 'Satoshi-Bold',
         },
         footerLink: {
             fontSize: 14,
             fontWeight: '600',
             textDecorationLine: 'underline',
+            textAlign: 'center',
         },
     });

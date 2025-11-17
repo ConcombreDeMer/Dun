@@ -103,10 +103,25 @@ export default function StartScreen() {
                     </Text>
                 </TouchableOpacity>
 
-                <Text style={[styles.footerInfo, { color: colors.textSecondary }]}>
-                    Aucune donnée personnelle ne sera partagée
+                {/* <TouchableOpacity
+                    style={[
+                        styles.secondaryButton,
+                        { borderColor: colors.border, borderWidth: 1.5 },
+                    ]}
+                    onPress={() => router.push({
+                        pathname: '/onboarding/reVerifEmail',
+                        params: { email: "yanis@gmail.com" }
+                    })}
+                >
+                <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
+                    Test
                 </Text>
-            </Animated.View>
+            </TouchableOpacity> */}
+
+            <Text style={[styles.footerInfo, { color: colors.textSecondary }]}>
+                Aucune donnée personnelle ne sera partagée
+            </Text>
+        </Animated.View>
 
         </Pressable >
     );
@@ -128,6 +143,7 @@ const createStyles = (colors: any) =>
             alignSelf: 'center',
             display: 'flex',
             flexDirection: 'column',
+            gap: 12,
         },
         pin: {
             alignSelf: 'center',
@@ -151,7 +167,6 @@ const createStyles = (colors: any) =>
             borderRadius: 50,
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: 12,
             borderColor: colors.actionButton,
             borderWidth: 1.5
         },

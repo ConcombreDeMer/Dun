@@ -50,15 +50,26 @@ export default function SuccessMail() {
         />
       </View>
 
+
+      <Animated.View
+        entering={FadeInUp.delay(1000).duration(600)}
+        style={styles.message}
+      >
+        <Text style={{ fontSize: 20, fontWeight:300 }}>Tu peux maintenant</Text>
+        <Text style={{ fontSize: 20, fontWeight:300 }}>te <Text style={{ fontWeight: 700, fontSize:20 }}>connecter</Text></Text>
+        <Text style={{ fontSize: 20, fontWeight:300 }}>🎉</Text>
+      </Animated.View>
+
+
       <Animated.View
         style={{ position: 'absolute', bottom: 40, width: '100%' }}
         entering={FadeInDown.delay(1500).duration(600)}>
         <TouchableOpacity
           style={[styles.validateButton, { backgroundColor: colors.actionButton }]}
-          onPress={() => router.push('/')}
+          onPress={() => router.push('/onboarding/login')}
         >
           <Text style={[styles.validateButtonText, { color: colors.buttonText }]}>
-            Commencer
+            Se connecter
           </Text>
         </TouchableOpacity>
       </Animated.View>
@@ -107,6 +118,18 @@ const styles = StyleSheet.create({
     fontFamily: 'Satoshi-Regular',
     opacity: 0.7,
   },
+
+
+  message: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+    fontFamily: 'Satoshi-Regular',
+    gap: 6,
+    marginTop: 250,
+  },
+
   validateButton: {
     height: 70,
     width: '77%',
