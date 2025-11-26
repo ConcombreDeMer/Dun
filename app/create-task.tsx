@@ -19,7 +19,8 @@ import { Image } from "react-native";
 import { taskEmitter } from "../lib/eventEmitter";
 import { useTheme } from "../lib/ThemeContext";
 import { getImageSource } from "../lib/imageHelper";
-import { ActionButton } from "../components/actionButton";
+import BottomDualButtons from "@/components/bottomDualButtons";
+import PrimaryButton from "@/components/primaryButton";
 
 export default function CreateTask() {
     const router = useRouter();
@@ -207,20 +208,14 @@ export default function CreateTask() {
 
                 </View>
             </ScrollView>
-            <ActionButton
-                scale="large"
-                content="text"
-                label="Créer la tâche"
-                position="right"
-                onPress={handleCreateTask}
-            />
-            <ActionButton
-                scale="small"
-                content="image"
-                icon="cancel"
-                position="left"
-                onPress={() => router.back()}
-            />
+
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf:"center", width: "100%", position: "absolute", bottom: 23 }}>
+                <PrimaryButton size="small" image="cancel" onPress={() => router.back()} />
+                <PrimaryButton size="mid" title="Créer la tâche" onPress={handleCreateTask} />
+            </View>
+
+
+
         </KeyboardAvoidingView>
     );
 }
@@ -228,12 +223,12 @@ export default function CreateTask() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingLeft: 20,
-        paddingRight: 20,
+        paddingHorizontal: 23,
+        paddingBottom: 23,
         paddingTop: 60,
         display: "flex",
         flexDirection: "column",
-        justifyContent: "flex-start",
+        justifyContent: "space-between",
     },
 
     title: {

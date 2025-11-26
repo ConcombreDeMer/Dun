@@ -19,7 +19,7 @@ import { Image } from "react-native";
 import { taskEmitter } from "../lib/eventEmitter";
 import { useTheme } from "../lib/ThemeContext";
 import { getImageSource } from "../lib/imageHelper";
-import { ActionButton } from "../components/actionButton";
+import PrimaryButton from "@/components/primaryButton";
 
 export default function EditTask() {
     const router = useRouter();
@@ -238,20 +238,20 @@ export default function EditTask() {
                 </View>
             </ScrollView>
 
-            <ActionButton
-                scale="large"
-                content="text"
-                label="Modifier la tâche"
-                position="right"
-                onPress={handleUpdateTask}
-            />
-            <ActionButton
-                scale="small"
-                content="image"
-                icon="cancel"
-                position="left"
-                onPress={() => router.back()}
-            />
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf: "center", width: "100%", position: "absolute", bottom: 23 }}>
+                <PrimaryButton
+                    size="small"
+                    image="cancel"
+                    onPress={() => router.back()}
+                    disabled={saving}
+                />
+                <PrimaryButton
+                    size="mid"
+                    title="Modifier la tâche"
+                    onPress={handleUpdateTask}
+                    disabled={saving}
+                />
+            </View>
 
         </KeyboardAvoidingView>
     );

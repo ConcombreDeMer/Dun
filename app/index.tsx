@@ -12,8 +12,8 @@ import { TaskItem } from "../components/TaskItem";
 import { useTheme } from "../lib/ThemeContext";
 import { getImageSource } from "../lib/imageHelper";
 import { StatusBar } from "expo-status-bar";
-import { ActionButton } from "../components/actionButton";
 import CalendarComponent from "@/components/calendar";
+import PrimaryButton from "@/components/primaryButton";
 const LottieView = require("lottie-react-native").default;
 
 export default function Index() {
@@ -28,7 +28,7 @@ export default function Index() {
     const fetchUserName = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        
+
         if (user) {
           // Essayer de récupérer le nom depuis les métadonnées utilisateur
           const name = user.user_metadata?.name || user.email?.split('@')[0] || 'Utilisateur';
@@ -45,10 +45,10 @@ export default function Index() {
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Récupérer l'utilisateur connecté
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         console.error("Utilisateur non connecté");
         setTasks([]);
@@ -96,7 +96,7 @@ export default function Index() {
   const handleAddPress = async () => {
     router.push({
       pathname: "/create-task",
-      params: { selectedDate : selectedDate as unknown as string },
+      params: { selectedDate: selectedDate as unknown as string },
     });
   };
 
@@ -192,9 +192,15 @@ export default function Index() {
               href={"/settings"}
               style={[styles.settingsLink, { backgroundColor: colors.button }]}
             >
-              <Image
-                source={getImageSource('settings', theme)}
-              ></Image>
+              <View
+                style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Image
+                  style={{ width: 34, height: 34, alignSelf: 'center' }}
+                  source={getImageSource('settings', theme)}
+                ></Image>
+
+              </View>
             </Link>
           </View>
 
@@ -248,13 +254,9 @@ export default function Index() {
           />
         </View> */}
 
-        <ActionButton
-          scale="small"
-          content="image"
-          icon="add"
-          position="right"
-          onPress={handleAddPress}
-        />
+        <PrimaryButton style={{alignSelf : "flex-end"}} image="add" size="small" onPress={handleAddPress}/>
+
+
       </View>
     </GestureHandlerRootView>
   );
@@ -265,12 +267,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 60,
+    paddingHorizontal: 23,
+    paddingVertical: 23,
   },
 
   header: {
     paddingBottom: 10,
-    paddingLeft: '5%',
-    paddingRight: '5%',
   },
 
   listContainer: {
@@ -283,13 +285,13 @@ const styles = StyleSheet.create({
   },
 
   settingsLink: {
-    height: 50,
-    width: 50,
-    borderRadius: 10,
+    height: 48,
+    width: 48,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 3,
-
+    display: 'flex',
+    flexDirection: 'row',
   },
 
   calendar: {

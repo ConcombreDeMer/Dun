@@ -12,9 +12,9 @@ import {
 import { useState } from "react";
 import { useTheme } from "../lib/ThemeContext";
 import { getImageSource } from "../lib/imageHelper";
-import { ActionButton } from "../components/actionButton";
 import { supabase } from "../lib/supabase";
 import { taskEmitter } from "../lib/eventEmitter";
+import PrimaryButton from "@/components/primaryButton";
 
 export default function Settings() {
     const router = useRouter();
@@ -225,11 +225,11 @@ export default function Settings() {
                 ></Image>
             </TouchableOpacity> */}
 
-            <ActionButton
-                scale="small"
-                content="image"
-                icon="home"
-                position="right"
+
+            <PrimaryButton
+                style={{position: "absolute", bottom: 23, right: 23}}
+                image="home"
+                size="small"
                 onPress={() => router.back()}
             />
             

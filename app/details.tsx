@@ -17,7 +17,7 @@ import { taskEmitter } from "../lib/eventEmitter";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "../lib/ThemeContext";
 import { getImageSource } from "../lib/imageHelper";
-import { ActionButton } from "../components/actionButton";
+import PrimaryButton from "@/components/primaryButton";
 
 export default function Details() {
   const router = useRouter();
@@ -170,22 +170,20 @@ export default function Details() {
         </View>
       </ScrollView>
 
-      <ActionButton
-        scale="small"
-        content="image"
-        icon="edit"
-        position="right"
-        onPress={() => router.push(`/edit-task?id=${id}`)}
-      />
-
-      <ActionButton
-        scale="small"
-        content="image"
-        icon="delete"
-        backColor={colors.danger}
-        position="left"
-        onPress={handleDeleteTask}
-      />
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf:"center", width: "100%", position: "absolute", bottom: 23 }}>
+        <PrimaryButton
+          size="small"
+          type="danger"
+          image="delete"
+          onPress={handleDeleteTask}
+        />
+        <PrimaryButton
+          size="small"
+          image="edit"
+          title="Modifier la tâche"
+          onPress={() => router.push(`/edit-task?id=${id}`)}
+        />
+      </View>
 
     </KeyboardAvoidingView>
   );
