@@ -12,7 +12,7 @@ interface PrimaryButtonProps {
     image?: string;
     size?: 'large' | 'small' | 'mid';
     style?: ViewStyle;
-    type?: 'danger'
+    type?: 'danger' | 'reverse'
 }
 
 export default function PrimaryButton({ title, onPress, disabled = false, image = '', size = 'large', style, type }: PrimaryButtonProps) {
@@ -25,6 +25,7 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
                 size === 'small' && styles.buttonSmall,
                 size === 'mid' && styles.buttonMid,
                 type === 'danger' && styles.buttonDanger,
+                type === 'reverse' && styles.buttonReverse,
                 disabled && styles.disabled,
                 style
             ]}
@@ -37,7 +38,7 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
                     source={getImageSource(image, theme)}
                 ></Image>
             }
-            {(size === 'large' || size === 'mid') && <Text style={[styles.text, type === 'danger' && styles.textDanger]}>{title}</Text>}
+            {(size === 'large' || size === 'mid') && <Text style={[styles.text, type === 'danger' && styles.textDanger, type === 'reverse' && styles.textReverse]}>{title}</Text>}
         </Pressable>
     );
 }
@@ -65,6 +66,11 @@ const styles = StyleSheet.create({
     buttonDanger: {
         backgroundColor: '#F7C1C1',
     },
+    buttonReverse: {
+        backgroundColor: 'white',
+        borderWidth: 1,
+        borderColor: '#000000ff',
+    },
     disabled: {
         opacity: 0.5,
     },
@@ -75,5 +81,8 @@ const styles = StyleSheet.create({
     },
     textDanger: {
         color: '#A10606',
+    },
+    textReverse: {
+        color: '#000000ff',
     },
 });

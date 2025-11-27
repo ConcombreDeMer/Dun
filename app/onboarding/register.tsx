@@ -35,6 +35,8 @@ import { Image } from "react-native";
 import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import SimpleInput from '@/components/textInput';
+import PrimaryButton from '@/components/primaryButton';
 
 
 export default function Register() {
@@ -255,12 +257,13 @@ export default function Register() {
               exiting={FadeOutDown.springify()}
               style={styles.inputContainer}
             >
-              <TextInput
-                style={getTextInputStyle()}
+              <SimpleInput
                 placeholder="..."
                 placeholderTextColor={colors.textSecondary}
                 value={username}
                 onChangeText={setUsername}
+                center
+                scale="large"
               />
               {errorMessage ? (
                 <Animated.Text
@@ -290,14 +293,13 @@ export default function Register() {
               exiting={FadeOutDown.springify()}
               style={styles.inputContainer}
             >
-              <TextInput
-                style={getTextInputStyle()}
+              <SimpleInput
                 placeholder="..."
                 placeholderTextColor={colors.textSecondary}
                 value={email}
                 onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
+                center
+                scale="large"
               />
               {errorMessage ? (
                 <Animated.Text
@@ -326,13 +328,14 @@ export default function Register() {
               exiting={FadeOutDown.springify()}
               style={styles.inputContainer}
             >
-              <TextInput
-                style={getTextInputStyle()}
+              <SimpleInput
                 placeholder="..."
                 placeholderTextColor={colors.textSecondary}
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
+                center
+                scale="large"
+                password
               />
               {errorMessage && page === 3 ? (
                 <Animated.Text
@@ -350,13 +353,14 @@ export default function Register() {
                 exiting={FadeOutDown.springify()}
                 style={styles.inputContainer}
               >
-                <TextInput
-                  style={getTextInputStyle()}
-                  placeholder="Confirmer le mot de passe"
+                <SimpleInput
+                  placeholder="Confirme ton mot de passe"
                   placeholderTextColor={colors.textSecondary}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
-                  secureTextEntry
+                  center
+                  scale="large"
+                  password
                 />
                 {errorMessage ? (
                   <Animated.Text
@@ -404,42 +408,42 @@ export default function Register() {
           entering={FadeInUp.springify().delay(1500).duration(1000)}
           exiting={FadeOutDown.springify().delay(100).duration(1500)}
         >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleBackPress}
-          >
-            <Image
-              style={{ width: 44, height: 44, marginRight: 5 }}
-              source={getImageSource('back', theme)}
-            ></Image>
 
-          </TouchableOpacity>
+          <PrimaryButton
+            image='back'
+            onPress={handleBackPress}
+            size='small'
+          />
 
           {page < 5 && (
-            <TouchableOpacity
-              style={[styles.validateButton, { backgroundColor: colors.actionButton }]}
+            <PrimaryButton
+              title="Valider"
               onPress={handleAnimatePress}
-            >
-              <Text style={[styles.validateButtonText, { color: colors.buttonText }]}>
-                Valider
-              </Text>
-            </TouchableOpacity>
+              size='mid'
+            />
           )}
 
           {page === 5 && (
-            <TouchableOpacity
-              style={[styles.validateButton, { backgroundColor: colors.actionButton }]}
+            // <TouchableOpacity
+            //   style={[styles.validateButton, { backgroundColor: colors.actionButton }]}
+            //   onPress={handleSignUp}
+            //   disabled={loading}
+            // >
+            //   {loading ? (
+            //     <ActivityIndicator color={colors.buttonText} />
+            //   ) : (
+            //     <Text style={[styles.validateButtonText, { color: colors.buttonText }]}>
+            //       Créer le profil
+            //     </Text>
+            //   )}
+            // </TouchableOpacity>
+
+            <PrimaryButton
+              title={loading ? "" : "Créer le profil"}
               onPress={handleSignUp}
+              size='mid'
               disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color={colors.buttonText} />
-              ) : (
-                <Text style={[styles.validateButtonText, { color: colors.buttonText }]}>
-                  Créer le profil
-                </Text>
-              )}
-            </TouchableOpacity>
+            />
           )}
 
         </Animated.View>
@@ -453,6 +457,9 @@ const createStyles = (colors: any) =>
     content: {
       flex: 1,
       justifyContent: 'space-between',
+      paddingHorizontal: 23,
+      paddingVertical: 23,
+      backgroundColor: colors.background,
     },
     textInput: {
       borderWidth: 1,
@@ -518,8 +525,8 @@ const createStyles = (colors: any) =>
     buttonSection2: {
       zIndex: 2,
       position: 'absolute',
-      bottom: 50,
-      width: '80%',
+      bottom: 0,
+      width: '100%',
       alignSelf: 'center',
       display: 'flex',
       flexDirection: 'row',
@@ -600,7 +607,7 @@ const createStyles = (colors: any) =>
     },
     headerContainer: {
       position: 'absolute',
-      width: '80%',
+      width: '100%',
       top: 70,
       alignSelf: 'center',
       zIndex: 3,

@@ -3,24 +3,22 @@ import {
     Text,
     View,
     TouchableOpacity,
-    TextInput,
     Alert,
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
-    Modal,
 } from "react-native";
 import { useState } from "react";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { supabase } from "../lib/supabase";
 import { StyleSheet } from "react-native";
 import { Image } from "react-native";
 import { taskEmitter } from "../lib/eventEmitter";
 import { useTheme } from "../lib/ThemeContext";
 import { getImageSource } from "../lib/imageHelper";
-import BottomDualButtons from "@/components/bottomDualButtons";
 import PrimaryButton from "@/components/primaryButton";
+import SimpleInput from "@/components/textInput";
+import DateInput from "@/components/dateInput";
 
 export default function CreateTask() {
     const router = useRouter();
@@ -31,7 +29,6 @@ export default function CreateTask() {
     const [selectedDate, setSelectedDate] = useState<Date>(
         params.selectedDate ? new Date(params.selectedDate as string) : new Date()
     );
-    const [showDatePicker, setShowDatePicker] = useState(false);
     const { colors, theme } = useTheme();
 
     const handleCreateTask = async () => {
@@ -79,17 +76,8 @@ export default function CreateTask() {
         }
     };
 
-    const handleDateChange = (event: any, date?: Date) => {
-        if (Platform.OS === "android") {
-            setShowDatePicker(false);
-        }
-        if (date) {
-            setSelectedDate(date);
-        }
-    };
-
-    const handleCloseDatePicker = () => {
-        setShowDatePicker(false);
+    const handleDateChange = (date: Date) => {
+        setSelectedDate(date);
     };
 
     return (
@@ -108,113 +96,32 @@ export default function CreateTask() {
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.mainView}>
 
-                    <View style={styles.inputContainer}>
-                        <Text style={[styles.label, { color: colors.text }]}>
-                            Nom
-                        </Text>
-                        <TextInput
-                            style={[styles.textInput, { backgroundColor: colors.input, borderColor: colors.border, color: colors.text }]}
-                            placeholder="Entrez le nom de la tâche"
-                            placeholderTextColor={colors.inputPlaceholder}
-                            value={name}
-                            onChangeText={setName}
-                            editable={!loading}
-                        />
-                    </View>
+                    <SimpleInput
+                        name="Titre"
+                        value={name}
+                        onChangeText={setName}
+                    />
 
-                    <View style={styles.descriptionContainer}>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                            <Text style={[styles.label, { color: colors.text }]}>
-                                Description
-                            </Text>
-                            <Text style={[styles.optionalText, { color: colors.textSecondary }]} >(facultatif)</Text>
-                        </View>
-                        <TextInput
-                            style={[styles.descriptionInput, { backgroundColor: colors.input, borderColor: colors.border, color: colors.text }]}
-                            placeholder="Entrez la description de la tâche"
-                            placeholderTextColor={colors.inputPlaceholder}
-                            value={description}
-                            onChangeText={setDescription}
-                            multiline
-                            editable={!loading}
-                        />
-                    </View>
+                    <SimpleInput
+                        name="Description"
+                        value={description}
+                        onChangeText={setDescription}
+                        multiline 
+                    />
 
-                    <View style={styles.dateContainer}>
-                        <Text style={[styles.label, { color: colors.text }]}>
-                            Date
-                        </Text>
-                        <TouchableOpacity
-                            style={[styles.dateButton, { backgroundColor: colors.input, borderColor: colors.border }]}
-                            onPress={() => setShowDatePicker(true)}
-                            disabled={loading}
-                        >
-                            <Text style={[styles.dateButtonText, { color: colors.text }]}>
-                                {selectedDate.toLocaleDateString("fr-FR", {
-                                    weekday: "long",
-                                    year: "numeric",
-                                    month: "long",
-                                    day: "numeric",
-                                })}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {showDatePicker && Platform.OS === "ios" && (
-                        <Modal
-                            transparent
-                            visible={showDatePicker}
-                            animationType="fade"
-                            onRequestClose={handleCloseDatePicker}
-                        >
-                            <TouchableOpacity
-                                activeOpacity={1}
-                                style={styles.datePickerOverlay}
-                                onPress={handleCloseDatePicker}
-                            >
-                                <View style={styles.datePickerContainer}>
-                                    <View
-                                        style={styles.datePickerContent}
-                                        onTouchEnd={(e) => e.stopPropagation()}
-                                    >
-                                        <DateTimePicker
-                                            value={selectedDate}
-                                            mode="date"
-                                            display="spinner"
-                                            onChange={handleDateChange}
-                                        />
-                                        <TouchableOpacity
-                                            style={[styles.datePickerCloseButton, { backgroundColor: colors.actionButton }]}
-                                            onPress={handleCloseDatePicker}
-                                        >
-                                            <Text style={[styles.datePickerCloseText, { color: colors.buttonText }]}>
-                                                Fermer
-                                            </Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            </TouchableOpacity>
-                        </Modal>
-                    )}
-
-                    {showDatePicker && Platform.OS === "android" && (
-                        <DateTimePicker
-                            value={selectedDate}
-                            mode="date"
-                            display="default"
-                            onChange={handleDateChange}
-                        />
-                    )}
+                    <DateInput
+                        value={selectedDate}
+                        onChange={handleDateChange}
+                        disabled={loading}
+                    />
 
                 </View>
             </ScrollView>
 
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf:"center", width: "100%", position: "absolute", bottom: 23 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf: "center", width: "100%", position: "absolute", bottom: 23 }}>
                 <PrimaryButton size="small" image="cancel" onPress={() => router.back()} />
                 <PrimaryButton size="mid" title="Créer la tâche" onPress={handleCreateTask} />
             </View>
-
-
 
         </KeyboardAvoidingView>
     );
@@ -249,6 +156,9 @@ const styles = StyleSheet.create({
     },
 
     mainView: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 20,
     },
 
     inputContainer: {
@@ -258,12 +168,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "600",
         marginBottom: 8,
-    },
-    textInput: {
-        borderWidth: 1,
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 16,
     },
     descriptionContainer: {
         marginBottom: 30,
@@ -322,38 +226,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "500",
         textTransform: "capitalize",
-    },
-    datePickerOverlay: {
-        flex: 1,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        justifyContent: "flex-end",
-    },
-    datePickerContainer: {
-        paddingBottom: 20,
-        borderRadius: 10,
-        marginBottom: 10,
-
-    },
-    datePickerContent: {
-        backgroundColor: "white",
-        paddingBottom: 10,
-        borderRadius: 10,
-        marginLeft: 'auto',
-        marginRight: 'auto',
-        width: "90%",
-        display: "flex",
-        alignItems: "center",
-    },
-    datePickerCloseButton: {
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        margin: 10,
-        borderRadius: 8,
-        alignItems: "center",
-    },
-    datePickerCloseText: {
-        fontSize: 16,
-        fontWeight: "600",
     },
 
 });

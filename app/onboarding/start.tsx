@@ -26,6 +26,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from "expo-haptics";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import PrimaryButton from '@/components/primaryButton';
 
 
 export default function StartScreen() {
@@ -69,41 +70,17 @@ export default function StartScreen() {
                 <View style={styles.pin}>
                     <Text>~ 30 sec</Text>
                 </View>
-                <TouchableOpacity
-                    style={[styles.primaryButton, { backgroundColor: colors.actionButton }]}
-                    onPress={goToRegister}>
-                    <Text style={[styles.primaryButtonText, { color: colors.buttonText }]}>
-                        Créer un compte
-                    </Text>
-                </TouchableOpacity>
 
+                <PrimaryButton
+                    title="Créer un compte"
+                    onPress={goToRegister}
+                />
 
-                <TouchableOpacity
-                    style={[
-                        styles.secondaryButton,
-                        { borderColor: colors.border, borderWidth: 1.5 },
-                    ]}
+                <PrimaryButton
+                    title="Se connecter"
                     onPress={() => router.push('/onboarding/login')}
-                >
-                    <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
-                        Se connecter
-                    </Text>
-                </TouchableOpacity>
-
-                {/* <TouchableOpacity
-                    style={[
-                        styles.secondaryButton,
-                        { borderColor: colors.border, borderWidth: 1.5 },
-                    ]}
-                    onPress={() => router.push({
-                        pathname: '/onboarding/successMail',
-                        params: { email: "yanis@gmail.com" }
-                    })}
-                >
-                <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
-                    Test
-                </Text>
-            </TouchableOpacity> */}
+                    type="reverse"
+                />
 
                 <Text style={[styles.footerInfo, { color: colors.textSecondary }]}>
                     Aucune donnée personnelle ne sera partagée
@@ -122,7 +99,6 @@ const createStyles = (colors: any) =>
         },
 
         buttonSection: {
-            marginBottom: 30,
             zIndex: 2,
             position: 'absolute',
             bottom: 50,

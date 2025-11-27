@@ -25,6 +25,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { getImageSource } from '@/lib/imageHelper';
 import * as Haptics from 'expo-haptics';
+import SimpleInput from '@/components/textInput';
+import PrimaryButton from '@/components/primaryButton';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -58,10 +60,10 @@ export default function LoginScreen() {
             });
 
             if (signInError) {
-                if(signInError.message === 'Email not confirmed') {
+                if (signInError.message === 'Email not confirmed') {
                     router.push({
                         pathname: '/onboarding/reVerifEmail',
-                        params: { 
+                        params: {
                             email: email.trim(),
                         }
                     });
@@ -90,136 +92,109 @@ export default function LoginScreen() {
             style={styles.content}
             onPress={() => Keyboard.dismiss()}
         >
-            <View style={[styles.container, { backgroundColor: colors.background }]}>
-                {/* Header */}
-                <Animated.View
-                    entering={FadeIn.springify().delay(1500).duration(1500)}
-                    exiting={FadeOut.springify()}
-                    style={styles.headerContainer}
+            {/* Header */}
+            <Animated.View
+                entering={FadeIn.springify().delay(1500).duration(1500)}
+                exiting={FadeOut.springify()}
+                style={styles.headerContainer}
+            >
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={handleBackPress}
                 >
-                    <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={handleBackPress}
-                    >
-                        <Image
-                            style={{ width: 24, height: 24 }}
-                            source={require('../../assets/images/dark/cancel.png')}
-                        />
-                    </TouchableOpacity>
+                    <Image
+                        style={{ width: 24, height: 24 }}
+                        source={require('../../assets/images/dark/cancel.png')}
+                    />
+                </TouchableOpacity>
+            </Animated.View>
+
+            {/* Form Container */}
+            <View style={styles.formContainer}>
+                <Animated.View
+                    entering={FadeInUp.springify().delay(500).duration(1500)}
+                    exiting={FadeOutDown.springify()}
+                >
+                    <Text style={[styles.title, { color: colors.text }]}>Bienvenue</Text>
                 </Animated.View>
 
-                {/* Form Container */}
-                <View style={styles.formContainer}>
-                    <Animated.View
-                        entering={FadeInUp.springify().delay(500).duration(1500)}
-                        exiting={FadeOutDown.springify()}
-                    >
-                        <Text style={[styles.title, { color: colors.text }]}>Bienvenue</Text>
-                    </Animated.View>
-
-                    <Animated.View
-                        entering={FadeInUp.springify().delay(800).duration(1500)}
-                        exiting={FadeOutDown.springify()}
-                        style={styles.inputContainer}
-                    >
-                        <TextInput
-                            style={[
-                                styles.textInput,
-                                {
-                                    backgroundColor: colors.input,
-                                    color: colors.text,
-                                    borderColor: colors.border,
-                                },
-                            ]}
-                            placeholder="Email"
-                            placeholderTextColor={colors.textSecondary}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            value={email}
-                            onChangeText={setEmail}
-                            editable={!loading}
-                        />
-                    </Animated.View>
-
-                    <Animated.View
-                        entering={FadeInUp.springify().delay(1100).duration(1500)}
-                        exiting={FadeOutDown.springify()}
-                        style={styles.inputContainer}
-                    >
-                        <TextInput
-                            style={[
-                                styles.textInput,
-                                {
-                                    backgroundColor: colors.input,
-                                    color: colors.text,
-                                    borderColor: colors.border,
-                                },
-                            ]}
-                            placeholder="Mot de passe"
-                            placeholderTextColor={colors.textSecondary}
-                            secureTextEntry
-                            value={password}
-                            onChangeText={setPassword}
-                            editable={!loading}
-                        />
-                    </Animated.View>
-
-                    {error ? (
-                        <Animated.Text
-                            entering={FadeInUp.springify()}
-                            exiting={FadeOut.springify()}
-                            style={[styles.errorText, { color: colors.danger }]}
-                        >
-                            {error}
-                        </Animated.Text>
-                    ) : null}
-                </View>
-
-                {/* Footer */}
                 <Animated.View
-                    style={styles.buttonSection}
-                    entering={FadeInUp.springify().delay(1500).duration(1000)}
-                    exiting={FadeOutDown.springify().delay(100).duration(1500)}
+                    entering={FadeInUp.springify().delay(800).duration(1500)}
+                    exiting={FadeOutDown.springify()}
+                    style={styles.inputContainer}
                 >
-                    <TouchableOpacity
-                        style={[styles.validateButton, { backgroundColor: colors.actionButton }]}
-                        onPress={handleLogin}
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color={colors.buttonText} />
-                        ) : (
-                            <Text style={[styles.validateButtonText, { color: colors.buttonText }]}>
-                                Se connecter
-                            </Text>
-                        )}
-                    </TouchableOpacity>
-
-                    <TouchableOpacity onPress={() => router.push('/onboarding/register')}>
-                        <Text style={[styles.footerLink, { color: colors.actionButton }]}>
-                            Pas encore de compte ? S'inscrire
-                        </Text>
-                    </TouchableOpacity>
+                    <SimpleInput
+                        placeholder="Email"
+                        placeholderTextColor={colors.textSecondary}
+                        value={email}
+                        onChangeText={setEmail}
+                        center
+                        scale="large"
+                    />
                 </Animated.View>
+
+                <Animated.View
+                    entering={FadeInUp.springify().delay(1100).duration(1500)}
+                    exiting={FadeOutDown.springify()}
+                    style={styles.inputContainer}
+                >
+                    <SimpleInput
+                        placeholder="Mot de passe"
+                        placeholderTextColor={colors.textSecondary}
+                        value={password}
+                        onChangeText={setPassword}
+                        center
+                        scale="large"
+                        password
+                    />
+                </Animated.View>
+
+                {error ? (
+                    <Animated.Text
+                        entering={FadeInUp.springify()}
+                        exiting={FadeOut.springify()}
+                        style={[styles.errorText, { color: colors.danger }]}
+                    >
+                        {error}
+                    </Animated.Text>
+                ) : null}
             </View>
+
+            {/* Footer */}
+            <Animated.View
+                style={styles.buttonSection}
+                entering={FadeInUp.springify().delay(1500).duration(1000)}
+                exiting={FadeOutDown.springify().delay(100).duration(1500)}
+            >
+                <PrimaryButton
+                    title={loading ? 'Connexion...' : 'Se connecter'}
+                    size="large"
+                    onPress={handleLogin}
+                    disabled={loading}
+                />
+
+                <TouchableOpacity onPress={() => router.push('/onboarding/register')}>
+                    <Text style={[styles.footerLink, { color: colors.actionButton }]}>
+                        Pas encore de compte ? S'inscrire
+                    </Text>
+                </TouchableOpacity>
+            </Animated.View>
         </Pressable>
     );
 }
 
 const createStyles = (colors: any) =>
     StyleSheet.create({
-        container: {
-            flex: 1,
-            justifyContent: 'space-between',
-        },
         content: {
-            flex: 1,
             width: '100%',
             height: '100%',
+            paddingHorizontal: 23,
+            paddingVertical: 23,
+            backgroundColor: colors.background,
         },
         headerContainer: {
             position: 'absolute',
-            width: '80%',
+            width: '100%',
             top: 70,
             alignSelf: 'center',
             zIndex: 3,
@@ -253,9 +228,10 @@ const createStyles = (colors: any) =>
             zIndex: 1,
         },
         inputContainer: {
-            width: '100%',
+            width: '90%',
             alignItems: 'center',
             marginTop: 10,
+            marginHorizontal: 'auto',
         },
         textInput: {
             borderWidth: 1,
