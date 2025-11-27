@@ -15,6 +15,7 @@ import { getImageSource } from "../lib/imageHelper";
 import { supabase } from "../lib/supabase";
 import { taskEmitter } from "../lib/eventEmitter";
 import PrimaryButton from "@/components/primaryButton";
+import Headline from "@/components/headline";
 
 export default function Settings() {
     const router = useRouter();
@@ -105,9 +106,7 @@ export default function Settings() {
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <View style={styles.header}>
-                <Text style={[styles.title, { color: colors.text }]}>Paramètres</Text>
-            </View>
+            <Headline title="Paramètres" subtitle="de l'application" />
 
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
@@ -214,7 +213,7 @@ export default function Settings() {
 
                 <View style={styles.bottomSpacer} />
             </ScrollView>
-{/* 
+            {/* 
             <TouchableOpacity
                 onPress={() => router.back()}
                 style={[styles.backButton, { backgroundColor: colors.actionButton }]}
@@ -227,12 +226,12 @@ export default function Settings() {
 
 
             <PrimaryButton
-                style={{position: "absolute", bottom: 23, right: 23}}
+                style={{ position: "absolute", bottom: 23, right: 23 }}
                 image="home"
                 size="small"
                 onPress={() => router.back()}
             />
-            
+
         </View>
     );
 }
@@ -259,6 +258,7 @@ const styles = StyleSheet.create({
     },
 
     scrollContent: {
+        marginTop: 20,
         paddingBottom: 120,
     },
 

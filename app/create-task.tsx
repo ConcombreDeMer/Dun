@@ -19,6 +19,7 @@ import { getImageSource } from "../lib/imageHelper";
 import PrimaryButton from "@/components/primaryButton";
 import SimpleInput from "@/components/textInput";
 import DateInput from "@/components/dateInput";
+import Headline from "@/components/headline";
 
 export default function CreateTask() {
     const router = useRouter();
@@ -85,14 +86,7 @@ export default function CreateTask() {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={[styles.container, { backgroundColor: colors.background }]}
         >
-            <View>
-                <Text style={[styles.title, { color: colors.text }]}>
-                    Créer
-                </Text>
-                <Text style={[styles.subtitle, { color: colors.text }]}>
-                    une tâche
-                </Text>
-            </View>
+            <Headline title="Créer" subtitle="une tâche" />
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.mainView}>
 

@@ -347,7 +347,6 @@ export default function CalendarComponent({
 const styles = StyleSheet.create({
     container: {
         borderRadius: 8,
-        marginTop: 8,
     },
     collapsedHeader: {
         flexDirection: "row",
@@ -357,7 +356,7 @@ const styles = StyleSheet.create({
         position: "relative",
     },
     collapsedText: {
-        fontSize: 38,
+        fontSize: 24,
         fontFamily: 'Satoshi-Regular',
         paddingHorizontal: 8,
     },

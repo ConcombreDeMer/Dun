@@ -14,6 +14,8 @@ import { getImageSource } from "../lib/imageHelper";
 import { StatusBar } from "expo-status-bar";
 import CalendarComponent from "@/components/calendar";
 import PrimaryButton from "@/components/primaryButton";
+import SecondaryButton from "@/components/secondaryButton";
+import Headline from "@/components/headline";
 const LottieView = require("lottie-react-native").default;
 
 export default function Index() {
@@ -187,21 +189,12 @@ export default function Index() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={[styles.title, { color: colors.text }]}>Hello {userName}</Text>
-            <Link
-              href={"/settings"}
-              style={[styles.settingsLink, { backgroundColor: colors.button }]}
-            >
-              <View
-                style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Image
-                  style={{ width: 34, height: 34, alignSelf: 'center' }}
-                  source={getImageSource('settings', theme)}
-                ></Image>
+            <Headline title="Tâches" subtitle="de la journée" />
 
-              </View>
-            </Link>
+            <SecondaryButton
+              onPress={() => router.push("/settings")}
+              image="settings"
+            />
           </View>
 
           <CalendarComponent

@@ -21,6 +21,7 @@ import { getImageSource } from "../lib/imageHelper";
 import PrimaryButton from "@/components/primaryButton";
 import SimpleInput from "@/components/textInput";
 import DateInput from "@/components/dateInput";
+import Headline from "@/components/headline";
 
 export default function EditTask() {
     const router = useRouter();
@@ -122,14 +123,8 @@ export default function EditTask() {
             <View style={styles.handleContainer}>
                 <View style={[styles.handle, { backgroundColor: colors.border }]} />
             </View>
-            <View>
-                <Text style={[styles.title, { color: colors.text }]}>
-                    Modifier
-                </Text>
-                <Text style={[styles.subtitle, { color: colors.text }]}>
-                    la tâche
-                </Text>
-            </View>
+            <Headline title="Modifier" subtitle="la tâche" />
+
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.mainView}>
 
@@ -138,12 +133,12 @@ export default function EditTask() {
                         value={name}
                         onChangeText={setName}
                     />
-                    
+
                     <SimpleInput
                         name="Description"
                         value={description}
                         onChangeText={setDescription}
-                        multiline 
+                        multiline
                     />
 
                     <DateInput
