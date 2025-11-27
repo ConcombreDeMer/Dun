@@ -16,6 +16,8 @@ import { supabase } from "../lib/supabase";
 import { taskEmitter } from "../lib/eventEmitter";
 import PrimaryButton from "@/components/primaryButton";
 import Headline from "@/components/headline";
+import NavItem from "@/components/navItem";
+import SwitchItem from "@/components/switchItem";
 
 export default function Settings() {
     const router = useRouter();
@@ -112,6 +114,21 @@ export default function Settings() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
+
+
+
+
+                <NavItem image="profile" title="Compte" />
+                <NavItem image="notification" title="Notifications" />
+                <NavItem image="display" title="Affichage" />
+                <SwitchItem image="display" title="Mode sombre" event={toggleTheme} currentValue={theme === 'dark'} />
+
+
+
+
+
+
+
                 {/* Section Notifications */}
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>Notifications</Text>
@@ -260,10 +277,12 @@ const styles = StyleSheet.create({
     scrollContent: {
         marginTop: 20,
         paddingBottom: 120,
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
     },
 
     section: {
-        marginBottom: 40,
     },
 
     sectionTitle: {

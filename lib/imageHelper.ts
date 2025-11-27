@@ -22,6 +22,12 @@ export const getImageSource = (iconName: string, theme: 'light' | 'dark') => {
         return require('../assets/images/dark2/back.png');
       case 'success':
         return require('../assets/images/dark2/success.png');
+      case 'notification':
+        return require('../assets/images/dark2/notification.png');
+      case 'profile':
+        return require('../assets/images/dark2/profile.png');
+      case 'display':
+        return require('../assets/images/dark2/display.png');
       default:
         return require('../assets/images/dark2/cancel.png');
     }
@@ -47,6 +53,12 @@ export const getImageSource = (iconName: string, theme: 'light' | 'dark') => {
         return require('../assets/images/light/back.png');
       case 'success':
         return require('../assets/images/light/success.png');
+      case 'notification':
+        return require('../assets/images/light/notification.png');
+      case 'profile':
+        return require('../assets/images/light/profile.png');
+      case 'display':
+        return require('../assets/images/light/display.png');
       default:
         return require('../assets/images/light/cancel.png');
     }
