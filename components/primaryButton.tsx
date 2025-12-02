@@ -10,20 +10,21 @@ interface PrimaryButtonProps {
     onPress: () => void;
     disabled?: boolean;
     image?: string;
-    size?: 'large' | 'small' | 'mid';
+    size?: 'L' | 'M' | 'S' | 'XS';
     style?: ViewStyle;
     type?: 'danger' | 'reverse'
 }
 
-export default function PrimaryButton({ title, onPress, disabled = false, image = '', size = 'large', style, type }: PrimaryButtonProps) {
+export default function PrimaryButton({ title, onPress, disabled = false, image = '', size = 'L', style, type }: PrimaryButtonProps) {
     const { colors, theme } = useTheme();
 
     return (
         <Pressable
             style={[
                 styles.button,
-                size === 'small' && styles.buttonSmall,
-                size === 'mid' && styles.buttonMid,
+                size === 'XS' && styles.buttonExtraSmall,
+                size === 'S' && styles.buttonSmall,
+                size === 'M' && styles.buttonMid,
                 type === 'danger' && styles.buttonDanger,
                 type === 'reverse' && styles.buttonReverse,
                 disabled && styles.disabled,
@@ -38,7 +39,7 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
                     source={getImageSource(image, theme)}
                 ></Image>
             }
-            {(size === 'large' || size === 'mid') && <Text style={[styles.text, type === 'danger' && styles.textDanger, type === 'reverse' && styles.textReverse]}>{title}</Text>}
+            {(size === 'L' || size === 'M' || size === 'S') && <Text style={[styles.text, type === 'danger' && styles.textDanger, type === 'reverse' && styles.textReverse]}>{title}</Text>}
         </Pressable>
     );
 }
@@ -55,6 +56,16 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     buttonSmall: {
+        backgroundColor: '#000000ff',
+        width: '50%',
+        height: 64,
+        borderRadius: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        gap: 12,
+    },
+    buttonExtraSmall: {
         width: 64,
         height: 64,
         borderRadius: 30,

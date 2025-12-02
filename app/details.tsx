@@ -1,4 +1,4 @@
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import {
   Text,
   View,
@@ -11,20 +11,77 @@ import {
   Alert,
   Image,
 } from "react-native";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import Animated, {
+  FadeInDown,
+  FadeOutDown,
+} from "react-native-reanimated";
 import { supabase } from "../lib/supabase";
 import { taskEmitter } from "../lib/eventEmitter";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "../lib/ThemeContext";
 import { getImageSource } from "../lib/imageHelper";
 import PrimaryButton from "@/components/primaryButton";
+import Headline from "@/components/headline";
+import SimpleInput from "@/components/textInput";
+import DateInput from "@/components/dateInput";
+import AnimatedCheckbox from "@/components/checkboxAnimated";
 
 export default function Details() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isDone, setIsDone] = useState(false);
   const { colors, theme } = useTheme();
+
+  useEffect(() => {
+    if (!task) return;
+
+    const isModified =
+      name !== task.name ||
+      description !== (task.description || "") ||
+      selectedDate.toDateString() !== (task.date ? new Date(task.date).toDateString() : new Date().toDateString()) ||
+      isDone !== task.done;
+
+    setHasChanges(isModified);
+  }, [name, description, selectedDate, task, isDone]);
+
+  // Détecter quand la modal ferme
+  useFocusEffect(
+    useCallback(() => {
+      // Exécuté quand la modal est ouverte
+      return () => {
+        // Exécuté quand la modal ferme
+        console.log("Details closed for task ID:", id);
+        // Ne sauvegarder que s'il y a des changements
+        if (hasChanges && name.trim()) {
+          (async () => {
+            try {
+              await supabase
+                .from("Tasks")
+                .update({
+                  name: name.trim(),
+                  description: description.trim(),
+                  date: selectedDate.toDateString(),
+                  done: isDone,
+                })
+                .eq("id", id);
+
+              taskEmitter.emit("taskUpdated");
+            } catch (error) {
+              console.error("Erreur lors de la sauvegarde:", error);
+            }
+          })();
+        }
+      };
+    }, [id, hasChanges, name, description, selectedDate, isDone])
+  );
 
   useEffect(() => {
     const fetchTask = async () => {
@@ -42,6 +99,10 @@ export default function Details() {
         }
 
         setTask(data);
+        setName(data.name);
+        setDescription(data.description || "");
+        setSelectedDate(data.date ? new Date(data.date) : new Date());
+        setIsDone(data.done || false);
       } catch (error) {
         console.error("Erreur:", error);
       } finally {
@@ -53,7 +114,7 @@ export default function Details() {
       fetchTask();
     };
 
-    taskEmitter.on("taskUpdated", handleEditTask);
+    // taskEmitter.on("taskUpdated", handleEditTask);
 
     if (id) {
       fetchTask();
@@ -124,6 +185,50 @@ export default function Details() {
     );
   };
 
+  const handleUpdateTask = async () => {
+    if (!name.trim()) {
+      Alert.alert("Erreur", "Le nom de la tâche est requis");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("Tasks")
+        .update({
+          name: name.trim(),
+          description: description.trim(),
+          date: selectedDate.toDateString(),
+          done: isDone,
+        })
+        .eq("id", id);
+
+      if (error) {
+        Alert.alert("Erreur", error.message);
+        return;
+      }
+
+      Alert.alert("Succès", "Tâche modifiée avec succès");
+      setTask({ ...task, done: isDone });
+      taskEmitter.emit("taskUpdated");
+    } catch (error) {
+      Alert.alert("Erreur", "Une erreur est survenue");
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDateChange = (date: Date) => {
+    setSelectedDate(date);
+  };
+
+  const handleToggleTask = () => {
+    setIsDone(!isDone);
+  };
+
+  const taskName = task.name || "Tâche sans nom";
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -132,57 +237,55 @@ export default function Details() {
       <View style={styles.handleContainer}>
         <View style={[styles.handle, { backgroundColor: colors.border }]} />
       </View>
-      <Text style={[styles.title, { color: colors.text }]}>Détails</Text>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.mainView}>
-        <Text style={[styles.taskName, { color: colors.text }]}>{task.name}</Text>
 
-        {task.description && (
-          <View style={[styles.section, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.label, { color: colors.text }]}>Description</Text>
-            <Text style={[styles.value, { color: colors.textSecondary }]}>{task.description}</Text>
-          </View>
-        )}
+        <SimpleInput
+          value={name}
+          onChangeText={setName}
+          bold
+        />
 
-        <View style={[styles.section, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.label, { color: colors.text }]}>Statut</Text>
-          <Text style={[styles.value, { color: colors.textSecondary }]}>
-            {task.done ? "✓ Complétée" : "En cours"}
-          </Text>
-        </View>
+        <SimpleInput
+          value={description}
+          onChangeText={setDescription}
+          multiline
+        />
 
-        {task.date && (
-          <View style={[styles.section, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.label, { color: colors.text }]}>Date</Text>
-            <Text style={[styles.value, { color: colors.textSecondary }]}>
-              {new Date(task.date).toLocaleDateString("fr-FR")}
-            </Text>
-          </View>
-        )}
+        <DateInput
+          value={selectedDate}
+          onChange={handleDateChange}
+          disabled={saving}
+        />
 
-        {task.priority && (
-          <View style={styles.section}>
-            <Text style={[styles.label, { color: colors.text }]}>Priorité</Text>
-            <Text style={[styles.value, { color: colors.textSecondary }]}>{task.priority}</Text>
-          </View>
-        )}
-
-        </View>
       </ScrollView>
 
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf:"center", width: "100%", position: "absolute", bottom: 23 }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf: "center", width: "100%", position: "absolute", bottom: 23 }}>
         <PrimaryButton
-          size="small"
+          size="XS"
           type="danger"
           image="delete"
           onPress={handleDeleteTask}
+          disabled={saving}
         />
-        <PrimaryButton
-          size="small"
-          image="edit"
-          title="Modifier la tâche"
-          onPress={() => router.push(`/edit-task?id=${id}`)}
+        {/* {hasChanges && (
+          <Animated.View entering={FadeInDown} exiting={FadeOutDown} style={{ alignItems: 'center' }}>
+            <PrimaryButton
+              size="M"
+              type="reverse"
+              title="Enregistrer"
+              onPress={handleUpdateTask}
+              disabled={saving}
+            />
+          </Animated.View>
+        )} */}
+        <AnimatedCheckbox
+          checked={isDone}
+          onChange={handleToggleTask}
+          disabled={saving}
+          size={64}
         />
+
+
       </View>
 
     </KeyboardAvoidingView>
@@ -199,7 +302,7 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     justifyContent: "flex-start",
     borderColor: "#000000",
-    
+
   },
 
   handleContainer: {
@@ -220,7 +323,11 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    marginTop: 50,
+    marginTop: 10,
+    display: "flex",
+    flexDirection: "column",
+    gap: 20,
+    maxHeight: "65%",
   },
 
   mainView: {

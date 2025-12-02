@@ -245,7 +245,7 @@ export default function Settings() {
             <PrimaryButton
                 style={{ position: "absolute", bottom: 23, right: 23 }}
                 image="home"
-                size="small"
+                size="XS"
                 onPress={() => router.back()}
             />
 

@@ -247,7 +247,7 @@ export default function Index() {
           />
         </View> */}
 
-        <PrimaryButton style={{alignSelf : "flex-end"}} image="add" size="small" onPress={handleAddPress}/>
+        <PrimaryButton style={{alignSelf : "flex-end"}} image="add" size="XS" onPress={handleAddPress}/>
 
 
       </View>

@@ -113,8 +113,8 @@ export default function CreateTask() {
             </ScrollView>
 
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf: "center", width: "100%", position: "absolute", bottom: 23 }}>
-                <PrimaryButton size="small" image="cancel" onPress={() => router.back()} />
-                <PrimaryButton size="mid" title="Créer la tâche" onPress={handleCreateTask} />
+                <PrimaryButton size="XS" image="cancel" onPress={() => router.back()} />
+                <PrimaryButton size="M" title="Créer la tâche" onPress={handleCreateTask} />
             </View>
 
         </KeyboardAvoidingView>

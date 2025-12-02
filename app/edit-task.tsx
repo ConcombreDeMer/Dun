@@ -152,13 +152,13 @@ export default function EditTask() {
 
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf: "center", width: "100%", position: "absolute", bottom: 23 }}>
                 <PrimaryButton
-                    size="small"
+                    size="XS"
                     image="cancel"
                     onPress={() => router.back()}
                     disabled={saving}
                 />
                 <PrimaryButton
-                    size="mid"
+                    size="XS"
                     title="Modifier la tâche"
                     onPress={handleUpdateTask}
                     disabled={saving}

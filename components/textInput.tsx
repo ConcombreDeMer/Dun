@@ -16,6 +16,7 @@ interface SimpleInputProps {
     center?: boolean;
     facultatif?: boolean;
     password?: boolean;
+    bold?: boolean;
 }
 
 export default function SimpleInput({
@@ -32,6 +33,7 @@ export default function SimpleInput({
     center = false,
     facultatif = false,
     password = false,
+    bold = false,
 }: SimpleInputProps) {
     const [text, setText] = useState(value);
     const [showPassword, setShowPassword] = useState(false);
@@ -60,7 +62,7 @@ export default function SimpleInput({
             </View>
 
             <TextInput
-                style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }]}
+                style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '600' : '200' }]}
                 placeholder={placeholder}
                 placeholderTextColor={placeholderTextColor}
                 value={text}

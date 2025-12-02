@@ -412,14 +412,14 @@ export default function Register() {
           <PrimaryButton
             image='back'
             onPress={handleBackPress}
-            size='small'
+            size='S'
           />
 
           {page < 5 && (
             <PrimaryButton
               title="Valider"
               onPress={handleAnimatePress}
-              size='mid'
+              size='M'
             />
           )}
 
@@ -441,7 +441,7 @@ export default function Register() {
             <PrimaryButton
               title={loading ? "" : "Créer le profil"}
               onPress={handleSignUp}
-              size='mid'
+              size='M'
               disabled={loading}
             />
           )}

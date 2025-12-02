@@ -14,9 +14,11 @@ interface DateInputProps {
     value: Date;
     onChange: (date: Date) => void;
     disabled?: boolean;
+    label?: string;
+    bold?: boolean;
 }
 
-export default function DateInput({ value, onChange, disabled = false }: DateInputProps) {
+export default function DateInput({ value, onChange, disabled = false, label, bold = false}: DateInputProps) {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const { colors } = useTheme();
 
@@ -35,15 +37,17 @@ export default function DateInput({ value, onChange, disabled = false }: DateInp
 
     return (
         <View style={styles.dateContainer}>
-            <Text style={[styles.label, { color: colors.text }]}>
-                Date
-            </Text>
+            {label &&
+                <Text style={[styles.label, { color: colors.text }]}>
+                    {label}
+                </Text>
+            }
             <TouchableOpacity
                 style={[styles.dateButton, { backgroundColor: colors.input, borderColor: colors.border }]}
                 onPress={() => setShowDatePicker(true)}
                 disabled={disabled}
             >
-                <Text style={[styles.dateButtonText, { color: colors.text }]}>
+                <Text style={[styles.dateButtonText, { color: colors.text, fontWeight: bold ? '600' : '200' }]}>
                     {value.toLocaleDateString("fr-FR", {
                         weekday: "long",
                         year: "numeric",

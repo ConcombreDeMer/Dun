@@ -168,7 +168,7 @@ export default function LoginScreen() {
             >
                 <PrimaryButton
                     title={loading ? 'Connexion...' : 'Se connecter'}
-                    size="large"
+                    size="L"
                     onPress={handleLogin}
                     disabled={loading}
                 />
