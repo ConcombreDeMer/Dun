@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
+    ScrollView,
+    FlatList,
+    PanResponder,
 } from "react-native";
 import Animated, {
     useAnimatedStyle,
@@ -22,19 +25,78 @@ import { getImageSource } from "@/lib/imageHelper";
 interface CalendarProps {
     onDateSelect?: (date: Date) => void;
     tasks?: any[];
+    slider?: boolean;
 }
 
 export default function CalendarComponent({
     onDateSelect,
     tasks = [],
+    slider = false,
 }: CalendarProps) {
     const { colors, theme } = useTheme();
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-    const [isExpanded, setIsExpanded] = useState(true);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [selectedWeek, setSelectedWeek] = useState<number>(0);
+    const sliderRef = useRef<FlatList>(null);
+    const panResponderRef = useRef<any>(null);
+    const isExpandedRef = useRef(false);
+    const calendarHeightRef = useRef(0);
 
-    // Animation height
-    const heightValue = useSharedValue(1);
+    // Animation height - reanimated shared values
+    const heightValue = useSharedValue(0);
+
+    // Mettre à jour la ref quand isExpanded change
+    useEffect(() => {
+        isExpandedRef.current = isExpanded;
+    }, [isExpanded]);
+
+    // Setup PanResponder for drag handle
+    useEffect(() => {
+        if (!slider) return;
+
+        const panResponder = PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderMove: (event, gestureState) => {
+                // Utiliser les refs pour avoir les valeurs actuelles
+                const height = calendarHeightRef.current;
+                if (isExpandedRef.current) {
+                    // Quand on est expanded, drag vers le haut rétracts
+                    const dragDistance = Math.max(0, Math.min(height, height + gestureState.dy));
+                    heightValue.value = dragDistance / height;
+                } else {
+                    // Quand on n'est pas expanded, drag vers le bas déploie
+                    const dragDistance = Math.max(0, Math.min(height, gestureState.dy));
+                    heightValue.value = dragDistance / height;
+                }
+            },
+            onPanResponderRelease: (event, gestureState) => {
+                const height = calendarHeightRef.current;
+                if (isExpandedRef.current) {
+                    // Quand on est expanded, si on drag vers le haut de plus de 30% de la hauteur, on rétracte
+                    if (gestureState.dy < -(height * 0.3)) {
+                        heightValue.value = withSpring(0);
+                        setIsExpanded(false);
+                    } else {
+                        // Sinon, on revient à expanded
+                        heightValue.value = withSpring(1);
+                    }
+                } else {
+                    // Quand on n'est pas expanded, si on drag vers le bas de plus de 30% de la hauteur, on déploie
+                    if (gestureState.dy > (height * 0.3)) {
+                        heightValue.value = withSpring(1);
+                        setIsExpanded(true);
+                    } else {
+                        // Sinon, on revient à collapsed
+                        heightValue.value = withSpring(0);
+                    }
+                }
+            },
+        });
+
+        panResponderRef.current = panResponder;
+    }, [slider]);
 
     // Vérifier si un jour a des tâches
     const dayHasTasks = (dayNumber: number) => {
@@ -74,6 +136,24 @@ export default function CalendarComponent({
         });
 
         return dayTasks.length > 0 && dayTasks.every((task) => task.done);
+    };
+
+    // Helper pour vérifier les tâches d'une date complète
+    const checkTasksForDate = (date: Date) => {
+        const tasksForDate = tasks.filter((task) => {
+            if (!task.date) return false;
+            const taskDate = new Date(task.date);
+            return (
+                taskDate.getDate() === date.getDate() &&
+                taskDate.getMonth() === date.getMonth() &&
+                taskDate.getFullYear() === date.getFullYear()
+            );
+        });
+
+        return {
+            hasTasks: tasksForDate.length > 0,
+            allCompleted: tasksForDate.length > 0 && tasksForDate.every((task) => task.done),
+        };
     };
 
     // Obtenir les jours du mois
@@ -141,6 +221,75 @@ export default function CalendarComponent({
     const calendarDays = generateCalendarDays();
     const dayNames = Array.from({ length: 7 }, (_, i) => getDayName(i));
 
+    // Générer une liste de jours infinie (à partir d'une date d'origine)
+    const getInfiniteSliderDays = () => {
+        const baseDate = new Date(1990, 0, 1); // Date d'origine reculée
+        const days = [];
+        
+        // Générer 100 ans de jours (passé et futur)
+        for (let i = -15000; i < 15000; i++) {
+            const date = new Date(baseDate);
+            date.setDate(date.getDate() + i);
+            days.push(date);
+        }
+        return days;
+    };
+
+    const infiniteDays = getInfiniteSliderDays();
+
+    // Calculer le nombre de semaines du mois actuel pour adapter la hauteur
+    const getWeeksInMonthLocal = () => {
+        const daysInMonth = getDaysInMonth(currentMonth);
+        const firstDayOfMonth = getFirstDayOfMonth(currentMonth);
+        let weekCount = 1;
+
+        for (let i = 1; i <= daysInMonth; i++) {
+            if ((firstDayOfMonth + i - 1) % 7 === 0 && i < daysInMonth) {
+                weekCount++;
+            }
+        }
+
+        return weekCount;
+    };
+
+    const weeksInMonth = getWeeksInMonthLocal();
+    // Hauteur: header(~26px) + weekDays(~20px) + grid(numberOfWeeks * 40px + spacing)
+    const calendarHeight = 26 + 40 + (weeksInMonth * 40);
+
+    // Mettre à jour la ref de calendarHeight
+    useEffect(() => {
+        calendarHeightRef.current = calendarHeight;
+    }, [calendarHeight]);
+
+    // Trouver l'index du jour sélectionné - avec vérification stricte
+    const getSelectedDateIndex = () => {
+        const index = infiniteDays.findIndex(
+            (d) =>
+                d.getDate() === selectedDate.getDate() &&
+                d.getMonth() === selectedDate.getMonth() &&
+                d.getFullYear() === selectedDate.getFullYear()
+        );
+        // Si la date n'est pas trouvée, retourner un index valide (milieu de la liste)
+        return index >= 0 ? index : Math.floor(infiniteDays.length / 2);
+    };
+
+    // Scroll vers le jour sélectionné au changement
+    useEffect(() => {
+        if (slider && sliderRef.current) {
+            const index = getSelectedDateIndex();
+            // Vérifier que l'index est valide avant de scroller
+            if (index >= 0 && index < infiniteDays.length) {
+                setTimeout(() => {
+                    sliderRef.current?.scrollToIndex({
+                        index,
+                        animated: true,
+                        viewPosition: 0.5,
+                    });
+                }, 0);
+            }
+        }
+    }, [selectedDate, slider, infiniteDays.length]);
+
     // Gestion de la rétraction
     const toggleExpanded = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -148,11 +297,20 @@ export default function CalendarComponent({
         heightValue.value = withSpring(isExpanded ? 0 : 1);
     };
 
+    // Animation style pour la hauteur du slider background
+    const animatedSliderStyle = useAnimatedStyle(() => {
+        // La hauteur varie de 96px (initial) à 96 + calendarHeight (expanded)
+        const height = 96 + heightValue.value * calendarHeight;
+        return {
+            minHeight: height,
+        };
+    });
+
     // Animation style pour le contenu du calendrier
     const animatedContentStyle = useAnimatedStyle(() => {
         return {
             opacity: heightValue.value,
-            maxHeight: heightValue.value * 400,
+            height: heightValue.value * calendarHeight,
         };
     });
 
@@ -168,6 +326,43 @@ export default function CalendarComponent({
             transform: [{ rotate: `${rotation}deg` }],
         };
     });
+
+    // Obtenir les semaines du mois
+    const getWeeksInMonth = () => {
+        const daysInMonth = getDaysInMonth(currentMonth);
+        const firstDayOfMonth = getFirstDayOfMonth(currentMonth);
+        const weeks: (number | null)[][] = [];
+        let currentWeek: (number | null)[] = Array(firstDayOfMonth).fill(null);
+
+        for (let i = 1; i <= daysInMonth; i++) {
+            currentWeek.push(i);
+            if (currentWeek.length === 7) {
+                weeks.push(currentWeek);
+                currentWeek = [];
+            }
+        }
+
+        if (currentWeek.length > 0) {
+            weeks.push(currentWeek);
+        }
+
+        return weeks;
+    };
+
+    // Afficher la semaine en format readable
+    const getWeekDisplay = (weekIndex: number) => {
+        const weeks = getWeeksInMonth();
+        if (weekIndex >= weeks.length) return "";
+
+        const week = [...weeks[weekIndex]];
+        const firstDay = week.find((day) => day !== null);
+        const lastDay = [...week].reverse().find((day) => day !== null);
+
+        if (firstDay && lastDay) {
+            return `${firstDay}-${lastDay} ${getMonthName(currentMonth)}`;
+        }
+        return "";
+    };
 
     // Rendu d'un jour
     const renderDay = (dayNumber: number | null, index: number) => {
@@ -197,11 +392,11 @@ export default function CalendarComponent({
                 style={[
                     styles.day,
                     isSelected && {
-                        backgroundColor: "black",
+                        backgroundColor: colors.button,
                         borderRadius: 8,
                     },
                     isToday && !isSelected && {
-                        borderColor: colors.button,
+                        borderColor: "rgba(255, 255, 255, 0.5)",
                         borderWidth: 1,
                     },
                 ]}
@@ -214,7 +409,7 @@ export default function CalendarComponent({
                     style={[
                         styles.dayText,
                         {
-                            color: isSelected ? "white" : colors.text,
+                            color: isSelected ? "black" : "rgba(255, 255, 255, 0.8)",
                             fontWeight: isToday ? "bold" : "normal",
                         },
                     ]}
@@ -229,8 +424,8 @@ export default function CalendarComponent({
                             styles.taskIndicator,
                             {
                                 backgroundColor: allTasksCompletedForDay(dayNumber)
-                                    ? isSelected ? colors.doneSecondary : colors.checkboxDone
-                                    : isSelected ? "white" : colors.textSecondary,
+                                    ? isSelected ? "black" : "rgba(255, 255, 255, 0.5)"
+                                    : isSelected ? "black" : "white",
                             },
                         ]}
                     />
@@ -241,105 +436,151 @@ export default function CalendarComponent({
 
     return (
         <View style={[styles.container]}>
-            {/* Barre compressée/en-tête rétractable */}
-            <View style={[styles.collapsedHeader]}>
-                {/* <MaterialIcons name="calendar-today" size={20} color={colors.button} /> */}
-                <Text style={[styles.collapsedText, { color: colors.text }]}>
-                    {selectedDate.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}
-                </Text>
+            {/* Slider avec calendrier intérieur */}
+            <Animated.View 
+                style={[styles.sliderBackground, animatedSliderStyle]}
+            >
+                {slider ? (
+                    <>
+                        {/* FlatList des jours - toujours au top */}
+                        <FlatList
+                            ref={sliderRef}
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            data={infiniteDays}
+                            keyExtractor={(item, index) => `${item.toISOString()}-${index}`}
+                            renderItem={({ item: date }) => {
+                                const isSelected =
+                                    selectedDate.getDate() === date.getDate() &&
+                                    selectedDate.getMonth() === date.getMonth() &&
+                                    selectedDate.getFullYear() === date.getFullYear();
 
-                <View style={{ flexDirection: "row", alignItems: "center", position: "relative" }}>
-                    {selectedDate.toDateString() !== new Date().toDateString() && (
-                        <TouchableOpacity
-                            onPress={() => {
-                                const today = new Date();
-                                setSelectedDate(today);
-                                setCurrentMonth(today);
-                                onDateSelect?.(today);
+                                const isToday =
+                                    new Date().getDate() === date.getDate() &&
+                                    new Date().getMonth() === date.getMonth() &&
+                                    new Date().getFullYear() === date.getFullYear();
+
+                                return (
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.sliderDay,
+                                            isSelected && {
+                                                backgroundColor: "white",
+                                                borderRadius: 12,
+                                            },
+                                            isToday && !isSelected && {
+                                                borderColor: colors.button,
+                                                borderWidth: 1,
+                                            },
+                                        ]}
+                                        onPress={() => {
+                                            setSelectedDate(new Date(date));
+                                            onDateSelect?.(new Date(date));
+                                        }}
+                                    >
+                                        <Text style={[styles.sliderDayName, { color: colors.button }]}>
+                                            {getDayName(date.getDay())}
+                                        </Text>
+                                        <Text
+                                            style={[
+                                                styles.sliderDayNumber,
+                                                {
+                                                    color: isSelected ? "black" : "white",
+                                                },
+                                            ]}
+                                        >
+                                            {date.getDate()}
+                                        </Text>
+                                        {/* Point indicateur si le jour a des tâches */}
+                                        {(() => {
+                                            const { hasTasks, allCompleted } = checkTasksForDate(date);
+                                            return hasTasks ? (
+                                                <View
+                                                    style={[
+                                                        styles.sliderTaskIndicator,
+                                                        {
+                                                            backgroundColor: allCompleted
+                                                                ? isSelected ? colors.button : colors.checkboxDone
+                                                                : isSelected ? "black" : "white",
+                                                        },
+                                                    ]}
+                                                />
+                                            ) : null;
+                                        })()}
+                                    </TouchableOpacity>
+                                );
                             }}
-                            style={styles.todayButton}
-                        >
-                            <Image
-                                style={[
-                                    {
-                                        width: '100%',
-                                        height: '100%',
-                                        tintColor: colors.text,
-                                    },
-                                ]}
-                                source={getImageSource('today', theme)}>
-                            </Image>
-                        </TouchableOpacity>
-                    )}
-
-                    <TouchableOpacity
-                        onPress={toggleExpanded}
-                        style={styles.toggleButton}
-                    >
-                        <Animated.Image
-                            source={getImageSource('chevron', theme)}
-                            style={[
-                                {
-                                    width: '100%',
-                                    height: '100%',
-                                    tintColor: colors.text,
-                                },
-                                animatedChevronStyle,
-                            ]}
+                            scrollEventThrottle={16}
+                            getItemLayout={(data, index) => ({
+                                length: 68,
+                                offset: 68 * index,
+                                index,
+                            })}
+                            style={styles.flatListSlider}
                         />
-                    </TouchableOpacity>
-                </View>
-                {/* Bouton "Aujourd'hui" */}
-            </View>
 
-            {/* Contenu du calendrier animé */}
-            <Animated.View style={[animatedContentStyle, { overflow: "hidden", backgroundColor: colors.card, borderRadius: 8 }]}>
-                {/* En-tête du calendrier */}
-                <View style={[styles.header, { borderBottomColor: colors.border }]}>
-                    <TouchableOpacity onPress={previousMonth} style={styles.navButton}>
-                        <Text style={{ color: colors.textSecondary, fontSize: 24 }}>←</Text>
-                    </TouchableOpacity>
+                        {/* Contenu du calendrier - grossit vers le bas */}
+                        <Animated.View style={[animatedContentStyle, styles.calendarContentInside]}>
+                            {/* En-tête du calendrier */}
+                            <View style={[styles.header, { borderBottomColor: "rgba(255, 255, 255, 0.2)" }]}>
+                                <TouchableOpacity onPress={previousMonth} style={styles.navButton}>
+                                    <Text style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: 24 }}>←</Text>
+                                </TouchableOpacity>
 
-                    <Text
-                        style={[
-                            styles.monthYear,
-                            {
-                                color: colors.text,
-                            },
-                        ]}
-                    >
-                        {getMonthName(currentMonth)} {currentMonth.getFullYear()}
-                    </Text>
+                                <Text
+                                    style={[
+                                        styles.monthYear,
+                                        {
+                                            color: "white",
+                                        },
+                                    ]}
+                                >
+                                    {getMonthName(currentMonth)} {currentMonth.getFullYear()}
+                                </Text>
 
-                    <TouchableOpacity onPress={nextMonth} style={styles.navButton}>
-                        <Text style={{ color: colors.textSecondary, fontSize: 24 }}>→</Text>
-                    </TouchableOpacity>
-                </View>
+                                <TouchableOpacity onPress={nextMonth} style={styles.navButton}>
+                                    <Text style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: 24 }}>→</Text>
+                                </TouchableOpacity>
+                            </View>
 
-                {/* Jours de la semaine */}
-                <View style={styles.weekDaysContainer}>
-                    {dayNames.map((day) => (
-                        <View key={day} style={styles.weekDayCell}>
-                            <Text
-                                style={[
-                                    styles.weekDayText,
-                                    {
-                                        color: colors.textSecondary,
-                                    },
-                                ]}
-                            >
-                                {day}
-                            </Text>
+                            {/* Jours de la semaine */}
+                            <View style={styles.weekDaysContainer}>
+                                {dayNames.map((day) => (
+                                    <View key={day} style={styles.weekDayCell}>
+                                        <Text
+                                            style={[
+                                                styles.weekDayText,
+                                                {
+                                                    color: "rgba(255, 255, 255, 0.6)",
+                                                },
+                                            ]}
+                                        >
+                                            {day}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </View>
+
+                            {/* Grille des jours */}
+                            <View style={styles.calendarGrid}>
+                                {calendarDays.map((day, index) => renderDay(day, index))}
+                            </View>
+                        </Animated.View>
+
+                        {/* Handle bar wrapper draggable - au bottom */}
+                        <View
+                            style={styles.handleBarWrapper}
+                            {...(slider ? panResponderRef.current?.panHandlers : {})}
+                        >
+                            <View style={styles.handleBar} />
                         </View>
-                    ))}
-                </View>
-
-                {/* Grille des jours */}
-                <View style={styles.calendarGrid}>
-                    {calendarDays.map((day, index) => renderDay(day, index))}
-                </View>
+                    </>
+                ) : (
+                    <Text style={[styles.collapsedText, { color: colors.text }]}>
+                        {selectedDate.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}
+                    </Text>
+                )}
             </Animated.View>
-
         </View>
     );
 }
@@ -350,15 +591,89 @@ const styles = StyleSheet.create({
     },
     collapsedHeader: {
         flexDirection: "row",
-        justifyContent: "space-between",
+        justifyContent: "center",
         alignItems: "center",
         paddingVertical: 10,
         position: "relative",
+        gap: 8,
+    },
+    sliderBackground: {
+        backgroundColor: "black",
+        borderRadius: 30,
+        paddingHorizontal: 12,
+        paddingTop: 12,
+        flexDirection: "column",
+    },
+    flatListSlider: {
+        height: 80,
+    },
+    calendarContentInside: {
+        marginTop: 12,
+        backgroundColor: "#1c1c1cff",
+        borderRadius: 20,
+        overflow: "hidden",
+    },
+    handleBarWrapper: {
+        height: 30,
+        paddingVertical: 10,
+        marginTop: -20,
+        alignItems: "center",
+        justifyContent: "flex-end",
+        width: "120%",
+        alignSelf: "center",
+    },
+    handleBar: {
+        width: 40,
+        height: 4,
+        backgroundColor: "rgba(255, 255, 255, 0.5)",
+        borderRadius: 2,
     },
     collapsedText: {
         fontSize: 24,
         fontFamily: 'Satoshi-Regular',
         paddingHorizontal: 8,
+    },
+    weekSliderContainer: {
+        flexGrow: 0,
+        height: 80,
+    },
+    sliderDay: {
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        justifyContent: "center",
+        alignItems: "center",
+        marginHorizontal: 2,
+        borderRadius: 12,
+        width: 64,
+        height: 80,
+    },
+    sliderDayName: {
+        fontSize: 12,
+        fontWeight: "600",
+        fontFamily: "Satoshi-Medium",
+        marginBottom: 2,
+    },
+    sliderDayNumber: {
+        fontSize: 18,
+        fontWeight: "600",
+        fontFamily: "Satoshi-Bold",
+    },
+    sliderTaskIndicator: {
+        width: 5,
+        height: 5,
+        borderRadius: 2.5,
+        position: "absolute",
+        bottom: 8,
+    },
+    sliderContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        flex: 1,
+        justifyContent: "space-between",
+    },
+    sliderButton: {
+        padding: 8,
+        borderRadius: 6,
     },
     todayButton: {
         height: 30,
@@ -381,13 +696,12 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        paddingVertical: 10,
+        paddingVertical: 8,
         paddingHorizontal: 8,
         borderBottomWidth: 1,
-        marginBottom: 8,
     },
     navButton: {
-        padding: 6,
+        padding: 4,
         borderRadius: 6,
     },
     monthYear: {
@@ -397,22 +711,21 @@ const styles = StyleSheet.create({
     },
     weekDaysContainer: {
         flexDirection: "row",
-        marginBottom: 6,
+        paddingHorizontal: 8,
     },
     weekDayCell: {
         flex: 1,
         alignItems: "center",
-        paddingVertical: 4,
+        paddingVertical: 2,
     },
     weekDayText: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: "600",
         fontFamily: "Satoshi-Medium",
     },
     calendarGrid: {
         flexDirection: "row",
         flexWrap: "wrap",
-        marginBottom: -60,
         paddingHorizontal: 8,
     },
     day: {

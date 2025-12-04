@@ -198,6 +198,7 @@ export default function Index() {
           </View>
 
           <CalendarComponent
+            slider={true}
             tasks={tasks}
             onDateSelect={(date) => changeDate(date)}
           />
@@ -247,7 +248,7 @@ export default function Index() {
           />
         </View> */}
 
-        <PrimaryButton style={{alignSelf : "flex-end"}} image="add" size="XS" onPress={handleAddPress}/>
+        <PrimaryButton style={{ alignSelf: "flex-end" }} image="add" size="XS" onPress={handleAddPress} />
 
 
       </View>
