@@ -18,6 +18,7 @@ import PrimaryButton from "@/components/primaryButton";
 import Headline from "@/components/headline";
 import NavItem from "@/components/navItem";
 import SwitchItem from "@/components/switchItem";
+import SettingItem from "@/components/settingItem";
 
 export default function Settings() {
     const router = useRouter();
@@ -118,117 +119,15 @@ export default function Settings() {
 
 
 
-                <NavItem image="profile" title="Compte" />
-                <NavItem image="notification" title="Notifications" />
-                <NavItem image="display" title="Affichage" />
+                <NavItem image="profile" title="Compte" onPress={() => router.push("/settings/account")}/>
+                <NavItem image="notification" title="Notifications" onPress={() => router.push("/settings/notifications")}/>
+                <NavItem image="display" title="Affichage" onPress={() => router.push("/settings/display")}/>
                 <SwitchItem image="display" title="Mode sombre" event={toggleTheme} currentValue={theme === 'dark'} />
 
 
 
 
 
-
-
-                {/* Section Notifications */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Notifications</Text>
-                    <View style={[styles.settingItem, { backgroundColor: colors.card }]}>
-                        <View style={styles.settingInfo}>
-                            <Text style={[styles.settingLabel, { color: colors.text }]}>
-                                Activer les notifications
-                            </Text>
-                            <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
-                                Recevez des rappels pour vos tâches
-                            </Text>
-                        </View>
-                        <Switch
-                            value={notificationsEnabled}
-                            onValueChange={setNotificationsEnabled}
-                            trackColor={{ false: "#ccc", true: "#000" }}
-                            thumbColor="#fff"
-                        />
-                    </View>
-                </View>
-
-                {/* Section Apparence */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Apparence</Text>
-                    <View style={[styles.settingItem, { backgroundColor: colors.card }]}>
-                        <View style={styles.settingInfo}>
-                            <Text style={[styles.settingLabel, { color: colors.text }]}>
-                                {theme === 'light' ? '☀️ Mode clair' : '🌙 Mode sombre'}
-                            </Text>
-                            <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
-                                {theme === 'light' ? 'Passer au mode sombre' : 'Passer au mode clair'}
-                            </Text>
-                        </View>
-                        <Switch
-                            value={theme === 'dark'}
-                            onValueChange={toggleTheme}
-                            trackColor={{ false: "#ccc", true: "#000" }}
-                            thumbColor="#fff"
-                        />
-                    </View>
-                </View>
-
-                {/* Section Données */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Données</Text>
-                    <TouchableOpacity
-                        style={[styles.settingButton, { backgroundColor: colors.card }]}
-                        onPress={handleClearAllTasks}
-                    >
-                        <View style={styles.settingInfo}>
-                            <Text style={[styles.settingLabel, { color: colors.danger }]}>
-                                Supprimer toutes les tâches
-                            </Text>
-                            <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
-                                Cette action est irréversible
-                            </Text>
-                        </View>
-                        <Text style={[styles.settingArrow, { color: colors.danger }]}>›</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Section À propos */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>À propos</Text>
-                    <TouchableOpacity
-                        style={[styles.settingButton, { backgroundColor: colors.card }]}
-                        onPress={handleAbout}
-                    >
-                        <View style={styles.settingInfo}>
-                            <Text style={[styles.settingLabel, { color: colors.text }]}>
-                                À propos de Dun
-                            </Text>
-                            <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
-                                Version 1.0.0
-                            </Text>
-                        </View>
-                        <Text style={[styles.settingArrow, { color: colors.text }]}>›</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Section Compte */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Compte</Text>
-                    <TouchableOpacity
-                        style={[styles.settingButton, { backgroundColor: colors.card }]}
-                        onPress={handleLogout}
-                    >
-                        <View style={styles.settingInfo}>
-                            <Text style={[styles.settingLabel, { color: colors.danger }]}>
-                                Déconnexion
-                            </Text>
-                            <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
-                                Quitter votre compte
-                            </Text>
-                        </View>
-                        <Text style={[styles.settingArrow, { color: colors.danger }]}>›</Text>
-                    </TouchableOpacity>
-                </View>
-
-                <View style={styles.bottomSpacer} />
             </ScrollView>
             {/* 
             <TouchableOpacity

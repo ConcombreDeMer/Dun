@@ -30,6 +30,12 @@ export const getImageSource = (iconName: string, theme: 'light' | 'dark') => {
         return require('../assets/images/dark2/display.png');
       case 'check':
         return require('../assets/images/dark2/check.png');
+      case 'password':
+        return require('../assets/images/dark2/password.png');
+      case 'dead':
+        return require('../assets/images/dark2/dead.png');
+      case 'logout':
+        return require('../assets/images/dark2/logout.png');
       default:
         return require('../assets/images/dark2/cancel.png');
     }
@@ -63,6 +69,12 @@ export const getImageSource = (iconName: string, theme: 'light' | 'dark') => {
         return require('../assets/images/light/display.png');
       case 'check':
         return require('../assets/images/light/check.png');
+      case 'password':
+        return require('../assets/images/light/password.png');
+      case 'dead':
+        return require('../assets/images/light/dead.png');
+      case 'logout':
+        return require('../assets/images/light/logout.png');
       default:
         return require('../assets/images/light/cancel.png');
     }

@@ -6,12 +6,13 @@ import { StyleSheet } from 'react-native';
 interface NavItemProps {
     image?: any;
     title?: string;
+    onPress?: () => void;
 }
 
-export default function NavItem({ image, title }: NavItemProps) {
+export default function NavItem({ image, title, onPress }: NavItemProps) {
     const { theme } = useTheme();
     return (
-        <View style={styles.container}>
+        <TouchableOpacity style={styles.container} onPress={onPress}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 {image &&
                     <Image
@@ -27,7 +28,7 @@ export default function NavItem({ image, title }: NavItemProps) {
                     source={getImageSource("chevron", theme)}
                 ></Image>
             </View>
-        </View>
+        </TouchableOpacity>
     );
 }
 
