@@ -188,14 +188,14 @@ export default function Index() {
       <StatusBar style={theme == "dark" ? "light" : "auto"} />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Headline title="Tâches" subtitle="de la journée" />
 
             <SecondaryButton
               onPress={() => router.push("/settings")}
               image="settings"
             />
-          </View>
+          </View> */}
 
           <CalendarComponent
             slider={true}

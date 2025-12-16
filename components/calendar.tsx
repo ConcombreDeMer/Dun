@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     sliderBackground: {
-        backgroundColor: "black",
+        backgroundColor: "#272727ff",
         borderRadius: 30,
         paddingHorizontal: 12,
         paddingTop: 12,
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
     },
     calendarContentInside: {
         marginTop: 12,
-        backgroundColor: "#1c1c1cff",
+        backgroundColor: "#353535ff",
         borderRadius: 20,
         overflow: "hidden",
     },
