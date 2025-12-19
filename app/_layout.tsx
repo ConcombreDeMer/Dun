@@ -7,6 +7,8 @@ import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 import { StatusBar } from "expo-status-bar";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
+import { View } from "react-native";
+import Navbar from "../components/navbar";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -74,51 +76,55 @@ function RootLayoutContent() {
     return null;
   }
 
+  // Vérifier si on est sur l'onboarding pour masquer la navbar
+  const isOnboarding = segments[0] === "onboarding";
+
   return (
-    
-    <Stack
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: colors.background,
-        },
-        headerTintColor: colors.text,
-        headerTitleStyle: {
-          fontWeight: "bold",
-          fontSize: 18,
-          color: colors.text,
-        },
-        headerShown: false,
-      }}
-    >
-      <Stack.Screen
-        name="onboarding"
-        options={{
+    <View style={{ flex: 1 }}>
+      <Stack
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: colors.background,
+          },
+          headerTintColor: colors.text,
+          headerTitleStyle: {
+            fontWeight: "bold",
+            fontSize: 18,
+            color: colors.text,
+          },
           headerShown: false,
         }}
-      />
-      <Stack.Screen
-        name="index"
-        options={{
-          title: "Accueil",
-        }}
-      />
-      <Stack.Screen
-        name="details"
-        options={{
-          title: "Détails",
-          presentation: "modal",
-          
-        }}
-      />
-      <Stack.Screen
-        name="settings"
-        options={{
-          title: "Paramètres",
-          animation: "slide_from_left",
-          animationMatchesGesture: true,
-        }}
-      />
-    </Stack>
+      >
+        <Stack.Screen
+          name="onboarding"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="index"
+          options={{
+            title: "Accueil",
+          }}
+        />
+        <Stack.Screen
+          name="details"
+          options={{
+            title: "Détails",
+            presentation: "modal",
+          }}
+        />
+        <Stack.Screen
+          name="settings"
+          options={{
+            title: "Paramètres",
+            animation: "slide_from_left",
+            animationMatchesGesture: true,
+          }}
+        />
+      </Stack>
+      {!isOnboarding && <Navbar />}
+    </View>
   );
 }
 

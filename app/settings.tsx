@@ -18,7 +18,6 @@ import PrimaryButton from "@/components/primaryButton";
 import Headline from "@/components/headline";
 import NavItem from "@/components/navItem";
 import SwitchItem from "@/components/switchItem";
-import SettingItem from "@/components/settingItem";
 
 export default function Settings() {
     const router = useRouter();
