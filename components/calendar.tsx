@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
 import {
     View,
     Text,
@@ -28,20 +28,209 @@ interface CalendarProps {
     slider?: boolean;
 }
 
+// Constantes statiques - créées une seule fois
+const MONTHS = [
+    "Janvier",
+    "Février",
+    "Mars",
+    "Avril",
+    "Mai",
+    "Juin",
+    "Juillet",
+    "Août",
+    "Septembre",
+    "Octobre",
+    "Novembre",
+    "Décembre",
+];
+
+const DAYS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+
+// Fonction utilitaire pour comparer les dates efficacement
+const isSameDay = (date1: Date, date2: Date): boolean => {
+    return (
+        date1.getDate() === date2.getDate() &&
+        date1.getMonth() === date2.getMonth() &&
+        date1.getFullYear() === date2.getFullYear()
+    );
+};
+
+// Composant affichage date en mode collapsed - MEMOIZED
+const CollapsedDateDisplay = memo(({ selectedDate, colors }: any) => {
+    const dateStr = useMemo(() => {
+        return selectedDate.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+    }, [selectedDate]);
+    
+    return (
+        <Text style={[styles.collapsedText, { color: colors.text }]}>
+            {dateStr}
+        </Text>
+    );
+}, (prev, next) => {
+    return isSameDay(prev.selectedDate, next.selectedDate) && prev.colors === next.colors;
+});
+CollapsedDateDisplay.displayName = 'CollapsedDateDisplay';
+
+// Composant jour memoïzé avec comparateur personnalisé
+const DayCell = memo(({ 
+    dayNumber, 
+    index, 
+    currentMonth, 
+    selectedDate, 
+    colors, 
+    taskMap, 
+    onPress 
+}: any) => {
+    if (dayNumber === null) {
+        return <View key={`empty-${index}`} style={styles.emptyDay} />;
+    }
+
+    const date = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth(),
+        dayNumber
+    );
+    const isSelected = isSameDay(selectedDate, date);
+    const isToday = isSameDay(new Date(), date);
+    const dayKey = `${date.getFullYear()}-${date.getMonth()}-${dayNumber}`;
+    const taskInfo = taskMap[dayKey];
+
+    return (
+        <TouchableOpacity
+            key={`day-${dayNumber}`}
+            style={[
+                styles.day,
+                isSelected && {
+                    backgroundColor: colors.button,
+                    borderRadius: 8,
+                },
+                isToday && !isSelected && {
+                    borderColor: "rgba(255, 255, 255, 0.5)",
+                    borderWidth: 1,
+                },
+            ]}
+            onPress={onPress}
+        >
+            <Text
+                style={[
+                    styles.dayText,
+                    {
+                        color: isSelected ? "black" : "rgba(255, 255, 255, 0.8)",
+                        fontWeight: isToday ? "bold" : "normal",
+                    },
+                ]}
+            >
+                {dayNumber}
+            </Text>
+
+            {/* Point indicateur si le jour a des tâches */}
+            {taskInfo?.hasTasks && (
+                <View
+                    style={[
+                        styles.taskIndicator,
+                        {
+                            backgroundColor: taskInfo.allCompleted
+                                ? isSelected ? "black" : "rgba(255, 255, 255, 0.5)"
+                                : isSelected ? "black" : "white",
+                        },
+                    ]}
+                />
+            )}
+        </TouchableOpacity>
+    );
+}, (prevProps, nextProps) => {
+    // Retourner true si les props sont identiques (ne pas re-render)
+    return (
+        prevProps.dayNumber === nextProps.dayNumber &&
+        prevProps.index === nextProps.index &&
+        prevProps.currentMonth === nextProps.currentMonth &&
+        isSameDay(prevProps.selectedDate, nextProps.selectedDate) &&
+        prevProps.colors === nextProps.colors &&
+        prevProps.taskMap === nextProps.taskMap
+    );
+});
+DayCell.displayName = 'DayCell';
+
+// Composant jour slider memoïzé avec comparateur personnalisé
+const SliderDayCell = memo(({ 
+    date, 
+    isSelected, 
+    isToday, 
+    colors, 
+    taskInfo, 
+    onPress, 
+    getDayName 
+}: any) => {
+    return (
+        <TouchableOpacity
+            style={[
+                styles.sliderDay,
+                isSelected && {
+                    backgroundColor: "white",
+                    borderRadius: 12,
+                },
+                isToday && !isSelected && {
+                    borderColor: colors.button,
+                    borderWidth: 1,
+                },
+            ]}
+            onPress={onPress}
+        >
+            <Text style={[styles.sliderDayName, { color: colors.button }]}>
+                {getDayName(date.getDay())}
+            </Text>
+            <Text
+                style={[
+                    styles.sliderDayNumber,
+                    {
+                        color: isSelected ? "black" : "white",
+                    },
+                ]}
+            >
+                {date.getDate()}
+            </Text>
+            {/* Point indicateur si le jour a des tâches */}
+            {taskInfo?.hasTasks && (
+                <View
+                    style={[
+                        styles.sliderTaskIndicator,
+                        {
+                            backgroundColor: taskInfo.allCompleted
+                                ? isSelected ? colors.button : colors.checkboxDone
+                                : isSelected ? "black" : "white",
+                        },
+                    ]}
+                />
+            )}
+        </TouchableOpacity>
+    );
+}, (prevProps, nextProps) => {
+    // Retourner true si les props sont identiques (ne pas re-render)
+    return (
+        isSameDay(prevProps.date, nextProps.date) &&
+        prevProps.isSelected === nextProps.isSelected &&
+        prevProps.isToday === nextProps.isToday &&
+        prevProps.colors === nextProps.colors &&
+        prevProps.taskInfo === nextProps.taskInfo
+    );
+});
+SliderDayCell.displayName = 'SliderDayCell';
+
 export default function CalendarComponent({
     onDateSelect,
     tasks = [],
     slider = false,
 }: CalendarProps) {
     const { colors, theme } = useTheme();
-    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-    const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+    // Initialiser la date sélectionnée une seule fois
+    const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+    const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
     const [isExpanded, setIsExpanded] = useState(false);
-    const [selectedWeek, setSelectedWeek] = useState<number>(0);
     const sliderRef = useRef<FlatList>(null);
     const panResponderRef = useRef<any>(null);
     const isExpandedRef = useRef(false);
     const calendarHeightRef = useRef(0);
+    const isInitialScrollRef = useRef(true); // Track si c'est le premier scroll
 
     // Animation height - reanimated shared values
     const heightValue = useSharedValue(0);
@@ -51,7 +240,7 @@ export default function CalendarComponent({
         isExpandedRef.current = isExpanded;
     }, [isExpanded]);
 
-    // Setup PanResponder for drag handle
+    // Setup PanResponder for drag handle - avec cleanup
     useEffect(() => {
         if (!slider) return;
 
@@ -96,117 +285,72 @@ export default function CalendarComponent({
         });
 
         panResponderRef.current = panResponder;
+
+        // Cleanup: réinitialiser la ref quand le composant unmount ou slider change
+        return () => {
+            panResponderRef.current = null;
+        };
     }, [slider]);
 
-    // Vérifier si un jour a des tâches
-    const dayHasTasks = (dayNumber: number) => {
-        const date = new Date(
-            currentMonth.getFullYear(),
-            currentMonth.getMonth(),
-            dayNumber
-        );
-
-        return tasks.some((task) => {
-            if (!task.date) return false;
+    // Vérifier si un jour a des tâches - CACHED avec useMemo
+    const taskMap = useMemo(() => {
+        const map: Record<string, { hasTasks: boolean; allCompleted: boolean }> = {};
+        
+        tasks.forEach((task) => {
+            if (!task.date) return;
             const taskDate = new Date(task.date);
-            return (
-                taskDate.getDate() === date.getDate() &&
-                taskDate.getMonth() === date.getMonth() &&
-                taskDate.getFullYear() === date.getFullYear()
-            );
+            const key = `${taskDate.getFullYear()}-${taskDate.getMonth()}-${taskDate.getDate()}`;
+            
+            if (!map[key]) {
+                map[key] = { hasTasks: true, allCompleted: true };
+            } else {
+                map[key].hasTasks = true;
+            }
+            
+            if (!task.done) {
+                map[key].allCompleted = false;
+            }
         });
-    };
+        
+        return map;
+    }, [tasks]);
 
-    // Vérifier si toutes les tâches d'un jour sont complétées
-    const allTasksCompletedForDay = (dayNumber: number) => {
-        const date = new Date(
-            currentMonth.getFullYear(),
-            currentMonth.getMonth(),
-            dayNumber
-        );
-
-        const dayTasks = tasks.filter((task) => {
-            if (!task.date) return false;
-            const taskDate = new Date(task.date);
-            return (
-                taskDate.getDate() === date.getDate() &&
-                taskDate.getMonth() === date.getMonth() &&
-                taskDate.getFullYear() === date.getFullYear()
-            );
-        });
-
-        return dayTasks.length > 0 && dayTasks.every((task) => task.done);
-    };
-
-    // Helper pour vérifier les tâches d'une date complète
-    const checkTasksForDate = (date: Date) => {
-        const tasksForDate = tasks.filter((task) => {
-            if (!task.date) return false;
-            const taskDate = new Date(task.date);
-            return (
-                taskDate.getDate() === date.getDate() &&
-                taskDate.getMonth() === date.getMonth() &&
-                taskDate.getFullYear() === date.getFullYear()
-            );
-        });
-
-        return {
-            hasTasks: tasksForDate.length > 0,
-            allCompleted: tasksForDate.length > 0 && tasksForDate.every((task) => task.done),
-        };
-    };
-
-    // Obtenir les jours du mois
-    const getDaysInMonth = (date: Date) => {
+    // Obtenir les jours du mois - MEMOIZED
+    const getDaysInMonth = useCallback((date: Date) => {
         return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    };
+    }, []);
 
-    // Obtenir le premier jour du mois
-    const getFirstDayOfMonth = (date: Date) => {
+    // Obtenir le premier jour du mois - MEMOIZED
+    const getFirstDayOfMonth = useCallback((date: Date) => {
         return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-    };
+    }, []);
 
     // Naviguer vers le mois précédent
-    const previousMonth = () => {
+    const previousMonth = useCallback(() => {
         setCurrentMonth(
             new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1)
         );
-    };
+    }, [currentMonth]);
 
     // Naviguer vers le mois suivant
-    const nextMonth = () => {
+    const nextMonth = useCallback(() => {
         setCurrentMonth(
             new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)
         );
-    };
+    }, [currentMonth]);
 
-    // Obtenir le nom du mois
-    const getMonthName = (date: Date) => {
-        const months = [
-            "Janvier",
-            "Février",
-            "Mars",
-            "Avril",
-            "Mai",
-            "Juin",
-            "Juillet",
-            "Août",
-            "Septembre",
-            "Octobre",
-            "Novembre",
-            "Décembre",
-        ];
-        return months[date.getMonth()];
-    };
+    // Obtenir le nom du mois - simple lookup
+    const getMonthName = useCallback((date: Date) => {
+        return MONTHS[date.getMonth()];
+    }, []);
 
-    // Obtenir le nom du jour de la semaine
-    const getDayName = (index: number) => {
-        const days = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
-        return days[index];
-    };
+    // Obtenir le nom du jour de la semaine - simple lookup
+    const getDayName = useCallback((index: number) => {
+        return DAYS[index];
+    }, []);
 
-    // Générer la grille du calendrier
-    const generateCalendarDays = () => {
+    // Générer la grille du calendrier - MEMOIZED
+    const calendarDays = useMemo(() => {
         const daysInMonth = getDaysInMonth(currentMonth);
         const firstDayOfMonth = getFirstDayOfMonth(currentMonth);
         const days: (number | null)[] = Array(firstDayOfMonth).fill(null);
@@ -216,29 +360,27 @@ export default function CalendarComponent({
         }
 
         return days;
-    };
+    }, [currentMonth, getDaysInMonth, getFirstDayOfMonth]);
 
-    const calendarDays = generateCalendarDays();
-    const dayNames = Array.from({ length: 7 }, (_, i) => getDayName(i));
+    // Jours de la semaine - réutiliser directement la constante
+    const dayNames = DAYS;
 
-    // Générer une liste de jours infinie (à partir d'une date d'origine)
-    const getInfiniteSliderDays = () => {
-        const baseDate = new Date(1990, 0, 1); // Date d'origine reculée
-        const days = [];
+    // Générer une liste de jours infinie - MEMOIZED et LIMITED (12 mois seulement)
+    const infiniteDays = useMemo(() => {
+        const baseDate = new Date(); // Date d'aujourd'hui
+        const days: Date[] = [];
         
-        // Générer 100 ans de jours (passé et futur)
-        for (let i = -15000; i < 15000; i++) {
+        // Générer 12 mois total (6 passé, 6 futur) pour réduire au minimum
+        for (let i = -180; i < 180; i++) {
             const date = new Date(baseDate);
             date.setDate(date.getDate() + i);
             days.push(date);
         }
         return days;
-    };
+    }, []);
 
-    const infiniteDays = getInfiniteSliderDays();
-
-    // Calculer le nombre de semaines du mois actuel pour adapter la hauteur
-    const getWeeksInMonthLocal = () => {
+    // Calculer le nombre de semaines du mois actuel - MEMOIZED
+    const weeksInMonth = useMemo(() => {
         const daysInMonth = getDaysInMonth(currentMonth);
         const firstDayOfMonth = getFirstDayOfMonth(currentMonth);
         let weekCount = 1;
@@ -250,9 +392,8 @@ export default function CalendarComponent({
         }
 
         return weekCount;
-    };
-
-    const weeksInMonth = getWeeksInMonthLocal();
+    }, [currentMonth, getDaysInMonth, getFirstDayOfMonth]);
+    
     // Hauteur: header(~26px) + weekDays(~20px) + grid(numberOfWeeks * 40px + spacing)
     const calendarHeight = 26 + 40 + (weeksInMonth * 40);
 
@@ -261,34 +402,48 @@ export default function CalendarComponent({
         calendarHeightRef.current = calendarHeight;
     }, [calendarHeight]);
 
-    // Trouver l'index du jour sélectionné - avec vérification stricte
-    const getSelectedDateIndex = () => {
-        const index = infiniteDays.findIndex(
-            (d) =>
-                d.getDate() === selectedDate.getDate() &&
-                d.getMonth() === selectedDate.getMonth() &&
-                d.getFullYear() === selectedDate.getFullYear()
-        );
+    // Trouver l'index du jour sélectionné - MEMOIZED
+    const getSelectedDateIndex = useCallback(() => {
+        const index = infiniteDays.findIndex((d) => isSameDay(d, selectedDate));
         // Si la date n'est pas trouvée, retourner un index valide (milieu de la liste)
         return index >= 0 ? index : Math.floor(infiniteDays.length / 2);
-    };
+    }, [selectedDate, infiniteDays]);
 
-    // Scroll vers le jour sélectionné au changement
+    // Scroll vers le jour sélectionné au changement - avec cleanup du timeout
     useEffect(() => {
-        if (slider && sliderRef.current) {
-            const index = getSelectedDateIndex();
-            // Vérifier que l'index est valide avant de scroller
-            if (index >= 0 && index < infiniteDays.length) {
-                setTimeout(() => {
+        if (!slider || !sliderRef.current) return;
+
+        const index = getSelectedDateIndex();
+        // Vérifier que l'index est valide avant de scroller
+        if (index >= 0 && index < infiniteDays.length) {
+            // Au premier montage, non-animé + délai; aux sélections suivantes, animé
+            const isFirstScroll = isInitialScrollRef.current;
+            const timeoutId = setTimeout(() => {
+                try {
                     sliderRef.current?.scrollToIndex({
                         index,
-                        animated: true,
+                        animated: !isFirstScroll,
                         viewPosition: 0.5,
                     });
-                }, 0);
-            }
+                    // Marquer le premier scroll comme complété
+                    if (isFirstScroll) {
+                        isInitialScrollRef.current = false;
+                    }
+                } catch (e) {
+                    // Ignorer les erreurs si l'index est invalide
+                }
+            }, isFirstScroll ? 100 : 0);
+
+            // Cleanup: annuler le timeout quand le composant unmount ou les dépendances changent
+            return () => clearTimeout(timeoutId);
         }
-    }, [selectedDate, slider, infiniteDays.length]);
+    }, [selectedDate, slider, infiniteDays.length, getSelectedDateIndex]);
+
+    // Gestion de la sélection de date
+    const handleDateSelect = useCallback((date: Date) => {
+        setSelectedDate(new Date(date));
+        onDateSelect?.(new Date(date));
+    }, [onDateSelect]);
 
     // Gestion de la rétraction
     const toggleExpanded = async () => {
@@ -328,7 +483,7 @@ export default function CalendarComponent({
     });
 
     // Obtenir les semaines du mois
-    const getWeeksInMonth = () => {
+    const getWeeksInMonth = useCallback(() => {
         const daysInMonth = getDaysInMonth(currentMonth);
         const firstDayOfMonth = getFirstDayOfMonth(currentMonth);
         const weeks: (number | null)[][] = [];
@@ -347,10 +502,10 @@ export default function CalendarComponent({
         }
 
         return weeks;
-    };
+    }, [currentMonth, getDaysInMonth, getFirstDayOfMonth]);
 
     // Afficher la semaine en format readable
-    const getWeekDisplay = (weekIndex: number) => {
+    const getWeekDisplay = useCallback((weekIndex: number) => {
         const weeks = getWeeksInMonth();
         if (weekIndex >= weeks.length) return "";
 
@@ -362,77 +517,40 @@ export default function CalendarComponent({
             return `${firstDay}-${lastDay} ${getMonthName(currentMonth)}`;
         }
         return "";
-    };
+    }, [getWeeksInMonth, getMonthName, currentMonth]);
 
-    // Rendu d'un jour
-    const renderDay = (dayNumber: number | null, index: number) => {
-        if (dayNumber === null) {
-            return (
-                <View key={`empty-${index}`} style={styles.emptyDay} />
-            );
-        }
-
-        const date = new Date(
-            currentMonth.getFullYear(),
-            currentMonth.getMonth(),
-            dayNumber
-        );
-        const isSelected =
-            selectedDate.getDate() === dayNumber &&
-            selectedDate.getMonth() === currentMonth.getMonth() &&
-            selectedDate.getFullYear() === currentMonth.getFullYear();
-        const isToday =
-            new Date().getDate() === dayNumber &&
-            new Date().getMonth() === currentMonth.getMonth() &&
-            new Date().getFullYear() === currentMonth.getFullYear();
-
-        return (
-            <TouchableOpacity
-                key={`day-${dayNumber}`}
-                style={[
-                    styles.day,
-                    isSelected && {
-                        backgroundColor: colors.button,
-                        borderRadius: 8,
-                    },
-                    isToday && !isSelected && {
-                        borderColor: "rgba(255, 255, 255, 0.5)",
-                        borderWidth: 1,
-                    },
-                ]}
-                onPress={() => {
-                    setSelectedDate(date);
-                    onDateSelect?.(date);
-                }}
-            >
-                <Text
-                    style={[
-                        styles.dayText,
-                        {
-                            color: isSelected ? "black" : "rgba(255, 255, 255, 0.8)",
-                            fontWeight: isToday ? "bold" : "normal",
-                        },
-                    ]}
-                >
-                    {dayNumber}
-                </Text>
-
-                {/* Point indicateur si le jour a des tâches */}
-                {dayHasTasks(dayNumber) && (
-                    <View
-                        style={[
-                            styles.taskIndicator,
-                            {
-                                backgroundColor: allTasksCompletedForDay(dayNumber)
-                                    ? isSelected ? "black" : "rgba(255, 255, 255, 0.5)"
-                                    : isSelected ? "black" : "white",
-                            },
-                        ]}
+    // Créer les enfants de la grille des jours - MEMOIZED
+    const dayGridItems = useMemo(() => {
+        return calendarDays.map((day, index) => {
+            if (day === null) {
+                return (
+                    <View 
+                        key={`empty-${currentMonth.getFullYear()}-${currentMonth.getMonth()}-${index}`}
+                        style={styles.emptyDay} 
                     />
-                )}
-            </TouchableOpacity>
-        );
-    };
+                );
+            }
+
+            const date = new Date(
+                currentMonth.getFullYear(),
+                currentMonth.getMonth(),
+                day
+            );
+
+            return (
+                <DayCell
+                    key={`day-${currentMonth.getFullYear()}-${currentMonth.getMonth()}-${day}`}
+                    dayNumber={day}
+                    index={index}
+                    currentMonth={currentMonth}
+                    selectedDate={selectedDate}
+                    colors={colors}
+                    taskMap={taskMap}
+                    onPress={() => handleDateSelect(date)}
+                />
+            );
+        });
+    }, [calendarDays, currentMonth, selectedDate, colors, taskMap, handleDateSelect]);
 
     return (
         <View style={[styles.container]}>
@@ -442,7 +560,7 @@ export default function CalendarComponent({
             >
                 {slider ? (
                     <>
-                        {/* FlatList des jours - toujours au top */}
+                        {/* FlatList des jours - optimisée */}
                         <FlatList
                             ref={sliderRef}
                             horizontal
@@ -450,64 +568,21 @@ export default function CalendarComponent({
                             data={infiniteDays}
                             keyExtractor={(item, index) => `${item.toISOString()}-${index}`}
                             renderItem={({ item: date }) => {
-                                const isSelected =
-                                    selectedDate.getDate() === date.getDate() &&
-                                    selectedDate.getMonth() === date.getMonth() &&
-                                    selectedDate.getFullYear() === date.getFullYear();
-
-                                const isToday =
-                                    new Date().getDate() === date.getDate() &&
-                                    new Date().getMonth() === date.getMonth() &&
-                                    new Date().getFullYear() === date.getFullYear();
+                                const isSelected = isSameDay(selectedDate, date);
+                                const isToday = isSameDay(new Date(), date);
+                                const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+                                const taskInfo = taskMap[dayKey];
 
                                 return (
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.sliderDay,
-                                            isSelected && {
-                                                backgroundColor: "white",
-                                                borderRadius: 12,
-                                            },
-                                            isToday && !isSelected && {
-                                                borderColor: colors.button,
-                                                borderWidth: 1,
-                                            },
-                                        ]}
-                                        onPress={() => {
-                                            setSelectedDate(new Date(date));
-                                            onDateSelect?.(new Date(date));
-                                        }}
-                                    >
-                                        <Text style={[styles.sliderDayName, { color: colors.button }]}>
-                                            {getDayName(date.getDay())}
-                                        </Text>
-                                        <Text
-                                            style={[
-                                                styles.sliderDayNumber,
-                                                {
-                                                    color: isSelected ? "black" : "white",
-                                                },
-                                            ]}
-                                        >
-                                            {date.getDate()}
-                                        </Text>
-                                        {/* Point indicateur si le jour a des tâches */}
-                                        {(() => {
-                                            const { hasTasks, allCompleted } = checkTasksForDate(date);
-                                            return hasTasks ? (
-                                                <View
-                                                    style={[
-                                                        styles.sliderTaskIndicator,
-                                                        {
-                                                            backgroundColor: allCompleted
-                                                                ? isSelected ? colors.button : colors.checkboxDone
-                                                                : isSelected ? "black" : "white",
-                                                        },
-                                                    ]}
-                                                />
-                                            ) : null;
-                                        })()}
-                                    </TouchableOpacity>
+                                    <SliderDayCell
+                                        date={date}
+                                        isSelected={isSelected}
+                                        isToday={isToday}
+                                        colors={colors}
+                                        taskInfo={taskInfo}
+                                        onPress={() => handleDateSelect(date)}
+                                        getDayName={getDayName}
+                                    />
                                 );
                             }}
                             scrollEventThrottle={16}
@@ -516,6 +591,10 @@ export default function CalendarComponent({
                                 offset: 68 * index,
                                 index,
                             })}
+                            windowSize={10}
+                            maxToRenderPerBatch={5}
+                            updateCellsBatchingPeriod={50}
+                            removeClippedSubviews={true}
                             style={styles.flatListSlider}
                         />
 
@@ -563,7 +642,7 @@ export default function CalendarComponent({
 
                             {/* Grille des jours */}
                             <View style={styles.calendarGrid}>
-                                {calendarDays.map((day, index) => renderDay(day, index))}
+                                {dayGridItems}
                             </View>
                         </Animated.View>
 
@@ -576,9 +655,7 @@ export default function CalendarComponent({
                         </View>
                     </>
                 ) : (
-                    <Text style={[styles.collapsedText, { color: colors.text }]}>
-                        {selectedDate.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}
-                    </Text>
+                    <CollapsedDateDisplay selectedDate={selectedDate} colors={colors} />
                 )}
             </Animated.View>
         </View>
