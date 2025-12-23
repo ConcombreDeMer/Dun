@@ -1,21 +1,15 @@
-import { Link, useFocusEffect, useRouter } from "expo-router";
-import { Text, View, Pressable, TouchableOpacity, ActivityIndicator } from "react-native";
-import { StyleSheet } from "react-native";
+import CalendarComponent from "@/components/calendar";
 import * as Haptics from "expo-haptics";
-import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { supabase } from "../lib/supabase";
-import { Image } from "react-native";
-import { taskEmitter } from "../lib/eventEmitter";
 import { TaskItem } from "../components/TaskItem";
 import { useTheme } from "../lib/ThemeContext";
-import { getImageSource } from "../lib/imageHelper";
-import { StatusBar } from "expo-status-bar";
-import CalendarComponent from "@/components/calendar";
-import PrimaryButton from "@/components/primaryButton";
-import SecondaryButton from "@/components/secondaryButton";
-import Headline from "@/components/headline";
+import { taskEmitter } from "../lib/eventEmitter";
+import { supabase } from "../lib/supabase";
 const LottieView = require("lottie-react-native").default;
 
 export default function Index() {

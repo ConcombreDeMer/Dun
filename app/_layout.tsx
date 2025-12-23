@@ -78,6 +78,8 @@ function RootLayoutContent() {
 
   // Vérifier si on est sur l'onboarding pour masquer la navbar
   const isOnboarding = segments[0] === "onboarding";
+  
+  const duration = 200;
 
   return (
     <View style={{ flex: 1 }}>
@@ -105,21 +107,51 @@ function RootLayoutContent() {
           name="index"
           options={{
             title: "Accueil",
+            animation: "fade",
+            animationDuration: duration,
           }}
         />
         <Stack.Screen
           name="details"
           options={{
             title: "Détails",
-            presentation: "modal",
+            presentation: "card",
+            animation: "slide_from_left",
+            animationMatchesGesture: true,
+            animationDuration: duration,
           }}
         />
         <Stack.Screen
           name="settings"
           options={{
             title: "Paramètres",
-            animation: "slide_from_left",
-            animationMatchesGesture: true,
+            animation: "fade",
+            animationDuration: duration,
+          }}
+        />
+        <Stack.Screen
+          name="create-task"
+          options={{
+            title: "Créer une tâche",
+            presentation: "modal",
+            animation: "slide_from_bottom",
+            animationDuration: duration,
+          }}
+        />
+        <Stack.Screen
+          name="edit-task"
+          options={{
+            title: "Modifier une tâche",
+            animation: "fade",
+            animationDuration: duration,
+          }}
+        />
+        <Stack.Screen
+          name="stats"
+          options={{
+            title: "Statistiques",
+            animation: "fade",
+            animationDuration: duration,
           }}
         />
       </Stack>

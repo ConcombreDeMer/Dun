@@ -1,131 +1,155 @@
-import { View, Pressable, ImageBackground, Animated } from "react-native";
-import { StyleSheet } from "react-native";
-import { Image } from "expo-image";
-import { getImageSource } from "../lib/imageHelper";
+import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import { useRouter, useSegments } from "expo-router";
+import React from "react";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { useTheme } from "../lib/ThemeContext";
-import { router, usePathname } from "expo-router";
-import { useEffect, useRef } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
 export default function Navbar() {
-    const { colors, theme } = useTheme();
-    const pathname = usePathname();
-    const slideAnim = useRef(new Animated.Value(0)).current;
+    const { colors } = useTheme();
+    const router = useRouter();
+    const segments = useSegments();
 
-    const getTabIndex = () => {
-        if (pathname === "/stats") return 1;
-        if (pathname === "/settings") return 2;
-        if (pathname === "/create-task") return 3;
-        return 0; // home
+    // Déterminer l'onglet actif basé sur le chemin actuel
+    const getActiveTab = () => {
+        if (segments[0] === "stats") return "stats";
+        if (segments[0] === "settings") return "settings";
+        if (segments[0] === "create-task") return "add";
+        return "home";
     };
 
-    useEffect(() => {
-        const tabIndex = getTabIndex();
-        Animated.spring(slideAnim, {
-            toValue: tabIndex * 65,
-            useNativeDriver: true,
-            speed: 8,
-        }).start();
-    }, [pathname]);
+    const activeTab = getActiveTab();
 
+    const handleNavigation = async (tab: string) => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
+        switch (tab) {
+            case "home":
+                router.push("/");
+                break;
+            case "stats":
+                router.push("/stats");
+                break;
+            case "add":
+                router.push("/create-task");
+                break;
+            case "settings":
+                router.push("/settings");
+                break;
+        }
+    };
+
+    const tabs = [
+        { name: "home", label: "Accueil", icon: "home" },
+        { name: "stats", label: "Stats", icon: "stats-chart" },
+        { name: "settings", label: "Paramètres", icon: "settings" },
+    ];
 
     return (
-        <View style={styles.container}
-        >
-            <ImageBackground
-                source={require("../assets/images/background/bg.jpg")}
-                style={styles.bg}
-            >
-            </ImageBackground>
+        <>
 
-            <Animated.View
-                style={[
-                    styles.slidingCircle,
-                    {
-                        transform: [{
-                            translateX: slideAnim,
-                        }],
-                    },
-                ]}
-            />
-            <Pressable style={styles.iconContainer}
-                onPress={() => router.push("/")}
-            >
-                <Image
-                    style={{ width: 29, aspectRatio: 1 }}
-                    source={getImageSource("home", theme)}
-                ></Image>
-            </Pressable>
-            <Pressable
-                style={styles.iconContainer}
-                onPress={() => router.push("/stats")}
-            >
-                <Image
-                    style={{ width: 29, aspectRatio: 1 }}
-                    source={getImageSource("profile", theme)}
-                ></Image>
-            </Pressable>
-            <Pressable
-                style={styles.iconContainer}
-                onPress={() => router.push("/settings")}
-            >
-                <Image
-                    style={{ width: 29, aspectRatio: 1 }}
-                    source={getImageSource("settings", theme)}
-                ></Image>
-            </Pressable>
-            <Pressable
-                style={styles.iconContainer}
-                onPress={() => router.push("/create-task")}
-            >
-                <Image
-                    style={{ width: 29, aspectRatio: 1 }}
-                    source={getImageSource("add", theme)}
-                ></Image>
-            </Pressable>
-        </View>
-    )
+            <View style={styles.background}>
+                <View
+                    style={styles.container}
+                >
+                    <View
+                        style={[
+                            styles.navbar,
+                        ]}
+                    >
+                        {tabs.map((tab) => {
+                            const isActive = activeTab === tab.name;
+                            return (
+                                <TouchableOpacity
+                                    key={tab.name}
+                                    style={styles.tabButton}
+                                    onPress={() => handleNavigation(tab.name)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Ionicons
+                                        name={isActive ? tab.icon : (`${tab.icon}-outline` as any)}
+                                        size={24}
+                                        color={isActive ? "#FFFFFF" : colors.textSecondary}
+                                    />
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                    <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={() => handleNavigation("add")}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons
+                            name={activeTab === "add" ? "add" : "add-outline"}
+                            size={24}
+                            color={activeTab === "add" ? "#FFFFFF" : colors.textSecondary}
+                        />
+                    </TouchableOpacity>
+                </View>
+
+            </View>
+
+        </>
+    );
 }
 
 const styles = StyleSheet.create({
+
+    background: {
+        position: 'absolute',
+        bottom: 0,
+        width: "100%",
+        height: 100,
+        alignItems: "center",
+        backgroundColor: "white",
+        shadowColor: "#ffffffff",
+        shadowOffset: { width: 0, height: -40 },
+        shadowOpacity: 1,
+        shadowRadius: 20,
+        elevation: 1,
+    },
+
     container: {
-        height: 48,
-        width: "60%",
         position: "absolute",
         bottom: 40,
-        borderRadius: 200,
-        alignSelf: "center",
-        zIndex: 100,
+        height: 48,
+        width: "100%",
+        backgroundColor: "transparent",
+        justifyContent: "center",
+        alignItems: "center",
         display: "flex",
         flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        overflow: "hidden",
+        gap: 20,
     },
-    bg: {
-        width: '100%',
-        height: "100%",
-        borderRadius: 100,
+
+    navbar: {
+        position: "relative",
         flexDirection: "row",
-        justifyContent: "space-between",
+        justifyContent: "space-around",
         alignItems: "center",
-        position: "absolute",
-        top: 0, right: 0,
-        zIndex: -1,
+        display: "flex",
+        height: 48,
+        borderWidth: 1,
+        width: "50%",
+        alignSelf: "center",
+        borderRadius: 100,
+        backgroundColor: "#272727ff",
     },
-    slidingCircle: {
-        position: "absolute",
+    tabButton: {
+        alignItems: "center",
+        justifyContent: "center",
+        flex: 1,
+        height: 60,
+    },
+    addButton: {
+        position: "relative",
         width: 48,
         height: 48,
-        borderRadius: 100,
-        backgroundColor: "#c4c4c4ff",
-        top: "0%",
-        left: "0%",
-    },
-    iconContainer: {
-        zIndex: 3,
-        // backgroundColor: "blue",
-        borderRadius: 999,
-        padding: 8,
+        borderRadius: 28,
+        backgroundColor: "#272727ff",
+        alignItems: "center",
+        justifyContent: "center",
     },
 });

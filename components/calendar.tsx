@@ -1,25 +1,21 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
+import * as Haptics from "expo-haptics";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    ScrollView,
     FlatList,
     PanResponder,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import Animated, {
+    Extrapolate,
+    interpolate,
     useAnimatedStyle,
     useSharedValue,
     withSpring,
-    interpolate,
-    Extrapolate,
 } from "react-native-reanimated";
 import { useTheme } from "../lib/ThemeContext";
-import { MaterialIcons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
-import { Image } from "react-native";
-import { getImageSource } from "@/lib/imageHelper";
 
 
 interface CalendarProps {

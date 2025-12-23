@@ -1,25 +1,20 @@
-import { useRouter, useLocalSearchParams } from "expo-router";
+import DateInput from "@/components/dateInput";
+import Headline from "@/components/headline";
+import PrimaryButton from "@/components/primaryButton";
+import SimpleInput from "@/components/textInput";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import {
-    Text,
-    View,
-    TouchableOpacity,
     Alert,
-    ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    StyleSheet,
+    View
 } from "react-native";
-import { useState } from "react";
-import { supabase } from "../lib/supabase";
-import { StyleSheet } from "react-native";
-import { Image } from "react-native";
 import { taskEmitter } from "../lib/eventEmitter";
+import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
-import { getImageSource } from "../lib/imageHelper";
-import PrimaryButton from "@/components/primaryButton";
-import SimpleInput from "@/components/textInput";
-import DateInput from "@/components/dateInput";
-import Headline from "@/components/headline";
 
 export default function CreateTask() {
     const router = useRouter();
@@ -86,6 +81,9 @@ export default function CreateTask() {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={[styles.container, { backgroundColor: colors.background }]}
         >
+            <View style={styles.handleContainer}>
+                <View style={[styles.handle, { backgroundColor: colors.border }]} />
+            </View>
             <Headline title="Créer" subtitle="une tâche" />
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.mainView}>
@@ -100,7 +98,7 @@ export default function CreateTask() {
                         name="Description"
                         value={description}
                         onChangeText={setDescription}
-                        multiline 
+                        multiline
                     />
 
                     <DateInput
@@ -126,10 +124,22 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingHorizontal: 23,
         paddingBottom: 23,
-        paddingTop: 60,
+        paddingTop: 20,
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
+    },
+
+    handleContainer: {
+        alignItems: "center",
+        paddingBottom: 20,
+    },
+
+    handle: {
+        width: 40,
+        height: 5,
+        backgroundColor: "#ddd",
+        borderRadius: 2.5,
     },
 
     title: {

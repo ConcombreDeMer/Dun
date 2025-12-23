@@ -1,31 +1,24 @@
-import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
+import AnimatedCheckbox from "@/components/checkboxAnimated";
+import DateInput from "@/components/dateInput";
+import PrimaryButton from "@/components/primaryButton";
+import SimpleInput from "@/components/textInput";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
-  Text,
-  View,
-  TouchableOpacity,
   ActivityIndicator,
-  StyleSheet,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
-  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
-import { useState, useEffect, useCallback } from "react";
-import Animated, {
-  FadeInDown,
-  FadeOutDown,
-} from "react-native-reanimated";
-import { supabase } from "../lib/supabase";
-import { taskEmitter } from "../lib/eventEmitter";
-import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "../lib/ThemeContext";
-import { getImageSource } from "../lib/imageHelper";
-import PrimaryButton from "@/components/primaryButton";
-import Headline from "@/components/headline";
-import SimpleInput from "@/components/textInput";
-import DateInput from "@/components/dateInput";
-import AnimatedCheckbox from "@/components/checkboxAnimated";
+import { taskEmitter } from "../lib/eventEmitter";
+import { supabase } from "../lib/supabase";
 
 export default function Details() {
   const router = useRouter();
@@ -259,7 +252,7 @@ export default function Details() {
 
       </ScrollView>
 
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf: "center", width: "100%", position: "absolute", bottom: 23 }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf: "center", width: "100%", position: "relative", bottom: 200 }}>
         <PrimaryButton
           size="XS"
           type="danger"
