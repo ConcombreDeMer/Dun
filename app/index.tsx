@@ -1,26 +1,40 @@
 import CalendarComponent from "@/components/calendar";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { TaskItem } from "../components/TaskItem";
 import { useTheme } from "../lib/ThemeContext";
-import { taskEmitter } from "../lib/eventEmitter";
 import { supabase } from "../lib/supabase";
 import { useStore } from "../store/store";
+
+
 const LottieView = require("lottie-react-native").default;
 
 export default function Index() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const storedDate = useStore((state) => state.selectedDate);
+  const [selectedDate, setSelectedDate] = useState<Date>(storedDate || new Date());
   const [userName, setUserName] = useState<string>('');
   const router = useRouter();
   const { colors, theme } = useTheme();
   const setStoreDate = useStore((state) => state.setSelectedDate);
+  const queryClient = useQueryClient();
+
+  // Synchroniser selectedDate avec la date du store au montage
+  useEffect(() => {
+    if (storedDate) {
+      const dateObj = storedDate instanceof Date ? storedDate : new Date(storedDate);
+      setSelectedDate(dateObj);
+      const newString = dateObj.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+      setDate(newString);
+    }
+  }, [storedDate]);
 
   useEffect(() => {
     const fetchUserName = async () => {
@@ -40,56 +54,31 @@ export default function Index() {
     fetchUserName();
   }, []);
 
-  const fetchTasks = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      // Récupérer l'utilisateur connecté
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        console.error("Utilisateur non connecté");
-        setTasks([]);
-        return;
-      }
-
-      // Récupérer les tâches de l'utilisateur connecté
+  const getTasks = async () => {
       const { data, error } = await supabase
         .from("Tasks")
         .select("*")
-        .eq("user", user.id)
         .order("order", { ascending: true });
-
-      if (error) {
-        console.error("Erreur lors de la récupération des tâches:", error);
-        return;
-      }
-
-      setTasks(data || []);
-    } catch (error) {
-      console.error("Erreur:", error);
-    } finally {
-      setLoading(false);
+    if (error) {
+      console.error('Erreur lors de la récupération des tâches:', error);
+      return [];
     }
-  }, []);
+    return data;
+  }
+
+  const taskQuery  = useQuery({
+    queryKey: ['tasks'],
+    queryFn : getTasks,
+  });
 
   useEffect(() => {
-    fetchTasks();
-
-    // Écouter l'événement de suppression
-    const handleTaskDeleted = () => {
-      fetchTasks();
-    };
-
-    taskEmitter.on("taskDeleted", handleTaskDeleted);
-    taskEmitter.on("taskAdded", fetchTasks);
-    taskEmitter.on("taskUpdated", fetchTasks);
-
-
-    return () => {
-      taskEmitter.off("taskDeleted", handleTaskDeleted);
-    };
-  }, []);
+    if (taskQuery.isLoading) {
+      setLoading(true);
+    } else {
+      setTasks(taskQuery.data || []);
+      setLoading(false);
+    }
+  }, [taskQuery.data, taskQuery.isLoading]);
 
   const handleAddPress = async () => {
     router.push({
@@ -122,8 +111,8 @@ export default function Index() {
   };
 
   const handleDeleteTask = (taskId: number) => {
-    // Supprimer la tâche de la liste locale
-    setTasks(tasks.filter(task => task.id !== taskId));
+    // Invalider la query pour refetch les tâches
+    queryClient.invalidateQueries({ queryKey: ['tasks'] });
   };
 
   const handleDragEnd = async ({ data }: { data: any[] }) => {
@@ -197,6 +186,7 @@ export default function Index() {
           <CalendarComponent
             slider={true}
             tasks={tasks}
+            initialDate={selectedDate}
             onDateSelect={(date) => changeDate(date)}
           />
           {/* <Text style={[styles.date, { color: colors.text }]}>{date}</Text> */}
@@ -209,7 +199,7 @@ export default function Index() {
             </View>
           ) : (
             <DraggableFlatList
-              data={filteredTasks}
+              data={taskQuery.data ? filteredTasks : []}
               keyExtractor={(item) => item.id.toString()}
               scrollEnabled={true}
               nestedScrollEnabled={true}

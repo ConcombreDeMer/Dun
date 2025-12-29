@@ -22,6 +22,7 @@ interface CalendarProps {
     onDateSelect?: (date: Date) => void;
     tasks?: any[];
     slider?: boolean;
+    initialDate?: Date;
 }
 
 // Constantes statiques - créées une seule fois
@@ -216,10 +217,11 @@ export default function CalendarComponent({
     onDateSelect,
     tasks = [],
     slider = false,
+    initialDate,
 }: CalendarProps) {
     const { colors, theme } = useTheme();
     // Initialiser la date sélectionnée une seule fois
-    const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+    const [selectedDate, setSelectedDate] = useState<Date>(() => initialDate || new Date());
     const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
     const [isExpanded, setIsExpanded] = useState(false);
     const sliderRef = useRef<FlatList>(null);

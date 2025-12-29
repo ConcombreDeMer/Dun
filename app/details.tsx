@@ -3,6 +3,7 @@ import DateInput from "@/components/dateInput";
 import PrimaryButton from "@/components/primaryButton";
 import SimpleInput from "@/components/textInput";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -25,13 +26,66 @@ export default function Details() {
   const { id } = useLocalSearchParams();
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [hasChanges, setHasChanges] = useState(false);
   const [isDone, setIsDone] = useState(false);
   const { colors, theme } = useTheme();
+  const queryClient = useQueryClient();
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("Tasks")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      taskEmitter.emit("taskDeleted", id);
+      router.back();
+    },
+    onError: (error: any) => {
+      Alert.alert("Erreur", error.message || "Impossible de supprimer la tâche");
+    }
+  });
+
+  const updateTaskMutation = useMutation({
+    mutationFn: async () => {
+      if (!name.trim()) {
+        throw new Error("Le nom de la tâche est requis");
+      }
+
+      const { error } = await supabase
+        .from("Tasks")
+        .update({
+          name: name.trim(),
+          description: description.trim(),
+          date: selectedDate.toDateString(),
+          done: isDone,
+        })
+        .eq("id", id);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      Alert.alert("Succès", "Tâche modifiée avec succès");
+      setTask({ ...task, done: isDone });
+      taskEmitter.emit("taskUpdated");
+      setHasChanges(false);
+    },
+    onError: (error: any) => {
+      Alert.alert("Erreur", error.message || "Une erreur est survenue");
+    }
+  });
 
   useEffect(() => {
     if (!task) return;
@@ -54,26 +108,10 @@ export default function Details() {
         console.log("Details closed for task ID:", id);
         // Ne sauvegarder que s'il y a des changements
         if (hasChanges && name.trim()) {
-          (async () => {
-            try {
-              await supabase
-                .from("Tasks")
-                .update({
-                  name: name.trim(),
-                  description: description.trim(),
-                  date: selectedDate.toDateString(),
-                  done: isDone,
-                })
-                .eq("id", id);
-
-              taskEmitter.emit("taskUpdated");
-            } catch (error) {
-              console.error("Erreur lors de la sauvegarde:", error);
-            }
-          })();
+          updateTaskMutation.mutate();
         }
       };
-    }, [id, hasChanges, name, description, selectedDate, isDone])
+    }, [id, hasChanges, name, description, selectedDate, isDone, updateTaskMutation])
   );
 
   useEffect(() => {
@@ -150,27 +188,8 @@ export default function Details() {
         },
         {
           text: "Supprimer",
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from("Tasks")
-                .delete()
-                .eq("id", id);
-
-              if (error) {
-                console.error("Erreur lors de la suppression de la tâche:", error);
-                Alert.alert("Erreur", "Impossible de supprimer la tâche");
-                return;
-              }
-
-              // Émettre un signal de suppression
-              taskEmitter.emit("taskDeleted", id);
-
-              router.back();
-            } catch (error) {
-              console.error("Erreur:", error);
-              Alert.alert("Erreur", "Une erreur s'est produite");
-            }
+          onPress: () => {
+            deleteTaskMutation.mutate();
           },
           style: "destructive",
         },
@@ -179,37 +198,7 @@ export default function Details() {
   };
 
   const handleUpdateTask = async () => {
-    if (!name.trim()) {
-      Alert.alert("Erreur", "Le nom de la tâche est requis");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from("Tasks")
-        .update({
-          name: name.trim(),
-          description: description.trim(),
-          date: selectedDate.toDateString(),
-          done: isDone,
-        })
-        .eq("id", id);
-
-      if (error) {
-        Alert.alert("Erreur", error.message);
-        return;
-      }
-
-      Alert.alert("Succès", "Tâche modifiée avec succès");
-      setTask({ ...task, done: isDone });
-      taskEmitter.emit("taskUpdated");
-    } catch (error) {
-      Alert.alert("Erreur", "Une erreur est survenue");
-      console.error(error);
-    } finally {
-      setSaving(false);
-    }
+    updateTaskMutation.mutate();
   };
 
   const handleDateChange = (date: Date) => {
@@ -247,7 +236,7 @@ export default function Details() {
         <DateInput
           value={selectedDate}
           onChange={handleDateChange}
-          disabled={saving}
+          disabled={updateTaskMutation.isPending || deleteTaskMutation.isPending}
         />
 
       </ScrollView>
@@ -258,23 +247,12 @@ export default function Details() {
           type="danger"
           image="delete"
           onPress={handleDeleteTask}
-          disabled={saving}
+          disabled={deleteTaskMutation.isPending || updateTaskMutation.isPending}
         />
-        {/* {hasChanges && (
-          <Animated.View entering={FadeInDown} exiting={FadeOutDown} style={{ alignItems: 'center' }}>
-            <PrimaryButton
-              size="M"
-              type="reverse"
-              title="Enregistrer"
-              onPress={handleUpdateTask}
-              disabled={saving}
-            />
-          </Animated.View>
-        )} */}
         <AnimatedCheckbox
           checked={isDone}
           onChange={handleToggleTask}
-          disabled={saving}
+          disabled={deleteTaskMutation.isPending || updateTaskMutation.isPending}
           size={64}
         />
 

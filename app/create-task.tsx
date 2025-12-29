@@ -3,6 +3,7 @@ import Headline from "@/components/headline";
 import PrimaryButton from "@/components/primaryButton";
 import SimpleInput from "@/components/textInput";
 import { useStore } from "@/store/store";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -22,25 +23,18 @@ export default function CreateTask() {
     const params = useLocalSearchParams();
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
-    const [loading, setLoading] = useState(false);
     const selectedDate = useStore((state) => state.selectedDate) || new Date();
     const setSelectedDate = useStore((state) => state.setSelectedDate);
     const { colors, theme } = useTheme();
+    const queryClient = useQueryClient();
 
-    const handleCreateTask = async () => {
-        if (!name.trim()) {
-            Alert.alert("Erreur", "Le nom de la tâche est requis");
-            return;
-        }
-        setLoading(true);
-        try {
+    const createTaskMutation = useMutation({
+        mutationFn: async () => {
             // Récupérer l'utilisateur connecté
             const { data: { user } } = await supabase.auth.getUser();
 
             if (!user) {
-                Alert.alert("Erreur", "Utilisateur non connecté");
-                setLoading(false);
-                return;
+                throw new Error("Utilisateur non connecté");
             }
 
             const { error } = await supabase.from("Tasks").insert([
@@ -50,26 +44,35 @@ export default function CreateTask() {
                     done: false,
                     date: selectedDate.toDateString(),
                     created_at: new Date().toDateString(),
-                    user: user.id,
+                    user_id: user.id,
                 },
             ]);
 
             if (error) {
-                Alert.alert("Erreur", error.message);
-                return;
+                throw new Error(error.message);
             }
-
+        },
+        onSuccess: () => {
+            // Invalide la query et refetch automatiquement
+            queryClient.invalidateQueries({ queryKey: ['tasks'] });
+            
             Alert.alert("Succès", "Tâche créée avec succès");
             setName("");
             setDescription("");
             taskEmitter.emit("taskAdded");
             router.back();
-        } catch (error) {
-            Alert.alert("Erreur", "Une erreur est survenue");
-            console.error(error);
-        } finally {
-            setLoading(false);
+        },
+        onError: (error: any) => {
+            Alert.alert("Erreur", error.message || "Une erreur est survenue");
         }
+    });
+
+    const handleCreateTask = async () => {
+        if (!name.trim()) {
+            Alert.alert("Erreur", "Le nom de la tâche est requis");
+            return;
+        }
+        createTaskMutation.mutate();
     };
 
     const handleDateChange = (date: Date) => {
@@ -104,7 +107,7 @@ export default function CreateTask() {
                     <DateInput
                         value={selectedDate}
                         onChange={handleDateChange}
-                        disabled={loading}
+                        disabled={createTaskMutation.isPending}
                     />
 
                 </View>

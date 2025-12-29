@@ -1,14 +1,13 @@
-import { Stack, useRouter, useSegments } from "expo-router";
-import { useFonts } from "expo-font";
-import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState } from "react";
-import React from "react";
-import { ThemeProvider, useTheme } from "../lib/ThemeContext";
-import { StatusBar } from "expo-status-bar";
-import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useFonts } from "expo-font";
+import { Stack, useRouter, useSegments } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import React, { useEffect, useState } from "react";
 import { View } from "react-native";
 import Navbar from "../components/navbar";
+import { supabase } from "../lib/supabase";
+import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -78,85 +77,92 @@ function RootLayoutContent() {
 
   // Vérifier si on est sur l'onboarding pour masquer la navbar
   const isOnboarding = segments[0] === "onboarding";
-  
+
   const duration = 200;
 
+  const queryClient = new QueryClient();
+
+
+
   return (
-    <View style={{ flex: 1 }}>
-      <Stack
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: colors.background,
-          },
-          headerTintColor: colors.text,
-          headerTitleStyle: {
-            fontWeight: "bold",
-            fontSize: 18,
-            color: colors.text,
-          },
-          headerShown: false,
-        }}
-      >
-        <Stack.Screen
-          name="onboarding"
-          options={{
+
+    <QueryClientProvider client={queryClient}>
+      <View style={{ flex: 1 }}>
+        <Stack
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: colors.background,
+            },
+            headerTintColor: colors.text,
+            headerTitleStyle: {
+              fontWeight: "bold",
+              fontSize: 18,
+              color: colors.text,
+            },
             headerShown: false,
           }}
-        />
-        <Stack.Screen
-          name="index"
-          options={{
-            title: "Accueil",
-            animation: "fade",
-            animationDuration: duration,
-          }}
-        />
-        <Stack.Screen
-          name="details"
-          options={{
-            title: "Détails",
-            presentation: "card",
-            animation: "slide_from_left",
-            animationMatchesGesture: true,
-            animationDuration: duration,
-          }}
-        />
-        <Stack.Screen
-          name="settings"
-          options={{
-            title: "Paramètres",
-            animation: "fade",
-            animationDuration: duration,
-          }}
-        />
-        <Stack.Screen
-          name="create-task"
-          options={{
-            title: "Créer une tâche",
-            presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: duration,
-          }}
-        />
-        <Stack.Screen
-          name="edit-task"
-          options={{
-            title: "Modifier une tâche",
-            animation: "fade",
-            animationDuration: duration,
-          }}
-        />
-        <Stack.Screen
-          name="stats"
-          options={{
-            title: "Statistiques",
-            animation: "fade",
-            animationDuration: duration,
-          }}
-        />
-      </Stack>
-      {!isOnboarding && <Navbar />}
-    </View>
+        >
+          <Stack.Screen
+            name="onboarding"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="index"
+            options={{
+              title: "Accueil",
+              animation: "fade",
+              animationDuration: duration,
+            }}
+          />
+          <Stack.Screen
+            name="details"
+            options={{
+              title: "Détails",
+              presentation: "card",
+              animation: "slide_from_left",
+              animationMatchesGesture: true,
+              animationDuration: duration,
+            }}
+          />
+          <Stack.Screen
+            name="settings"
+            options={{
+              title: "Paramètres",
+              animation: "fade",
+              animationDuration: duration,
+            }}
+          />
+          <Stack.Screen
+            name="create-task"
+            options={{
+              title: "Créer une tâche",
+              presentation: "modal",
+              animation: "slide_from_bottom",
+              animationDuration: duration,
+            }}
+          />
+          <Stack.Screen
+            name="edit-task"
+            options={{
+              title: "Modifier une tâche",
+              animation: "fade",
+              animationDuration: duration,
+            }}
+          />
+          <Stack.Screen
+            name="stats"
+            options={{
+              title: "Statistiques",
+              animation: "fade",
+              animationDuration: duration,
+            }}
+          />
+        </Stack>
+        {!isOnboarding && <Navbar />}
+      </View>
+    </QueryClientProvider>
   );
 }
 
