@@ -10,6 +10,7 @@ import { TaskItem } from "../components/TaskItem";
 import { useTheme } from "../lib/ThemeContext";
 import { taskEmitter } from "../lib/eventEmitter";
 import { supabase } from "../lib/supabase";
+import { useStore } from "../store/store";
 const LottieView = require("lottie-react-native").default;
 
 export default function Index() {
@@ -19,6 +20,7 @@ export default function Index() {
   const [userName, setUserName] = useState<string>('');
   const router = useRouter();
   const { colors, theme } = useTheme();
+  const setStoreDate = useStore((state) => state.setSelectedDate);
 
   useEffect(() => {
     const fetchUserName = async () => {
@@ -160,6 +162,7 @@ export default function Index() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     console.log("Date changée:", newDate);
     setSelectedDate(newDate);
+    setStoreDate(newDate);
     const newString = newDate.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
     setDate(newString);
   }

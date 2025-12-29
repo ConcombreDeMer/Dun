@@ -2,6 +2,7 @@ import DateInput from "@/components/dateInput";
 import Headline from "@/components/headline";
 import PrimaryButton from "@/components/primaryButton";
 import SimpleInput from "@/components/textInput";
+import { useStore } from "@/store/store";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -22,9 +23,8 @@ export default function CreateTask() {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [loading, setLoading] = useState(false);
-    const [selectedDate, setSelectedDate] = useState<Date>(
-        params.selectedDate ? new Date(params.selectedDate as string) : new Date()
-    );
+    const selectedDate = useStore((state) => state.selectedDate) || new Date();
+    const setSelectedDate = useStore((state) => state.setSelectedDate);
     const { colors, theme } = useTheme();
 
     const handleCreateTask = async () => {
