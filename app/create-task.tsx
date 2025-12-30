@@ -37,6 +37,19 @@ export default function CreateTask() {
                 throw new Error("Utilisateur non connecté");
             }
 
+            // Récupérer le nombre de tâches existantes pour cette journée
+            const { data: existingTasks, error: fetchError } = await supabase
+                .from("Tasks")
+                .select("*")
+                .eq("date", selectedDate.toDateString())
+                .eq("user_id", user.id);
+
+            if (fetchError) {
+                throw new Error(fetchError.message);
+            }
+
+            const newOrder = (existingTasks?.length || 0) + 1;
+
             const { error } = await supabase.from("Tasks").insert([
                 {
                     name: name.trim(),
@@ -45,6 +58,7 @@ export default function CreateTask() {
                     date: selectedDate.toDateString(),
                     created_at: new Date().toDateString(),
                     user_id: user.id,
+                    order: newOrder,
                 },
             ]);
 

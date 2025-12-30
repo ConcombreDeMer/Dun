@@ -4,8 +4,8 @@ import PrimaryButton from "@/components/primaryButton";
 import SimpleInput from "@/components/textInput";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -36,13 +36,57 @@ export default function Details() {
 
   const deleteTaskMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
+      // Récupérer la tâche AVANT la suppression pour avoir la date
+      const { data: taskData, error: fetchError } = await supabase
+        .from("Tasks")
+        .select("id, date, order")
+        .eq("id", id)
+        .single();
+
+      if (fetchError || !taskData) {
+        throw new Error(fetchError?.message || "Tâche non trouvée");
+      }
+
+      const deletedTaskDate = taskData.date;
+
+      // Supprimer la tâche
+      const { error: deleteError } = await supabase
         .from("Tasks")
         .delete()
         .eq("id", id);
 
-      if (error) {
-        throw new Error(error.message);
+      if (deleteError) {
+        throw new Error(deleteError.message);
+      }
+
+      // Récupérer TOUTES les tâches de la même journée (sauf celle supprimée)
+      if (deletedTaskDate) {
+        const { data: allTasks, error: fetchAllError } = await supabase
+          .from("Tasks")
+          .select("id, order")
+          .eq("date", deletedTaskDate)
+          .order("order", { ascending: true });
+
+        if (fetchAllError) {
+          console.error("Erreur lors de la récupération des tâches:", fetchAllError);
+          return;
+        }
+
+        // Recalculer les orders de 1 à N pour toutes les tâches restantes
+        let newOrder = 1;
+        for (const task of (allTasks || [])) {
+          if (task.order !== newOrder) {
+            const { error: updateError } = await supabase
+              .from("Tasks")
+              .update({ order: newOrder })
+              .eq("id", task.id);
+
+            if (updateError) {
+              console.error("Erreur lors de la mise à jour de l'order:", updateError);
+            }
+          }
+          newOrder++;
+        }
       }
     },
     onSuccess: () => {
@@ -58,8 +102,7 @@ export default function Details() {
   const updateTaskMutation = useMutation({
     mutationFn: async () => {
       if (!name.trim()) {
-        throw new Error("Le nom de la tâche est requis");
-      }
+        throw new Error("Le nom de la tâche est requis");      }
 
       const { error } = await supabase
         .from("Tasks")
@@ -70,20 +113,17 @@ export default function Details() {
           done: isDone,
         })
         .eq("id", id);
-
       if (error) {
         throw new Error(error.message);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      Alert.alert("Succès", "Tâche modifiée avec succès");
-      setTask({ ...task, done: isDone });
-      taskEmitter.emit("taskUpdated");
+      console.log("Tâche mise à jour avec succès");
       setHasChanges(false);
     },
     onError: (error: any) => {
-      Alert.alert("Erreur", error.message || "Une erreur est survenue");
+      console.error("Erreur lors de la sauvegarde:", error);
     }
   });
 
@@ -99,20 +139,18 @@ export default function Details() {
     setHasChanges(isModified);
   }, [name, description, selectedDate, task, isDone]);
 
-  // Détecter quand la modal ferme
-  useFocusEffect(
-    useCallback(() => {
-      // Exécuté quand la modal est ouverte
-      return () => {
-        // Exécuté quand la modal ferme
-        console.log("Details closed for task ID:", id);
-        // Ne sauvegarder que s'il y a des changements
-        if (hasChanges && name.trim()) {
-          updateTaskMutation.mutate();
-        }
-      };
-    }, [id, hasChanges, name, description, selectedDate, isDone, updateTaskMutation])
-  );
+  // Sauvegarde automatique avec debounce
+  useEffect(() => {
+    if (!hasChanges || !name.trim()) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      updateTaskMutation.mutate();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [hasChanges]);
 
   useEffect(() => {
     const fetchTask = async () => {
@@ -197,11 +235,7 @@ export default function Details() {
     );
   };
 
-  const handleUpdateTask = async () => {
-    updateTaskMutation.mutate();
-  };
-
-  const handleDateChange = (date: Date) => {
+const handleDateChange = (date: Date) => {
     setSelectedDate(date);
   };
 
@@ -241,22 +275,18 @@ export default function Details() {
 
       </ScrollView>
 
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf: "center", width: "100%", position: "relative", bottom: 200 }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf: "center", width: "100%", position: "relative", bottom: 200, gap: 10 }}>
         <PrimaryButton
           size="XS"
           type="danger"
           image="delete"
           onPress={handleDeleteTask}
-          disabled={deleteTaskMutation.isPending || updateTaskMutation.isPending}
         />
         <AnimatedCheckbox
           checked={isDone}
           onChange={handleToggleTask}
-          disabled={deleteTaskMutation.isPending || updateTaskMutation.isPending}
           size={64}
         />
-
-
       </View>
 
     </KeyboardAvoidingView>

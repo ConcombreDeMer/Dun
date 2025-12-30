@@ -1,11 +1,7 @@
-import { Text, View, TouchableOpacity, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
-import { use, useCallback, useEffect } from "react";
-import { useSharedValue, runOnJS } from "react-native-reanimated";
-import Animated, {
-  useAnimatedStyle,
-  withSpring
-} from "react-native-reanimated";
+import { useCallback, useEffect } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useTheme } from "../lib/ThemeContext";
 
 interface TaskItemProps {
@@ -93,7 +89,7 @@ export const TaskItem = ({
       <TouchableOpacity
         onLongPress={drag}
         disabled={isActive}
-        delayLongPress={100}
+        delayLongPress={200}
         style={taskItemStyle}
         activeOpacity={0.7}
         onPress={handlePress}

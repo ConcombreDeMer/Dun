@@ -55,10 +55,10 @@ export default function Index() {
   }, []);
 
   const getTasks = async () => {
-      const { data, error } = await supabase
-        .from("Tasks")
-        .select("*")
-        .order("order", { ascending: true });
+    const { data, error } = await supabase
+      .from("Tasks")
+      .select("*")
+      .order("order", { ascending: true });
     if (error) {
       console.error('Erreur lors de la récupération des tâches:', error);
       return [];
@@ -66,9 +66,9 @@ export default function Index() {
     return data;
   }
 
-  const taskQuery  = useQuery({
+  const taskQuery = useQuery({
     queryKey: ['tasks'],
-    queryFn : getTasks,
+    queryFn: getTasks,
   });
 
   useEffect(() => {
@@ -123,7 +123,7 @@ export default function Index() {
       for (let i = 0; i < data.length; i++) {
         const { error } = await supabase
           .from("Tasks")
-          .update({ order: i })
+          .update({ order: i + 1 })
           .eq("id", data[i].id);
 
         if (error) {
