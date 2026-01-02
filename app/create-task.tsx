@@ -28,6 +28,77 @@ export default function CreateTask() {
     const { colors, theme } = useTheme();
     const queryClient = useQueryClient();
 
+    const dayMutation = useMutation({
+        mutationFn: async () => {
+            // Récupérer l'utilisateur connecté
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                throw new Error("Utilisateur non connecté");
+            }
+
+            console.log("Selected Date in mutation:", selectedDate.toDateString());
+
+            const { data: existingDay, error: fetchError } = await supabase
+                .from("Days")
+                .select("*")
+                .eq("user_id", user.id)
+                .eq("date", selectedDate.toDateString())
+                .maybeSingle();
+
+            if (fetchError) {
+                console.error("Erreur lors de la récupération du jour:", fetchError);
+                throw new Error(fetchError.message);
+            }
+
+            console.log("On passe ? ", existingDay);
+
+            // Si le jour n'existe pas, le créer
+            if (!existingDay) {
+                console.log("Le jour existe pas donc on le créé", selectedDate.toDateString());
+                const { error: insertError } = await supabase.from("Days").insert([
+                    {
+                        user_id: user.id,
+                        date: selectedDate.toDateString(),
+                        total: 1,
+                        done_count: 0,
+                        updated_at: new Date().toDateString(),
+                    },
+                ]);
+
+                if (insertError) {
+                    console.error("Erreur lors de l'insertion du jour:", insertError);
+                    throw new Error(insertError.message);
+                }
+
+                console.log("Jour créé avec succès");
+            }
+
+            // Si le jour existe déjà, incréementer "count" et mettre à jour "updated_at"
+            else {
+                console.log("Le jour existe déjà, on l'update", existingDay);
+                const { error: updateError } = await supabase
+                    .from("Days")
+                    .update({
+                        total: (existingDay.total || 0) + 1,
+                        updated_at: new Date().toDateString(),
+                    })
+                    .eq("id", existingDay.id)
+
+                if (updateError) {
+                    console.error("Erreur lors de la mise à jour du jour:", updateError);
+                    throw new Error(updateError.message);
+                }
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['days'] });
+        },
+        onError: (error: any) => {
+            console.error("Erreur dans la mutation du jour:", error);
+        }
+    });
+
     const createTaskMutation = useMutation({
         mutationFn: async () => {
             // Récupérer l'utilisateur connecté
@@ -69,7 +140,7 @@ export default function CreateTask() {
         onSuccess: () => {
             // Invalide la query et refetch automatiquement
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
-            
+
             Alert.alert("Succès", "Tâche créée avec succès");
             setName("");
             setDescription("");
@@ -87,6 +158,7 @@ export default function CreateTask() {
             return;
         }
         createTaskMutation.mutate();
+        dayMutation.mutate();
     };
 
     const handleDateChange = (date: Date) => {

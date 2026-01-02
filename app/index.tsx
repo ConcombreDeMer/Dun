@@ -1,5 +1,5 @@
 import CalendarComponent from "@/components/calendar";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -26,7 +26,6 @@ export default function Index() {
   const setStoreDate = useStore((state) => state.setSelectedDate);
   const queryClient = useQueryClient();
 
-  // Synchroniser selectedDate avec la date du store au montage
   useEffect(() => {
     if (storedDate) {
       const dateObj = storedDate instanceof Date ? storedDate : new Date(storedDate);
@@ -55,9 +54,11 @@ export default function Index() {
   }, []);
 
   const getTasks = async () => {
+    console.log('Récupération des tâches pour la date:', selectedDate.toISOString().split('T')[0]);
     const { data, error } = await supabase
       .from("Tasks")
       .select("*")
+      .eq("date", selectedDate.toISOString().split('T')[0])
       .order("order", { ascending: true });
     if (error) {
       console.error('Erreur lors de la récupération des tâches:', error);
@@ -67,7 +68,7 @@ export default function Index() {
   }
 
   const taskQuery = useQuery({
-    queryKey: ['tasks'],
+    queryKey: ['tasks', selectedDate.toISOString().split('T')[0]],
     queryFn: getTasks,
   });
 
@@ -80,12 +81,58 @@ export default function Index() {
     }
   }, [taskQuery.data, taskQuery.isLoading]);
 
-  const handleAddPress = async () => {
-    router.push({
-      pathname: "/create-task",
-      params: { selectedDate: selectedDate as unknown as string },
-    });
-  };
+
+
+  const doneDayMutation = useMutation({
+    mutationFn: async ({ taskId, currentDone }: { taskId: number; currentDone: boolean }) => {
+      // Récupérer l'utilisateur connecté
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        throw new Error("Utilisateur non connecté");
+      }
+
+      // Mettre à jour le jour associé à la tâche modifiée
+      const { data: existingDay, error: fetchError } = await supabase
+        .from("Days")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("date", selectedDate.toDateString())
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error("Erreur lors de la récupération du jour:", fetchError);
+        throw new Error(fetchError.message);
+      }
+
+      if (existingDay) {
+        console.log("Existing day :", existingDay);
+        console.log("isDone :", currentDone);
+        const newDoneCount = currentDone
+          ? Math.max((existingDay.done_count || 1) - 1, 0)
+          : (existingDay.done_count || 0) + 1;
+
+        const { error: updateError } = await supabase
+          .from("Days")
+          .update({
+            done_count: newDoneCount,
+            updated_at: new Date().toDateString(),
+          })
+          .eq("id", existingDay.id);
+
+        if (updateError) {
+          console.error("Erreur lors de la mise à jour du jour:", updateError);
+          throw new Error(updateError.message);
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['days'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', selectedDate.toISOString().split('T')[0]]});
+    },
+  });
+
+
 
   const handleToggleTask = async (taskId: number, currentDone: boolean) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -105,15 +152,14 @@ export default function Index() {
       setTasks(tasks.map(task =>
         task.id === taskId ? { ...task, done: !currentDone } : task
       ));
+
+
+      doneDayMutation.mutate({ taskId, currentDone });
     } catch (error) {
       console.error("Erreur:", error);
     }
   };
 
-  const handleDeleteTask = (taskId: number) => {
-    // Invalider la query pour refetch les tâches
-    queryClient.invalidateQueries({ queryKey: ['tasks'] });
-  };
 
   const handleDragEnd = async ({ data }: { data: any[] }) => {
     setTasks(data);
@@ -149,7 +195,6 @@ export default function Index() {
 
   const changeDate = async (newDate: Date) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    console.log("Date changée:", newDate);
     setSelectedDate(newDate);
     setStoreDate(newDate);
     const newString = newDate.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
@@ -174,22 +219,13 @@ export default function Index() {
       <StatusBar style={theme == "dark" ? "light" : "auto"} />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
-          {/* <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Headline title="Tâches" subtitle="de la journée" />
-
-            <SecondaryButton
-              onPress={() => router.push("/settings")}
-              image="settings"
-            />
-          </View> */}
 
           <CalendarComponent
             slider={true}
-            tasks={tasks}
             initialDate={selectedDate}
             onDateSelect={(date) => changeDate(date)}
           />
-          {/* <Text style={[styles.date, { color: colors.text }]}>{date}</Text> */}
+
         </View>
 
         <View style={styles.listContainer}>
@@ -225,18 +261,6 @@ export default function Index() {
             />
           )}
         </View>
-
-        {/* <View style={styles.animationContainer}>
-          <LottieView
-            source={require("../assets/animations/Logo.json")}
-            autoPlay
-            loop={false}
-            style={styles.lottieAnimation}
-          />
-        </View> */}
-
-        {/* <PrimaryButton style={{ alignSelf: "flex-end" }} image="add" size="XS" onPress={handleAddPress} /> */}
-
 
       </View>
     </GestureHandlerRootView>
