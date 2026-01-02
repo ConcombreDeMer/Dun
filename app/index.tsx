@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -83,48 +83,61 @@ export default function Index() {
 
 
 
+  // Ref pour gérer les mutations en queue (éviter les race conditions)
+  const mutationQueueRef = useRef<Promise<void>>(Promise.resolve());
+
   const doneDayMutation = useMutation({
     mutationFn: async ({ taskId, currentDone }: { taskId: number; currentDone: boolean }) => {
-      // Récupérer l'utilisateur connecté
-      const { data: { user } } = await supabase.auth.getUser();
+      // Queue les mutations pour les exécuter séquentiellement
+      return new Promise<void>((resolve, reject) => {
+        mutationQueueRef.current = mutationQueueRef.current.then(async () => {
+          try {
+            // Récupérer l'utilisateur connecté
+            const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) {
-        throw new Error("Utilisateur non connecté");
-      }
+            if (!user) {
+              throw new Error("Utilisateur non connecté");
+            }
 
-      // Mettre à jour le jour associé à la tâche modifiée
-      const { data: existingDay, error: fetchError } = await supabase
-        .from("Days")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("date", selectedDate.toDateString())
-        .maybeSingle();
+            // Mettre à jour le jour associé à la tâche modifiée
+            const { data: existingDay, error: fetchError } = await supabase
+              .from("Days")
+              .select("*")
+              .eq("user_id", user.id)
+              .eq("date", selectedDate.toDateString())
+              .maybeSingle();
 
-      if (fetchError) {
-        console.error("Erreur lors de la récupération du jour:", fetchError);
-        throw new Error(fetchError.message);
-      }
+            if (fetchError) {
+              console.error("Erreur lors de la récupération du jour:", fetchError);
+              throw new Error(fetchError.message);
+            }
 
-      if (existingDay) {
-        console.log("Existing day :", existingDay);
-        console.log("isDone :", currentDone);
-        const newDoneCount = currentDone
-          ? Math.max((existingDay.done_count || 1) - 1, 0)
-          : (existingDay.done_count || 0) + 1;
+            if (existingDay) {
+              console.log("Existing day :", existingDay);
+              console.log("isDone :", currentDone);
+              const newDoneCount = currentDone
+                ? Math.max((existingDay.done_count || 1) - 1, 0)
+                : (existingDay.done_count || 0) + 1;
 
-        const { error: updateError } = await supabase
-          .from("Days")
-          .update({
-            done_count: newDoneCount,
-            updated_at: new Date().toDateString(),
-          })
-          .eq("id", existingDay.id);
+              const { error: updateError } = await supabase
+                .from("Days")
+                .update({
+                  done_count: newDoneCount,
+                  updated_at: new Date().toDateString(),
+                })
+                .eq("id", existingDay.id);
 
-        if (updateError) {
-          console.error("Erreur lors de la mise à jour du jour:", updateError);
-          throw new Error(updateError.message);
-        }
-      }
+              if (updateError) {
+                console.error("Erreur lors de la mise à jour du jour:", updateError);
+                throw new Error(updateError.message);
+              }
+            }
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        });
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['days'] });
@@ -138,6 +151,12 @@ export default function Index() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     try {
+      // Optimistic update : mettre à jour l'UI immédiatement
+      setTasks(tasks.map(task =>
+        task.id === taskId ? { ...task, done: !currentDone } : task
+      ));
+
+      // Ensuite, mettre à jour Supabase
       const { error } = await supabase
         .from("Tasks")
         .update({ done: !currentDone })
@@ -145,15 +164,14 @@ export default function Index() {
 
       if (error) {
         console.error("Erreur lors de la mise à jour de la tâche:", error);
+        // Rollback si erreur
+        setTasks(tasks.map(task =>
+          task.id === taskId ? { ...task, done: currentDone } : task
+        ));
         return;
       }
 
-      // Mettre à jour l'état local
-      setTasks(tasks.map(task =>
-        task.id === taskId ? { ...task, done: !currentDone } : task
-      ));
-
-
+      // La mutation est queuée automatiquement
       doneDayMutation.mutate({ taskId, currentDone });
     } catch (error) {
       console.error("Erreur:", error);

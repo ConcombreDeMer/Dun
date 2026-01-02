@@ -6,7 +6,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -36,64 +36,78 @@ export default function Details() {
   const queryClient = useQueryClient();
   const initialDate = task && task.date ? new Date(task.date) : new Date();
 
+  // Ref pour gérer les mutations en queue (éviter les race conditions)
+  const mutationQueueRef = useRef<Promise<void>>(Promise.resolve());
+
   const deleteDayMutation = useMutation({
     mutationFn: async () => {
-      // Récupérer l'utilisateur connecté
-      const { data: { user } } = await supabase.auth.getUser();
+      // Queue les mutations pour les exécuter séquentiellement
+      return new Promise<void>((resolve, reject) => {
+        mutationQueueRef.current = mutationQueueRef.current.then(async () => {
+          try {
+            // Récupérer l'utilisateur connecté
+            const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) {
-        throw new Error("Utilisateur non connecté");
-      }
+            if (!user) {
+              throw new Error("Utilisateur non connecté");
+            }
 
-      // Mettre à jour le jour associé à la tâche supprimée
-      const { data: existingDay, error: fetchError } = await supabase
-        .from("Days")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("date", selectedDate.toDateString())
-        .maybeSingle();
+            // Mettre à jour le jour associé à la tâche supprimée
+            const { data: existingDay, error: fetchError } = await supabase
+              .from("Days")
+              .select("*")
+              .eq("user_id", user.id)
+              .eq("date", selectedDate.toDateString())
+              .maybeSingle();
 
-      if (fetchError) {
-        console.error("Erreur lors de la récupération du jour:", fetchError);
-        throw new Error(fetchError.message);
-      }
+            if (fetchError) {
+              console.error("Erreur lors de la récupération du jour:", fetchError);
+              throw new Error(fetchError.message);
+            }
 
-      if (existingDay) {
-        const newTotal = Math.max((existingDay.total || 1) - 1, 0);
-        const newDoneCount = isDone
-          ? Math.max((existingDay.done_count || 1) - 1, 0)
-          : (existingDay.done_count || 0);
+            if (existingDay) {
+              const newTotal = Math.max((existingDay.total || 1) - 1, 0);
+              const newDoneCount = isDone
+                ? Math.max((existingDay.done_count || 1) - 1, 0)
+                : (existingDay.done_count || 0);
 
-        // si newTotal est 0, supprimer le jour
-        if (newTotal === 0) {
-          const { error: deleteError } = await supabase
-            .from("Days")
-            .delete()
-            .eq("id", existingDay.id);
+              // si newTotal est 0, supprimer le jour
+              if (newTotal === 0) {
+                const { error: deleteError } = await supabase
+                  .from("Days")
+                  .delete()
+                  .eq("id", existingDay.id);
 
-          if (deleteError) {
-            console.error("Erreur lors de la suppression du jour:", deleteError);
-            throw new Error(deleteError.message);
+                if (deleteError) {
+                  console.error("Erreur lors de la suppression du jour:", deleteError);
+                  throw new Error(deleteError.message);
+                }
+                resolve();
+                return;
+              }
+
+              // Sinon, mettre à jour le total
+
+              const { error: updateError } = await supabase
+                .from("Days")
+                .update({
+                  total: newTotal,
+                  done_count: newDoneCount,
+                  updated_at: new Date().toDateString(),
+                })
+                .eq("id", existingDay.id);
+
+              if (updateError) {
+                console.error("Erreur lors de la mise à jour du jour:", updateError);
+                throw new Error(updateError.message);
+              }
+            }
+            resolve();
+          } catch (error) {
+            reject(error);
           }
-          return;
-        }
-
-        // Sinon, mettre à jour le total
-
-        const { error: updateError } = await supabase
-          .from("Days")
-          .update({
-            total: newTotal,
-            done_count: newDoneCount,
-            updated_at: new Date().toDateString(),
-          })
-          .eq("id", existingDay.id);
-
-        if (updateError) {
-          console.error("Erreur lors de la mise à jour du jour:", updateError);
-          throw new Error(updateError.message);
-        }
-      }
+        });
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['days'] });
@@ -102,46 +116,56 @@ export default function Details() {
 
   const doneDayMutation = useMutation({
     mutationFn: async () => {
-      // Récupérer l'utilisateur connecté
-      const { data: { user } } = await supabase.auth.getUser();
+      // Queue les mutations pour les exécuter séquentiellement
+      return new Promise<void>((resolve, reject) => {
+        mutationQueueRef.current = mutationQueueRef.current.then(async () => {
+          try {
+            // Récupérer l'utilisateur connecté
+            const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) {
-        throw new Error("Utilisateur non connecté");
-      }
+            if (!user) {
+              throw new Error("Utilisateur non connecté");
+            }
 
-      // Mettre à jour le jour associé à la tâche modifiée
-      const { data: existingDay, error: fetchError } = await supabase
-        .from("Days")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("date", selectedDate.toDateString())
-        .maybeSingle();
+            // Mettre à jour le jour associé à la tâche modifiée
+            const { data: existingDay, error: fetchError } = await supabase
+              .from("Days")
+              .select("*")
+              .eq("user_id", user.id)
+              .eq("date", selectedDate.toDateString())
+              .maybeSingle();
 
-      if (fetchError) {
-        console.error("Erreur lors de la récupération du jour:", fetchError);
-        throw new Error(fetchError.message);
-      }
+            if (fetchError) {
+              console.error("Erreur lors de la récupération du jour:", fetchError);
+              throw new Error(fetchError.message);
+            }
 
-      if (existingDay) {
-        console.log("Existing day :", existingDay);
-        console.log("isDone :", isDone);
-        const newDoneCount = !isDone
-          ? Math.max((existingDay.done_count || 1) - 1, 0)
-          : (existingDay.done_count || 0) + 1;
+            if (existingDay) {
+              console.log("Existing day :", existingDay);
+              console.log("isDone :", isDone);
+              const newDoneCount = isDone
+                ? Math.max((existingDay.done_count || 1) - 1, 0)
+                : (existingDay.done_count || 0) + 1;
 
-        const { error: updateError } = await supabase
-          .from("Days")
-          .update({
-            done_count: newDoneCount,
-            updated_at: new Date().toDateString(),
-          })
-          .eq("id", existingDay.id);
+              const { error: updateError } = await supabase
+                .from("Days")
+                .update({
+                  done_count: newDoneCount,
+                  updated_at: new Date().toDateString(),
+                })
+                .eq("id", existingDay.id);
 
-        if (updateError) {
-          console.error("Erreur lors de la mise à jour du jour:", updateError);
-          throw new Error(updateError.message);
-        }
-      }
+              if (updateError) {
+                console.error("Erreur lors de la mise à jour du jour:", updateError);
+                throw new Error(updateError.message);
+              }
+            }
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        });
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['days'] });
@@ -151,112 +175,120 @@ export default function Details() {
 
   const changeDayMutation = useMutation({
     mutationFn: async () => {
-      // Récupérer l'utilisateur connecté
-      const { data: { user } } = await supabase.auth.getUser();
+      // Queue les mutations pour les exécuter séquentiellement
+      return new Promise<void>((resolve, reject) => {
+        mutationQueueRef.current = mutationQueueRef.current.then(async () => {
+          try {
+            // Récupérer l'utilisateur connecté
+            const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) {
-        throw new Error("Utilisateur non connecté");
-      }
+            if (!user) {
+              throw new Error("Utilisateur non connecté");
+            }
 
-      // Retirer la tâche de l'ancien jour
-      const { data: oldDay, error: fetchOldDayError } = await supabase
-        .from("Days")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("date", initialDate.toDateString())
-        .maybeSingle();
+            // Retirer la tâche de l'ancien jour
+            const { data: oldDay, error: fetchOldDayError } = await supabase
+              .from("Days")
+              .select("*")
+              .eq("user_id", user.id)
+              .eq("date", initialDate.toDateString())
+              .maybeSingle();
 
-      if (fetchOldDayError) {
-        console.error("Erreur lors de la récupération de l'ancien jour:", fetchOldDayError);
-        throw new Error(fetchOldDayError.message);
-      }
+            if (fetchOldDayError) {
+              console.error("Erreur lors de la récupération de l'ancien jour:", fetchOldDayError);
+              throw new Error(fetchOldDayError.message);
+            }
 
-      if (oldDay) {
-        const newTotal = Math.max((oldDay.total || 1) - 1, 0);
-        const newDoneCount = isDone
-          ? Math.max((oldDay.done_count || 1) - 1, 0)
-          : (oldDay.done_count || 0);
+            if (oldDay) {
+              const newTotal = Math.max((oldDay.total || 1) - 1, 0);
+              const newDoneCount = isDone
+                ? Math.max((oldDay.done_count || 1) - 1, 0)
+                : (oldDay.done_count || 0);
 
-        // si newTotal est 0, supprimer le jour
-        if (newTotal === 0) {
-          const { error: deleteError } = await supabase
-            .from("Days")
-            .delete()
-            .eq("id", oldDay.id);
+              // si newTotal est 0, supprimer le jour
+              if (newTotal === 0) {
+                const { error: deleteError } = await supabase
+                  .from("Days")
+                  .delete()
+                  .eq("id", oldDay.id);
 
-          if (deleteError) {
-            console.error("Erreur lors de la suppression de l'ancien jour:", deleteError);
-            throw new Error(deleteError.message);
+                if (deleteError) {
+                  console.error("Erreur lors de la suppression de l'ancien jour:", deleteError);
+                  throw new Error(deleteError.message);
+                }
+              } else {
+                // Sinon, mettre à jour le total
+                const { error: updateError } = await supabase
+                  .from("Days")
+                  .update({
+                    total: newTotal,
+                    done_count: newDoneCount,
+                    updated_at: new Date().toDateString(),
+                  })
+                  .eq("id", oldDay.id);
+
+                if (updateError) {
+                  console.error("Erreur lors de la mise à jour de l'ancien jour:", updateError);
+                  throw new Error(updateError.message);
+                }
+              }
+            }
+
+            // Mettre à jour le jour associé à la tâche modifiée
+            const { data: existingDay, error: fetchError } = await supabase
+              .from("Days")
+              .select("*")
+              .eq("user_id", user.id)
+              .eq("date", selectedDate.toDateString())
+              .maybeSingle();
+
+            if (fetchError) {
+              console.error("Erreur lors de la récupération du jour:", fetchError);
+              throw new Error(fetchError.message);
+            }
+
+            // Si le jour n'existe pas, le créer
+            if (!existingDay) {
+              const { error: insertError } = await supabase.from("Days").insert([
+                {
+                  user_id: user.id,
+                  date: selectedDate.toDateString(),
+                  total: 1,
+                  done_count: isDone ? 1 : 0,
+                  updated_at: new Date().toDateString(),
+                },
+              ]);
+
+              if (insertError) {
+                console.error("Erreur lors de l'insertion du jour:", insertError);
+                throw new Error(insertError.message);
+              }
+
+              console.log("Jour créé avec succès");
+            }
+
+            // Si le jour existe déjà, incréementer "total" et mettre à jour "updated_at"
+            else {
+              const { error: updateError } = await supabase
+                .from("Days")
+                .update({
+                  total: (existingDay.total || 0) + 1,
+                  done_count: isDone ? (existingDay.done_count || 0) + 1 : (existingDay.done_count || 0),
+                  updated_at: new Date().toDateString(),
+                })
+                .eq("id", existingDay.id);
+
+              if (updateError) {
+                console.error("Erreur lors de la mise à jour du jour:", updateError);
+                throw new Error(updateError.message);
+              }
+            }
+            resolve();
+          } catch (error) {
+            reject(error);
           }
-        } else {
-          // Sinon, mettre à jour le total
-          const { error: updateError } = await supabase
-            .from("Days")
-            .update({
-              total: newTotal,
-              done_count: newDoneCount,
-              updated_at: new Date().toDateString(),
-            })
-            .eq("id", oldDay.id);
-
-          if (updateError) {
-            console.error("Erreur lors de la mise à jour de l'ancien jour:", updateError);
-            throw new Error(updateError.message);
-          }
-        }
-      }
-
-      // Mettre à jour le jour associé à la tâche modifiée
-      const { data: existingDay, error: fetchError } = await supabase
-        .from("Days")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("date", selectedDate.toDateString())
-        .maybeSingle();
-
-      if (fetchError) {
-        console.error("Erreur lors de la récupération du jour:", fetchError);
-        throw new Error(fetchError.message);
-      }
-
-      // Si le jour n'existe pas, le créer
-      if (!existingDay) {
-        const { error: insertError } = await supabase.from("Days").insert([
-          {
-            user_id: user.id,
-            date: selectedDate.toDateString(),
-            total: 1,
-            done_count: isDone ? 1 : 0,
-            updated_at: new Date().toDateString(),
-          },
-        ]);
-
-        if (insertError) {
-          console.error("Erreur lors de l'insertion du jour:", insertError);
-          throw new Error(insertError.message);
-        }
-
-        console.log("Jour créé avec succès");
-      }
-
-      // Si le jour existe déjà, incréementer "total" et mettre à jour "updated_at"
-      else {
-        const { error: updateError } = await supabase
-          .from("Days")
-          .update({
-            total: (existingDay.total || 0) + 1,
-            done_count: isDone ? (existingDay.done_count || 0) + 1 : (existingDay.done_count || 0),
-            updated_at: new Date().toDateString(),
-          })
-          .eq("id", existingDay.id);
-
-        if (updateError) {
-          console.error("Erreur lors de la mise à jour du jour:", updateError);
-          throw new Error(updateError.message);
-        }
-      }
-      
-
+        });
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['days'] });
