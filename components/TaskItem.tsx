@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 10,
     justifyContent: 'space-between',
-    borderRadius: 20,
+    borderRadius: 30,
     width: '100%',
     marginLeft: 'auto',
     marginRight: 'auto',

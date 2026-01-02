@@ -4,6 +4,7 @@ import PrimaryButton from "@/components/primaryButton";
 import SimpleInput from "@/components/textInput";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -470,7 +471,8 @@ const handleDateChange = (date: Date) => {
   changeDayMutation.mutate();
   };
 
-  const handleToggleTask = () => {
+  const handleToggleTask = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsDone(!isDone);
     doneDayMutation.mutate();
   };

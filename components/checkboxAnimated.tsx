@@ -76,9 +76,9 @@ export default function AnimatedCheckbox({
         {
           width: size,
           height: size,
-          borderRadius: 30,
+          borderRadius: 100,
           backgroundColor: checked ? "#000001" : colors.checkbox,
-          borderColor: checked ? colors.donePrimary : colors.border,
+          borderColor: checked ? "#000001" : colors.border,
           opacity: disabled ? 0.5 : 1,
         },
       ]}
