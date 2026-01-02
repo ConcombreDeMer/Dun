@@ -1,14 +1,12 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect } from 'react';
-import { StyleSheet, Pressable } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
-  FadeIn,
-  FadeOut,
 } from 'react-native-reanimated';
-import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../lib/ThemeContext';
 
 interface AnimatedCheckboxProps {
@@ -28,16 +26,10 @@ export default function AnimatedCheckbox({
 }: AnimatedCheckboxProps) {
   const { colors } = useTheme();
   const scale = useSharedValue(1);
-  const rotation = useSharedValue(0);
   const opacity = useSharedValue(checked ? 1 : 0);
 
   useEffect(() => {
-    opacity.value = withTiming(checked ? 1 : 0, { duration: 300 });
-    rotation.value = withSpring(checked ? 360 : 0, {
-      damping: 8,
-      mass: 1,
-      stiffness: 100,
-    });
+    opacity.value = withTiming(checked ? 1 : 0, { duration: 200 });
   }, [checked]);
 
   const animatedBoxStyle = useAnimatedStyle(() => ({
@@ -50,11 +42,6 @@ export default function AnimatedCheckbox({
 
   const animatedCheckStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
-    transform: [
-      {
-        rotate: `${rotation.value}deg`,
-      },
-    ],
   }));
 
   const handlePress = () => {
@@ -65,7 +52,7 @@ export default function AnimatedCheckbox({
         stiffness: 150,
       });
       
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         scale.value = withSpring(1, {
           damping: 8,
           mass: 1,
@@ -74,6 +61,8 @@ export default function AnimatedCheckbox({
       }, 100);
 
       onChange(!checked);
+      
+      return () => clearTimeout(timeout);
     }
   };
 
@@ -95,11 +84,7 @@ export default function AnimatedCheckbox({
       ]}
     >
       {checked && (
-        <Animated.View
-          entering={FadeIn.duration(200)}
-          exiting={FadeOut.duration(200)}
-          style={animatedCheckStyle}
-        >
+        <Animated.View style={animatedCheckStyle}>
           <MaterialIcons
             name="check"
             size={size * 0.6}
