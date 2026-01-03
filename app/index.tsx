@@ -27,15 +27,6 @@ export default function Index() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (storedDate) {
-      const dateObj = storedDate instanceof Date ? storedDate : new Date(storedDate);
-      setSelectedDate(dateObj);
-      const newString = dateObj.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
-      setDate(newString);
-    }
-  }, [storedDate]);
-
-  useEffect(() => {
     const fetchUserName = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -208,16 +199,11 @@ export default function Index() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }
 
-  const [date, setDate] = useState(new Date().toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }));
-
-
   const changeDate = async (newDate: Date) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedDate(newDate);
     setStoreDate(newDate);
-    const newString = newDate.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
-    setDate(newString);
-  }
+  };
 
   // Filtrer les tâches par date sélectionnée
   const filteredTasks = tasks.filter((task) => {
