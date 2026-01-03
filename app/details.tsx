@@ -1,6 +1,3 @@
-import AnimatedCheckbox from "@/components/checkboxAnimated";
-import DateInput from "@/components/dateInput";
-import PrimaryButton from "@/components/primaryButton";
 import SimpleInput from "@/components/textInput";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -10,9 +7,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -543,7 +537,7 @@ export default function Details() {
 
     // Si la différence est inférieure à 10 minutes
 
-    if(diffSeconds == 0){
+    if (diffSeconds == 0) {
       return `à l'instant`;
     }
 
@@ -570,81 +564,103 @@ export default function Details() {
 
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <View style={styles.handleContainer}>
-        <View style={[styles.handle, { backgroundColor: colors.border }]} />
-      </View>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
 
-        <SimpleInput
-          value={taskQuery.data ? taskQuery.data.name : name}
-          onChangeText={setName}
-          bold
-        />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View
+        style={styles.card}
+      >        
+        <View style={styles.scrollContent}>
+          <SimpleInput
+            value={taskQuery.data ? taskQuery.data.name : name}
+            onChangeText={setName}
+            bold
+            transparent
+            style={{height: '5%'}}
+            scale="large"
+            fontSize={25}
+          />
 
-        <SimpleInput
-          value={description}
-          onChangeText={setDescription}
-          multiline
-        />
+          <SimpleInput
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            style={{ overflow: "hidden", textAlignVertical: "top", height: '95%' }}
+            transparent
+            fontSize={18}
+          />
 
-        <DateInput
-          value={selectedDate}
-          onChange={handleDateChange}
-          disabled={updateTaskMutation.isPending || deleteTaskMutation.isPending}
-        />
-
-        <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 10, alignSelf: "center" }}>
+        </View>
+        <Text style={{ color: '#383838ff', fontSize: 12, alignSelf: "center" }}>
           Dernière mise à jour : {formatLastUpdateDate(taskQuery.data ? new Date(taskQuery.data.last_update_date) : last_update_date)}
         </Text>
 
-      </ScrollView>
+        {/* <View style={styles.bottom}>
+          <PrimaryButton
+            size="XS"
+            type="danger"
+            image="delete"
+            onPress={handleDeleteTask}
+          />
 
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf: "center", width: "100%", position: "relative", bottom: 200, gap: 10 }}>
-        <PrimaryButton
-          size="XS"
-          type="danger"
-          image="delete"
-          onPress={handleDeleteTask}
-        />
-        <AnimatedCheckbox
-          checked={isDone}
-          onChange={handleToggleTask}
-          size={64}
-        />
+          <DateInput
+            value={selectedDate}
+            onChange={handleDateChange}
+            disabled={updateTaskMutation.isPending || deleteTaskMutation.isPending}
+            bold
+          />
+
+          <AnimatedCheckbox
+            checked={isDone}
+            onChange={handleToggleTask}
+            size={64}
+          />
+        </View> */}
       </View>
 
-    </KeyboardAvoidingView>
+    </View>
+
+
+
+
   );
 }
 
 const styles = StyleSheet.create({
+
+
+  bottom: {
+    flexDirection: "row", 
+    display: "flex",
+    justifyContent: "space-between", 
+    alignItems: "center",
+    alignSelf: "flex-end",
+    width: "100%", 
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+  },
+
   container: {
     flex: 1,
-    paddingLeft: 20,
-    paddingRight: 20,
-    paddingTop: 20,
     display: "flex",
     flexDirection: "column",
     justifyContent: "flex-start",
-    borderColor: "#000000",
 
   },
 
-  handleContainer: {
-    alignItems: "center",
-    paddingBottom: 20,
+  card: {
+    backgroundColor: "#ffffffff",
+    borderRadius: 30,
+    width: "90%",
+    height: "80%",
+    alignSelf: "center",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    // borderColor: "#00000020",
+    // borderWidth: 1,
+    marginTop: 80,
   },
 
-  handle: {
-    width: 40,
-    height: 5,
-    backgroundColor: "#ddd",
-    borderRadius: 2.5,
-  },
 
   title: {
     fontSize: 55,
@@ -652,94 +668,11 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    marginTop: 10,
     display: "flex",
     flexDirection: "column",
-    gap: 20,
-    maxHeight: "65%",
+    height: "98%",
+    paddingHorizontal: 10,
+    overflow: "hidden",
   },
 
-  mainView: {
-    paddingBottom: 100,
-  },
-
-  taskName: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 30,
-    color: "#000",
-  },
-
-  section: {
-    marginBottom: 20,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-  },
-
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-
-  value: {
-    fontSize: 16,
-    color: "#000",
-  },
-
-  deleteButton: {
-    backgroundColor: "#FF3B30",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginTop: 30,
-    alignItems: "center",
-  },
-
-  deleteButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-
-  editButton: {
-    backgroundColor: "#000000ff",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginTop: 15,
-    alignItems: "center",
-  },
-
-  editButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    fontFamily: "Satoshi-Bold",
-  },
-
-  editFloatingButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    height: 70,
-    width: 70,
-    borderRadius: 100,
-    backgroundColor: "#000000ff",
-    position: "absolute",
-    bottom: 30,
-    right: 30,
-  },
-
-  deleteFloatingButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    height: 70,
-    width: 70,
-    borderRadius: 100,
-    backgroundColor: "#FF3B30",
-    position: "absolute",
-    bottom: 30,
-    left: 30,
-  },
 });

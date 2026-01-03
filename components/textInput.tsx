@@ -17,6 +17,9 @@ interface SimpleInputProps {
     facultatif?: boolean;
     password?: boolean;
     bold?: boolean;
+    transparent?: boolean;
+    initialEditable?: boolean;
+    fontSize?: number;
 }
 
 export default function SimpleInput({
@@ -34,9 +37,16 @@ export default function SimpleInput({
     facultatif = false,
     password = false,
     bold = false,
+    transparent = false,
+    fontSize = 16,
 }: SimpleInputProps) {
     const [text, setText] = useState(value);
     const [showPassword, setShowPassword] = useState(false);
+    const [isEditable, setIsEditable] = useState(true);
+
+
+    const disableEditing = () => setIsEditable(false);
+    const enableEditing = () => setIsEditable(true);
 
     React.useEffect(() => {
         setText(value);
@@ -58,17 +68,21 @@ export default function SimpleInput({
 
             <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 {name && <Text style={[styles.label, labelStyle]}>{name}</Text>}
-                {facultatif && <Text style={{ color: '#999', fontSize: 14, fontStyle:"italic"}}>(facultatif)</Text>}
+                {facultatif && <Text style={{ color: '#999', fontSize: 14, fontStyle: "italic" }}>(facultatif)</Text>}
             </View>
 
             <TextInput
-                style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }]}
+                style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }, transparent && { backgroundColor: 'transparent', borderWidth: 0 },{ fontSize: fontSize }]}
                 placeholder={placeholder}
                 placeholderTextColor={placeholderTextColor}
                 value={text}
                 onChangeText={handleChange}
                 multiline={multiline}
                 secureTextEntry={password && !showPassword}
+                onTouchMove={disableEditing}
+                onTouchEnd={enableEditing}
+                onTouchCancel={enableEditing}
+                editable={isEditable}
             />
             {password && (
                 <TouchableOpacity
@@ -117,7 +131,8 @@ const styles = StyleSheet.create({
         borderColor: '#00000020',
         borderRadius: 8,
         paddingHorizontal: 12,
-        paddingVertical: 10,
+        paddingTop: 10,
+        paddingBottom: 240,
         fontSize: 16,
         fontWeight: '600',
         textAlignVertical: 'top',

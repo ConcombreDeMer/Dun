@@ -1,10 +1,9 @@
-import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
-import { useRouter, useSegments } from "expo-router";
-import React from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
-import { useTheme } from "../lib/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useRouter, useSegments } from "expo-router";
+import React from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { useTheme } from "../lib/ThemeContext";
 
 export default function Navbar() {
     const { colors } = useTheme();
@@ -103,12 +102,12 @@ const styles = StyleSheet.create({
         width: "100%",
         height: 100,
         alignItems: "center",
-        backgroundColor: "white",
-        shadowColor: "#ffffffff",
-        shadowOffset: { width: 0, height: -40 },
-        shadowOpacity: 1,
-        shadowRadius: 20,
-        elevation: 1,
+        // backgroundColor: "white",
+        // shadowColor: "#ffffffff",
+        // shadowOffset: { width: 0, height: -40 },
+        // shadowOpacity: 1,
+        // shadowRadius: 20,
+        // elevation: 1,
     },
 
     container: {

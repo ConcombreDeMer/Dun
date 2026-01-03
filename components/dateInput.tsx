@@ -108,7 +108,6 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
 
 const styles = StyleSheet.create({
     dateContainer: {
-        marginBottom: 30,
     },
     label: {
         fontSize: 20,
