@@ -1,5 +1,5 @@
-import { Pressable, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
+import { StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
 import { getImageSource } from "../lib/imageHelper";
 import { useTheme } from "../lib/ThemeContext";
 
@@ -19,7 +19,7 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
     const { colors, theme } = useTheme();
 
     return (
-        <Pressable
+        <TouchableOpacity
             style={[
                 styles.button,
                 size === 'XS' && styles.buttonExtraSmall,
@@ -40,7 +40,7 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
                 ></Image>
             }
             {(size === 'L' || size === 'M' || size === 'S') && <Text style={[styles.text, type === 'danger' && styles.textDanger, type === 'reverse' && styles.textReverse]}>{title}</Text>}
-        </Pressable>
+        </TouchableOpacity>
     );
 }
 

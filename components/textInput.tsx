@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { TextInput, View, StyleSheet, Text, TextStyle, ViewStyle, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 
 interface SimpleInputProps {
     name?: string;
@@ -62,7 +62,7 @@ export default function SimpleInput({
             </View>
 
             <TextInput
-                style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '600' : '200' }]}
+                style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }]}
                 placeholder={placeholder}
                 placeholderTextColor={placeholderTextColor}
                 value={text}
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontFamily: 'Satoshi-Regular',
         marginBottom: 5,
-        color: '#000',
+        color: '#666',
     },
     input: {
         width: '100%',

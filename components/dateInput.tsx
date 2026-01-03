@@ -1,13 +1,13 @@
+import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { useState } from "react";
 import {
-    View,
-    Text,
-    TouchableOpacity,
     Modal,
     Platform,
     StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { useTheme } from "../lib/ThemeContext";
 
 interface DateInputProps {
@@ -47,7 +47,7 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
                 onPress={() => setShowDatePicker(true)}
                 disabled={disabled}
             >
-                <Text style={[styles.dateButtonText, { color: colors.text, fontWeight: bold ? '600' : '200' }]}>
+                <Text style={[styles.dateButtonText, { color: colors.text, fontWeight: bold ? '400' : '200' }]}>
                     {value.toLocaleDateString("fr-FR", {
                         weekday: "long",
                         year: "numeric",

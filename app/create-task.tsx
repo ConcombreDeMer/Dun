@@ -4,6 +4,7 @@ import PrimaryButton from "@/components/primaryButton";
 import SimpleInput from "@/components/textInput";
 import { useStore } from "@/store/store";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -153,6 +154,7 @@ export default function CreateTask() {
     });
 
     const handleCreateTask = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         if (!name.trim()) {
             Alert.alert("Erreur", "Le nom de la tâche est requis");
             return;
@@ -160,6 +162,11 @@ export default function CreateTask() {
         createTaskMutation.mutate();
         dayMutation.mutate();
     };
+
+    const handleCancel = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        router.back();
+    }
 
     const handleDateChange = (date: Date) => {
         setSelectedDate(date);
@@ -181,6 +188,7 @@ export default function CreateTask() {
                         name="Titre"
                         value={name}
                         onChangeText={setName}
+                        bold
                     />
 
                     <SimpleInput
@@ -188,19 +196,21 @@ export default function CreateTask() {
                         value={description}
                         onChangeText={setDescription}
                         multiline
+                        bold
                     />
 
                     <DateInput
                         value={selectedDate}
                         onChange={handleDateChange}
                         disabled={createTaskMutation.isPending}
+                        bold
                     />
 
                 </View>
             </ScrollView>
 
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf: "center", width: "100%", position: "absolute", bottom: 23 }}>
-                <PrimaryButton size="XS" image="cancel" onPress={() => router.back()} />
+                <PrimaryButton size="XS" image="cancel" onPress={handleCancel} />
                 <PrimaryButton size="M" title="Créer la tâche" onPress={handleCreateTask} />
             </View>
 
