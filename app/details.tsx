@@ -3,7 +3,7 @@ import DateInput from "@/components/dateInput";
 import PrimaryButton from "@/components/primaryButton";
 import SimpleInput from "@/components/textInput";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -30,11 +30,34 @@ export default function Details() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [last_update_date, setLastUpdateDate] = useState<Date | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [isDone, setIsDone] = useState(false);
   const { colors, theme } = useTheme();
   const queryClient = useQueryClient();
   const initialDate = task && task.date ? new Date(task.date) : new Date();
+
+
+
+  const taskQuery = useQuery({
+    queryKey: ['tasks', id],
+    queryFn: getTask,
+  });
+
+  async function getTask() {
+    const { data, error } = await supabase
+      .from("Tasks")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+    return data;
+  }
+
+
 
   // Ref pour gérer les mutations en queue (éviter les race conditions)
   const mutationQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -364,7 +387,8 @@ export default function Details() {
   const updateTaskMutation = useMutation({
     mutationFn: async () => {
       if (!name.trim()) {
-        throw new Error("Le nom de la tâche est requis");      }
+        throw new Error("Le nom de la tâche est requis");
+      }
 
       const { error } = await supabase
         .from("Tasks")
@@ -373,6 +397,7 @@ export default function Details() {
           description: description.trim(),
           date: selectedDate.toDateString(),
           done: isDone,
+          last_update_date: new Date().toISOString(),
         })
         .eq("id", id);
       if (error) {
@@ -381,7 +406,6 @@ export default function Details() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      console.log("Tâche mise à jour avec succès");
       setHasChanges(false);
     },
     onError: (error: any) => {
@@ -414,6 +438,7 @@ export default function Details() {
     return () => clearTimeout(timer);
   }, [hasChanges]);
 
+
   useEffect(() => {
     const fetchTask = async () => {
       try {
@@ -434,6 +459,7 @@ export default function Details() {
         setDescription(data.description || "");
         setSelectedDate(data.date ? new Date(data.date) : new Date());
         setIsDone(data.done || false);
+        setLastUpdateDate(data.last_update_date ? new Date(data.last_update_date) : null);
       } catch (error) {
         console.error("Erreur:", error);
       } finally {
@@ -444,8 +470,6 @@ export default function Details() {
     const handleEditTask = () => {
       fetchTask();
     };
-
-    // taskEmitter.on("taskUpdated", handleEditTask);
 
     if (id) {
       fetchTask();
@@ -498,9 +522,9 @@ export default function Details() {
     );
   };
 
-const handleDateChange = (date: Date) => {
-  setSelectedDate(date);
-  changeDayMutation.mutate();
+  const handleDateChange = (date: Date) => {
+    setSelectedDate(date);
+    changeDayMutation.mutate();
   };
 
   const handleToggleTask = async () => {
@@ -509,7 +533,41 @@ const handleDateChange = (date: Date) => {
     doneDayMutation.mutate();
   };
 
-  const taskName = task.name || "Tâche sans nom";
+  const formatLastUpdateDate = (date: Date | null): string => {
+    if (!date) return "";
+
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffSeconds / 60);
+
+    // Si la différence est inférieure à 10 minutes
+
+    if(diffSeconds == 0){
+      return `à l'instant`;
+    }
+
+    if (diffMinutes < 10) {
+      console.log("diffSeconds :", diffSeconds);
+      if (diffSeconds < 60) {
+        return `il y a ${diffSeconds} secondes`;
+      } else {
+        return `il y a ${diffMinutes} minutes`;
+      }
+    }
+
+    // Sinon, afficher le format complet
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const secondes = date.getSeconds().toString().padStart(2, "0");
+
+    return `${day}/${month}/${year} à ${hours}:${minutes}:${secondes}`;
+  };
+
+
 
   return (
     <KeyboardAvoidingView
@@ -522,7 +580,7 @@ const handleDateChange = (date: Date) => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
 
         <SimpleInput
-          value={name}
+          value={taskQuery.data ? taskQuery.data.name : name}
           onChangeText={setName}
           bold
         />
@@ -538,6 +596,10 @@ const handleDateChange = (date: Date) => {
           onChange={handleDateChange}
           disabled={updateTaskMutation.isPending || deleteTaskMutation.isPending}
         />
+
+        <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 10, alignSelf: "center" }}>
+          Dernière mise à jour : {formatLastUpdateDate(taskQuery.data ? new Date(taskQuery.data.last_update_date) : last_update_date)}
+        </Text>
 
       </ScrollView>
 
