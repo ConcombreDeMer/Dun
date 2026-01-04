@@ -46,8 +46,16 @@ export default function Stats() {
         style={styles.cardsContainer}
       >
 
-        <StatsCard />
-        <StatsCard />
+        <StatsCard
+          image={require('../assets/images/stats/completion.png')}
+          title="Complétion"
+          value="85%"
+        />
+        <StatsCard
+          image={require('../assets/images/stats/charge.png')}
+          title="Charge"
+          value="Faible"
+        />
 
       </View>
 
@@ -60,7 +68,7 @@ const styles = StyleSheet.create({
   container: {
     paddingTop: 70,
     display: 'flex',
-    gap : 20,
+    gap: 20,
     justifyContent: 'flex-start',
     alignItems: 'center',
     alignSelf: 'center',

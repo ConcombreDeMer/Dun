@@ -1,11 +1,17 @@
-import { StyleSheet, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 
-export default function StatsStatut() {
+interface StatsCardProps {
+    image: any;
+    title: string;
+    value: string;
+}
+
+export default function StatsCard({ image, title, value }: StatsCardProps) {
     return (
-        <View
-            style={styles.container}
-        >
-
+        <View style={styles.container}>
+            <Image source={image} style={styles.image} />
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.value}>{value}</Text>
         </View>
     );
 }
@@ -21,5 +27,31 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         borderColor: 'rgba(0, 0, 15, 0.2)',
         borderWidth: 0.5,
+        padding: 15,
+        gap: 8,
+    },
+    image: {
+        width: 80,
+        height: 80,
+        resizeMode: 'contain',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+    },
+    title: {
+        fontSize: 16,
+        color: '#666',
+        fontWeight: '500',
+        position: 'absolute',
+        bottom: 10,
+        left: 15,
+    },
+    value: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#000',
+        position: 'absolute',
+        top: 10,
+        right: 15,
     },
 });
