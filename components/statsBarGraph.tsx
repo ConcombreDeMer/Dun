@@ -112,7 +112,7 @@ export default function StatsBarGraph({ daysData }: StatsBarGraphProps) {
 const styles = StyleSheet.create({
   barCharContainer: {
     backgroundColor: '#F1F1F1',
-    borderRadius: 16,
+    borderRadius: 30,
     borderColor: 'rgba(0, 0, 15, 0.2)',
     borderWidth: 0.5,
     display: 'flex',

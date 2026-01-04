@@ -1,4 +1,7 @@
 import StatsBarGraph from "@/components/statsBarGraph";
+import StatsCard from "@/components/statsCard";
+import StatsStatut from "@/components/statsStatut";
+import StatsStreak from "@/components/statsStreak";
 import { useQuery } from "@tanstack/react-query";
 import { StyleSheet, View } from "react-native";
 import { supabase } from "../lib/supabase";
@@ -26,18 +29,65 @@ export default function Stats() {
 
   return (
     <View style={styles.container}>
+
+      <View
+        style={styles.topContainer}
+      >
+
+        <StatsStatut />
+        <StatsStreak />
+
+      </View>
+
       <StatsBarGraph daysData={daysQuery.data || []} />
+
+
+      <View
+        style={styles.cardsContainer}
+      >
+
+        <StatsCard />
+        <StatsCard />
+
+      </View>
+
+
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    justifyContent: 'center',
+    paddingTop: 70,
+    display: 'flex',
+    gap : 20,
+    justifyContent: 'flex-start',
     alignItems: 'center',
     alignSelf: 'center',
     backgroundColor: 'white',
     width: '100%',
+    height: '100%',
   },
+
+  topContainer: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '90%',
+    height: 120,
+  },
+
+  cardsContainer: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '90%',
+    height: 120,
+  },
+
+
+
+
 });
