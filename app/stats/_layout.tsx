@@ -33,6 +33,14 @@ export default function StatsLayout() {
                     animation: 'slide_from_bottom',
                 }}
             />
+            <Stack.Screen
+                name="chargeExplain"
+                options={{
+                    title: 'Charge Explanation',
+                    presentation: 'modal',
+                    animation: 'slide_from_bottom',
+                }}
+            />
         </Stack>
     );
 }

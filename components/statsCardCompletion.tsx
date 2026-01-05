@@ -6,7 +6,7 @@ interface StatsCardProps {
     value: string;
 }
 
-export default function StatsCard({ image, title, value }: StatsCardProps) {
+export default function StatsCardCompletion({ image, title, value }: StatsCardProps) {
     return (
         <View style={styles.container}>
             <Image source={image} style={styles.image} />

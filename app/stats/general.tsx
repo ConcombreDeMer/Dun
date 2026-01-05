@@ -1,5 +1,6 @@
 import StatsBarGraph from "@/components/statsBarGraph";
-import StatsCard from "@/components/statsCard";
+import StatsCardCharge from "@/components/statsCardCharge";
+import StatsCardCompletion from "@/components/statsCardCompletion";
 import StatsStatut from "@/components/statsStatut";
 import StatsStreak from "@/components/statsStreak";
 import { useQuery } from "@tanstack/react-query";
@@ -45,14 +46,14 @@ export default function Stats() {
         style={styles.cardsContainer}
       >
 
-        <StatsCard
+        <StatsCardCompletion
           image={require('../../assets/images/stats/completion.png')}
           title="Complétion"
           value="85%" />
-        <StatsCard
+        <StatsCardCharge
           image={require('../../assets/images/stats/charge.png')}
           title="Charge"
-          value="Faible" />
+          daysData={daysQuery.data || []} />
 
       </View>
 
