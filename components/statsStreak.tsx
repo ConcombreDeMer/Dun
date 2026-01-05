@@ -8,29 +8,15 @@ export default function StatsStatut({ daysData }: { daysData?: any[] }) {
 
 
     const caluclateStreak = () => {
-
-        if (!daysData || daysData.length === 0) return 0;
-
         const today = new Date();
-
-        // récupérer dans daysData les jours précédents aujourd'hui
-        const pastDays = daysData.filter(day => {
-            const dayDate = new Date(day.date);
-            return dayDate < today;
-        });
-
-
-        // trier les jours par date décroissante
-        pastDays.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-        for (let day of pastDays) {
+        for (let day of daysData || []) {
             console.log('Day date:', new Date(day.date))
         }
 
         let streak = 0;
         let currentDate = new Date(today);
 
-        for (let day of pastDays) {
+        for (let day of daysData || []) {
             const dayDate = new Date(day.date);
             if (dayDate.toDateString() === currentDate.toDateString()) {
 

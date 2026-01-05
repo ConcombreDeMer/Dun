@@ -7,6 +7,11 @@ interface StatsCardProps {
 }
 
 export default function StatsCardCompletion({ image, title, value }: StatsCardProps) {
+
+
+    
+
+
     return (
         <View style={styles.container}>
             <Image source={image} style={styles.image} />

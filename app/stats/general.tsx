@@ -8,9 +8,9 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import { supabase } from "../../lib/supabase";
 
-
 export default function Stats() {
 
+  const [previousDays, setPreviousDays] = React.useState<any[]>([]);
   const getDays = async () => {
     const { data, error } = await supabase
       .from("Days")
@@ -29,6 +29,32 @@ export default function Stats() {
   });
 
 
+  React.useEffect(() => {
+    if (daysQuery.data) {
+      getPreviousDays(daysQuery.data);
+    }
+  }, [daysQuery.data]);
+
+
+  const getPreviousDays = (daysData: any[]) => {
+    if (!daysData || daysData.length === 0) return 0;
+
+    const today = new Date();
+
+    // récupérer dans daysData les jours précédents aujourd'hui
+    const pastDays = daysData.filter(day => {
+      const dayDate = new Date(day.date);
+      return dayDate < today;
+    });
+
+
+    // trier les jours par date décroissante
+    pastDays.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    setPreviousDays(pastDays);
+  }
+
+
   return (
     <View style={styles.container}>
 
@@ -40,7 +66,7 @@ export default function Stats() {
 
         <StatsStatut />
         <StatsStreak
-          daysData={daysQuery.data || []} />
+          daysData={previousDays} />
 
       </View><StatsBarGraph daysData={daysQuery.data || []} /><View
         style={styles.cardsContainer}
@@ -53,7 +79,7 @@ export default function Stats() {
         <StatsCardCharge
           image={require('../../assets/images/stats/charge.png')}
           title="Charge"
-          daysData={daysQuery.data || []} />
+          daysData={previousDays} />
 
       </View>
 

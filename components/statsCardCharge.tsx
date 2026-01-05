@@ -18,26 +18,12 @@ export default function StatsCardCharge({ image, title, daysData }: StatsCardPro
     }, [daysData]);
 
     const calculateCharge = () => {
-        if (!daysData || daysData.length === 0) return 0;
-
-        const today = new Date();
-
-        // récupérer dans daysData les jours précédents aujourd'hui
-        const pastDays = daysData.filter(day => {
-            const dayDate = new Date(day.date);
-            return dayDate < today;
-        });
-
-
-        // trier les jours par date décroissante
-        pastDays.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
         // Faire une moyenne de la charge des 7 derniers jours
         let totalCharge = 0;
         let count = 0;
 
-        for (let i = 0; i < Math.min(7, pastDays.length); i++) {
-            totalCharge += pastDays[i].total || 0;
+        for (let i = 0; i < Math.min(7, daysData.length); i++) {
+            totalCharge += daysData[i].total || 0;
             count++;
         }
 
