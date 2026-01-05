@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     },
     value: {
         fontSize: 22,
-        fontWeight: 'bold',
+        fontWeight: '500',
         color: '#000',
         position: 'absolute',
         top: 10,
