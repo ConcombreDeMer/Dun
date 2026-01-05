@@ -28,7 +28,7 @@ export default function Navbar() {
                 router.push("/");
                 break;
             case "stats":
-                router.push("/stats");
+                router.push("/stats/general");
                 break;
             case "add":
                 router.push("/create-task");

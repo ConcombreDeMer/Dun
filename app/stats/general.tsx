@@ -3,8 +3,9 @@ import StatsCard from "@/components/statsCard";
 import StatsStatut from "@/components/statsStatut";
 import StatsStreak from "@/components/statsStreak";
 import { useQuery } from "@tanstack/react-query";
+import React from "react";
 import { StyleSheet, View } from "react-native";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../../lib/supabase";
 
 
 export default function Stats() {
@@ -30,34 +31,33 @@ export default function Stats() {
   return (
     <View style={styles.container}>
 
+
+
       <View
         style={styles.topContainer}
       >
 
         <StatsStatut />
-        <StatsStreak />
+        <StatsStreak
+          daysData={daysQuery.data || []} />
 
-      </View>
-
-      <StatsBarGraph daysData={daysQuery.data || []} />
-
-
-      <View
+      </View><StatsBarGraph daysData={daysQuery.data || []} /><View
         style={styles.cardsContainer}
       >
 
         <StatsCard
-          image={require('../assets/images/stats/completion.png')}
+          image={require('../../assets/images/stats/completion.png')}
           title="Complétion"
-          value="85%"
-        />
+          value="85%" />
         <StatsCard
-          image={require('../assets/images/stats/charge.png')}
+          image={require('../../assets/images/stats/charge.png')}
           title="Charge"
-          value="Faible"
-        />
+          value="Faible" />
 
       </View>
+
+
+
 
 
     </View>
