@@ -41,6 +41,14 @@ export default function StatsLayout() {
                     animation: 'slide_from_bottom',
                 }}
             />
+            <Stack.Screen
+                name="completionExplain"
+                options={{
+                    title: 'Completion Explanation',
+                    presentation: 'modal',
+                    animation: 'slide_from_bottom',
+                }}
+            />
         </Stack>
     );
 }

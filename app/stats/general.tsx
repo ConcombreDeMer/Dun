@@ -75,7 +75,7 @@ export default function Stats() {
         <StatsCardCompletion
           image={require('../../assets/images/stats/completion.png')}
           title="Complétion"
-          value="85%" />
+          daysData={previousDays} />
         <StatsCardCharge
           image={require('../../assets/images/stats/charge.png')}
           title="Charge"
