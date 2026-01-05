@@ -1,6 +1,6 @@
 import { useTheme } from '@/lib/ThemeContext';
 import { useRouter } from 'expo-router';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function StreakExplain() {
     const router = useRouter();
@@ -32,12 +32,10 @@ export default function StreakExplain() {
         <ScrollView style={[styles.container, dynamicStyles.container]}>
             {/* Header */}
             <View style={[styles.header, dynamicStyles.header]}>
-                <TouchableOpacity
-                    onPress={() => router.back()}
-                    style={styles.backButton}
-                >
-                    <Text style={[styles.backText, dynamicStyles.text]}>←</Text>
-                </TouchableOpacity>
+                <View
+                    style={styles.handler}
+                ></View>
+                
                 <View style={styles.headerContent}>
                     <Image
                         source={require('../../assets/images/stats/streak/high.png')}
@@ -194,15 +192,13 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
 
-    backButton: {
-        position: 'absolute',
-        top: 20,
-        left: 20,
+    handler: {
         width: 40,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 10,
+        height: 5,
+        borderRadius: 3,
+        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+        position: 'absolute',
+        top: 10,
     },
 
     backText: {
