@@ -9,16 +9,20 @@ export default function StatsStatut({ daysData }: { daysData?: any[] }) {
 
     const caluclateStreak = () => {
         const today = new Date();
-        for (let day of daysData || []) {
-            console.log('Day date:', new Date(day.date))
-        }
-
         let streak = 0;
-        let currentDate = new Date(today);
+
+
+        // commencer par hier
+        let currentDate = new Date();
+        currentDate.setDate(currentDate.getDate() - 1);
+        console.log('Calculating streak starting from', currentDate.toDateString());
 
         for (let day of daysData || []) {
             const dayDate = new Date(day.date);
-            if (dayDate.toDateString() === currentDate.toDateString()) {
+            if(dayDate.toDateString() === today.toDateString()) {
+                continue; // sauter aujourd'hui
+            }
+            else if (dayDate.toDateString() === currentDate.toDateString()) {
 
                 if(day.total > 1 && day.done_count == day.total) {
                 streak++;
@@ -30,7 +34,7 @@ export default function StatsStatut({ daysData }: { daysData?: any[] }) {
         }
 
         if (streak === 0) return 0;
-        return streak - 1; // ne pas compter aujourd'hui
+        return streak; // ne pas compter aujourd'hui
     }
 
 
