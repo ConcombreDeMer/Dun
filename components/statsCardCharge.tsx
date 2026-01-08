@@ -5,35 +5,15 @@ import { Image, StyleSheet, Text, View } from "react-native";
 interface StatsCardProps {
     image: any;
     title: string;
-    daysData: any[];
+    value?: string;
 }
 
-export default function StatsCardCharge({ image, title, daysData }: StatsCardProps) {
+export default function StatsCardCharge({ image, title, value }: StatsCardProps) {
 
-    const [charge, setCharge] = React.useState<number>(0);
     const router = useRouter();
 
-    React.useEffect(() => {
-        calculateCharge();
-    }, [daysData]);
-
-    const calculateCharge = () => {
-        // Faire une moyenne de la charge des 7 derniers jours
-        let totalCharge = 0;
-        let count = 0;
-
-        for (let i = 0; i < Math.min(7, daysData.length); i++) {
-            totalCharge += daysData[i].total || 0;
-            count++;
-        }
-
-        const averageCharge = Math.round((totalCharge / count) * 10) / 10;
-
-        setCharge(averageCharge);
-
-    }
-
     const analyzeChargeColor = () => {
+        const charge = Number(value);
         switch (true) {
             case charge < 2:
                 return '#FF4C4C'; // Rouge
@@ -53,12 +33,12 @@ export default function StatsCardCharge({ image, title, daysData }: StatsCardPro
 
 
     return (
-        <View 
-        style={[styles.container, { borderColor: analyzeChargeColor() }]}
+        <View
+            style={[styles.container, { borderColor: analyzeChargeColor() }]}
             onTouchEnd={handleExplicationPress}>
             <Image source={image} style={styles.image} />
             <Text style={styles.title}>{title}</Text>
-            <Text style={styles.value}>{charge}</Text>
+            <Text style={styles.value}>{value}</Text>
         </View>
     );
 }

@@ -5,38 +5,13 @@ import { Image, StyleSheet, Text, View } from "react-native";
 interface StatsCardProps {
     image: any;
     title: string;
-    daysData: any[];
+    value: string;
 }
 
-export default function StatsCardCompletion({ image, title, daysData }: StatsCardProps) {
-
-    const [completion, setCompletion] = React.useState<string>("0%");
-
-
-    const calculateCompletion = () => {
-        if (!daysData || daysData.length === 0) return "0%";
-
-        // Faire une moyenne de la complétion des 7 derniers jours
-        let totalCompletion = 0;
-        let count = 0;
-
-        for (let i = 0; i < Math.min(7, daysData.length); i++) {
-            const day = daysData[i];
-            if (day.total > 0) {
-                totalCompletion += (day.done_count / day.total) * 100;
-                count++;
-            }
-        }
-
-        console.log('Total Completion:', totalCompletion, 'Count:', count);
-
-        const averageCompletion = Math.round(totalCompletion / count);
-        return `${averageCompletion}%`;
-    }
-
+export default function StatsCardCompletion({ image, title, value }: StatsCardProps) {
 
     const analyzeCompletionColor = () => {
-        const compValue = parseInt(completion);
+        const compValue = parseInt(value.toString());
         switch (true) {
             case compValue < 50:
                 return '#FF4C4C'; // Rouge
@@ -51,20 +26,13 @@ export default function StatsCardCompletion({ image, title, daysData }: StatsCar
         router.push('/stats/completionExplain');
     }
 
-    React.useEffect(() => {
-        const comp = calculateCompletion();
-        setCompletion(comp);
-    }, [daysData]);
-
-
-
     return (
         <View style={[styles.container, { borderColor: analyzeCompletionColor() }]}
             onTouchEnd={handleCompletionPress}
         >
             <Image source={image} style={styles.image} />
             <Text style={styles.title}>{title}</Text>
-            <Text style={styles.value}>{completion}</Text>
+            <Text style={styles.value}>{value}</Text>
         </View>
     );
 }

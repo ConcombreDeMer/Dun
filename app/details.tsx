@@ -1,3 +1,6 @@
+import AnimatedCheckbox from "@/components/checkboxAnimated";
+import DateInput from "@/components/dateInput";
+import PrimaryButton from "@/components/primaryButton";
 import SimpleInput from "@/components/textInput";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -594,7 +597,7 @@ export default function Details() {
           Dernière mise à jour : {formatLastUpdateDate(taskQuery.data ? new Date(taskQuery.data.last_update_date) : last_update_date)}
         </Text>
 
-        {/* <View style={styles.bottom}>
+        <View style={styles.bottom}>
           <PrimaryButton
             size="XS"
             type="danger"
@@ -614,7 +617,7 @@ export default function Details() {
             onChange={handleToggleTask}
             size={64}
           />
-        </View> */}
+        </View>
       </View>
 
     </View>
