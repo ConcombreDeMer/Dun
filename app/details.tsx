@@ -380,7 +380,7 @@ export default function Details() {
   const updateTaskMutation = useMutation({
     mutationFn: async () => {
       if (!name.trim()) {
-        throw new Error("Le nom de la tâche est requis");
+        return;
       }
 
       const { error } = await supabase
@@ -566,21 +566,30 @@ export default function Details() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View
         style={styles.card}
-      >        
+      >
         <View style={styles.scrollContent}>
           <SimpleInput
             value={taskQuery.data ? taskQuery.data.name : name}
             onChangeText={setName}
             bold
             transparent
-            style={{height: '5%'}}
+            style={{ height: '5%' }}
             scale="large"
             fontSize={25}
           />
 
+
+          {!name.trim() && (
+            <View
+              style={styles.nameAlert}>
+              <Text style={{ color: "#A10606" }}>Le nom de la tâche est requis</Text>
+            </View>
+          )}
+
           <SimpleInput
             value={description}
             onChangeText={setDescription}
+            placeholder="Insérer une description"
             multiline
             style={{ overflow: "hidden", textAlignVertical: "top", height: '95%' }}
             transparent
@@ -613,6 +622,7 @@ export default function Details() {
             size={64}
           />
         </View>
+
       </View>
 
     </View>
@@ -626,13 +636,25 @@ export default function Details() {
 const styles = StyleSheet.create({
 
 
+  nameAlert: {
+    backgroundColor: "#F7C1C1",
+    fontSize: 14,
+    position: "absolute",
+    top: 0,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    alignSelf: "center",
+  },
+
+
   bottom: {
-    flexDirection: "row", 
+    flexDirection: "row",
     display: "flex",
-    justifyContent: "space-between", 
+    justifyContent: "space-between",
     alignItems: "center",
     alignSelf: "flex-end",
-    width: "100%", 
+    width: "100%",
     paddingHorizontal: 10,
     paddingBottom: 10,
   },
@@ -657,6 +679,7 @@ const styles = StyleSheet.create({
     // borderColor: "#00000020",
     // borderWidth: 1,
     marginTop: 80,
+    paddingBottom: 70,
   },
 
 
