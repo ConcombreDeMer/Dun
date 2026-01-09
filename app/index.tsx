@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -16,7 +16,6 @@ import { useStore } from "../store/store";
 const LottieView = require("lottie-react-native").default;
 
 export default function Index() {
-  const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const storedDate = useStore((state) => state.selectedDate);
   const [selectedDate, setSelectedDate] = useState<Date>(storedDate || new Date());
@@ -32,7 +31,6 @@ export default function Index() {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
-          // Essayer de récupérer le nom depuis les métadonnées utilisateur
           const name = user.user_metadata?.name || user.email?.split('@')[0] || 'Utilisateur';
           setUserName(name);
         }
@@ -44,35 +42,32 @@ export default function Index() {
     fetchUserName();
   }, []);
 
+  const dateKey = useMemo(
+    () => selectedDate.toISOString().split('T')[0],
+    [selectedDate]
+  );
+
   const getTasks = async () => {
     const { data, error } = await supabase
       .from("Tasks")
       .select("id, name, done, order")
-      .eq("date", selectedDate.toISOString().split('T')[0])
+      .eq("date", dateKey)
       .order("order", { ascending: true });
     if (error) {
       console.error('Erreur lors de la récupération des tâches:', error);
       return [];
     }
-    for (const task of data) {
-      console.log("Task fetched :", task);
-    }
     return data;
   }
 
   const taskQuery = useQuery({
-    queryKey: ['tasks', selectedDate.toISOString().split('T')[0]],
+    queryKey: ['tasks', dateKey],
     queryFn: getTasks,
   });
 
   useEffect(() => {
-    if (taskQuery.isLoading) {
-      setLoading(true);
-    } else {
-      setTasks(taskQuery.data || []);
-      setLoading(false);
-    }
-  }, [taskQuery.data, taskQuery.isLoading]);
+    setLoading(taskQuery.isLoading);
+  }, [taskQuery.isLoading]);
 
 
 
@@ -138,14 +133,19 @@ export default function Index() {
 
 
 
-  const handleToggleTask = async (taskId: number, currentDone: boolean) => {
+  const handleToggleTask = useCallback(async (taskId: number, currentDone: boolean) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     try {
-      // Optimistic update : mettre à jour l'UI immédiatement
-      setTasks(tasks.map(task =>
-        task.id === taskId ? { ...task, done: !currentDone } : task
-      ));
+      // Optimistic update : mettre à jour le cache immédiatement
+      const previousTasks = queryClient.getQueryData<any[]>(['tasks', dateKey]);
+      
+      queryClient.setQueryData(
+        ['tasks', dateKey],
+        previousTasks?.map(task =>
+          task.id === taskId ? { ...task, done: !currentDone } : task
+        ) || []
+      );
 
       // Ensuite, mettre à jour Supabase
       const { error } = await supabase
@@ -156,9 +156,10 @@ export default function Index() {
       if (error) {
         console.error("Erreur lors de la mise à jour de la tâche:", error);
         // Rollback si erreur
-        setTasks(tasks.map(task =>
-          task.id === taskId ? { ...task, done: currentDone } : task
-        ));
+        queryClient.setQueryData(
+          ['tasks', dateKey],
+          previousTasks || []
+        );
         return;
       }
 
@@ -167,42 +168,53 @@ export default function Index() {
     } catch (error) {
       console.error("Erreur:", error);
     }
-  };
+  }, [dateKey, queryClient, doneDayMutation]);
 
 
-  const handleDragEnd = async ({ data }: { data: any[] }) => {
-    setTasks(data);
+  const handleDragEnd = useCallback(async ({ data }: { data: any[] }) => {
+    // Optimistic update immédiat
+    queryClient.setQueryData(
+      ['tasks', dateKey],
+      data
+    );
 
-    // Mettre à jour l'ordre dans Supabase
+    // Batch les mutations : une seule requête avec tous les ordres
     try {
-      for (let i = 0; i < data.length; i++) {
-        const { error } = await supabase
-          .from("Tasks")
-          .update({ order: i + 1 })
-          .eq("id", data[i].id);
+      const updates = data.map((task, index) => ({
+        id: task.id,
+        order: index + 1,
+      }));
 
-        if (error) {
-          console.error("Erreur lors de la mise à jour de l'ordre:", error);
-        }
+      // Envoyer toutes les updates en une seule requête
+      const { error } = await supabase
+        .from("Tasks")
+        .upsert(updates, { onConflict: 'id' });
+
+      if (error) {
+        console.error("Erreur lors de la mise à jour de l'ordre:", error);
+        // Rollback si erreur
+        queryClient.invalidateQueries({
+          queryKey: ['tasks', dateKey]
+        });
       }
     } catch (error) {
       console.error("Erreur:", error);
     }
-  };
+  }, [dateKey, queryClient]);
 
-  const handleTaskPress = (taskId: number) => {
+  const handleTaskPress = useCallback((taskId: number) => {
     router.push(`/details?id=${taskId}`);
-  };
+  }, [router]);
 
-  const handlePlaceholderIndexChange = async (index: number) => {
+  const handlePlaceholderIndexChange = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }
+  }, []);
 
-  const changeDate = async (newDate: Date) => {
+  const changeDate = useCallback(async (newDate: Date) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedDate(newDate);
     setStoreDate(newDate);
-  };
+  }, [setStoreDate, setSelectedDate]);
 
   return (
 

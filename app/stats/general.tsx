@@ -8,97 +8,36 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import { supabase } from "../../lib/supabase";
 
+interface StatsData {
+  completion: string;
+  charge: number;
+  streak: number;
+  statut: string;
+}
+
 export default function Stats() {
-
   const [previousDays, setPreviousDays] = React.useState<any[]>([]);
-  const [completion, setCompletion] = React.useState<string>("0%");
-  const [charge, setCharge] = React.useState<number>(0);
-  const [streak, setStreak] = React.useState<number>(0);
-  const [statut, setStatut] = React.useState<string>("Fantôme");
 
-
-  // CALCUL DES STATS
-
-  const getStats = () => {
-    setCompletion(calculateCompletion());
-    setCharge(calculateCharge());
-    setStreak(caluclateStreak());
-    setStatut(calculateStatut());
-  }
-
-  // CALCUL DE LA COMPLETION
-
-  const calculateCompletion = () => {
-    if (!previousDays || previousDays.length === 0) return "0%";
-    // Faire une moyenne de la complétion des 7 derniers jours
-    let totalCompletion = 0;
-    let count = 0;
-    for (let i = 0; i < Math.min(7, previousDays.length); i++) {
-      const day = previousDays[i];
-      if (day.total > 0) {
-        totalCompletion += (day.done_count / day.total) * 100;
-        count++;
-      }
+  // FONCTION UNIQUE DE CALCUL DE TOUS LES STATS
+  // Cela évite de parcourir previousDays 4 fois et élimine les calculs redondants
+  const calculateAllStats = React.useCallback((days: any[]): StatsData => {
+    if (!days || days.length === 0) {
+      return {
+        completion: "0%",
+        charge: 0,
+        streak: 0,
+        statut: "Fantôme",
+      };
     }
-    const averageCompletion = Math.round(totalCompletion / count)
-    return `${averageCompletion}%`;
-  }
 
-
-  // CALCUL DE LA CHARGE
-
-  const calculateCharge = () => {
-    // Faire une moyenne de la charge des 7 derniers jours
-    let totalCharge = 0;
-    let count = 0;
-    for (let i = 0; i < Math.min(7, previousDays.length); i++) {
-      totalCharge += previousDays[i].total || 0;
-      count++;
-    }
-    const averageCharge = Math.round((totalCharge / count) * 10) / 10;
-    return averageCharge;
-  }
-
-
-  // CALCUL DU STREAK
-
-  const caluclateStreak = () => {
-    const today = new Date();
-    let streak = 0;
-    let currentDate = new Date();
-    currentDate.setDate(currentDate.getDate() - 1);  // commencer par hier
-    for (let day of previousDays || []) {
-      const dayDate = new Date(day.date);
-      if (dayDate.toDateString() === today.toDateString()) {
-        continue; // sauter aujourd'hui
-      }
-      else if (dayDate.toDateString() === currentDate.toDateString()) {
-        if (day.total > 0 && day.done_count == day.total) {
-          streak++;
-          currentDate.setDate(currentDate.getDate() - 1); // passer au jour précédent
-        }
-      } else {
-        break; // la chaîne est rompue
-      }
-    }
-    if (streak === 0) return 0;
-    return streak; // ne pas compter aujourd'hui
-  }
-
-
-  // CALCUL DU STATUT
-
-  const calculateStatut = () => {
-    if (!previousDays || previousDays.length === 0) {
-      return "Fantôme";
-    }
-    // Calculer la charge moyenne et complétion moyenne des 7 derniers jours
+    // Passer 1 : Calculer les agrégats nécessaires pour tous les stats
     let totalCharge = 0;
     let totalCompletion = 0;
     let daysWithTasks = 0;
     let daysCount = 0;
-    for (let i = 0; i < Math.min(7, previousDays.length); i++) {
-      const day = previousDays[i];
+
+    for (let i = 0; i < Math.min(7, days.length); i++) {
+      const day = days[i];
       totalCharge += day.total || 0;
 
       if (day.total > 0) {
@@ -107,65 +46,110 @@ export default function Stats() {
       }
       daysCount++;
     }
-    const averageCharge = Math.round((totalCharge / daysCount) * 10) / 10;
-    const averageCompletion = daysWithTasks > 0
-      ? Math.round(totalCompletion / daysWithTasks)
-      : 0;
-    // Vérifier si utilisateur est fantôme (aucune activité)
+
+    // Dériver tous les stat à partir de ces agrégats
+    const averageCharge =
+      daysCount > 0 ? Math.round((totalCharge / daysCount) * 10) / 10 : 0;
+    const averageCompletion =
+      daysWithTasks > 0 ? Math.round(totalCompletion / daysWithTasks) : 0;
+    const completion = `${averageCompletion}%`;
+
+    // Calcul du streak
+    const today = new Date();
+    const todayString = today.toDateString();
+    let streak = 0;
+    let currentDate = new Date();
+    currentDate.setDate(currentDate.getDate() - 1);
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 7);
+
+    // Limiter la boucle aux 7 derniers jours et éviter recréation de Date
+    for (let i = 0; i < Math.min(7, days.length); i++) {
+      const day = days[i];
+      const dayDate = new Date(day.date);
+      const dayDateString = dayDate.toDateString();
+      
+      if (dayDateString === todayString) {
+        continue;
+      } else if (dayDateString === currentDate.toDateString()) {
+        if (day.total > 0 && day.done_count === day.total) {
+          streak++;
+          currentDate.setDate(currentDate.getDate() - 1);
+        }
+      } else {
+        break;
+      }
+    }
+
+    // Calcul du statut en utilisant les agrégats déjà calculés
+    let statut = "Fantôme";
     if (averageCharge === 0 || daysWithTasks === 0) {
-      return "Fantôme";
+      statut = "Fantôme";
+    } else if (averageCharge >= 10 && averageCompletion === 100) {
+      statut = "Robot";
+    } else if (averageCharge >= 7 && averageCompletion >= 90) {
+      statut = "Acharné";
+    } else if (averageCharge >= 7 && averageCompletion < 50) {
+      statut = "Ambitieux";
+    } else if (averageCharge < 3 && averageCompletion < 30) {
+      statut = "Procrastinateur";
+    } else if (
+      averageCharge >= 5 &&
+      averageCharge <= 7 &&
+      averageCompletion >= 80 &&
+      daysWithTasks >= 7
+    ) {
+      statut = "Productif";
+    } else if (
+      averageCharge >= 5 &&
+      averageCharge <= 7 &&
+      averageCompletion >= 80 &&
+      daysWithTasks < 7
+    ) {
+      statut = "Sur le bon chemin";
+    } else if (
+      averageCharge >= 5 &&
+      averageCharge < 7 &&
+      averageCompletion >= 70 &&
+      averageCompletion < 80
+    ) {
+      statut = "Équilibré";
+    } else if (
+      averageCharge >= 5 &&
+      averageCharge < 7 &&
+      averageCompletion >= 40 &&
+      averageCompletion < 70
+    ) {
+      statut = "En progression";
+    } else if (
+      averageCharge >= 3 &&
+      averageCharge < 5 &&
+      averageCompletion >= 70
+    ) {
+      statut = "Potentiel";
+    } else if (
+      averageCharge >= 3 &&
+      averageCharge < 5 &&
+      averageCompletion >= 50 &&
+      averageCompletion < 70
+    ) {
+      statut = "En construction";
+    } else if (
+      averageCharge < 3 &&
+      averageCompletion >= 30 &&
+      averageCompletion < 60
+    ) {
+      statut = "Hésitant";
+    } else if (
+      averageCharge < 3 &&
+      averageCompletion >= 60 &&
+      averageCompletion < 80
+    ) {
+      statut = "Flâneur";
     }
-    // Vérifier si Robot (charge très élevée + complétion parfaite)
-    if (averageCharge >= 10 && averageCompletion === 100) {
-      return "Robot";
-    }
-    // Vérifier si Acharné (charge élevée + très bonne complétion)
-    if (averageCharge >= 7 && averageCompletion >= 90) {
-      return "Acharné";
-    }
-    // Vérifier si Ambitieux (charge élevée + mauvaise complétion)
-    if (averageCharge >= 7 && averageCompletion < 50) {
-      return "Ambitieux";
-    }
-    // Vérifier si Procrastinateur (charge très faible + complétion très faible)
-    if (averageCharge < 3 && averageCompletion < 30) {
-      return "Procrastinateur";
-    }
-    // Vérifier si Productif (charge bonne + excellente complétion + longue période)
-    if (averageCharge >= 5 && averageCharge <= 7 && averageCompletion >= 80 && daysWithTasks >= 7) {
-      return "Productif";
-    }
-    // Vérifier si Sur le bon chemin (charge bonne + excellente complétion + courte période)
-    if (averageCharge >= 5 && averageCharge <= 7 && averageCompletion >= 80 && daysWithTasks < 7) {
-      return "Sur le bon chemin";
-    }
-    // Vérifier si Équilibré (charge acceptable + bonne complétion)
-    if (averageCharge >= 5 && averageCharge < 7 && averageCompletion >= 70 && averageCompletion < 80) {
-      return "Équilibré";
-    }
-    // Vérifier si En progression (charge acceptable + complétion moyenne)
-    if (averageCharge >= 5 && averageCharge < 7 && averageCompletion >= 40 && averageCompletion < 70) {
-      return "En progression";
-    }
-    // Vérifier si Potentiel (charge faible/moyenne + bonne complétion)
-    if (averageCharge >= 3 && averageCharge < 5 && averageCompletion >= 70) {
-      return "Potentiel";
-    }
-    // Vérifier si En construction (charge faible/moyenne + complétion moyenne)
-    if (averageCharge >= 3 && averageCharge < 5 && averageCompletion >= 50 && averageCompletion < 70) {
-      return "En construction";
-    }
-    // Vérifier si Hésitant (charge très faible + complétion faible)
-    if (averageCharge < 3 && averageCompletion >= 30 && averageCompletion < 60) {
-      return "Hésitant";
-    }
-    // Vérifier si Flâneur (charge très faible + complétion acceptable)
-    if (averageCharge < 3 && averageCompletion >= 60 && averageCompletion < 80) {
-      return "Flâneur";
-    }
-    // Par défaut pour les cas résiduels
-    return "Procrastinateur";
-  }
+
+    return { completion, charge: averageCharge, streak, statut };
+  }, []);
 
 
   // FETCHING DES JOURS
@@ -184,25 +168,33 @@ export default function Stats() {
       return [];
     }
     return data;
-  }
+  };
 
   const daysQuery = useQuery({
     queryKey: ['days'],
     queryFn: getDays,
   });
 
-  const getLastWeekDays = (daysData: any[]) => {
+  // Cela évite de recréer la fonction à chaque rendu
+  const getLastWeekDays = React.useCallback((daysData: any[]) => {
     const lastWeekDays = [];
     const today = new Date();
     today.setHours(23, 59, 59, 999);
+    const todayString = today.toDateString();
+
+    // Créer une Map pour O(1) lookup au lieu de O(n)
+    const daysByDateString = new Map();
+    for (const day of daysData) {
+      const dayDate = new Date(day.date);
+      daysByDateString.set(dayDate.toDateString(), day);
+    }
 
     for (let i = 0; i < 7; i++) {
       const targetDate = new Date(today);
       targetDate.setDate(today.getDate() - i);
-      const dayData = daysData.find(day => {
-        const dayDate = new Date(day.date);
-        return dayDate.toDateString() === targetDate.toDateString();
-      });
+      const targetDateString = targetDate.toDateString();
+      
+      const dayData = daysByDateString.get(targetDateString);
       if (dayData) {
         lastWeekDays.push(dayData);
       } else {
@@ -214,21 +206,19 @@ export default function Stats() {
       }
     }
     return lastWeekDays;
-  }
+  }, []);
 
+  // Cela évite de recalculer tous les stats à chaque rendu
+  const stats = React.useMemo(() => {
+    return calculateAllStats(previousDays);
+  }, [previousDays, calculateAllStats]);
 
+  // On récupère les données brutes et on les transforme directement
   React.useEffect(() => {
     if (daysQuery.data) {
       setPreviousDays(getLastWeekDays(daysQuery.data));
     }
-  }, [daysQuery.data]);
-
-  React.useEffect(() => {
-    if (previousDays.length > 0) {
-      ``
-      getStats();
-    }
-  }, [previousDays]);
+  }, [daysQuery.data, getLastWeekDays]);
 
 
   return (
@@ -237,26 +227,26 @@ export default function Stats() {
         style={styles.topContainer}
       >
         <StatsStatut
-          value={statut}
+          value={stats.statut}
         />
         <StatsStreak
-          value={streak.toString()} />
+          value={stats.streak.toString()} />
 
-      </View><StatsBarGraph daysData={daysQuery.data || []} /><View
+      </View><StatsBarGraph daysData={React.useMemo(() => daysQuery.data || [], [daysQuery.data])} /><View
         style={styles.cardsContainer}
       >
         <StatsCardCompletion
           image={require('../../assets/images/stats/completion.png')}
           title="Complétion"
-          value={completion.toString()} />
+          value={stats.completion} />
         <StatsCardCharge
           image={require('../../assets/images/stats/charge.png')}
           title="Charge"
-          value={charge.toString()} />
+          value={stats.charge.toString()} />
 
       </View>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
