@@ -1,15 +1,15 @@
-import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { useTheme } from '../../lib/ThemeContext';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { supabase } from '../../lib/supabase';
 import * as Linking from 'expo-linking';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
-    FadeInUp,
-    FadeInDown,
     FadeIn,
+    FadeInDown,
+    FadeInUp,
     FadeOutDown,
 } from 'react-native-reanimated';
-import React from 'react';
+import { supabase } from '../../lib/supabase';
+import { useTheme } from '../../lib/ThemeContext';
 
 export default function ReVerifEmail() {
     const { colors } = useTheme();
@@ -37,7 +37,6 @@ export default function ReVerifEmail() {
                 setError('Une erreur est survenue lors de l\'envoi de l\'email. Veuillez réessayer.');
                 return;
             } else {
-                console.log('Email de vérification renvoyé avec succès');
                 router.push({
                     pathname: '/onboarding/emailVerif',
                     params: { email: email }

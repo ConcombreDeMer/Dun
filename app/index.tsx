@@ -45,7 +45,6 @@ export default function Index() {
   }, []);
 
   const getTasks = async () => {
-    console.log('Récupération des tâches pour la date:', selectedDate.toISOString().split('T')[0]);
     const { data, error } = await supabase
       .from("Tasks")
       .select("*")
@@ -104,8 +103,6 @@ export default function Index() {
             }
 
             if (existingDay) {
-              console.log("Existing day :", existingDay);
-              console.log("isDone :", currentDone);
               const newDoneCount = currentDone
                 ? Math.max((existingDay.done_count || 1) - 1, 0)
                 : (existingDay.done_count || 0) + 1;
@@ -188,7 +185,6 @@ export default function Index() {
     } catch (error) {
       console.error("Erreur:", error);
     }
-    console.log("Nouveau ordre des tâches enregistré dans Supabase");
   };
 
   const handleTaskPress = (taskId: number) => {

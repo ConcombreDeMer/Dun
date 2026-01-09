@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/ThemeContext';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, Text, View } from 'react-native';
 
 export default function AuthCallbackScreen() {
     const router = useRouter();
@@ -23,7 +23,6 @@ export default function AuthCallbackScreen() {
 
                 if (session) {
                     // L'utilisateur est authentifié
-                    console.log('Utilisateur authentifié:', session.user.email);
                     router.replace('/');
                 } else {
                     // Pas de session, redirection vers le login

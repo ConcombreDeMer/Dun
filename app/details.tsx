@@ -161,8 +161,6 @@ export default function Details() {
             }
 
             if (existingDay) {
-              console.log("Existing day :", existingDay);
-              console.log("isDone :", isDone);
               const newDoneCount = isDone
                 ? Math.max((existingDay.done_count || 1) - 1, 0)
                 : (existingDay.done_count || 0) + 1;
@@ -283,8 +281,6 @@ export default function Details() {
                 console.error("Erreur lors de l'insertion du jour:", insertError);
                 throw new Error(insertError.message);
               }
-
-              console.log("Jour créé avec succès");
             }
 
             // Si le jour existe déjà, incréementer "total" et mettre à jour "updated_at"
@@ -545,7 +541,6 @@ export default function Details() {
     }
 
     if (diffMinutes < 10) {
-      console.log("diffSeconds :", diffSeconds);
       if (diffSeconds < 60) {
         return `il y a ${diffSeconds} secondes`;
       } else {

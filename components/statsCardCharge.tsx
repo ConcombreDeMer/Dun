@@ -16,11 +16,15 @@ export default function StatsCardCharge({ image, title, value }: StatsCardProps)
         const charge = Number(value);
         switch (true) {
             case charge < 2:
-                return '#FF4C4C'; // Rouge
-            case charge >= 2 && charge <= 4:
-                return '#ffcd6fff'; // Orange
-            case charge > 4 && charge <= 7:
-                return '#74ca77ff'; // Jaune
+                return '#FF1744'; // Rouge foncé (trop faible)
+            case charge >= 2 && charge < 3:
+                return '#FF4C4C'; // Rouge (faible)
+            case charge >= 3 && charge < 5:
+                return '#ffcd6fff'; // Orange (acceptable)
+            case charge >= 5 && charge <= 7:
+                return '#74ca77ff'; // Vert (idéal)
+            case charge > 7:
+                return '#FF6B35'; // Orange-rouge (avertissement surcharge)
         }
     }
 

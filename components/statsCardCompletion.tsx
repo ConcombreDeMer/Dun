@@ -13,12 +13,16 @@ export default function StatsCardCompletion({ image, title, value }: StatsCardPr
     const analyzeCompletionColor = () => {
         const compValue = parseInt(value.toString());
         switch (true) {
-            case compValue < 50:
-                return '#FF4C4C'; // Rouge
-            case compValue >= 50 && compValue <= 80:
-                return '#ffcd6fff'; // Orange
-            case compValue > 80:
-                return '#74ca77ff'; // Vert
+            case compValue < 30:
+                return '#FF1744'; // Rouge foncé (très mauvais)
+            case compValue >= 30 && compValue < 50:
+                return '#FF4C4C'; // Rouge (mauvais)
+            case compValue >= 50 && compValue < 70:
+                return '#ffcd6fff'; // Orange (à améliorer)
+            case compValue >= 70 && compValue < 85:
+                return '#FFD700'; // Jaune/Or (bon)
+            case compValue >= 85:
+                return '#74ca77ff'; // Vert (excellent)
         }
     }
 

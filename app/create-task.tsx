@@ -33,13 +33,9 @@ export default function CreateTask() {
         mutationFn: async () => {
             // Récupérer l'utilisateur connecté
             const { data: { user } } = await supabase.auth.getUser();
-
             if (!user) {
                 throw new Error("Utilisateur non connecté");
             }
-
-            console.log("Selected Date in mutation:", selectedDate.toDateString());
-
             const { data: existingDay, error: fetchError } = await supabase
                 .from("Days")
                 .select("*")
@@ -51,12 +47,8 @@ export default function CreateTask() {
                 console.error("Erreur lors de la récupération du jour:", fetchError);
                 throw new Error(fetchError.message);
             }
-
-            console.log("On passe ? ", existingDay);
-
             // Si le jour n'existe pas, le créer
             if (!existingDay) {
-                console.log("Le jour existe pas donc on le créé", selectedDate.toDateString());
                 const { error: insertError } = await supabase.from("Days").insert([
                     {
                         user_id: user.id,
@@ -71,13 +63,10 @@ export default function CreateTask() {
                     console.error("Erreur lors de l'insertion du jour:", insertError);
                     throw new Error(insertError.message);
                 }
-
-                console.log("Jour créé avec succès");
             }
 
             // Si le jour existe déjà, incréementer "count" et mettre à jour "updated_at"
             else {
-                console.log("Le jour existe déjà, on l'update", existingDay);
                 const { error: updateError } = await supabase
                     .from("Days")
                     .update({
