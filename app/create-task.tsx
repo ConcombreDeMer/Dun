@@ -193,6 +193,7 @@ export default function CreateTask() {
                         onChange={handleDateChange}
                         disabled={createTaskMutation.isPending}
                         bold
+                        showTodayButton
                     />
 
                 </View>

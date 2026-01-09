@@ -233,6 +233,10 @@ export default function CalendarComponent({
     const calendarHeightRef = useRef(0);
     const isInitialScrollRef = useRef(true); // Track si c'est le premier scroll
 
+    // Animation pour la hauteur du bouton "Retour à aujourd'hui"
+    const todayButtonHeightValue = useSharedValue(0);
+    const todayButtonOpacityValue = useSharedValue(0);
+
 
 
     const getDays = async () => {
@@ -280,6 +284,13 @@ export default function CalendarComponent({
 
     // Animation height - reanimated shared values
     const heightValue = useSharedValue(0);
+
+    // Mettre à jour la hauteur du bouton avec animation
+    useEffect(() => {
+        const shouldShow = !isSameDay(selectedDate, new Date());
+        todayButtonHeightValue.value = withSpring(shouldShow ? 30 : 0);
+        todayButtonOpacityValue.value = withSpring(shouldShow ? 1 : 0);
+    }, [selectedDate, todayButtonHeightValue, todayButtonOpacityValue]);
 
     // Mettre à jour la ref quand isExpanded change
     useEffect(() => {
@@ -505,6 +516,14 @@ export default function CalendarComponent({
         };
     });
 
+    // Animation de hauteur du bouton "Retour à aujourd'hui"
+    const animatedTodayButtonStyle = useAnimatedStyle(() => {
+        return {
+            height: todayButtonHeightValue.value,
+            opacity: todayButtonOpacityValue.value,
+        };
+    });
+
     // Obtenir les semaines du mois
     const getWeeksInMonth = useCallback(() => {
         const daysInMonth = getDaysInMonth(currentMonth);
@@ -588,7 +607,6 @@ export default function CalendarComponent({
                     <>
                         {/* FlatList des jours - optimisée */}
 
-                        
 
                         <FlatList
                             ref={sliderRef}
@@ -687,6 +705,28 @@ export default function CalendarComponent({
                     <CollapsedDateDisplay selectedDate={selectedDate} colors={colors} />
                 )}
             </Animated.View>
+
+            <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={async () => {
+                    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    const today = new Date();
+                    handleDateSelect(today);
+                }}
+            >
+                <Animated.View
+                    style={[
+                        styles.todayButton,
+                        animatedTodayButtonStyle,
+                        {
+                            overflow: 'hidden',
+                        }
+                    ]}
+                >
+                    <Text style={[styles.todayButtonText, { color: colors.button }]}>Retour à aujourd'hui</Text>
+                </Animated.View>
+            </TouchableOpacity>
+
         </View>
     );
 }
@@ -782,8 +822,13 @@ const styles = StyleSheet.create({
         borderRadius: 6,
     },
     todayButton: {
+        position: "relative",
         height: 30,
-        width: 30,
+        alignSelf: "flex-end",
+        paddingHorizontal: 12,
+        borderRadius: 15,
+        backgroundColor: "#272727ff",
+        marginTop: 8,
         alignItems: "center",
         justifyContent: "center",
     },

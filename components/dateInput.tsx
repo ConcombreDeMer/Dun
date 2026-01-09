@@ -1,5 +1,5 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Modal,
     Platform,
@@ -8,6 +8,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useTheme } from "../lib/ThemeContext";
 
 interface DateInputProps {
@@ -16,11 +17,25 @@ interface DateInputProps {
     disabled?: boolean;
     label?: string;
     bold?: boolean;
+    showTodayButton?: boolean;
 }
 
-export default function DateInput({ value, onChange, disabled = false, label, bold = false}: DateInputProps) {
+// Fonction utilitaire pour comparer les dates efficacement
+const isSameDay = (date1: Date, date2: Date): boolean => {
+    return (
+        date1.getDate() === date2.getDate() &&
+        date1.getMonth() === date2.getMonth() &&
+        date1.getFullYear() === date2.getFullYear()
+    );
+};
+
+export default function DateInput({ value, onChange, disabled = false, label, bold = false, showTodayButton = false }: DateInputProps) {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const { colors } = useTheme();
+
+    // Animation pour la hauteur du bouton "Retour à aujourd'hui"
+    const todayButtonHeightValue = useSharedValue(0);
+    const todayButtonOpacityValue = useSharedValue(0);
 
     const handleDateChange = (event: any, date?: Date) => {
         if (Platform.OS === "android") {
@@ -34,6 +49,21 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
     const handleCloseDatePicker = () => {
         setShowDatePicker(false);
     };
+
+    // Mettre à jour la hauteur du bouton avec animation
+    useEffect(() => {
+        const shouldShow = !isSameDay(value, new Date());
+        todayButtonHeightValue.value = withSpring(shouldShow ? 30 : 0);
+        todayButtonOpacityValue.value = withSpring(shouldShow ? 1 : 0);
+    }, [value, todayButtonHeightValue, todayButtonOpacityValue]);
+
+    // Animation de hauteur du bouton "Retour à aujourd'hui"
+    const animatedTodayButtonStyle = useAnimatedStyle(() => {
+        return {
+            height: todayButtonHeightValue.value,
+            opacity: todayButtonOpacityValue.value,
+        };
+    });
 
     return (
         <View style={styles.dateContainer}>
@@ -56,6 +86,27 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
                     })}
                 </Text>
             </TouchableOpacity>
+
+
+            {showTodayButton &&
+                <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => onChange(new Date())}
+                >
+                    <Animated.View
+                        style={[
+                            styles.todayButton,
+                            animatedTodayButtonStyle,
+                            {
+                                overflow: 'hidden',
+                            }
+                        ]}
+                    >
+                        <Text style={[styles.todayButtonText, { color: colors.button }]}>Retour à aujourd'hui</Text>
+                    </Animated.View>
+                </TouchableOpacity>
+            }
+
 
             {showDatePicker && Platform.OS === "ios" && (
                 <Modal
@@ -126,6 +177,22 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "600",
         textTransform: "capitalize",
+    },
+    todayButton: {
+        position: "relative",
+        height: 30,
+        alignSelf: "flex-end",
+        paddingHorizontal: 12,
+        borderRadius: 15,
+        backgroundColor: "#272727ff",
+        marginTop: 8,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    todayButtonText: {
+        fontSize: 11,
+        fontWeight: "600",
+        fontFamily: "Satoshi-Bold",
     },
     datePickerOverlay: {
         flex: 1,
