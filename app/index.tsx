@@ -47,12 +47,15 @@ export default function Index() {
   const getTasks = async () => {
     const { data, error } = await supabase
       .from("Tasks")
-      .select("*")
+      .select("id, name, done, order")
       .eq("date", selectedDate.toISOString().split('T')[0])
       .order("order", { ascending: true });
     if (error) {
       console.error('Erreur lors de la récupération des tâches:', error);
       return [];
+    }
+    for (const task of data) {
+      console.log("Task fetched :", task);
     }
     return data;
   }
@@ -201,18 +204,6 @@ export default function Index() {
     setStoreDate(newDate);
   };
 
-  // Filtrer les tâches par date sélectionnée
-  const filteredTasks = tasks.filter((task) => {
-    if (!task.date) return false;
-    const taskDate = new Date(task.date);
-    return (
-      taskDate.getDate() === selectedDate.getDate() &&
-      taskDate.getMonth() === selectedDate.getMonth() &&
-      taskDate.getFullYear() === selectedDate.getFullYear()
-    );
-  });
-
-
   return (
 
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -235,7 +226,7 @@ export default function Index() {
             </View>
           ) : (
             <DraggableFlatList
-              data={taskQuery.data ? filteredTasks : []}
+              data={taskQuery.data || []}
               keyExtractor={(item) => item.id.toString()}
               scrollEnabled={true}
               nestedScrollEnabled={true}

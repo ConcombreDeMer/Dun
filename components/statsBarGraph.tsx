@@ -143,7 +143,7 @@ export default function StatsBarGraph({ daysData }: StatsBarGraphProps) {
 
     queryClient.invalidateQueries({ queryKey: ['days'] });
 
-    router.push('/');
+    router.replace('/');
   };
 
   const renderWeekChart = ({ item }: { item: Week }) => {

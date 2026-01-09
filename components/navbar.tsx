@@ -25,16 +25,16 @@ export default function Navbar() {
 
         switch (tab) {
             case "home":
-                router.push("/");
+                router.replace("/");
                 break;
             case "stats":
-                router.push("/stats/general");
+                router.replace("/stats/general");
                 break;
             case "add":
-                router.push("/create-task");
+                router.replace("/create-task");
                 break;
             case "settings":
-                router.push("/settings");
+                router.replace("/settings");
                 break;
         }
     };
