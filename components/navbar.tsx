@@ -65,6 +65,7 @@ export default function Navbar() {
                                     style={styles.tabButton}
                                     onPress={() => handleNavigation(tab.name)}
                                     activeOpacity={0.7}
+                                    disabled={isActive}
                                 >
                                     <Ionicons
                                         name={isActive ? tab.icon : (`${tab.icon}-outline` as any)}
