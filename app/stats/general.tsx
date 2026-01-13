@@ -106,13 +106,13 @@ export default function Stats() {
       averageCompletion >= 80 &&
       daysWithTasks < 7
     ) {
-      statut = "Sur le bon chemin";
-    } else if (
-      averageCharge >= 5 &&
-      averageCharge < 7 &&
-      averageCompletion >= 70 &&
-      averageCompletion < 80
-    ) {
+    //   statut = "Sur le bon chemin";
+    // } else if (
+    //   averageCharge >= 5 &&
+    //   averageCharge < 7 &&
+    //   averageCompletion >= 70 &&
+    //   averageCompletion < 80
+    // ) {
       statut = "Équilibré";
     } else if (
       averageCharge >= 5 &&

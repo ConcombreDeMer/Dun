@@ -7,7 +7,24 @@ interface StatsStatutProps {
 
 export default function StatsStatut({ value }: StatsStatutProps) {
 
-
+    const getImageSource = () => {
+        const imageMap: { [key: string]: any } = {
+            'Fantôme': require('../assets/images/stats/status/fantome.png'),
+            'Robot': require('../assets/images/stats/status/robot.png'),
+            'Acharné': require('../assets/images/stats/status/acharne.png'),
+            'Ambitieux': require('../assets/images/stats/status/ambiteux.png'),
+            'Procrastinateur': require('../assets/images/stats/status/procrastinateur.png'),
+            'Productif': require('../assets/images/stats/status/productif.png'),
+            'En devenir': require('../assets/images/stats/status/devenir.png'),
+            'Équilibré': require('../assets/images/stats/status/equilibre.png'),
+            'En progression': require('../assets/images/stats/status/progress.png'),
+            'Potentiel': require('../assets/images/stats/status/potentiel.png'),
+            'En construction': require('../assets/images/stats/status/construction.png'),
+            'Hésitant': require('../assets/images/stats/status/hesitant.png'),
+            'Flâneur': require('../assets/images/stats/status/flaneur.png'),
+        };
+        return imageMap[value] || require('../assets/images/stats/status/fantome.png');
+    };
 
     const getDescription = () => {
         switch (value) {
@@ -47,7 +64,7 @@ export default function StatsStatut({ value }: StatsStatutProps) {
             style={styles.container}
         >
 
-            <Image source={require('../assets/images/stats/status/plant.png')} style={styles.image} />
+            <Image source={getImageSource()} style={styles.image} />
             <View style={styles.textContainer}>
                 <Text style={styles.title}>{value}</Text>
                 <Text style={styles.description}>{getDescription()}</Text>
