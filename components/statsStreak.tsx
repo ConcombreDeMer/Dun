@@ -17,7 +17,10 @@ export default function StatsStatut({ value }: { value: string }) {
             onTouchEnd={handleExplicationPress}
         >
             <Image source={require('../assets/images/stats/streak/high.png')} style={styles.image} />
-            <Text style={styles.value}>{value}</Text>
+            <Text style={styles.value}>
+                <Text style={{fontWeight: '500'}}>{value}</Text>
+                <Text> jours de streak</Text>
+            </Text>
 
         </View>
     );
@@ -26,27 +29,29 @@ export default function StatsStatut({ value }: { value: string }) {
 const styles = StyleSheet.create({
     container: {
         backgroundColor: '#F1F1F1',
-        width: '25%',
-        height: '100%',
+        height: 42,
         borderRadius: 30,
         borderColor: 'rgba(0, 0, 15, 0.2)',
         borderWidth: 0.5,
         position: 'relative',
         display: 'flex',
-        justifyContent: 'center',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
         gap: 10,
+        paddingLeft: 10,
+        paddingRight: 15,
     },
 
     image: {
-        width: 60,
-        height: 60,
+        width: 28,
+        height: 28,
         resizeMode: 'contain',
     },
 
     value: {
-        fontSize: 22,
-        fontWeight: '500',
+        fontSize: 16,
+        fontWeight: '300',
         color: '#000',
     },
 });

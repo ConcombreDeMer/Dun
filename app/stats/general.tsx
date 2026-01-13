@@ -68,7 +68,7 @@ export default function Stats() {
       const day = days[i];
       const dayDate = new Date(day.date);
       const dayDateString = dayDate.toDateString();
-      
+
       if (dayDateString === todayString) {
         continue;
       } else if (dayDateString === currentDate.toDateString()) {
@@ -106,13 +106,13 @@ export default function Stats() {
       averageCompletion >= 80 &&
       daysWithTasks < 7
     ) {
-    //   statut = "Sur le bon chemin";
-    // } else if (
-    //   averageCharge >= 5 &&
-    //   averageCharge < 7 &&
-    //   averageCompletion >= 70 &&
-    //   averageCompletion < 80
-    // ) {
+      //   statut = "Sur le bon chemin";
+      // } else if (
+      //   averageCharge >= 5 &&
+      //   averageCharge < 7 &&
+      //   averageCompletion >= 70 &&
+      //   averageCompletion < 80
+      // ) {
       statut = "Équilibré";
     } else if (
       averageCharge >= 5 &&
@@ -193,7 +193,7 @@ export default function Stats() {
       const targetDate = new Date(today);
       targetDate.setDate(today.getDate() - i);
       const targetDateString = targetDate.toDateString();
-      
+
       const dayData = daysByDateString.get(targetDateString);
       if (dayData) {
         lastWeekDays.push(dayData);
@@ -232,7 +232,11 @@ export default function Stats() {
         <StatsStreak
           value={stats.streak.toString()} />
 
-      </View><StatsBarGraph daysData={React.useMemo(() => daysQuery.data || [], [daysQuery.data])} /><View
+      </View>
+
+      <StatsBarGraph daysData={React.useMemo(() => daysQuery.data || [], [daysQuery.data])} />
+
+      <View
         style={styles.cardsContainer}
       >
         <StatsCardCompletion
@@ -264,11 +268,11 @@ const styles = StyleSheet.create({
 
   topContainer: {
     display: 'flex',
-    flexDirection: 'row',
+    flexDirection: 'column',
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '90%',
-    height: 120,
+    gap: 10,
   },
 
   cardsContainer: {
