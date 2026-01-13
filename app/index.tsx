@@ -1,9 +1,10 @@
 import CalendarComponent from "@/components/calendar";
+import ProgressBar from "@/components/progressBar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -23,6 +24,7 @@ export default function Index() {
   const router = useRouter();
   const { colors, theme } = useTheme();
   const setStoreDate = useStore((state) => state.setSelectedDate);
+  const [progress, setProgress] = useState(0);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -57,6 +59,9 @@ export default function Index() {
       console.error('Erreur lors de la récupération des tâches:', error);
       return [];
     }
+    // calcule du progress
+    const progress = data.length === 0 ? 0 : (data.filter(task => task.done).length / data.length) * 100;
+    setProgress(Math.round(progress));
     return data;
   }
 
@@ -227,6 +232,10 @@ export default function Index() {
             slider={true}
             initialDate={selectedDate}
             onDateSelect={(date) => changeDate(date)}
+          />
+
+          <ProgressBar
+            progress={progress}
           />
 
         </View>
