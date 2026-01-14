@@ -1,20 +1,19 @@
+import Headline from "@/components/headline";
+import SecondaryButton from "@/components/secondaryButton";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
-    Text,
-    View,
-    TouchableOpacity,
-    StyleSheet,
     Image,
     ScrollView,
+    StyleSheet,
     Switch,
-    Alert,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
-import { useState, useEffect } from "react";
 import { useTheme } from "../../lib/ThemeContext";
 import { getImageSource } from "../../lib/imageHelper";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import PrimaryButton from "@/components/primaryButton";
-import Headline from "@/components/headline";
 
 interface NotificationSettings {
     taskReminders: boolean;
@@ -143,7 +142,15 @@ export default function Notifications() {
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <Headline title="Notifications" subtitle="Gérer vos alertes" />
+            <View
+                style={{ marginBottom: 20, flexDirection: "row", alignItems: "center", gap: 20 }}
+            >
+                <SecondaryButton
+                    onPress={() => router.back()}
+                    image="back"
+                />
+                <Headline title="Notifications" subtitle="Gérer vos alertes" />
+            </View>
 
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
@@ -243,12 +250,6 @@ export default function Notifications() {
                 </View>
             </ScrollView>
 
-            <PrimaryButton
-                style={{ position: "absolute", bottom: 23, right: 23 }}
-                image="home"
-                size="XS"
-                onPress={() => router.back()}
-            />
         </View>
     );
 }

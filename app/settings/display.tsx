@@ -1,19 +1,19 @@
+import Headline from "@/components/headline";
+import SecondaryButton from "@/components/secondaryButton";
+import SwitchItem from "@/components/switchItem";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
-    Text,
-    View,
-    TouchableOpacity,
-    StyleSheet,
+    Alert,
     Image,
     ScrollView,
-    Alert,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { useState } from "react";
 import { useTheme } from "../../lib/ThemeContext";
 import { getImageSource } from "../../lib/imageHelper";
-import SwitchItem from "@/components/switchItem";
-import PrimaryButton from "@/components/primaryButton";
-import Headline from "@/components/headline";
 
 type FontSize = 'small' | 'medium' | 'large';
 type DisplayDensity = 'compact' | 'comfortable' | 'spacious';
@@ -147,7 +147,15 @@ export default function Display() {
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <Headline title="Affichage" subtitle="Personnaliser votre interface" />
+            <View
+                style={{ marginBottom: 20, flexDirection: "row", alignItems: "center", gap: 20 }}
+            >
+                <SecondaryButton
+                    onPress={() => router.back()}
+                    image="back"
+                />
+                <Headline title="Affichage" subtitle="Personnaliser votre interface" />
+            </View>
 
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
@@ -243,12 +251,6 @@ export default function Display() {
                 </TouchableOpacity>
             </ScrollView>
 
-            <PrimaryButton
-                style={{ position: "absolute", bottom: 23, right: 23 }}
-                image="home"
-                size="XS"
-                onPress={() => router.back()}
-            />
         </View>
     );
 }

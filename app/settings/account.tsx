@@ -1,196 +1,196 @@
-import { useRouter } from "expo-router";
-import {
-    Text,
-    View,
-    TouchableOpacity,
-    Alert,
-    StyleSheet,
-    Image,
-    ScrollView,
-} from "react-native";
-import { useState, useEffect } from "react";
-import { useTheme } from "../../lib/ThemeContext";
-import { getImageSource } from "../../lib/imageHelper";
-import { supabase } from "../../lib/supabase";
-import PrimaryButton from "@/components/primaryButton";
 import Headline from "@/components/headline";
-import NavItem from "@/components/navItem";
-import SettingItem from "@/components/settingItem";
+import PrimaryButton from "@/components/primaryButton";
+import SecondaryButton from "@/components/secondaryButton";
+import TextInput from "@/components/textInput";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+    ScrollView,
+    StyleSheet,
+    View
+} from "react-native";
+import { useTheme } from "../../lib/ThemeContext";
+import { supabase } from "../../lib/supabase";
 
 export default function Account() {
     const router = useRouter();
     const { theme, colors } = useTheme();
-    const [userEmail, setUserEmail] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const { id } = useLocalSearchParams();
+    const [user, setUser] = useState<any>(null);
+    const [hasChanges, setHasChanges] = useState(false);
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [isDone, setIsDone] = useState(false);
+    const [initialLastUpdateDate, setInitialLastUpdateDate] = useState<Date | null>(null);
+    const queryClient = useQueryClient();
+
+    const profileQuery = useQuery({
+        queryKey: ['profile', id],
+        queryFn: getProfile,
+    });
+
+    async function getProfile() {
+        const { data, error } = await supabase
+            .from("Profiles")
+            .select("*")
+            .eq("id", id)
+            .single();
+
+        if (error) {
+            throw new Error(error.message);
+        }
+        setName(data.name);
+        setEmail(data.email);
+        return data;
+    }
+
+    const formatLastUpdateDate = (date: Date | null): string => {
+        if (!date) return "";
+
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffSeconds = Math.floor(diffMs / 1000);
+        const diffMinutes = Math.floor(diffSeconds / 60);
+
+        // Si la différence est inférieure à 10 minutes
+
+        if (diffSeconds == 0) {
+            return `à l'instant`;
+        }
+
+        if (diffMinutes < 10) {
+            if (diffSeconds < 60) {
+                return `il y a ${diffSeconds} secondes`;
+            } else {
+                return `il y a ${diffMinutes} minutes`;
+            }
+        }
+
+        // Sinon, afficher le format complet
+        const day = date.getDate().toString().padStart(2, "0");
+        const month = (date.getMonth() + 1).toString().padStart(2, "0");
+        const year = date.getFullYear();
+        const hours = date.getHours().toString().padStart(2, "0");
+        const minutes = date.getMinutes().toString().padStart(2, "0");
+        const secondes = date.getSeconds().toString().padStart(2, "0");
+
+        return `${day}/${month}/${year} à ${hours}:${minutes}:${secondes}`;
+    };
+
+
+    const updateProfileMutation = useMutation({
+        mutationFn: async () => {
+            if (!name.trim()) {
+                return;
+            }
+
+            const { error } = await supabase
+                .from("Profiles")
+                .update({
+                    name: name.trim(),
+                    email: email.trim(),
+                })
+                .eq("id", id);
+            if (error) {
+                throw new Error(error.message);
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['profile'] });
+            setHasChanges(false);
+        },
+        onError: (error: any) => {
+            console.error("Erreur lors de la sauvegarde:", error);
+        }
+    });
+
 
     useEffect(() => {
-        fetchUserData();
-    }, []);
-
-    const fetchUserData = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user?.email) {
-                setUserEmail(user.email);
+        if (profileQuery.data) {
+            if (name !== profileQuery.data.name || email !== profileQuery.data.email) {
+                setHasChanges(true);
             }
-        } catch (error) {
-            console.error("Erreur lors de la récupération des données utilisateur:", error);
-        } finally {
-            setIsLoading(false);
+            else {
+                setHasChanges(false);
+            }
         }
-    };
+        else {
+            setHasChanges(false);
+        }
+    }, [name, email]);
 
-    const handleChangePassword = () => {
-        Alert.alert(
-            "Changer le mot de passe",
-            "Vous recevrez un email pour réinitialiser votre mot de passe.",
-            [
-                {
-                    text: "Annuler",
-                    onPress: () => { },
-                    style: "cancel",
-                },
-                {
-                    text: "Envoyer",
-                    onPress: async () => {
-                        try {
-                            const { error } = await supabase.auth.resetPasswordForEmail(userEmail || "");
-                            if (error) throw error;
-                            Alert.alert("Succès", "Email de réinitialisation envoyé");
-                        } catch (error) {
-                            console.error("Erreur:", error);
-                            Alert.alert("Erreur", "Impossible d'envoyer l'email");
-                        }
-                    },
-                },
-            ]
-        );
-    };
-
-    const handleLogout = () => {
-        Alert.alert(
-            "Déconnexion",
-            "Êtes-vous sûr de vouloir vous déconnecter ?",
-            [
-                {
-                    text: "Annuler",
-                    onPress: () => { },
-                    style: "cancel",
-                },
-                {
-                    text: "Déconnecter",
-                    onPress: async () => {
-                        try {
-                            const { error } = await supabase.auth.signOut();
-                            if (error) throw error;
-                            router.replace('/onboarding/start');
-                        } catch (error) {
-                            console.error("Erreur:", error);
-                            Alert.alert("Erreur", "Impossible de se déconnecter");
-                        }
-                    },
-                    style: "destructive",
-                },
-            ]
-        );
-    };
-
-    const handleDeleteAccount = () => {
-        Alert.alert(
-            "Supprimer le compte",
-            "Cette action est irréversible. Toutes vos données seront supprimées.",
-            [
-                {
-                    text: "Annuler",
-                    onPress: () => { },
-                    style: "cancel",
-                },
-                {
-                    text: "Supprimer",
-                    onPress: async () => {
-                        try {
-                            // Supprimer les tâches d'abord
-                            const { error: tasksError } = await supabase
-                                .from("Tasks")
-                                .delete()
-                                .neq("id", 0);
-
-                            if (tasksError) throw tasksError;
-
-                            // Supprimer le compte
-                            const { error: deleteError } = await supabase.rpc(
-                                "delete_user"
-                            );
-
-                            if (deleteError) throw deleteError;
-
-                            router.replace('/onboarding/start');
-                            Alert.alert("Succès", "Compte supprimé");
-                        } catch (error) {
-                            console.error("Erreur:", error);
-                            Alert.alert("Erreur", "Impossible de supprimer le compte");
-                        }
-                    },
-                    style: "destructive",
-                },
-            ]
-        );
-    };
+    useEffect(() => {
+        // console.log("hasChanges", hasChanges);
+    }, [hasChanges]);
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <Headline title="Compte" subtitle="Gérer votre compte" />
+            <View
+                style={{ marginBottom: 20, flexDirection: "row", alignItems: "center", gap: 20 }}
+            >
+                <SecondaryButton
+                    onPress={() => router.back()}
+                    image="back"
+                />
+                <Headline title="Compte" subtitle="Gérer votre compte" />
+            </View>
 
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Profile Section */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        Profil
-                    </Text>
-                    <View
-                        style={[
-                            styles.profileCard,
-                            { backgroundColor: colors.card },
-                        ]}
-                    >
-                        <View style={styles.avatarContainer}>
-                            <Text style={styles.avatar}>
-                                {userEmail?.charAt(0).toUpperCase()}
-                            </Text>
-                        </View>
-                        <View style={styles.profileInfo}>
-                            <Text style={[styles.profileEmail, { color: colors.text }]}>
-                                {userEmail || "Chargement..."}
-                            </Text>
-                            <Text
-                                style={[
-                                    styles.profileStatus,
-                                    { color: colors.textSecondary },
-                                ]}
-                            >
-                                Compte actif
-                            </Text>
-                        </View>
-                    </View>
+
+                <TextInput
+                    name="Nom d'utilisateur"
+                    placeholder="Votre nom d'utilisateur"
+                    value={name}
+                    onChangeText={setName}
+
+                />
+
+                <TextInput
+                    name="Email"
+                    placeholder="Votre email"
+                    value={email}
+                    onChangeText={setEmail}
+                    isLoading={true}
+                />
+
+                {/* <Text style={{ color: '#383838ff', fontSize: 12, alignSelf: "center" }}>
+                    Dernière mise à jour : {formatLastUpdateDate(profileQuery.data ? new Date(profileQuery.data.last_update_date) : null)}
+                </Text> */}
+
+
+                <View
+                    style={styles.buttonsContainer}
+                >
+                    <PrimaryButton
+                        title="Annuler"
+                        type="reverse"
+                        onPress={() => {
+                            if (profileQuery.data) {
+                                setName(profileQuery.data.name);
+                                setEmail(profileQuery.data.email);
+                                setHasChanges(false);
+                            }
+                        }}
+                        disabled={!hasChanges}
+                        size="M"
+                    />
+
+                    <PrimaryButton
+                        title="Sauvegarder"
+                        disabled={!hasChanges}
+                        onPress={() => updateProfileMutation.mutate()}
+                        size="M"
+                    />
+
                 </View>
 
-
-                <SettingItem image="password" title="Changer le mot de passe" onPress={handleChangePassword}/>
-                <SettingItem image="logout" title="Se déconnecter" type="danger" onPress={handleLogout}/>
-                <SettingItem image="dead" title="Supprimer le compte" type="danger" onPress={handleDeleteAccount}/>
-
-                
             </ScrollView>
-
-            <PrimaryButton
-                style={{ position: "absolute", bottom: 23, right: 23 }}
-                image="back"
-                size="XS"
-                onPress={() => router.back()}
-            />
         </View>
     );
 }
@@ -209,71 +209,13 @@ const styles = StyleSheet.create({
         paddingBottom: 120,
         gap: 24,
     },
-
-    section: {
+    buttonsContainer: {
+        width: '100%',
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
         gap: 12,
     },
 
-    sectionTitle: {
-        fontSize: 14,
-        fontWeight: "600",
-        fontFamily: "Satoshi-Bold",
-        textTransform: "uppercase",
-        letterSpacing: 0.5,
-    },
-
-    profileCard: {
-        flexDirection: "row",
-        alignItems: "center",
-        borderRadius: 12,
-        padding: 16,
-        gap: 16,
-    },
-
-    avatarContainer: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: "#000",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-
-    avatar: {
-        fontSize: 24,
-        fontWeight: "bold",
-        color: "#fff",
-        fontFamily: "Satoshi-Bold",
-    },
-
-    profileInfo: {
-        flex: 1,
-    },
-
-    profileEmail: {
-        fontSize: 16,
-        fontWeight: "600",
-        fontFamily: "Satoshi-Bold",
-        marginBottom: 4,
-    },
-
-    profileStatus: {
-        fontSize: 13,
-        fontFamily: "Satoshi-Regular",
-    },
-
-    settingButton: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        borderRadius: 12,
-        padding: 16,
-        height: 64,
-    },
-
-    buttonLabel: {
-        fontSize: 16,
-        fontWeight: "600",
-        fontFamily: "Satoshi-Bold",
-    },
 });
