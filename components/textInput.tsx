@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 
 interface SimpleInputProps {
     name?: string;
@@ -20,6 +20,7 @@ interface SimpleInputProps {
     transparent?: boolean;
     initialEditable?: boolean;
     fontSize?: number;
+    isLoading?: boolean;
 }
 
 export default function SimpleInput({
@@ -39,10 +40,31 @@ export default function SimpleInput({
     bold = false,
     transparent = false,
     fontSize = 16,
+    isLoading = false,
 }: SimpleInputProps) {
     const [text, setText] = useState(value);
     const [showPassword, setShowPassword] = useState(false);
     const [isEditable, setIsEditable] = useState(true);
+    const skeletonOpacity = useRef(new Animated.Value(0.3)).current;
+
+    useEffect(() => {
+        if (isLoading) {
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(skeletonOpacity, {
+                        toValue: 1,
+                        duration: 1000,
+                        useNativeDriver: false,
+                    }),
+                    Animated.timing(skeletonOpacity, {
+                        toValue: 0.3,
+                        duration: 1000,
+                        useNativeDriver: false,
+                    }),
+                ])
+            ).start();
+        }
+    }, [isLoading, skeletonOpacity]);
 
 
     const disableEditing = () => setIsEditable(false);
@@ -64,6 +86,7 @@ export default function SimpleInput({
     };
 
     return (
+
         <View style={[styles.container, containerStyle]}>
 
             <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -71,30 +94,50 @@ export default function SimpleInput({
                 {facultatif && <Text style={{ color: '#999', fontSize: 14, fontStyle: "italic" }}>(facultatif)</Text>}
             </View>
 
-            <TextInput
-                style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }, transparent && { backgroundColor: 'transparent', borderWidth: 0 },{ fontSize: fontSize }]}
-                placeholder={placeholder}
-                placeholderTextColor={placeholderTextColor}
-                value={text}
-                onChangeText={handleChange}
-                multiline={multiline}
-                secureTextEntry={password && !showPassword}
-                onTouchMove={disableEditing}
-                onTouchEnd={enableEditing}
-                onTouchCancel={enableEditing}
-                editable={isEditable}
-            />
-            {password && (
-                <TouchableOpacity
-                    style={styles.eyeButton}
-                    onPress={() => setShowPassword(!showPassword)}
-                >
-                    <MaterialIcons
-                        name={showPassword ? 'visibility' : 'visibility-off'}
-                        size={20}
-                        color="#666"
+            {
+                isLoading && (
+                    <Animated.View
+                        style={[
+                            styles.skeleton,
+                            {
+                                height: scale === 'large' ? 64 : 48,
+                                opacity: skeletonOpacity
+                            }
+                        ]}
                     />
-                </TouchableOpacity>
+                )
+            }
+
+            {!isLoading && (
+
+                <View>
+                    <TextInput
+                        style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }, transparent && { backgroundColor: 'transparent', borderWidth: 0 }, { fontSize: fontSize }]}
+                        placeholder={placeholder}
+                        placeholderTextColor={placeholderTextColor}
+                        value={text}
+                        onChangeText={handleChange}
+                        multiline={multiline}
+                        secureTextEntry={password && !showPassword}
+                        onTouchMove={disableEditing}
+                        onTouchEnd={enableEditing}
+                        onTouchCancel={enableEditing}
+                        editable={isEditable}
+                    />
+
+                    {password && (
+                        <TouchableOpacity
+                            style={styles.eyeButton}
+                            onPress={() => setShowPassword(!showPassword)}
+                        >
+                            <MaterialIcons
+                                name={showPassword ? 'visibility' : 'visibility-off'}
+                                size={20}
+                                color="#666"
+                            />
+                        </TouchableOpacity>
+                    )}
+                </View>
             )}
         </View>
     );
@@ -144,5 +187,12 @@ const styles = StyleSheet.create({
         transform: [{ translateY: "-50%" }],
         padding: 8,
         backgroundColor: '#F1F1F1',
+    },
+    skeleton: {
+        width: '100%',
+        backgroundColor: '#E8E8E8',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#00000020',        
     },
 });

@@ -10,6 +10,12 @@ export default function Navbar() {
     const router = useRouter();
     const segments = useSegments();
 
+    // Masquer la navbar si on est sur /settings/*
+    const isSettingsSubroute = segments.length > 1 && segments[0] === "settings";
+    if (isSettingsSubroute) {
+        return null;
+    }
+
     // Déterminer l'onglet actif basé sur le chemin actuel
     const getActiveTab = () => {
         if (segments[0] === "stats") return "stats";

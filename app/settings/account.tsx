@@ -18,13 +18,9 @@ export default function Account() {
     const { theme, colors } = useTheme();
     const [isLoading, setIsLoading] = useState(true);
     const { id } = useLocalSearchParams();
-    const [user, setUser] = useState<any>(null);
     const [hasChanges, setHasChanges] = useState(false);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [selectedDate, setSelectedDate] = useState(new Date());
-    const [isDone, setIsDone] = useState(false);
-    const [initialLastUpdateDate, setInitialLastUpdateDate] = useState<Date | null>(null);
     const queryClient = useQueryClient();
 
     const profileQuery = useQuery({
@@ -33,6 +29,7 @@ export default function Account() {
     });
 
     async function getProfile() {
+        setIsLoading(true);
         const { data, error } = await supabase
             .from("Profiles")
             .select("*")
@@ -44,6 +41,9 @@ export default function Account() {
         }
         setName(data.name);
         setEmail(data.email);
+        setTimeout(() => {
+            setIsLoading(false);
+        }, 500);
         return data;
     }
 
@@ -126,6 +126,40 @@ export default function Account() {
         // console.log("hasChanges", hasChanges);
     }, [hasChanges]);
 
+
+    const handleSave = async () => {
+
+        if (!hasChanges) return;
+        // si l'email a changé, on doit vérifier qu'il est valide
+        if (email !== profileQuery.data.email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                alert("Veuillez entrer un email valide.");
+                return;
+            }
+
+            // ALERTE DE CONFIRMATION
+            // if (!confirm("Êtes-vous sûr de vouloir changer votre email ?")) {
+            //     return;
+            // }
+
+            const { data, error } = await supabase.auth.updateUser({
+                email: email,
+            })
+            if (error) {
+                console.error("Erreur lors de la mise à jour de l'email : " + error.message);
+                return;
+            }
+            console.log("Un email de confirmation a été envoyé à votre nouvelle adresse email.");
+        }
+
+
+
+
+        updateProfileMutation.mutate();
+    }
+
+
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             <View
@@ -148,7 +182,7 @@ export default function Account() {
                     placeholder="Votre nom d'utilisateur"
                     value={name}
                     onChangeText={setName}
-
+                    isLoading={isLoading}
                 />
 
                 <TextInput
@@ -156,7 +190,7 @@ export default function Account() {
                     placeholder="Votre email"
                     value={email}
                     onChangeText={setEmail}
-                    isLoading={true}
+                    isLoading={isLoading}
                 />
 
                 {/* <Text style={{ color: '#383838ff', fontSize: 12, alignSelf: "center" }}>
@@ -164,33 +198,33 @@ export default function Account() {
                 </Text> */}
 
 
-                <View
-                    style={styles.buttonsContainer}
-                >
-                    <PrimaryButton
-                        title="Annuler"
-                        type="reverse"
-                        onPress={() => {
-                            if (profileQuery.data) {
-                                setName(profileQuery.data.name);
-                                setEmail(profileQuery.data.email);
-                                setHasChanges(false);
-                            }
-                        }}
-                        disabled={!hasChanges}
-                        size="M"
-                    />
-
-                    <PrimaryButton
-                        title="Sauvegarder"
-                        disabled={!hasChanges}
-                        onPress={() => updateProfileMutation.mutate()}
-                        size="M"
-                    />
-
-                </View>
 
             </ScrollView>
+            <View
+                style={styles.buttonsContainer}
+            >
+                <PrimaryButton
+                    title="Sauvegarder"
+                    disabled={!hasChanges}
+                    onPress={handleSave}
+                    size="M"
+                />
+
+                <PrimaryButton
+                    title="Annuler"
+                    type="reverse"
+                    onPress={() => {
+                        if (profileQuery.data) {
+                            setName(profileQuery.data.name);
+                            setEmail(profileQuery.data.email);
+                            setHasChanges(false);
+                        }
+                    }}
+                    disabled={!hasChanges}
+                    size="M"
+                />
+
+            </View>
         </View>
     );
 }
@@ -201,7 +235,6 @@ const styles = StyleSheet.create({
         paddingLeft: 20,
         paddingRight: 20,
         paddingTop: 60,
-        backgroundColor: "#fff",
     },
 
     scrollContent: {
@@ -216,6 +249,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         gap: 12,
+        position: 'absolute',
+        bottom: 40,
+        height: 150,
+        alignSelf: 'center',
     },
 
 });
