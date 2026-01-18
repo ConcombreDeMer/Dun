@@ -25,7 +25,6 @@ export default function Settings() {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-                console.log(user);
                 setUser(user);
             }
         } catch (error) {

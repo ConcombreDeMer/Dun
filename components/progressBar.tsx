@@ -14,7 +14,7 @@ export default function ProgressBar({ progress }: {
         }).start();
     }, [progress]);
 
-    const widthInterpolation = useMemo(() => 
+    const widthInterpolation = useMemo(() =>
         animatedWidth.interpolate({
             inputRange: [0, 100],
             outputRange: ['0%', '100%'],
@@ -25,7 +25,7 @@ export default function ProgressBar({ progress }: {
 
     return (
         <View style={styles.progressBarContainer}>
-            <View style={styles.container}>  
+            <View style={styles.container}>
                 <Animated.View
                     style={[styles.filler, { width: widthInterpolation }]}
                 />
@@ -45,8 +45,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         width: '100%',
-        marginTop:10,
-        marginBottom:10,
+        marginTop: 10,
+        marginBottom: 10,
         paddingHorizontal: 10,
     },
     container: {

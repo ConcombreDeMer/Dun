@@ -28,8 +28,27 @@ function RootLayoutContent() {
 
   // Écouter les changements d'authentification
   useEffect(() => {
+    // Gérer les deep links (confirmation d'email, réinitialisation de mot de passe, etc.)
+    const handleDeepLink = async () => {
+      try {
+        // Vérifier et traiter le fragment URL (token de confirmation)
+        const { data, error } = await supabase.auth.refreshSession();
+        if (error) {
+          console.error("Erreur lors du refresh de session:", error);
+        } else if (data.session) {
+          setSession(data.session);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la gestion du deep link:", error);
+      }
+    };
+
+    // Appeler immédiatement pour traiter les deep links
+    handleDeepLink();
+
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log("Auth state changed:", event);
         setSession(session);
         setIsAuthLoading(false);
       }
