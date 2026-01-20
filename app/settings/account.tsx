@@ -1,4 +1,5 @@
 import Headline from "@/components/headline";
+import PopUpModal from "@/components/popUpModal";
 import PrimaryButton from "@/components/primaryButton";
 import SecondaryButton from "@/components/secondaryButton";
 import TextInput from "@/components/textInput";
@@ -13,6 +14,7 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
+import Animated, { FadeInUp, FadeOutUp } from "react-native-reanimated";
 import { useTheme } from "../../lib/ThemeContext";
 import { supabase } from "../../lib/supabase";
 
@@ -32,6 +34,8 @@ export default function Account() {
     const [email, setEmail] = useState('');
     const [userData, setUserData] = useState<UserData>();
     const [newEmail, setNewEmail] = useState('');
+    const [showModal, setShowModal] = useState(false);
+    const [modalConfig, setModalConfig] = useState({ title: '', message: '' });
     const queryClient = useQueryClient();
 
     const fetchUserData = async () => {
@@ -144,21 +148,7 @@ export default function Account() {
                 alert("Veuillez entrer un email valide.");
                 return;
             }
-
-            // ALERTE DE CONFIRMATION
-            // if (!confirm("Êtes-vous sûr de vouloir changer votre email ?")) {
-            //     return;
-            // }
-
-            const { data, error } = await supabase.auth.updateUser(
-                { email: email },
-                { emailRedirectTo: "dun://settings/changeEmail" }
-            )
-            if (error) {
-                console.error("Erreur lors de la mise à jour de l'email : " + error.message);
-                return;
-            }
-            console.log("Un email de confirmation a été envoyé à votre nouvelle adresse email.");
+            setShowModal(true);
         }
         // updateProfileMutation.mutate();
     }
@@ -167,11 +157,48 @@ export default function Account() {
         router.push("/settings/changeEmail");
     }
 
+    const sendChangeEmailConfirmation = async () => {
+        const { data, error } = await supabase.auth.updateUser(
+            { email: email },
+            { emailRedirectTo: "dun://settings/changeEmail" }
+        )
+        if (error) {
+            console.error("Erreur lors de la mise à jour de l'email : " + error.message);
+            return;
+        }
+        console.log("Un email de confirmation a été envoyé à votre nouvelle adresse email.");
+    }
+
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
+            <PopUpModal
+                isVisible={showModal}
+                title="Changement d'email"
+                message="Vous venez de renseigner un nouvel email. Etes vous sûr de vouloir continuer ? Un email de confirmation va vous être envoyé."
+                onConfirm={() => {
+                    // Gérer l'action de confirmation
+                    console.log("Confirmé");
+                    setShowModal(false);
+                    sendChangeEmailConfirmation();
+                }}
+                onCancel={() => {
+                    // Gérer l'action d'annulation
+                    console.log("Annulé");
+                    setShowModal(false);
+                }}
+                confirmText="Confirmer"
+                cancelText="Annuler"
+            />
             <View
-                style={{ marginBottom: 20, flexDirection: "row", alignItems: "center", gap: 20 }}
+                style={{
+                    marginBottom: 20,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 20,
+                    paddingHorizontal: 20,
+                    paddingTop: 60
+                }}
             >
                 <SecondaryButton
                     onPress={() => router.back()}
@@ -184,9 +211,9 @@ export default function Account() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-               
 
-             <TextInput
+
+                <TextInput
                     name="Nom d'utilisateur"
                     placeholder="Votre nom d'utilisateur"
                     value={name}
@@ -194,47 +221,54 @@ export default function Account() {
                     isLoading={isLoading}
                 />
 
-                <TextInput
-                    name="Email"
-                    placeholder="Votre email"
-                    value={email}
-                    onChangeText={setEmail}
-                    isLoading={isLoading}
-                />
+                <View>
 
-                {newEmail.length > 0 &&
+                    <TextInput
+                        name="Email"
+                        placeholder="Votre email"
+                        value={email}
+                        onChangeText={setEmail}
+                        isLoading={isLoading}
+                    />
 
-                    <View
-                        style={styles.alertEmail}
-                    >
-                        <View>
-                            <Text
-                                style={{ color: '#a5a5a5' }}
-                            >
-                                Un changement d'email est en cours vers :
-                            </Text>
-                            <Text
-                                style={{ color: '#fff', fontWeight: '500' }}
-                            >
-                                {newEmail}
-                            </Text>
-                        </View>
-                        <TouchableOpacity
-                            style={{ justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff20', borderRadius: 20, padding: 5 }}
-                            onPress={seeMore}
+                    {newEmail.length > 0 &&
+
+                        <Animated.View
+                            entering={FadeInUp.springify()}
+                            exiting={FadeOutUp.springify()}
+                            style={styles.alertEmail}
                         >
-                            <SymbolView
-                                name="eye"
-                                style={styles.symbol}
-                                type="palette"
-                                tintColor={'#000000'}
-                            />
-                        </TouchableOpacity>
+                            <View>
+                                <Text
+                                    style={{ color: '#a5a5a5' }}
+                                >
+                                    Un changement d'email est en cours vers :
+                                </Text>
+                                <Text
+                                    style={{ color: '#fff', fontWeight: '500' }}
+                                >
+                                    {newEmail}
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.alerteEmailButton}
+                                onPress={seeMore}
+                            >
+                                <SymbolView
+                                    name="eye"
+                                    style={styles.symbol}
+                                    type="palette"
+                                    tintColor={'#000000'}
+                                />
+                            </TouchableOpacity>
 
 
-                    </View>
+                        </Animated.View>
 
-                }
+                    }
+
+                </View>
+
 
 
                 {/* <Text style={{ color: '#383838ff', fontSize: 12, alignSelf: "center" }}>
@@ -276,9 +310,6 @@ export default function Account() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingLeft: 20,
-        paddingRight: 20,
-        paddingTop: 60,
     },
 
     symbol: {
@@ -297,13 +328,24 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         marginTop: 10,
-        gap: 10,
+    },
+
+    alerteEmailButton: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#ffffff20',
+        borderRadius: 5,
+        borderWidth: 0.5,
+        borderColor: '#ffffff40',
     },
 
     scrollContent: {
         marginTop: 20,
         paddingBottom: 120,
         gap: 24,
+        paddingHorizontal: 20,
     },
     buttonsContainer: {
         width: '100%',

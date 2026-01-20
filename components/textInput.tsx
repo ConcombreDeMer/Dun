@@ -123,6 +123,7 @@ export default function SimpleInput({
                         onTouchEnd={enableEditing}
                         onTouchCancel={enableEditing}
                         editable={isEditable}
+                        autoCorrect={false}
                     />
 
                     {password && (
