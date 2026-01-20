@@ -1,6 +1,6 @@
 import { getImageSource } from '@/lib/imageHelper';
 import React from 'react';
-import { TouchableOpacity, StyleSheet, Image, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../lib/ThemeContext';
 
 interface SecondaryButtonProps {
@@ -36,10 +36,10 @@ const styles = StyleSheet.create({
         aspectRatio: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F1F1F1',
+        backgroundColor: '#00000020',
         borderRadius: 24,
         borderWidth: 0.5,
-        borderColor: '#DDDDDD',
+        borderColor: '#00000030',
     },
     content: {
         justifyContent: 'center',

@@ -4,15 +4,18 @@ import SecondaryButton from "@/components/secondaryButton";
 import TextInput from "@/components/textInput";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from "react";
 import {
     ScrollView,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View
 } from "react-native";
 import { useTheme } from "../../lib/ThemeContext";
 import { supabase } from "../../lib/supabase";
+
 
 interface UserData {
     name: string;
@@ -35,7 +38,7 @@ export default function Account() {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-                console.log("user", user);
+                // console.log("user", user);
                 setUserData(
                     {
                         name: user.user_metadata.name || '',
@@ -59,7 +62,7 @@ export default function Account() {
 
     useEffect(() => {
         if (!userData) return;
-        console.log("userData", userData);
+        // console.log("userData", userData);
         setEmail(userData.email || '');
         setName(userData.name || '');
     }, [userData]);
@@ -118,7 +121,7 @@ export default function Account() {
     //  utiliser onAuthStateChange pour détecter les changements d'email
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            console.log("Auth event:", event);
+            // console.log("Auth event:", event);
             if (event === 'USER_UPDATED') {
                 console.log("L'utilisateur a mis à jour son email.");
                 fetchUserData();
@@ -181,8 +184,9 @@ export default function Account() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
+               
 
-                <TextInput
+             <TextInput
                     name="Nom d'utilisateur"
                     placeholder="Votre nom d'utilisateur"
                     value={name}
@@ -215,12 +219,17 @@ export default function Account() {
                                 {newEmail}
                             </Text>
                         </View>
-                        <View>
-                            <SecondaryButton
-                                image="chevron"
-                                onPress={seeMore}
+                        <TouchableOpacity
+                            style={{ justifyContent: 'center', alignItems: 'center', backgroundColor: '#ffffff20', borderRadius: 20, padding: 5 }}
+                            onPress={seeMore}
+                        >
+                            <SymbolView
+                                name="eye"
+                                style={styles.symbol}
+                                type="palette"
+                                tintColor={'#000000'}
                             />
-                        </View>
+                        </TouchableOpacity>
 
 
                     </View>
@@ -270,6 +279,12 @@ const styles = StyleSheet.create({
         paddingLeft: 20,
         paddingRight: 20,
         paddingTop: 60,
+    },
+
+    symbol: {
+        width: 35,
+        height: 35,
+        margin: 5,
     },
 
     alertEmail: {

@@ -59,13 +59,13 @@ export default function ChangeEmail() {
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
         setTimeRemaining({ minutes, seconds });
+    };
 
-        // setTimeRemaining({ minutes: 0, seconds: 0 });
-
-        if (timeRemaining.minutes == 0 && timeRemaining.seconds == 0) {
+    useEffect(() => {
+        if (timeRemaining.minutes <= 0 && timeRemaining.seconds <= 0) {
             setIsExpired(true);
         }
-    };
+    }, [timeRemaining]);
 
     useEffect(() => {
         fetchUserData();
