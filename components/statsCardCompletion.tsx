@@ -1,3 +1,4 @@
+import { useTheme } from "@/lib/ThemeContext";
 import { router } from "expo-router";
 import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
@@ -9,6 +10,8 @@ interface StatsCardProps {
 }
 
 export default function StatsCardCompletion({ image, title, value }: StatsCardProps) {
+
+    const { colors } = useTheme();
 
     const analyzeCompletionColor = () => {
         const compValue = parseInt(value.toString());
@@ -31,12 +34,12 @@ export default function StatsCardCompletion({ image, title, value }: StatsCardPr
     }
 
     return (
-        <View style={[styles.container, { borderColor: analyzeCompletionColor() }]}
+        <View style={[styles.container, { borderColor: analyzeCompletionColor(), backgroundColor: colors.card }]}
             onTouchEnd={handleCompletionPress}
         >
             <Image source={image} style={styles.image} />
-            <Text style={styles.title}>{title}</Text>
-            <Text style={styles.value}>{value}</Text>
+            <Text style={[styles.title, { color: colors.textSecondary }]}>{title}</Text>
+            <Text style={[styles.value, { color: colors.text }]}>{value}</Text>
         </View>
     );
 }
@@ -46,11 +49,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         alignSelf: 'center',
-        backgroundColor: '#F1F1F1',
         width: '47.5%',
         height: '100%',
         borderRadius: 30,
-        borderColor: 'rgba(0, 0, 15, 0.2)',
         borderWidth: 0.5,
         padding: 15,
         gap: 8,
@@ -65,7 +66,6 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 16,
-        color: '#666',
         fontWeight: '500',
         position: 'absolute',
         bottom: 10,
@@ -74,7 +74,6 @@ const styles = StyleSheet.create({
     value: {
         fontSize: 22,
         fontWeight: '500',
-        color: '#000',
         position: 'absolute',
         top: 10,
         right: 15,

@@ -1,11 +1,13 @@
+import { useTheme } from "@/lib/ThemeContext";
 import { Image, StyleSheet, Text, View } from "react-native";
-
 
 interface StatsStatutProps {
     value: string;
 }
 
 export default function StatsStatut({ value }: StatsStatutProps) {
+
+    const { colors } = useTheme();
 
     const getImageSource = () => {
         const imageMap: { [key: string]: any } = {
@@ -61,13 +63,13 @@ export default function StatsStatut({ value }: StatsStatutProps) {
 
     return (
         <View
-            style={styles.container}
+            style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}
         >
 
             <Image source={getImageSource()} style={styles.image} />
             <View style={styles.textContainer}>
-                <Text style={styles.title}>{value}</Text>
-                <Text style={styles.description}>{getDescription()}</Text>
+                <Text style={[styles.title, { color: colors.text }]}>{value}</Text>
+                <Text style={[styles.description, { color: colors.textSecondary }]}>{getDescription()}</Text>
             </View>
 
         </View>
@@ -81,11 +83,9 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         alignSelf: 'center',
-        backgroundColor: '#F1F1F1',
         width: '90%',
         height: 100,
         borderRadius: 30,
-        borderColor: 'rgba(0, 0, 15, 0.2)',
         borderWidth: 0.5,
         paddingHorizontal: 20,
     },
@@ -105,11 +105,9 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 22,
         fontWeight: '500',
-        color: '#000',
     },
     description: {
         fontSize: 12,
-        color: '#666',
         fontWeight: '300',
     },
 });

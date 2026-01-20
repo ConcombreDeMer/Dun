@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { supabase } from "../../lib/supabase";
+import { useTheme } from "../../lib/ThemeContext";
 
 interface StatsData {
   completion: string;
@@ -16,6 +17,7 @@ interface StatsData {
 }
 
 export default function Stats() {
+  const { colors } = useTheme();
   const [previousDays, setPreviousDays] = React.useState<any[]>([]);
 
   // FONCTION UNIQUE DE CALCUL DE TOUS LES STATS
@@ -222,7 +224,7 @@ export default function Stats() {
 
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View
         style={styles.topContainer}
       >
@@ -261,7 +263,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     alignSelf: 'center',
-    backgroundColor: 'white',
     width: '100%',
     height: '100%',
   },

@@ -1,3 +1,4 @@
+import { useTheme } from "@/lib/ThemeContext";
 import { useStore } from "@/store/store";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptic from 'expo-haptics';
@@ -26,11 +27,12 @@ type Day = {
 
 export default function StatsBarGraph({ daysData }: StatsBarGraphProps) {
   const { width: screenWidth } = useWindowDimensions();
+  const { colors } = useTheme();
   const itemWidth = screenWidth * 0.9; // 90% of screen width
   const barWidth = (itemWidth * 0.5) / 7; // 85% of itemWidth divided by 7 days
 
-  const complete = '#2b2b2bff';
-  const incomplete = '#bbbbbbff';
+  const complete = colors.text;
+  const incomplete = colors.textSecondary;
   const completeToday = '#3f8041ff';
   const incompleteToday = '#a5d6a7ff';
   const queryClient = useQueryClient();
@@ -147,10 +149,11 @@ export default function StatsBarGraph({ daysData }: StatsBarGraphProps) {
   };
 
   const renderWeekChart = ({ item }: { item: Week }) => {
+    const weekStyles = getStyles(colors);
     return (
-      <View style={[styles.weekContainer, { width: itemWidth }]}>
+      <View style={[weekStyles.weekContainer, { width: itemWidth }]}>
         <Text
-          style={{ fontSize: 16, fontWeight: '300', color: '#525252ff', paddingVertical: 8 }}
+          style={{ fontSize: 16, fontWeight: '300', color: colors.textSecondary, paddingVertical: 8 }}
         >
           Semaine du {item.firstDayOfWeek} au {item.lastDayOfWeek}
         </Text>
@@ -164,7 +167,7 @@ export default function StatsBarGraph({ daysData }: StatsBarGraphProps) {
           animationDuration={500}
           isAnimated
           hideYAxisText
-          xAxisLabelTextStyle={{ fontSize: 12, color: '#3d3d3dff' }}
+          xAxisLabelTextStyle={{ fontSize: 12, color: colors.text }}
           onPress={handlePressBar}
           disableScroll
         />
@@ -172,8 +175,10 @@ export default function StatsBarGraph({ daysData }: StatsBarGraphProps) {
     );
   };
 
+  const containerStyles = getStyles(colors);
+
   return (
-    <View style={styles.barCharContainer}>
+    <View style={containerStyles.barCharContainer}>
       <FlatList
         ref={flatListRef}
         data={weeks}
@@ -198,11 +203,11 @@ export default function StatsBarGraph({ daysData }: StatsBarGraphProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   barCharContainer: {
-    backgroundColor: '#F1F1F1',
+    backgroundColor: colors.card,
     borderRadius: 30,
-    borderColor: 'rgba(0, 0, 15, 0.2)',
+    borderColor: colors.border,
     borderWidth: 0.5,
     display: 'flex',
     justifyContent: 'center',
@@ -217,3 +222,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
+
+const styles = getStyles({} as any);
