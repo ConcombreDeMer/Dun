@@ -183,24 +183,23 @@ export default function Index() {
       data
     );
 
-    // Batch les mutations : une seule requête avec tous les ordres
+    // Mettre à jour les ordres individuellement (évite les problèmes RLS avec upsert)
     try {
-      const updates = data.map((task, index) => ({
-        id: task.id,
-        order: index + 1,
-      }));
+      for (let index = 0; index < data.length; index++) {
+        const task = data[index];
+        const { error } = await supabase
+          .from("Tasks")
+          .update({ order: index + 1 })
+          .eq("id", task.id);
 
-      // Envoyer toutes les updates en une seule requête
-      const { error } = await supabase
-        .from("Tasks")
-        .upsert(updates, { onConflict: 'id' });
-
-      if (error) {
-        console.error("Erreur lors de la mise à jour de l'ordre:", error);
-        // Rollback si erreur
-        queryClient.invalidateQueries({
-          queryKey: ['tasks', dateKey]
-        });
+        if (error) {
+          console.error("Erreur lors de la mise à jour de l'ordre:", error);
+          // Rollback si erreur
+          queryClient.invalidateQueries({
+            queryKey: ['tasks', dateKey]
+          });
+          break;
+        }
       }
     } catch (error) {
       console.error("Erreur:", error);

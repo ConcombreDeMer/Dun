@@ -723,7 +723,7 @@ export default function CalendarComponent({
                         }
                     ]}
                 >
-                    <Text style={[styles.todayButtonText, { color: colors.button }]}>Retour à aujourd'hui</Text>
+                    <Text style={[styles.todayButtonText, { color: colors.textSecondary }]}>Retour à aujourd'hui</Text>
                 </Animated.View>
             </TouchableOpacity>
 
@@ -745,7 +745,7 @@ const styles = StyleSheet.create({
     },
     sliderBackground: {
         backgroundColor: "#272727ff",
-        borderRadius: 30,
+        borderRadius: 15,
         paddingHorizontal: 12,
         paddingTop: 12,
         flexDirection: "column",
@@ -756,8 +756,9 @@ const styles = StyleSheet.create({
     calendarContentInside: {
         marginTop: 12,
         backgroundColor: "#353535ff",
-        borderRadius: 20,
+        borderRadius: 15,
         overflow: "hidden",
+        alignSelf: "center",
     },
     handleBarWrapper: {
         height: 30,
