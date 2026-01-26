@@ -2,6 +2,7 @@ import { BlurView } from 'expo-blur';
 import { SFSymbol, SymbolView } from 'expo-symbols';
 import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
+import { useTheme } from '../lib/ThemeContext';
 import PrimaryButton from './primaryButton';
 
 interface PopUpModalProps {
@@ -25,6 +26,7 @@ export default function PopUpModal({
     cancelText = 'Cancel',
     symbolName = 'mail'
 }: PopUpModalProps) {
+    const { colors } = useTheme();
 
     return (
 
@@ -36,17 +38,17 @@ export default function PopUpModal({
             style={{width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, justifyContent: 'center', alignItems: 'center', zIndex: 1000}}
         >
 
-            <BlurView intensity={20} style={styles.container}>
+            <BlurView intensity={20} style={[styles.container, { backgroundColor: colors.background + '80' }]}>
 
                 <View
-                    style={styles.modal}
+                    style={[styles.modal, { backgroundColor: colors.card }]}
                 >
 
                     <SymbolView
                         name={symbolName}
                         style={styles.symbol}
                         type="palette"
-                        tintColor={'#000000'}
+                        tintColor={colors.text}
                     />
 
 
@@ -59,14 +61,14 @@ export default function PopUpModal({
                         }}
                     >
                         <Text
-                            style={styles.title}
+                            style={[styles.title, { color: colors.text }]}
                         >
                             {title}
                         </Text>
 
 
                         <Text
-                            style={styles.message}
+                            style={[styles.message, { color: colors.textSecondary }]}
                         >
                             {message}
                         </Text>
@@ -112,14 +114,12 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
         alignItems: 'center',
         zIndex: 1000,
-        backgroundColor: '#00000080',
     },
     modal: {
         width: '95%',
-        backgroundColor: '#fff',
+        backgroundColor: 'transparent',
         borderRadius: 50,
         alignItems: 'center',
-        color: '#000',
         display: 'flex',
         justifyContent: 'space-between',
         flexDirection: 'column',
@@ -141,9 +141,6 @@ const styles = StyleSheet.create({
     message: {
         fontSize: 14,
         textAlign: 'center',
-        color: '#555',
-
-
     },
 
     bottomButtons: {

@@ -18,18 +18,58 @@ interface PrimaryButtonProps {
 export default function PrimaryButton({ title, onPress, disabled = false, image = '', size = 'L', style, type }: PrimaryButtonProps) {
     const { colors, theme } = useTheme();
 
+    const getButtonStyle = () => {
+        let baseStyle: any = {
+            backgroundColor: colors.actionButton,
+            width: '100%',
+            height: 64,
+            borderRadius: 30,
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'row',
+            gap: 12,
+        };
+
+        if (size === 'S') baseStyle.width = '50%';
+        if (size === 'M') baseStyle.width = '80%';
+        if (size === 'XS') {
+            baseStyle = { ...baseStyle, width: 64, height: 64, aspectRatio: 1 };
+        }
+
+        if (type === 'danger') {
+            baseStyle.backgroundColor = '#F7C1C1';
+        } else if (type === 'reverse') {
+            baseStyle.backgroundColor = colors.background;
+            baseStyle.borderWidth = 1;
+            baseStyle.borderColor = colors.actionButton;
+        }
+
+        if (disabled) {
+            baseStyle.opacity = 0.5;
+        }
+
+        return baseStyle;
+    };
+
+    const getTextStyle = () => {
+        let baseTextStyle: any = {
+            color: colors.buttonText,
+            fontSize: 24,
+            fontFamily: 'Satoshi-Regular',
+        };
+
+        if (type === 'danger') {
+            baseTextStyle.color = '#A10606';
+        } else if (type === 'reverse') {
+            baseTextStyle.color = colors.actionButton;
+        }
+
+        return baseTextStyle;
+    };
+
     return (
         <TouchableOpacity
-            style={[
-                styles.button,
-                size === 'XS' && styles.buttonExtraSmall,
-                size === 'S' && styles.buttonSmall,
-                size === 'M' && styles.buttonMid,
-                type === 'danger' && styles.buttonDanger,
-                type === 'reverse' && styles.buttonReverse,
-                disabled && styles.disabled,
-                style
-            ]}
+            style={[getButtonStyle(), style]}
             onPress={onPress}
             disabled={disabled}
         >
@@ -39,61 +79,9 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
                     source={getImageSource(image, theme)}
                 ></Image>
             }
-            {(size === 'L' || size === 'M' || size === 'S') && <Text style={[styles.text, type === 'danger' && styles.textDanger, type === 'reverse' && styles.textReverse]}>{title}</Text>}
+            {(size === 'L' || size === 'M' || size === 'S') && <Text style={getTextStyle()}>{title}</Text>}
         </TouchableOpacity>
     );
 }
 
-const styles = StyleSheet.create({
-    button: {
-        backgroundColor: '#000000ff',
-        width: '100%',
-        height: 64,
-        borderRadius: 30,
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'row',
-        gap: 12,
-    },
-    buttonSmall: {
-        backgroundColor: '#000000ff',
-        width: '50%',
-        height: 64,
-        borderRadius: 30,
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'row',
-        gap: 12,
-    },
-    buttonExtraSmall: {
-        width: 64,
-        height: 64,
-        borderRadius: 30,
-        aspectRatio: 1,
-    },
-    buttonMid: {
-        width: '80%',
-    },
-    buttonDanger: {
-        backgroundColor: '#F7C1C1',
-    },
-    buttonReverse: {
-        backgroundColor: 'white',
-        borderWidth: 1,
-        borderColor: '#000000ff',
-    },
-    disabled: {
-        opacity: 0.5,
-    },
-    text: {
-        color: '#FFF',
-        fontSize: 24,
-        fontFamily: 'Satoshi-Regular',
-    },
-    textDanger: {
-        color: '#A10606',
-    },
-    textReverse: {
-        color: '#000000ff',
-    },
-});
+const styles = StyleSheet.create({});

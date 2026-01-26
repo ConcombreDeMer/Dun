@@ -1,6 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { useTheme } from '../lib/ThemeContext';
 
 interface SimpleInputProps {
     name?: string;
@@ -46,6 +47,7 @@ export default function SimpleInput({
     const [showPassword, setShowPassword] = useState(false);
     const [isEditable, setIsEditable] = useState(true);
     const skeletonOpacity = useRef(new Animated.Value(0.3)).current;
+    const { colors } = useTheme();
 
     useEffect(() => {
         if (isLoading) {
@@ -90,8 +92,8 @@ export default function SimpleInput({
         <View style={[styles.container, containerStyle]}>
 
             <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                {name && <Text style={[styles.label, labelStyle]}>{name}</Text>}
-                {facultatif && <Text style={{ color: '#999', fontSize: 14, fontStyle: "italic" }}>(facultatif)</Text>}
+                {name && <Text style={[styles.label, labelStyle, { color: colors.text }]}>{name}</Text>}
+                {facultatif && <Text style={{ color: colors.textSecondary, fontSize: 14, fontStyle: "italic" }}>(facultatif)</Text>}
             </View>
 
             {
@@ -101,7 +103,8 @@ export default function SimpleInput({
                             styles.skeleton,
                             {
                                 height: scale === 'large' ? 64 : 48,
-                                opacity: skeletonOpacity
+                                opacity: skeletonOpacity,
+                                backgroundColor: colors.input,
                             }
                         ]}
                     />
@@ -112,9 +115,9 @@ export default function SimpleInput({
 
                 <View>
                     <TextInput
-                        style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }, transparent && { backgroundColor: 'transparent', borderWidth: 0 }, { fontSize: fontSize }]}
+                        style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }, transparent && { backgroundColor: 'transparent', borderWidth: 0 }, { fontSize: fontSize, backgroundColor: transparent ? 'transparent' : colors.input, borderColor: colors.border, color: colors.text }]}
                         placeholder={placeholder}
-                        placeholderTextColor={placeholderTextColor}
+                        placeholderTextColor={colors.inputPlaceholder}
                         value={text}
                         onChangeText={handleChange}
                         multiline={multiline}
@@ -128,13 +131,13 @@ export default function SimpleInput({
 
                     {password && (
                         <TouchableOpacity
-                            style={styles.eyeButton}
+                            style={[styles.eyeButton, { backgroundColor: colors.input }]}
                             onPress={() => setShowPassword(!showPassword)}
                         >
                             <MaterialIcons
                                 name={showPassword ? 'visibility' : 'visibility-off'}
                                 size={20}
-                                color="#666"
+                                color={colors.icon}
                             />
                         </TouchableOpacity>
                     )}
@@ -153,14 +156,11 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontFamily: 'Satoshi-Regular',
         marginBottom: 5,
-        color: '#666',
     },
     input: {
         width: '100%',
         height: 48,
-        backgroundColor: '#F1F1F1',
         borderWidth: 1,
-        borderColor: '#00000020',
         borderRadius: 8,
         paddingHorizontal: 12,
         paddingVertical: 10,
@@ -170,9 +170,7 @@ const styles = StyleSheet.create({
     inputMultiline: {
         width: '100%',
         minHeight: 100,
-        backgroundColor: '#F1F1F1',
         borderWidth: 1,
-        borderColor: '#00000020',
         borderRadius: 8,
         paddingHorizontal: 12,
         paddingTop: 10,
@@ -187,11 +185,9 @@ const styles = StyleSheet.create({
         top: '50%',
         transform: [{ translateY: "-50%" }],
         padding: 8,
-        backgroundColor: '#F1F1F1',
     },
     skeleton: {
         width: '100%',
-        backgroundColor: '#E8E8E8',
         borderRadius: 8,
         borderWidth: 1,
         borderColor: '#00000020',        

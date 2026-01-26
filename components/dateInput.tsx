@@ -99,10 +99,11 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
                             animatedTodayButtonStyle,
                             {
                                 overflow: 'hidden',
+                                backgroundColor: colors.border,
                             }
                         ]}
                     >
-                        <Text style={[styles.todayButtonText, { color: colors.button }]}>Retour à aujourd'hui</Text>
+                        <Text style={[styles.todayButtonText, { color: colors.buttonText }]}>Retour à aujourd'hui</Text>
                     </Animated.View>
                 </TouchableOpacity>
             }
@@ -122,7 +123,7 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
                     >
                         <View style={styles.datePickerContainer}>
                             <View
-                                style={styles.datePickerContent}
+                                style={[styles.datePickerContent, { backgroundColor: colors.card }]}
                                 onTouchEnd={(e) => e.stopPropagation()}
                             >
                                 <DateTimePicker
@@ -184,7 +185,6 @@ const styles = StyleSheet.create({
         alignSelf: "flex-end",
         paddingHorizontal: 12,
         borderRadius: 15,
-        backgroundColor: "#272727ff",
         marginTop: 8,
         alignItems: "center",
         justifyContent: "center",
@@ -205,7 +205,6 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     datePickerContent: {
-        backgroundColor: "white",
         paddingBottom: 10,
         borderRadius: 10,
         marginLeft: "auto",

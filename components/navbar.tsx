@@ -61,6 +61,7 @@ export default function Navbar() {
                     <View
                         style={[
                             styles.navbar,
+                            { backgroundColor: colors.actionButton, borderColor: colors.border }
                         ]}
                     >
                         {tabs.map((tab) => {
@@ -83,7 +84,7 @@ export default function Navbar() {
                         })}
                     </View>
                     <TouchableOpacity
-                        style={styles.addButton}
+                        style={[styles.addButton, { backgroundColor: colors.actionButton, borderColor: colors.border }]}
                         onPress={() => handleNavigation("add")}
                         activeOpacity={0.7}
                     >
@@ -141,7 +142,6 @@ const styles = StyleSheet.create({
         width: "50%",
         alignSelf: "center",
         borderRadius: 100,
-        backgroundColor: "#272727ff",
     },
     tabButton: {
         alignItems: "center",
@@ -154,8 +154,8 @@ const styles = StyleSheet.create({
         width: 48,
         height: 48,
         borderRadius: 28,
-        backgroundColor: "#272727ff",
         alignItems: "center",
         justifyContent: "center",
+        borderWidth: 1,
     },
 });

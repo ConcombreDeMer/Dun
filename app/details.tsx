@@ -565,7 +565,7 @@ export default function Details() {
 
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View
-        style={styles.card}
+        style={[styles.card, { backgroundColor: colors.card }]}
       >
         <View style={styles.scrollContent}>
           <SimpleInput
@@ -581,8 +581,8 @@ export default function Details() {
 
           {!name.trim() && (
             <View
-              style={styles.nameAlert}>
-              <Text style={{ color: "#A10606" }}>Le nom de la tâche est requis</Text>
+              style={[styles.nameAlert, { backgroundColor: colors.danger }]}>
+              <Text style={{ color: colors.dangerText }}>Le nom de la tâche est requis</Text>
             </View>
           )}
 
@@ -597,7 +597,7 @@ export default function Details() {
           />
 
         </View>
-        <Text style={{ color: '#383838ff', fontSize: 12, alignSelf: "center" }}>
+        <Text style={[{ color: colors.textSecondary, fontSize: 12, alignSelf: "center" }]}>
           Dernière mise à jour : {formatLastUpdateDate(taskQuery.data ? new Date(taskQuery.data.last_update_date) : last_update_date)}
         </Text>
 
@@ -637,7 +637,6 @@ const styles = StyleSheet.create({
 
 
   nameAlert: {
-    backgroundColor: "#F7C1C1",
     fontSize: 14,
     position: "absolute",
     top: 0,
@@ -668,7 +667,6 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: "#ffffffff",
     borderRadius: 30,
     width: "90%",
     height: "80%",
@@ -676,8 +674,6 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
-    // borderColor: "#00000020",
-    // borderWidth: 1,
     marginTop: 80,
     paddingBottom: 70,
   },

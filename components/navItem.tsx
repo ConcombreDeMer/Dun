@@ -1,7 +1,6 @@
 import { getImageSource } from '@/lib/imageHelper';
-import { View, TouchableOpacity, Text, Image } from 'react-native';
 import { useTheme } from '@/lib/ThemeContext';
-import { StyleSheet } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface NavItemProps {
     image?: any;
@@ -10,21 +9,21 @@ interface NavItemProps {
 }
 
 export default function NavItem({ image, title, onPress }: NavItemProps) {
-    const { theme } = useTheme();
+    const { theme, colors } = useTheme();
     return (
-        <TouchableOpacity style={styles.container} onPress={onPress}>
+        <TouchableOpacity style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={onPress}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 {image &&
                     <Image
-                        style={{ width: 26, height: 26, tintColor: '#000000' }}
+                        style={{ width: 26, height: 26, tintColor: colors.text }}
                         source={getImageSource(image, theme)}
                     ></Image>
                 }
-                {title && <Text style={styles.label}>{title}</Text>}
+                {title && <Text style={[styles.label, { color: colors.text }]}>{title}</Text>}
             </View>
             <View>
                 <Image
-                    style={{ width: 29, height: 29, transform: [{ rotate: '-90deg' }] }}
+                    style={{ width: 29, height: 29, transform: [{ rotate: '-90deg' }], tintColor: colors.text }}
                     source={getImageSource("chevron", theme)}
                 ></Image>
             </View>
@@ -37,10 +36,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#F1F1F1',
         height: 64,
         borderRadius: 10,
         paddingHorizontal: 23,
+        borderWidth: 0.5,
     },
     label: {
         fontSize: 16,

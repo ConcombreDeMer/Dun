@@ -15,7 +15,7 @@ export default function SecondaryButton({ onPress, image, title }: SecondaryButt
 
     return (
         <View>
-            <TouchableOpacity style={styles.button} onPress={onPress}>
+            <TouchableOpacity style={[styles.button, { backgroundColor: colors.input, borderColor: colors.border }]} onPress={onPress}>
                 <View style={styles.content}>
                     {image &&
                         <Image
@@ -25,7 +25,7 @@ export default function SecondaryButton({ onPress, image, title }: SecondaryButt
                     }
                 </View>
             </TouchableOpacity>
-            {title && <Text style={styles.title}>{title}</Text>}
+            {title && <Text style={[styles.title, { color: colors.text }]}>{title}</Text>}
         </View>
     );
 }
@@ -36,10 +36,8 @@ const styles = StyleSheet.create({
         aspectRatio: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#00000020',
         borderRadius: 24,
         borderWidth: 0.5,
-        borderColor: '#00000030',
     },
     content: {
         justifyContent: 'center',
