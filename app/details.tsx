@@ -591,10 +591,13 @@ export default function Details() {
             onChangeText={setDescription}
             placeholder="Insérer une description"
             multiline
-            style={{ overflow: "hidden", textAlignVertical: "top", height: '95%' }}
+            style={{ overflow: "hidden", textAlignVertical: "top", height: '95%',     boxShadow: "inset 0px -25px 29px -10px #f5f5f5" }}
             transparent
             fontSize={18}
           />
+
+
+
 
         </View>
         <Text style={[{ color: colors.textSecondary, fontSize: 12, alignSelf: "center" }]}>
@@ -604,6 +607,7 @@ export default function Details() {
         <View style={styles.bottom}>
           <PrimaryButton
             size="XS"
+            width={48}
             type="danger"
             image="delete"
             onPress={handleDeleteTask}
@@ -619,7 +623,7 @@ export default function Details() {
           <AnimatedCheckbox
             checked={isDone}
             onChange={handleToggleTask}
-            size={64}
+            size={48}
           />
         </View>
 
@@ -634,6 +638,23 @@ export default function Details() {
 }
 
 const styles = StyleSheet.create({
+
+
+  // shadow : {
+  //   shadowColor: "#000",
+  //   shadowOffset: {
+  //     width: 0,
+  //     height: 2,
+  //   },
+  //   shadowOpacity: 0.25,
+  //   shadowRadius: 3.84,
+  //   elevation: 5,
+  //   width: "100%",
+  //   height: 1,
+  //   backgroundColor: "#00000010",
+  //   position: "absolute",
+  //   bottom: 0,
+  // },
 
 
   nameAlert: {
@@ -654,8 +675,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "flex-end",
     width: "100%",
+    // backgroundColor: "#a1232338",
     paddingHorizontal: 10,
-    paddingBottom: 10,
   },
 
   container: {
@@ -669,13 +690,13 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 30,
     width: "90%",
-    height: "80%",
+    height: "75%",
     alignSelf: "center",
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
     marginTop: 80,
-    paddingBottom: 70,
+    paddingBottom: 10,
   },
 
 
@@ -687,9 +708,10 @@ const styles = StyleSheet.create({
   scrollContent: {
     display: "flex",
     flexDirection: "column",
-    height: "98%",
+    height: "85%",
     paddingHorizontal: 10,
     overflow: "hidden",
+    
   },
 
 });

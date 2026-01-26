@@ -13,15 +13,16 @@ interface PrimaryButtonProps {
     size?: 'L' | 'M' | 'S' | 'XS';
     style?: ViewStyle;
     type?: 'danger' | 'reverse'
+    width?: number;
 }
 
-export default function PrimaryButton({ title, onPress, disabled = false, image = '', size = 'L', style, type }: PrimaryButtonProps) {
+export default function PrimaryButton({ title, onPress, disabled = false, image = '', size = 'L', style, type, width }: PrimaryButtonProps) {
     const { colors, theme } = useTheme();
 
     const getButtonStyle = () => {
         let baseStyle: any = {
             backgroundColor: colors.actionButton,
-            width: '100%',
+            width:'100%',
             height: 64,
             borderRadius: 30,
             alignItems: 'center',
@@ -33,7 +34,7 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
         if (size === 'S') baseStyle.width = '50%';
         if (size === 'M') baseStyle.width = '80%';
         if (size === 'XS') {
-            baseStyle = { ...baseStyle, width: 64, height: 64, aspectRatio: 1 };
+            baseStyle = { ...baseStyle, width: 64, aspectRatio: 1 };
         }
 
         if (type === 'danger') {
@@ -46,6 +47,11 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
 
         if (disabled) {
             baseStyle.opacity = 0.5;
+        }
+
+        // Appliquer le height personnalisé en dernier pour qu'il soit prioritaire
+        if (width) {
+            baseStyle.width = width;
         }
 
         return baseStyle;
