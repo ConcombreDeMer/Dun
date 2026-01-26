@@ -1,7 +1,7 @@
 import { BlurView } from 'expo-blur';
 import { SFSymbol, SymbolView } from 'expo-symbols';
 import { StyleSheet, Text, View } from "react-native";
-import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { useTheme } from '../lib/ThemeContext';
 import PrimaryButton from './primaryButton';
 
@@ -33,15 +33,17 @@ export default function PopUpModal({
         isVisible &&
 
         <Animated.View
-            entering={FadeInDown.springify().duration(500)}
-            exiting={FadeOutDown.springify().duration(500)}
-            style={{width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, justifyContent: 'center', alignItems: 'center', zIndex: 1000}}
+            entering={FadeIn.springify().duration(500)}
+            exiting={FadeOut.springify().duration(500)}
+            style={{ width: '100%', height: '100%', position: 'absolute', bottom: 0, left: 0, justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}
         >
 
-            <BlurView intensity={20} style={[styles.container, { backgroundColor: colors.background + '80' }]}>
+            <BlurView intensity={20} style={[styles.container, { backgroundColor: colors.text + '80' }]}>
 
-                <View
-                    style={[styles.modal, { backgroundColor: colors.card }]}
+                <Animated.View
+                    entering={SlideInDown.springify().duration(900)}
+                    exiting={SlideOutDown.springify().duration(900)}
+                    style={[styles.modal, { backgroundColor: colors.card, borderColor: colors.border }]}
                 >
 
                     <SymbolView
@@ -97,7 +99,7 @@ export default function PopUpModal({
 
                     </View>
 
-                </View>
+                </Animated.View>
 
             </BlurView>
         </Animated.View>
@@ -125,7 +127,8 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         paddingVertical: 20,
         paddingHorizontal: 20,
-        marginBottom: 10
+        marginBottom: 10,
+        borderWidth: 1,
     },
 
     symbol: {

@@ -138,7 +138,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         display: "flex",
         height: 48,
-        borderWidth: 1,
         width: "50%",
         alignSelf: "center",
         borderRadius: 100,
@@ -156,6 +155,5 @@ const styles = StyleSheet.create({
         borderRadius: 28,
         alignItems: "center",
         justifyContent: "center",
-        borderWidth: 1,
     },
 });

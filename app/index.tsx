@@ -1,4 +1,5 @@
 import CalendarComponent from "@/components/calendar";
+import PopUpTask from "@/components/popUpTask";
 import ProgressBar from "@/components/progressBar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
@@ -25,6 +26,8 @@ export default function Index() {
   const { colors, theme } = useTheme();
   const setStoreDate = useStore((state) => state.setSelectedDate);
   const [progress, setProgress] = useState(0);
+  const [isTaskOpen, setIsTaskOpen] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -132,7 +135,7 @@ export default function Index() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['days'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks', selectedDate.toISOString().split('T')[0]]});
+      queryClient.invalidateQueries({ queryKey: ['tasks', selectedDate.toISOString().split('T')[0]] });
     },
   });
 
@@ -144,7 +147,7 @@ export default function Index() {
     try {
       // Optimistic update : mettre à jour le cache immédiatement
       const previousTasks = queryClient.getQueryData<any[]>(['tasks', dateKey]);
-      
+
       queryClient.setQueryData(
         ['tasks', dateKey],
         previousTasks?.map(task =>
@@ -207,8 +210,19 @@ export default function Index() {
   }, [dateKey, queryClient]);
 
   const handleTaskPress = useCallback((taskId: number) => {
-    router.push(`/details?id=${taskId}`);
+    setSelectedTaskId(taskId);
+    setIsTaskOpen(true);
   }, [router]);
+
+  // useEffect(() => {
+  //   if(selectedTaskId !== null) {
+  //     setIsTaskOpen(true);
+  //   }
+  // }, [selectedTaskId]);
+
+  function closeTaskPopup() {
+    setIsTaskOpen(false);
+  }
 
   const handlePlaceholderIndexChange = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -273,7 +287,15 @@ export default function Index() {
           )}
         </View>
 
+
+
       </View>
+      {isTaskOpen && (
+        <PopUpTask
+          id={selectedTaskId!}
+          onClose={closeTaskPopup}
+        />
+      )}
     </GestureHandlerRootView>
   );
 }
