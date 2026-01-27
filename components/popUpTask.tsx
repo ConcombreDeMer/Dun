@@ -635,7 +635,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                                             onChangeText={setDescription}
                                             placeholder="Insérer une description"
                                             multiline
-                                            style={{ overflow: "hidden", textAlignVertical: "top", height: '95%', boxShadow: "inset 0px -25px 29px -10px #f5f5f5" }}
+                                            style={{ overflow: "hidden", textAlignVertical: "top", height: '95%', boxShadow: `inset 0px -25px 29px -10px ${colors.card}` }}
                                             transparent
                                             fontSize={18}
                                         />
