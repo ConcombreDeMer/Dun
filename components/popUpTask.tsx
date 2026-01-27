@@ -4,7 +4,7 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Alert, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
 import { useTheme } from "../lib/ThemeContext";
 import AnimatedCheckbox from "./checkboxAnimated";
@@ -28,6 +28,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
     const [isDone, setIsDone] = useState(false);
     const queryClient = useQueryClient();
     const initialDate = task && task.date ? new Date(task.date) : new Date();
+    const LottieView = require("lottie-react-native").default;
 
 
 
@@ -452,7 +453,9 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
             } catch (error) {
                 console.error("Erreur:", error);
             } finally {
-                setLoading(false);
+                // setTimeout(() => {
+                    setLoading(false);
+                // }, 5000);
             }
         };
 
@@ -597,7 +600,12 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                                 <View
                                     style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, justifyContent: "center", alignItems: "center", zIndex: 10 }}
                                 >
-                                    <ActivityIndicator size="large" color={colors.text} />
+                                    <LottieView
+                                        source={require("../assets/animations/loading.json")}
+                                        autoPlay
+                                        loop={true}
+                                        style={styles.lottieAnimation}
+                                    />
                                 </View>
 
                             )
@@ -760,6 +768,11 @@ const styles = StyleSheet.create({
         paddingTop: 10,
         overflow: "hidden",
 
+    },
+
+    lottieAnimation: {
+        width: 150,
+        height: 150,
     },
 
 });
