@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePathname } from 'expo-router';
 import React, { createContext, ReactNode, useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
+import { supabase } from './supabase';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -106,6 +107,28 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
     const loadTheme = async () => {
         try {
+            // Vérifier si l'utilisateur est connecté
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (user) {
+                // Charger le thème depuis Supabase
+                const { data, error } = await supabase
+                    .from('Profiles')
+                    .select('display_theme')
+                    .eq('id', user.id)
+                    .single();
+                
+                if (error) {
+                    console.error('Erreur lors du chargement du thème depuis Supabase:', error);
+                }
+                
+                if (data && (data.display_theme === 'light' || data.display_theme === 'dark' || data.display_theme === 'system')) {
+                    setTheme(data.display_theme as Theme);
+                    return;
+                }
+            }
+            
+            // Sinon, charger depuis AsyncStorage
             const savedTheme = await AsyncStorage.getItem('theme');
             if (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') {
                 setTheme(savedTheme as Theme);
@@ -123,8 +146,23 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
     const saveTheme = async (newTheme: Theme) => {
         try {
+            // Toujours sauvegarder dans AsyncStorage
             await AsyncStorage.setItem('theme', newTheme);
             setTheme(newTheme);
+            
+            // Sauvegarder dans Supabase si l'utilisateur est connecté
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (user) {
+                const { error } = await supabase
+                    .from('Profiles')
+                    .update({ display_theme: newTheme })
+                    .eq('id', user.id);
+                
+                if (error) {
+                    console.error('Erreur lors de la sauvegarde du thème dans Supabase:', error);
+                }
+            }
         } catch (error) {
             console.error('Erreur lors de la sauvegarde du thème:', error);
         }
