@@ -123,7 +123,7 @@ export default function ChangeEmail() {
             >
                 <SecondaryButton
                     onPress={() => router.back()}
-                    image="back"
+                    image="chevron.left"
                 />
             </View>
             {/* Email Icon */}

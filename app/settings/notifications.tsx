@@ -147,7 +147,7 @@ export default function Notifications() {
             >
                 <SecondaryButton
                     onPress={() => router.back()}
-                    image="back"
+                    image="chevron.left"
                 />
                 <Headline title="Notifications" subtitle="Gérer vos alertes" />
             </View>

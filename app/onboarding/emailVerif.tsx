@@ -1,29 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import { getImageSource } from '@/lib/imageHelper';
+import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-    View,
+    Image,
+    Keyboard,
+    Pressable,
+    SafeAreaView,
+    StyleSheet,
     Text,
     TouchableOpacity,
-    StyleSheet,
-    SafeAreaView,
-    ActivityIndicator,
-    Pressable,
-    Keyboard,
+    View
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import * as Linking from 'expo-linking';
-import { useTheme } from '../../lib/ThemeContext';
-import { supabase } from '../../lib/supabase';
 import Animated, {
-    FadeIn,
-    FadeOut,
+    FadeInDown,
     FadeInUp,
     FadeOutDown,
-    ZoomIn,
-    FadeInDown,
+    ZoomIn
 } from 'react-native-reanimated';
-import { getImageSource } from '@/lib/imageHelper';
-import { Image } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { useTheme } from '../../lib/ThemeContext';
+import { supabase } from '../../lib/supabase';
 
 export default function EmailVerificationScreen() {
     const router = useRouter();

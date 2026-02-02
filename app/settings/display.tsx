@@ -1,6 +1,7 @@
 import Headline from "@/components/headline";
 import SecondaryButton from "@/components/secondaryButton";
 import { useRouter } from "expo-router";
+import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import {
     Alert,
@@ -159,7 +160,7 @@ export default function Display() {
             >
                 <SecondaryButton
                     onPress={() => router.back()}
-                    image="back"
+                    image="chevron.left"
                 />
                 <Headline title="Affichage" subtitle="Personnaliser votre interface" />
             </View>
@@ -193,7 +194,7 @@ export default function Display() {
                 </View>
 
                 {/* Display Density Section */}
-                <View style={styles.section}>
+                {/* <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.base }]}>
                         Espacement
                     </Text>
@@ -202,26 +203,7 @@ export default function Display() {
                         <DensityOption density="comfortable" label="Confortable" icon="box" />
                         <DensityOption density="spacious" label="Spacieux" icon="expand" />
                     </View>
-                </View>
-
-                {/* Info Section */}
-                <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
-                    <View
-                        style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: 6,
-                            backgroundColor: colors.button,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
-                    >
-                        <Text style={[styles.infoIcon, { color: colors.buttonText, fontSize: fontSizes.xl }]}>ℹ</Text>
-                    </View>
-                    <Text style={[styles.infoText, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>
-                        Les préférences d'affichage s'appliquent immédiatement
-                    </Text>
-                </View>
+                </View> */}
 
                 {/* About Button */}
                 <TouchableOpacity
@@ -232,18 +214,23 @@ export default function Display() {
                     ]}
                 >
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                        <Image
-                            style={{ width: 24, height: 24, tintColor: colors.text }}
-                            source={getImageSource('info', actualTheme)}
+                        <SymbolView
+                            name={"book.pages"}
+                            style={{ width: 24, height: 24 }}
+                            type="palette"
+                            tintColor={colors.text}
                         />
                         <Text style={[styles.aboutText, { color: colors.text, fontSize: fontSizes.lg }]}>
                             À propos
                         </Text>
                     </View>
-                    <Image
-                        style={{ width: 24, height: 24, tintColor: colors.text }}
-                        source={getImageSource('chevron', actualTheme)}
+                    <SymbolView
+                        name={"ellipsis"}
+                        style={{ width: 24, height: 24 }}
+                        type="palette"
+                        tintColor={colors.text}
                     />
+
                 </TouchableOpacity>
             </ScrollView>
 

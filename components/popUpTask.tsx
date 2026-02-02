@@ -593,7 +593,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                         >
                             <SecondaryButton
                                 onPress={onClose}
-                                image="close"
+                                image="xmark"
                             />
                         </View>
 

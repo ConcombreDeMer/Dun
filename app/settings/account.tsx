@@ -215,7 +215,7 @@ export default function Account() {
             >
                 <SecondaryButton
                     onPress={() => router.back()}
-                    image="back"
+                    image="chevron.left"
                 />
                 <Headline title="Compte" subtitle="Gérer votre compte" />
             </View>

@@ -1,12 +1,12 @@
 import { useFont } from '@/lib/FontContext';
-import { getImageSource } from '@/lib/imageHelper';
+import { SFSymbol, SymbolView } from 'expo-symbols';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../lib/ThemeContext';
 
 interface SecondaryButtonProps {
     onPress?: () => void;
-    image?: string;
+    image?: SFSymbol;
     title?: string;
 }
 
@@ -20,10 +20,12 @@ export default function SecondaryButton({ onPress, image, title }: SecondaryButt
             <TouchableOpacity style={[styles.button, { backgroundColor: colors.input, borderColor: colors.border }]} onPress={onPress}>
                 <View style={styles.content}>
                     {image &&
-                        <Image
-                            style={styles.image}
-                            source={getImageSource(image, theme)}
-                        ></Image>
+                        <SymbolView
+                            name={image}
+                            style={{ width: 24, height: 24, opacity: 0.3 }}
+                            type="palette"
+                            tintColor={colors.text}
+                        />
                     }
                 </View>
             </TouchableOpacity>
