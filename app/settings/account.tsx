@@ -150,6 +150,19 @@ export default function Account() {
             }
             setShowModal(true);
         }
+
+        if( name !== userData?.name) {
+            const { data, error } = await supabase.auth.updateUser(
+                { data: { name: name } }
+            )
+            if (error) {
+                console.error("Erreur lors de la mise à jour du nom d'utilisateur : " + error.message);
+                return;
+            }
+            console.log("Nom d'utilisateur mis à jour avec succès.");
+            setHasChanges(false);
+        }
+
         // updateProfileMutation.mutate();
     }
 

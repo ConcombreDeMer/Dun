@@ -1,9 +1,9 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useColorScheme } from 'react-native';
 import { usePathname } from 'expo-router';
+import React, { createContext, ReactNode, useEffect, useState } from 'react';
+import { useColorScheme } from 'react-native';
 
-export type Theme = 'light' | 'dark';
+export type Theme = 'light' | 'dark' | 'system';
 
 export interface Colors {
     background: string;
@@ -80,6 +80,7 @@ export const darkColors: Colors = {
 };
 interface ThemeContextType {
     theme: Theme;
+    actualTheme: 'light' | 'dark';
     colors: Colors;
     toggleTheme: () => void;
     setTheme: (theme: Theme) => void;
@@ -106,8 +107,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const loadTheme = async () => {
         try {
             const savedTheme = await AsyncStorage.getItem('theme');
-            if (savedTheme === 'light' || savedTheme === 'dark') {
-                setTheme(savedTheme);
+            if (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') {
+                setTheme(savedTheme as Theme);
             } else {
                 // Utiliser le thème système par défaut
                 setTheme(systemTheme === 'dark' ? 'dark' : 'light');
@@ -134,12 +135,21 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         saveTheme(newTheme);
     };
 
-    const colors = isOnboarding ? lightColors : (theme === 'light' ? lightColors : darkColors);
+    const getActualTheme = (t: Theme): 'light' | 'dark' => {
+        if (t === 'system') {
+            return systemTheme === 'dark' ? 'dark' : 'light';
+        }
+        return t;
+    };
+
+    const actualTheme = getActualTheme(theme);
+    const colors = isOnboarding ? lightColors : (actualTheme === 'light' ? lightColors : darkColors);
 
     return (
         <ThemeContext.Provider
             value={{
                 theme,
+                actualTheme,
                 colors,
                 toggleTheme,
                 setTheme: saveTheme,

@@ -1,6 +1,5 @@
 import Headline from "@/components/headline";
 import SecondaryButton from "@/components/secondaryButton";
-import SwitchItem from "@/components/switchItem";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -20,7 +19,7 @@ type DisplayDensity = 'compact' | 'comfortable' | 'spacious';
 
 export default function Display() {
     const router = useRouter();
-    const { theme, toggleTheme, colors } = useTheme();
+    const { theme, actualTheme, toggleTheme, colors, setTheme } = useTheme();
     const [fontSize, setFontSize] = useState<FontSize>('medium');
     const [density, setDensity] = useState<DisplayDensity>('comfortable');
 
@@ -31,9 +30,9 @@ export default function Display() {
         );
     };
 
-    const ThemePreviewBox = ({ previewTheme, title }: { previewTheme: 'light' | 'dark'; title: string }) => {
+    const ThemePreviewBox = ({ previewTheme, title }: { previewTheme: 'light' | 'dark' | 'system'; title: string }) => {
         const isActive = theme === previewTheme;
-        const colors_temp = previewTheme === 'light' ? { bg: '#ffffff', text: '#000000' } : { bg: '#1a1a1a', text: '#ffffff' };
+        const colors_temp = previewTheme === 'light' ? { bg: '#ffffff', text: '#000000' } : previewTheme === 'dark' ? { bg: '#1a1a1a', text: '#ffffff' } : { bg: '#e6e6e6', text: '#3d3d3d' };
 
         return (
             <TouchableOpacity
@@ -41,23 +40,31 @@ export default function Display() {
                     styles.themePreview,
                     {
                         backgroundColor: colors_temp.bg,
-                        borderColor: isActive ? '#000' : '#ccc',
+                        borderColor: isActive ? colors.text : colors.border,
                         borderWidth: isActive ? 2 : 1,
                     },
                 ]}
-                onPress={() => previewTheme !== theme && toggleTheme()}
+                onPress={() => {
+                    if (previewTheme === 'system') {
+                        setTheme('system' as any);
+                    } else if (previewTheme === 'dark') {
+                        setTheme('dark');
+                    } else if (previewTheme === 'light') {
+                        setTheme('light');
+                    }
+                }}
             >
                 <View
                     style={[
                         styles.themePreviewContent,
-                        { backgroundColor: previewTheme === 'light' ? '#f5f5f5' : '#2a2a2a' },
+                        { backgroundColor: previewTheme === 'light' ? '#f5f5f5' : previewTheme === 'dark' ? '#2a2a2a' : '#d8d8d8' },
                     ]}
                 >
                     <View
                         style={{
                             width: '100%',
                             height: 4,
-                            backgroundColor: previewTheme === 'light' ? '#e0e0e0' : '#404040',
+                            backgroundColor: previewTheme === 'light' ? '#e0e0e0' : previewTheme === 'dark' ? '#404040' : '#c8c8c8',
                             borderRadius: 2,
                         }}
                     />
@@ -65,7 +72,7 @@ export default function Display() {
                         style={{
                             width: '70%',
                             height: 3,
-                            backgroundColor: previewTheme === 'light' ? '#e0e0e0' : '#404040',
+                            backgroundColor: previewTheme === 'light' ? '#e0e0e0' : previewTheme === 'dark' ? '#404040' : '#c8c8c8',
                             borderRadius: 2,
                             marginTop: 4,
                         }}
@@ -131,7 +138,7 @@ export default function Display() {
                         height: 24,
                         tintColor: isActive ? colors.buttonText : colors.text,
                     }}
-                    source={getImageSource(icon, theme)}
+                    source={getImageSource(icon, actualTheme)}
                 />
                 <Text
                     style={[
@@ -169,19 +176,8 @@ export default function Display() {
                     <View style={styles.themeContainer}>
                         <ThemePreviewBox previewTheme="light" title="Clair" />
                         <ThemePreviewBox previewTheme="dark" title="Sombre" />
+                        <ThemePreviewBox previewTheme="system" title="Système" />
                     </View>
-                </View>
-
-                {/* Auto Theme Section */}
-                <View style={styles.section}>
-                    <SwitchItem
-                        image="auto"
-                        title="Thème auto"
-                        currentValue={false}
-                    />
-                    <Text style={[styles.helperText, { color: colors.textSecondary }]}>
-                        Utilise les préférences de votre système
-                    </Text>
                 </View>
 
                 {/* Font Size Section */}
@@ -238,7 +234,7 @@ export default function Display() {
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                         <Image
                             style={{ width: 24, height: 24, tintColor: colors.text }}
-                            source={getImageSource('info', theme)}
+                            source={getImageSource('info', actualTheme)}
                         />
                         <Text style={[styles.aboutText, { color: colors.text }]}>
                             À propos
@@ -246,7 +242,7 @@ export default function Display() {
                     </View>
                     <Image
                         style={{ width: 24, height: 24, tintColor: colors.text }}
-                        source={getImageSource('chevron', theme)}
+                        source={getImageSource('chevron', actualTheme)}
                     />
                 </TouchableOpacity>
             </ScrollView>

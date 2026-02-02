@@ -105,7 +105,7 @@ export default function Settings() {
             >
 
                 <NavItem image="profile" title="Compte" onPress={() => router.push(`/settings/account?id=${user.id}`)} />
-                <NavItem image="notification" title="Notifications" onPress={() => router.push("/settings/notifications")} />
+                {/* <NavItem image="notification" title="Notifications" onPress={() => router.push("/settings/notifications")} /> */}
                 <NavItem image="display" title="Affichage" onPress={() => router.push("/settings/display")} />
                 <SwitchItem image="display" title="Mode sombre" event={toggleTheme} currentValue={theme === 'dark'} />
 
