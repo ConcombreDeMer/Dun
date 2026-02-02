@@ -10,7 +10,7 @@ interface NavItemProps {
 }
 
 export default function NavItem({ image, title, onPress }: NavItemProps) {
-    const { theme, colors } = useTheme();
+    const { actualTheme, colors } = useTheme();
     const { fontSizes } = useFont();
     return (
         <TouchableOpacity style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={onPress}>
@@ -18,7 +18,7 @@ export default function NavItem({ image, title, onPress }: NavItemProps) {
                 {image &&
                     <Image
                         style={{ width: 26, height: 26, tintColor: colors.text }}
-                        source={getImageSource(image, theme)}
+                        source={getImageSource(image, actualTheme)}
                     ></Image>
                 }
                 {title && <Text style={[styles.label, { color: colors.text, fontSize: fontSizes.lg }]}>{title}</Text>}
@@ -26,7 +26,7 @@ export default function NavItem({ image, title, onPress }: NavItemProps) {
             <View>
                 <Image
                     style={{ width: 29, height: 29, transform: [{ rotate: '-90deg' }], tintColor: colors.text }}
-                    source={getImageSource("chevron", theme)}
+                    source={getImageSource("chevron", actualTheme)}
                 ></Image>
             </View>
         </TouchableOpacity>

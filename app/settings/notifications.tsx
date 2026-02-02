@@ -25,7 +25,7 @@ interface NotificationSettings {
 
 export default function Notifications() {
     const router = useRouter();
-    const { theme, colors } = useTheme();
+    const { actualTheme, colors } = useTheme();
     const [settings, setSettings] = useState<NotificationSettings>({
         taskReminders: true,
         dailySummary: true,
@@ -114,7 +114,7 @@ export default function Notifications() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
                 <Image
                     style={{ width: 26, height: 26, tintColor: colors.text }}
-                    source={getImageSource(icon, theme)}
+                    source={getImageSource(icon, actualTheme)}
                 />
                 <View style={{ flex: 1 }}>
                     <Text style={[styles.itemTitle, { color: colors.text }]}>
@@ -242,7 +242,7 @@ export default function Notifications() {
                 <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
                     <Image
                         style={{ width: 24, height: 24, tintColor: colors.text }}
-                        source={getImageSource('info', theme)}
+                        source={getImageSource('info', actualTheme)}
                     />
                     <Text style={[styles.infoText, { color: colors.textSecondary }]}>
                         Les paramètres de notification sont stockés localement sur votre appareil.
