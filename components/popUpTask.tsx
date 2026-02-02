@@ -10,6 +10,7 @@ import { useFont } from "../lib/FontContext";
 import { useTheme } from "../lib/ThemeContext";
 import AnimatedCheckbox from "./checkboxAnimated";
 import DateInput from "./dateInput";
+import Loading from "./loading";
 import PrimaryButton from "./primaryButton";
 import SecondaryButton from "./secondaryButton";
 import SimpleInput from "./textInput";
@@ -599,17 +600,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
 
                         {
                             loading && (
-                                <View
-                                    style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, justifyContent: "center", alignItems: "center", zIndex: 10 }}
-                                >
-                                    <LottieView
-                                        source={require("../assets/animations/loading.json")}
-                                        autoPlay
-                                        loop={true}
-                                        style={styles.lottieAnimation}
-                                    />
-                                </View>
-
+                                <Loading />
                             )
 
                         }
