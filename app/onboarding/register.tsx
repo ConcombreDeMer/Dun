@@ -1,42 +1,27 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  ImageBackground,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  Keyboard,
-  Pressable,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { useTheme } from '../../lib/ThemeContext';
-import { supabase } from '../../lib/supabase';
-import Animated, {
-  FadeIn,
-  FadeOut,
-  SlideInUp,
-  SlideOutDown,
-  ZoomIn,
-  ZoomOut,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  FadeInUp,
-  FadeOutDown,
-  FadeInDown,
-} from 'react-native-reanimated';
+import PrimaryButton from '@/components/primaryButton';
+import SimpleInput from '@/components/textInput';
 import { getImageSource } from '@/lib/imageHelper';
-import { Image } from "react-native";
 import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import SimpleInput from '@/components/textInput';
-import PrimaryButton from '@/components/primaryButton';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Image,
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import Animated, {
+  FadeIn,
+  FadeInUp,
+  FadeOut,
+  FadeOutDown
+} from 'react-native-reanimated';
+import { useTheme } from '../../lib/ThemeContext';
+import { supabase } from '../../lib/supabase';
 
 
 export default function Register() {
@@ -410,7 +395,7 @@ export default function Register() {
         >
 
           <PrimaryButton
-            image='back'
+            image='chevron.left'
             onPress={handleBackPress}
             size='S'
           />

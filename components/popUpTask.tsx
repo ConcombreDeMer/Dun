@@ -652,7 +652,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                                             size="XS"
                                             width={48}
                                             type="danger"
-                                            image="delete"
+                                            image="trash.fill"
                                             onPress={handleDeleteTask}
                                         />
 

@@ -1,7 +1,6 @@
-import { Image } from 'expo-image';
+import { SFSymbol, SymbolView } from 'expo-symbols';
 import { StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
 import { useFont } from "../lib/FontContext";
-import { getImageSource } from "../lib/imageHelper";
 import { useTheme } from "../lib/ThemeContext";
 
 
@@ -10,7 +9,7 @@ interface PrimaryButtonProps {
     title?: string;
     onPress: () => void;
     disabled?: boolean;
-    image?: string;
+    image?: SFSymbol | '';
     size?: 'L' | 'M' | 'S' | 'XS';
     style?: ViewStyle;
     type?: 'danger' | 'reverse'
@@ -24,7 +23,7 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
     const getButtonStyle = () => {
         let baseStyle: any = {
             backgroundColor: colors.actionButton,
-            width:'100%',
+            width: '100%',
             height: 64,
             borderRadius: 30,
             alignItems: 'center',
@@ -82,10 +81,12 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
             disabled={disabled}
         >
             {image &&
-                <Image
-                    style={{ width: 29, aspectRatio: 1 }}
-                    source={getImageSource(image, theme)}
-                ></Image>
+                <SymbolView
+                    name={image}
+                    style={{ width: 24, height: 24 }}
+                    type="palette"
+                    tintColor={colors.buttonText}
+                />
             }
             {(size === 'L' || size === 'M' || size === 'S') && <Text style={getTextStyle()}>{title}</Text>}
         </TouchableOpacity>

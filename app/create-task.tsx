@@ -200,7 +200,7 @@ export default function CreateTask() {
             </ScrollView>
 
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf: "center", width: "100%", position: "absolute", bottom: 23 }}>
-                <PrimaryButton size="XS" image="cancel" onPress={handleCancel} />
+                <PrimaryButton size="XS" image="xmark" onPress={handleCancel} />
                 <PrimaryButton size="M" title="Créer la tâche" onPress={handleCreateTask} />
             </View>
 
