@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
+import { useFont } from "../lib/FontContext";
 import { getImageSource } from "../lib/imageHelper";
 import { useTheme } from "../lib/ThemeContext";
 
@@ -18,6 +19,7 @@ interface PrimaryButtonProps {
 
 export default function PrimaryButton({ title, onPress, disabled = false, image = '', size = 'L', style, type, width }: PrimaryButtonProps) {
     const { colors, theme } = useTheme();
+    const { fontSizes } = useFont();
 
     const getButtonStyle = () => {
         let baseStyle: any = {
@@ -60,7 +62,7 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
     const getTextStyle = () => {
         let baseTextStyle: any = {
             color: colors.buttonText,
-            fontSize: 24,
+            fontSize: fontSizes['3xl'],
             fontFamily: 'Satoshi-Regular',
         };
 

@@ -1,3 +1,4 @@
+import { useFont } from '@/lib/FontContext';
 import { getImageSource } from '@/lib/imageHelper';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -12,6 +13,7 @@ interface SecondaryButtonProps {
 export default function SecondaryButton({ onPress, image, title }: SecondaryButtonProps) {
 
     const { colors, theme } = useTheme();
+    const { fontSizes } = useFont();
 
     return (
         <View>
@@ -25,7 +27,7 @@ export default function SecondaryButton({ onPress, image, title }: SecondaryButt
                     }
                 </View>
             </TouchableOpacity>
-            {title && <Text style={[styles.title, { color: colors.text }]}>{title}</Text>}
+            {title && <Text style={[styles.title, { color: colors.text, fontSize: fontSizes.sm }]}>{title}</Text>}
         </View>
     );
 }
@@ -49,7 +51,6 @@ const styles = StyleSheet.create({
         aspectRatio: 1,
     },
     title: {
-        fontSize: 12,
         marginTop: 4,
         fontWeight: '500',
     },

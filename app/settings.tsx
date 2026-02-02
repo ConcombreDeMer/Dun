@@ -9,13 +9,15 @@ import {
     Text,
     View
 } from "react-native";
-import { useTheme } from "../lib/ThemeContext";
+import { useFont } from "../lib/FontContext";
 import { supabase } from "../lib/supabase";
+import { useTheme } from "../lib/ThemeContext";
 
 
 export default function Settings() {
     const router = useRouter();
     const { theme, toggleTheme, colors } = useTheme();
+    const { fontSizes } = useFont();
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
@@ -71,7 +73,7 @@ export default function Settings() {
                         <Text
                             style={{
                                 color: '#fff',
-                                fontSize: 24,
+                                fontSize: fontSizes['2xl'],
                                 fontWeight: '600',
                                 marginBottom: 4,
                             }}
@@ -82,7 +84,7 @@ export default function Settings() {
                         <Text
                             style={{
                                 color: '#fff',
-                                fontSize: 16,
+                                fontSize: fontSizes.lg,
                                 fontWeight: '300',
                                 opacity: 0.8,
                             }}

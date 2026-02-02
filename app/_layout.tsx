@@ -6,6 +6,7 @@ import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import { View } from "react-native";
 import Navbar from "../components/navbar";
+import { FontProvider } from "../lib/FontContext";
 import { supabase } from "../lib/supabase";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 
@@ -188,7 +189,9 @@ function RootLayoutContent() {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <RootLayoutContent />
+      <FontProvider>
+        <RootLayoutContent />
+      </FontProvider>
     </ThemeProvider>
   );
 }

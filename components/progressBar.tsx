@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
+import { useFont } from '../lib/FontContext';
 import { useTheme } from '../lib/ThemeContext';
 
 export default function ProgressBar({ progress }: {
     progress: number;
 }) {
     const { colors } = useTheme();
+    const { fontSizes } = useFont();
     const animatedWidth = useRef(new Animated.Value(progress)).current;
 
     useEffect(() => {
@@ -32,7 +34,7 @@ export default function ProgressBar({ progress }: {
                     style={[styles.filler, { width: widthInterpolation, backgroundColor: colors.text }]}
                 />
             </View>
-            <Text style={[styles.label, { color: colors.text }]}>
+            <Text style={[styles.label, { color: colors.text, fontSize: fontSizes.lg }]}>
                 {Math.round(progress)}%
             </Text>
         </View>
@@ -63,7 +65,6 @@ const styles = StyleSheet.create({
     },
     label: {
         fontWeight: '300',
-        fontSize: 16,
         width: '15%',
         textAlign: 'right',
     },

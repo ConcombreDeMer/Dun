@@ -1,4 +1,5 @@
-import { Text, View, StyleSheet } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { useFont } from "../lib/FontContext";
 import { useTheme } from "../lib/ThemeContext";
 
 interface HeadlineProps {
@@ -8,13 +9,14 @@ interface HeadlineProps {
 
 export default function Headline({ title, subtitle }: HeadlineProps) {
     const { colors } = useTheme();
+    const { fontSizes } = useFont();
 
     return (
         <View style={{ marginBottom: 0 }}>
-            <Text style={[styles.title, { color: colors.text }]}>
+            <Text style={[styles.title, { color: colors.text, fontSize: fontSizes['6xl'] }]}>
                 {title}
             </Text>
-            <Text style={[styles.subtitle, { color: colors.text }]}>
+            <Text style={[styles.subtitle, { color: colors.text, fontSize: fontSizes['2xl'] }]}>
                 {subtitle}
             </Text>
         </View>
@@ -23,12 +25,10 @@ export default function Headline({ title, subtitle }: HeadlineProps) {
 
 const styles = StyleSheet.create({
     title: {
-        fontSize: 44,
         fontFamily: 'Satoshi-Bold',
     },
 
     subtitle: {
-        fontSize: 20,
         marginLeft: 5,
         marginTop: -10,
         fontFamily: 'Satoshi-Regular',

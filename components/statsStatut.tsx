@@ -1,3 +1,4 @@
+import { useFont } from "@/lib/FontContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { Image, StyleSheet, Text, View } from "react-native";
 
@@ -8,6 +9,7 @@ interface StatsStatutProps {
 export default function StatsStatut({ value }: StatsStatutProps) {
 
     const { colors } = useTheme();
+    const { fontSizes } = useFont();
 
     const getImageSource = () => {
         const imageMap: { [key: string]: any } = {
@@ -68,8 +70,8 @@ export default function StatsStatut({ value }: StatsStatutProps) {
 
             <Image source={getImageSource()} style={styles.image} />
             <View style={styles.textContainer}>
-                <Text style={[styles.title, { color: colors.text }]}>{value}</Text>
-                <Text style={[styles.description, { color: colors.textSecondary }]}>{getDescription()}</Text>
+                <Text style={[styles.title, { color: colors.text, fontSize: fontSizes['2xl'] }]}>{value}</Text>
+                <Text style={[styles.description, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>{getDescription()}</Text>
             </View>
 
         </View>
@@ -103,11 +105,9 @@ const styles = StyleSheet.create({
         textAlign: 'left',
     },
     title: {
-        fontSize: 22,
         fontWeight: '500',
     },
     description: {
-        fontSize: 12,
         fontWeight: '300',
     },
 });

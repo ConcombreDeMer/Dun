@@ -11,16 +11,16 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { useTheme } from "../../lib/ThemeContext";
+import { useFont, type FontSize } from "../../lib/FontContext";
 import { getImageSource } from "../../lib/imageHelper";
+import { useTheme } from "../../lib/ThemeContext";
 
-type FontSize = 'small' | 'medium' | 'large';
 type DisplayDensity = 'compact' | 'comfortable' | 'spacious';
 
 export default function Display() {
     const router = useRouter();
     const { theme, actualTheme, toggleTheme, colors, setTheme } = useTheme();
-    const [fontSize, setFontSize] = useState<FontSize>('medium');
+    const { fontSize, setFontSize, fontSizes } = useFont();
     const [density, setDensity] = useState<DisplayDensity>('comfortable');
 
     const handleAbout = () => {
@@ -78,7 +78,7 @@ export default function Display() {
                         }}
                     />
                 </View>
-                <Text style={[styles.themeTitle, { color: colors_temp.text }]}>
+                <Text style={[styles.themeTitle, { color: colors_temp.text, fontSize: fontSizes.base }]}>
                     {title}
                 </Text>
                 {isActive && (
@@ -143,7 +143,7 @@ export default function Display() {
                 <Text
                     style={[
                         styles.densityLabel,
-                        { color: isActive ? colors.buttonText : colors.text },
+                        { color: isActive ? colors.buttonText : colors.text, fontSize: fontSizes.lg },
                     ]}
                 >
                     {label}
@@ -170,7 +170,7 @@ export default function Display() {
             >
                 {/* Theme Section */}
                 <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.base }]}>
                         Thème
                     </Text>
                     <View style={styles.themeContainer}>
@@ -182,7 +182,7 @@ export default function Display() {
 
                 {/* Font Size Section */}
                 <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.base }]}>
                         Taille du texte
                     </Text>
                     <View style={styles.optionGroup}>
@@ -194,7 +194,7 @@ export default function Display() {
 
                 {/* Display Density Section */}
                 <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.base }]}>
                         Espacement
                     </Text>
                     <View style={styles.densityGroup}>
@@ -216,9 +216,9 @@ export default function Display() {
                             justifyContent: 'center',
                         }}
                     >
-                        <Text style={[styles.infoIcon, { color: colors.buttonText }]}>ℹ</Text>
+                        <Text style={[styles.infoIcon, { color: colors.buttonText, fontSize: fontSizes.xl }]}>ℹ</Text>
                     </View>
-                    <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                    <Text style={[styles.infoText, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>
                         Les préférences d'affichage s'appliquent immédiatement
                     </Text>
                 </View>
@@ -236,7 +236,7 @@ export default function Display() {
                             style={{ width: 24, height: 24, tintColor: colors.text }}
                             source={getImageSource('info', actualTheme)}
                         />
-                        <Text style={[styles.aboutText, { color: colors.text }]}>
+                        <Text style={[styles.aboutText, { color: colors.text, fontSize: fontSizes.lg }]}>
                             À propos
                         </Text>
                     </View>
@@ -271,7 +271,6 @@ const styles = StyleSheet.create({
     },
 
     sectionTitle: {
-        fontSize: 14,
         fontWeight: "600",
         fontFamily: "Satoshi-Bold",
         textTransform: "uppercase",
@@ -279,7 +278,6 @@ const styles = StyleSheet.create({
     },
 
     helperText: {
-        fontSize: 13,
         fontFamily: "Satoshi-Regular",
         marginLeft: 12,
     },
@@ -327,7 +325,6 @@ const styles = StyleSheet.create({
 
     checkmarkIcon: {
         color: "#fff",
-        fontSize: 14,
         fontWeight: "bold",
     },
 
@@ -366,7 +363,6 @@ const styles = StyleSheet.create({
     },
 
     densityLabel: {
-        fontSize: 16,
         fontWeight: "600",
         fontFamily: "Satoshi-Bold",
     },
@@ -381,12 +377,10 @@ const styles = StyleSheet.create({
     },
 
     infoIcon: {
-        fontSize: 18,
         fontWeight: "bold",
     },
 
     infoText: {
-        fontSize: 13,
         fontFamily: "Satoshi-Regular",
         flex: 1,
         lineHeight: 18,
@@ -402,7 +396,6 @@ const styles = StyleSheet.create({
     },
 
     aboutText: {
-        fontSize: 16,
         fontWeight: "600",
         fontFamily: "Satoshi-Bold",
     },

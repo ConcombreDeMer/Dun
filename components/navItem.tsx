@@ -1,3 +1,4 @@
+import { useFont } from '@/lib/FontContext';
 import { getImageSource } from '@/lib/imageHelper';
 import { useTheme } from '@/lib/ThemeContext';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -10,6 +11,7 @@ interface NavItemProps {
 
 export default function NavItem({ image, title, onPress }: NavItemProps) {
     const { theme, colors } = useTheme();
+    const { fontSizes } = useFont();
     return (
         <TouchableOpacity style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={onPress}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -19,7 +21,7 @@ export default function NavItem({ image, title, onPress }: NavItemProps) {
                         source={getImageSource(image, theme)}
                     ></Image>
                 }
-                {title && <Text style={[styles.label, { color: colors.text }]}>{title}</Text>}
+                {title && <Text style={[styles.label, { color: colors.text, fontSize: fontSizes.lg }]}>{title}</Text>}
             </View>
             <View>
                 <Image
@@ -42,7 +44,6 @@ const styles = StyleSheet.create({
         borderWidth: 0.5,
     },
     label: {
-        fontSize: 16,
         fontFamily: 'Satoshi-Regular',
     },
 

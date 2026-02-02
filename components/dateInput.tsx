@@ -9,6 +9,7 @@ import {
     View,
 } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { useFont } from "../lib/FontContext";
 import { useTheme } from "../lib/ThemeContext";
 
 interface DateInputProps {
@@ -32,6 +33,7 @@ const isSameDay = (date1: Date, date2: Date): boolean => {
 export default function DateInput({ value, onChange, disabled = false, label, bold = false, showTodayButton = false }: DateInputProps) {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const { colors } = useTheme();
+    const { fontSizes } = useFont();
 
     // Animation pour la hauteur du bouton "Retour à aujourd'hui"
     const todayButtonHeightValue = useSharedValue(0);
@@ -68,7 +70,7 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
     return (
         <View style={styles.dateContainer}>
             {label &&
-                <Text style={[styles.label, { color: colors.text }]}>
+                <Text style={[styles.label, { color: colors.text, fontSize: fontSizes['2xl'] }]}>
                     {label}
                 </Text>
             }
@@ -77,11 +79,11 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
                 onPress={() => setShowDatePicker(true)}
                 disabled={disabled}
             >
-                <Text style={[styles.dateButtonText, { color: colors.text, fontWeight: bold ? '400' : '200' }]}>
+                <Text style={[styles.dateButtonText, { color: colors.text, fontWeight: bold ? '400' : '200', fontSize: fontSizes.lg }]}>
                     {value.toLocaleDateString("fr-FR", {
-                        weekday: "long",
+                        weekday: "short",
                         year: "numeric",
-                        month: "long",
+                        month: "short",
                         day: "numeric",
                     })}
                 </Text>
@@ -103,7 +105,7 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
                             }
                         ]}
                     >
-                        <Text style={[styles.todayButtonText, { color: colors.buttonText }]}>Retour à aujourd'hui</Text>
+                        <Text style={[styles.todayButtonText, { color: colors.buttonText, fontSize: fontSizes.xs }]}>Retour à aujourd'hui</Text>
                     </Animated.View>
                 </TouchableOpacity>
             }
@@ -162,7 +164,6 @@ const styles = StyleSheet.create({
     dateContainer: {
     },
     label: {
-        fontSize: 20,
         fontFamily: "Satoshi-Regular",
         marginBottom: 5,
     },
@@ -175,7 +176,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     dateButtonText: {
-        fontSize: 16,
         fontWeight: "600",
         textTransform: "capitalize",
     },
@@ -190,7 +190,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     todayButtonText: {
-        fontSize: 11,
         fontWeight: "600",
         fontFamily: "Satoshi-Bold",
     },

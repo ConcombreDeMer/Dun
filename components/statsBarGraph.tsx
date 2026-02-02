@@ -1,3 +1,4 @@
+import { useFont } from "@/lib/FontContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStore } from "@/store/store";
 import { useQueryClient } from "@tanstack/react-query";
@@ -28,6 +29,7 @@ type Day = {
 export default function StatsBarGraph({ daysData }: StatsBarGraphProps) {
   const { width: screenWidth } = useWindowDimensions();
   const { colors } = useTheme();
+  const { fontSizes } = useFont();
   const itemWidth = screenWidth * 0.9; // 90% of screen width
   const barWidth = (itemWidth * 0.5) / 7; // 85% of itemWidth divided by 7 days
 
@@ -153,7 +155,7 @@ export default function StatsBarGraph({ daysData }: StatsBarGraphProps) {
     return (
       <View style={[weekStyles.weekContainer, { width: itemWidth }]}>
         <Text
-          style={{ fontSize: 16, fontWeight: '300', color: colors.textSecondary, paddingVertical: 8 }}
+          style={{ fontSize: fontSizes.lg, fontWeight: '300', color: colors.textSecondary, paddingVertical: 8 }}
         >
           Semaine du {item.firstDayOfWeek} au {item.lastDayOfWeek}
         </Text>
@@ -167,7 +169,7 @@ export default function StatsBarGraph({ daysData }: StatsBarGraphProps) {
           animationDuration={500}
           isAnimated
           hideYAxisText
-          xAxisLabelTextStyle={{ fontSize: 12, color: colors.text }}
+          xAxisLabelTextStyle={{ fontSize: fontSizes.sm, color: colors.text }}
           onPress={handlePressBar}
           disableScroll
         />

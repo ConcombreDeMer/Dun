@@ -1,3 +1,4 @@
+import { useFont } from "@/lib/FontContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -13,6 +14,7 @@ export default function StatsCardCharge({ image, title, value }: StatsCardProps)
 
     const router = useRouter();
     const { colors } = useTheme();
+    const { fontSizes } = useFont();
 
     const analyzeChargeColor = () => {
         const charge = Number(value);
@@ -43,8 +45,8 @@ export default function StatsCardCharge({ image, title, value }: StatsCardProps)
             style={[styles.container, { borderColor: analyzeChargeColor(), backgroundColor: colors.card }]}
             onTouchEnd={handleExplicationPress}>
             <Image source={image} style={styles.image} />
-            <Text style={[styles.title, { color: colors.textSecondary }]}>{title}</Text>
-            <Text style={[styles.value, { color: colors.text }]}>{value}</Text>
+            <Text style={[styles.title, { color: colors.textSecondary, fontSize: fontSizes.lg }]}>{title}</Text>
+            <Text style={[styles.value, { color: colors.text, fontSize: fontSizes['2xl'] }]}>{value}</Text>
         </View>
     );
 }
@@ -70,14 +72,12 @@ const styles = StyleSheet.create({
         left: 0,
     },
     title: {
-        fontSize: 16,
         fontWeight: '500',
         position: 'absolute',
         bottom: 10,
         left: 15,
     },
     value: {
-        fontSize: 22,
         fontWeight: '500',
         position: 'absolute',
         top: 10,

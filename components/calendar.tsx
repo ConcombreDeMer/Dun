@@ -16,6 +16,7 @@ import Animated, {
     useSharedValue,
     withSpring,
 } from "react-native-reanimated";
+import { useFont } from "../lib/FontContext";
 import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
 import TaskIndicator from "./taskIndicator";
@@ -69,18 +70,18 @@ const isSameDay = (date1: Date, date2: Date): boolean => {
 };
 
 // Composant affichage date en mode collapsed - MEMOIZED
-const CollapsedDateDisplay = memo(({ selectedDate, colors }: any) => {
+const CollapsedDateDisplay = memo(({ selectedDate, colors, fontSizes }: any) => {
     const dateStr = useMemo(() => {
         return selectedDate.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
     }, [selectedDate]);
 
     return (
-        <Text style={[styles.collapsedText, { color: colors.text }]}>
+        <Text style={[styles.collapsedText, { color: colors.text, fontSize: fontSizes['4xl'] }]}>
             {dateStr}
         </Text>
     );
 }, (prev, next) => {
-    return isSameDay(prev.selectedDate, next.selectedDate) && prev.colors === next.colors;
+    return isSameDay(prev.selectedDate, next.selectedDate) && prev.colors === next.colors && prev.fontSizes === next.fontSizes;
 });
 CollapsedDateDisplay.displayName = 'CollapsedDateDisplay';
 
@@ -92,7 +93,8 @@ const DayCell = memo(({
     selectedDate,
     colors,
     taskMap,
-    onPress
+    onPress,
+    fontSizes
 }: any) => {
     if (dayNumber === null) {
         return <View key={`empty-${index}`} style={styles.emptyDay} />;
@@ -131,6 +133,7 @@ const DayCell = memo(({
                     {
                         color: isSelected ? "black" : "rgba(255, 255, 255, 0.8)",
                         fontWeight: isToday ? "bold" : "normal",
+                        fontSize: fontSizes.lg,
                     },
                 ]}
             >
@@ -153,7 +156,8 @@ const DayCell = memo(({
         prevProps.currentMonth === nextProps.currentMonth &&
         isSameDay(prevProps.selectedDate, nextProps.selectedDate) &&
         prevProps.colors === nextProps.colors &&
-        prevProps.taskMap === nextProps.taskMap
+        prevProps.taskMap === nextProps.taskMap &&
+        prevProps.fontSizes === nextProps.fontSizes
     );
 });
 DayCell.displayName = 'DayCell';
@@ -166,7 +170,8 @@ const SliderDayCell = memo(({
     colors,
     taskInfo,
     onPress,
-    getDayName
+    getDayName,
+    fontSizes
 }: any) => {
 
     return (
@@ -184,7 +189,7 @@ const SliderDayCell = memo(({
             ]}
             onPress={onPress}
         >
-            <Text style={[styles.sliderDayName, { color: colors.button }]}>
+            <Text style={[styles.sliderDayName, { color: colors.button, fontSize: fontSizes.sm }]}>
                 {getDayName(date.getDay())}
             </Text>
             <Text
@@ -192,6 +197,7 @@ const SliderDayCell = memo(({
                     styles.sliderDayNumber,
                     {
                         color: isSelected ? "black" : "white",
+                        fontSize: fontSizes.xl,
                     },
                 ]}
             >
@@ -212,7 +218,8 @@ const SliderDayCell = memo(({
         prevProps.isSelected === nextProps.isSelected &&
         prevProps.isToday === nextProps.isToday &&
         prevProps.colors === nextProps.colors &&
-        prevProps.taskInfo === nextProps.taskInfo
+        prevProps.taskInfo === nextProps.taskInfo &&
+        prevProps.fontSizes === nextProps.fontSizes
     );
 });
 SliderDayCell.displayName = 'SliderDayCell';
@@ -223,6 +230,7 @@ export default function CalendarComponent({
     initialDate,
 }: CalendarProps) {
     const { colors, theme } = useTheme();
+    const { fontSizes } = useFont();
     // Initialiser la date sélectionnée une seule fois
     const [selectedDate, setSelectedDate] = useState<Date>(() => initialDate || new Date());
     const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
@@ -588,11 +596,12 @@ export default function CalendarComponent({
                     selectedDate={selectedDate}
                     colors={colors}
                     taskMap={taskIndicatorByDay}
+                    fontSizes={fontSizes}
                     onPress={() => handleDateSelect(date)}
                 />
             );
         });
-    }, [calendarDays, currentMonth, selectedDate, colors, taskIndicatorByDay, handleDateSelect]);
+    }, [calendarDays, currentMonth, selectedDate, colors, taskIndicatorByDay, fontSizes, handleDateSelect]);
 
     return (
 
@@ -625,6 +634,7 @@ export default function CalendarComponent({
                                         isToday={isToday}
                                         colors={colors}
                                         taskInfo={taskIndicatorByDay[dayKey]}
+                                        fontSizes={fontSizes}
                                         onPress={() => handleDateSelect(date)}
                                         getDayName={getDayName}
                                     />
@@ -650,7 +660,7 @@ export default function CalendarComponent({
                             {/* En-tête du calendrier */}
                             <View style={[styles.header, { borderBottomColor: "rgba(255, 255, 255, 0.2)" }]}>
                                 <TouchableOpacity onPress={previousMonth} style={styles.navButton}>
-                                    <Text style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: 24 }}>←</Text>
+                                    <Text style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: fontSizes.xl }}>←</Text>
                                 </TouchableOpacity>
 
                                 <Text
@@ -658,6 +668,7 @@ export default function CalendarComponent({
                                         styles.monthYear,
                                         {
                                             color: "white",
+                                            fontSize: fontSizes.base,
                                         },
                                     ]}
                                 >
@@ -665,7 +676,7 @@ export default function CalendarComponent({
                                 </Text>
 
                                 <TouchableOpacity onPress={nextMonth} style={styles.navButton}>
-                                    <Text style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: 24 }}>→</Text>
+                                    <Text style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: fontSizes.xl }}>→</Text>
                                 </TouchableOpacity>
                             </View>
 
@@ -678,6 +689,7 @@ export default function CalendarComponent({
                                                 styles.weekDayText,
                                                 {
                                                     color: "rgba(255, 255, 255, 0.6)",
+                                                    fontSize: fontSizes.sm,
                                                 },
                                             ]}
                                         >
@@ -702,7 +714,7 @@ export default function CalendarComponent({
                         </View>
                     </>
                 ) : (
-                    <CollapsedDateDisplay selectedDate={selectedDate} colors={colors} />
+                    <CollapsedDateDisplay selectedDate={selectedDate} colors={colors} fontSizes={fontSizes} />
                 )}
             </Animated.View>
 
@@ -723,7 +735,7 @@ export default function CalendarComponent({
                         }
                     ]}
                 >
-                    <Text style={[styles.todayButtonText, { color: colors.textSecondary }]}>Retour à aujourd'hui</Text>
+                    <Text style={[styles.todayButtonText, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>Retour à aujourd'hui</Text>
                 </Animated.View>
             </TouchableOpacity>
 
@@ -776,7 +788,6 @@ const styles = StyleSheet.create({
         borderRadius: 2,
     },
     collapsedText: {
-        fontSize: 24,
         fontFamily: 'Satoshi-Regular',
         paddingHorizontal: 8,
     },
@@ -795,13 +806,11 @@ const styles = StyleSheet.create({
         height: 80,
     },
     sliderDayName: {
-        fontSize: 12,
         fontWeight: "600",
         fontFamily: "Satoshi-Medium",
         marginBottom: 2,
     },
     sliderDayNumber: {
-        fontSize: 18,
         fontWeight: "600",
         fontFamily: "Satoshi-Bold",
     },
@@ -834,7 +843,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     todayButtonText: {
-        fontSize: 11,
         fontWeight: "600",
         fontFamily: "Satoshi-Bold",
     },
@@ -857,7 +865,6 @@ const styles = StyleSheet.create({
         borderRadius: 6,
     },
     monthYear: {
-        fontSize: 14,
         fontWeight: "600",
         fontFamily: "Satoshi-Bold",
     },
@@ -871,7 +878,6 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
     },
     weekDayText: {
-        fontSize: 12,
         fontWeight: "600",
         fontFamily: "Satoshi-Medium",
     },
@@ -894,7 +900,6 @@ const styles = StyleSheet.create({
         aspectRatio: 1,
     },
     dayText: {
-        fontSize: 16,
         fontWeight: "500",
         fontFamily: "Satoshi-Medium",
     },

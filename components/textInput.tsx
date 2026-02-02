@@ -1,7 +1,10 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { useFont } from '../lib/FontContext';
 import { useTheme } from '../lib/ThemeContext';
+
+type FontSizeKey = 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl';
 
 interface SimpleInputProps {
     name?: string;
@@ -20,7 +23,7 @@ interface SimpleInputProps {
     bold?: boolean;
     transparent?: boolean;
     initialEditable?: boolean;
-    fontSize?: number;
+    fontSize?: FontSizeKey;
     isLoading?: boolean;
 }
 
@@ -40,7 +43,7 @@ export default function SimpleInput({
     password = false,
     bold = false,
     transparent = false,
-    fontSize = 16,
+    fontSize,
     isLoading = false,
 }: SimpleInputProps) {
     const [text, setText] = useState(value);
@@ -48,6 +51,7 @@ export default function SimpleInput({
     const [isEditable, setIsEditable] = useState(true);
     const skeletonOpacity = useRef(new Animated.Value(0.3)).current;
     const { colors } = useTheme();
+    const { fontSizes } = useFont();
 
     useEffect(() => {
         if (isLoading) {
@@ -92,8 +96,8 @@ export default function SimpleInput({
         <View style={[styles.container, containerStyle]}>
 
             <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                {name && <Text style={[styles.label, labelStyle, { color: colors.text }]}>{name}</Text>}
-                {facultatif && <Text style={{ color: colors.textSecondary, fontSize: 14, fontStyle: "italic" }}>(facultatif)</Text>}
+                {name && <Text style={[styles.label, labelStyle, { color: colors.text, fontSize: fontSizes['2xl'] }]}>{name}</Text>}
+                {facultatif && <Text style={{ color: colors.textSecondary, fontSize: fontSizes.sm, fontStyle: "italic" }}>(facultatif)</Text>}
             </View>
 
             {
@@ -115,7 +119,7 @@ export default function SimpleInput({
 
                 <View>
                     <TextInput
-                        style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }, transparent && { backgroundColor: 'transparent', borderWidth: 0 }, { fontSize: fontSize, backgroundColor: transparent ? 'transparent' : colors.input, borderColor: colors.border, color: colors.text }]}
+                        style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }, transparent && { backgroundColor: 'transparent', borderWidth: 0 }, { fontSize: fontSize ? fontSizes[fontSize] : fontSizes.lg, backgroundColor: transparent ? 'transparent' : colors.input, borderColor: colors.border, color: colors.text }]}
                         placeholder={placeholder}
                         placeholderTextColor={colors.inputPlaceholder}
                         value={text}
@@ -153,7 +157,6 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     label: {
-        fontSize: 20,
         fontFamily: 'Satoshi-Regular',
         marginBottom: 5,
     },
@@ -164,7 +167,6 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         paddingHorizontal: 12,
         paddingVertical: 10,
-        fontSize: 16,
         fontWeight: '600',
     },
     inputMultiline: {
@@ -175,7 +177,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingTop: 10,
         paddingBottom: 240,
-        fontSize: 16,
         fontWeight: '600',
         textAlignVertical: 'top',
     },

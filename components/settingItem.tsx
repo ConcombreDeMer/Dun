@@ -1,7 +1,7 @@
+import { useFont } from '@/lib/FontContext';
 import { getImageSource } from '@/lib/imageHelper';
-import { View, TouchableOpacity, Text, Image } from 'react-native';
 import { useTheme } from '@/lib/ThemeContext';
-import { StyleSheet } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface SettingItemProps {
     image?: any;
@@ -14,6 +14,7 @@ interface SettingItemProps {
 
 export default function SettingItem({ image, title, subtitle, onPress, rightContent, type = 'default' }: SettingItemProps) {
     const { theme } = useTheme();
+    const { fontSizes } = useFont();
     const isDanger = type === 'danger';
     const iconTintColor = isDanger ? '#A10606' : '#000000';
     const textColor = isDanger ? '#A10606' : '#000000';
@@ -29,8 +30,8 @@ export default function SettingItem({ image, title, subtitle, onPress, rightCont
                         ></Image>
                     }
                     <View style={{ flex: 1 }}>
-                        {title && <Text style={[styles.label, { color: textColor }]}>{title}</Text>}
-                        {subtitle && <Text style={[styles.subtitle, { color: isDanger ? '#A10606' : '#999' }]}>{subtitle}</Text>}
+                        {title && <Text style={[styles.label, { color: textColor, fontSize: fontSizes.lg }]}>{title}</Text>}
+                        {subtitle && <Text style={[styles.subtitle, { color: isDanger ? '#A10606' : '#999', fontSize: fontSizes.sm }]}>{subtitle}</Text>}
                     </View>
                 </View>
                 {rightContent}
@@ -50,11 +51,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 23,
     },
     label: {
-        fontSize: 16,
         fontFamily: 'Satoshi-Regular',
     },
     subtitle: {
-        fontSize: 13,
         fontFamily: 'Satoshi-Regular',
         color: '#999',
         marginTop: 2,

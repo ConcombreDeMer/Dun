@@ -2,6 +2,7 @@ import * as Haptics from "expo-haptics";
 import { useCallback, useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { useFont } from "../lib/FontContext";
 import { useTheme } from "../lib/ThemeContext";
 
 interface TaskItemProps {
@@ -24,6 +25,7 @@ export const TaskItem = ({
   handleTaskPress,
 }: TaskItemProps) => {
   const { colors } = useTheme();
+  const { fontSizes } = useFont();
   const dotScale = useSharedValue(item.done ? 100 : 1);
   const isExpanded = useSharedValue(item.done);
 
@@ -97,7 +99,7 @@ export const TaskItem = ({
         <View style={styles.taskContent}>
           <Text style={[
             item.done ? styles.taskNameDone : styles.taskName,
-            { color: item.done ? colors.textDone : colors.text }
+            { color: item.done ? colors.textDone : colors.text, fontSize: fontSizes.lg }
           ]}>
             {item.name}
           </Text>
@@ -158,14 +160,12 @@ const styles = StyleSheet.create({
   },
 
   taskName: {
-    fontSize: 16,
     fontFamily: 'Satoshi-Regular',
     zIndex: 1,
     marginLeft: 10,
   },
 
   taskNameDone: {
-    fontSize: 16,
     fontFamily: 'Satoshi-Regular',
     zIndex: 1,
     marginLeft: 10,

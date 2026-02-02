@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
+import { useFont } from "../lib/FontContext";
 import { useTheme } from "../lib/ThemeContext";
 import AnimatedCheckbox from "./checkboxAnimated";
 import DateInput from "./dateInput";
@@ -16,6 +17,7 @@ import SimpleInput from "./textInput";
 
 export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: number }) {
     const { colors } = useTheme();
+    const { fontSizes } = useFont();
     const router = useRouter();
     const { width, height } = useWindowDimensions();
     const [task, setTask] = useState<any>(null);
@@ -576,7 +578,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                     {!loading && !name.trim() && (
                         <View
                             style={[styles.nameAlert, { backgroundColor: colors.danger }]}>
-                            <Text style={{ color: colors.text }}>Le nom de la tâche est requis</Text>
+                            <Text style={{ color: colors.text, fontSize: fontSizes.base }}>Le nom de la tâche est requis</Text>
                         </View>
                     )}
 
@@ -627,7 +629,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                                             transparent
                                             style={{ height: '5%' }}
                                             scale="large"
-                                            fontSize={25}
+                                            fontSize="4xl"
                                         />
 
                                         <SimpleInput
@@ -637,12 +639,11 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                                             multiline
                                             style={{ overflow: "hidden", textAlignVertical: "top", height: '95%', boxShadow: `inset 0px -25px 29px -10px ${colors.card}` }}
                                             transparent
-                                            fontSize={18}
                                         />
 
 
                                     </View>
-                                    <Text style={[{ color: colors.textSecondary, fontSize: 12, alignSelf: "center" }]}>
+                                    <Text style={[{ color: colors.textSecondary, fontSize: fontSizes.xs, alignSelf: "center" }]}>
                                         Dernière mise à jour : {formatLastUpdateDate(taskQuery.data ? new Date(taskQuery.data.last_update_date) : last_update_date)}
                                     </Text>
 
@@ -715,7 +716,6 @@ const styles = StyleSheet.create({
     // },
 
     nameAlert: {
-        fontSize: 14,
         position: "absolute",
         top: 0,
         paddingHorizontal: 10,
@@ -756,7 +756,6 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     title: {
-        fontSize: 55,
         fontFamily: 'Satoshi-Black',
     },
 

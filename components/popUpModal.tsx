@@ -2,6 +2,7 @@ import { BlurView } from 'expo-blur';
 import { SFSymbol, SymbolView } from 'expo-symbols';
 import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import { useFont } from '../lib/FontContext';
 import { useTheme } from '../lib/ThemeContext';
 import PrimaryButton from './primaryButton';
 
@@ -27,6 +28,7 @@ export default function PopUpModal({
     symbolName = 'mail'
 }: PopUpModalProps) {
     const { colors } = useTheme();
+    const { fontSizes } = useFont();
 
     return (
 
@@ -63,14 +65,14 @@ export default function PopUpModal({
                         }}
                     >
                         <Text
-                            style={[styles.title, { color: colors.text }]}
+                            style={[styles.title, { color: colors.text, fontSize: fontSizes['2xl'] }]}
                         >
                             {title}
                         </Text>
 
 
                         <Text
-                            style={[styles.message, { color: colors.textSecondary }]}
+                            style={[styles.message, { color: colors.textSecondary, fontSize: fontSizes.base }]}
                         >
                             {message}
                         </Text>
@@ -137,12 +139,10 @@ const styles = StyleSheet.create({
     },
 
     title: {
-        fontSize: 20,
         fontWeight: '600',
     },
 
     message: {
-        fontSize: 14,
         textAlign: 'center',
     },
 

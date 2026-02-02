@@ -1,3 +1,4 @@
+import { useFont } from "@/lib/FontContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { useRouter } from "expo-router";
 import { Image, StyleSheet, Text, View } from "react-native";
@@ -7,6 +8,7 @@ export default function StatsStatut({ value }: { value: string }) {
 
     const router = useRouter();
     const { colors } = useTheme();
+    const { fontSizes } = useFont();
     const handleExplicationPress = () => {
         // Logique pour afficher une explication ou une info-bulle
         router.push('/stats/streakExplain');
@@ -19,7 +21,7 @@ export default function StatsStatut({ value }: { value: string }) {
             onTouchEnd={handleExplicationPress}
         >
             <Image source={require('../assets/images/stats/streak/high.png')} style={styles.image} />
-            <Text style={[styles.value, { color: colors.text }]}>
+            <Text style={[styles.value, { color: colors.text, fontSize: fontSizes.lg }]}>
                 <Text style={{fontWeight: '500'}}>{value}</Text>
                 <Text> jours de streak</Text>
             </Text>
@@ -50,7 +52,6 @@ const styles = StyleSheet.create({
     },
 
     value: {
-        fontSize: 16,
         fontWeight: '300',
     },
 });

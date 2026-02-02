@@ -1,3 +1,4 @@
+import { useFont } from '@/lib/FontContext';
 import { getImageSource } from '@/lib/imageHelper';
 import { useTheme } from '@/lib/ThemeContext';
 import { useState } from 'react';
@@ -12,6 +13,7 @@ interface SwitchItemProps {
 
 export default function SwitchItem({ image, title, event, currentValue }: SwitchItemProps) {
     const { theme, colors } = useTheme();
+    const { fontSizes } = useFont();
     const [isEnabled, setIsEnabled] = useState(false);
 
     const toggleSwitch = (value: boolean) => {
@@ -28,7 +30,7 @@ export default function SwitchItem({ image, title, event, currentValue }: Switch
                         source={getImageSource(image, theme)}
                     ></Image>
                 }
-                {title && <Text style={[styles.label, { color: colors.text }]}>{title}</Text>}
+                {title && <Text style={[styles.label, { color: colors.text, fontSize: fontSizes.lg }]}>{title}</Text>}
             </View>
             <Switch
                 trackColor={{ false: "#ccc", true: "#000" }}
@@ -52,7 +54,6 @@ const styles = StyleSheet.create({
         borderWidth: 0.5,
     },
     label: {
-        fontSize: 16,
         fontFamily: 'Satoshi-Regular',
     },
 
