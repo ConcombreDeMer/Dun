@@ -28,7 +28,7 @@ export default function Register() {
 
   const LottieView = require("lottie-react-native").default;
   const router = useRouter();
-  const { colors, theme } = useTheme();
+  const { colors, actualTheme } = useTheme();
   const [showForm, setShowForm] = useState(false);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -368,7 +368,7 @@ export default function Register() {
             exiting={FadeOut.springify()}
           >
             <Image
-              source={getImageSource('success', theme)}
+              source={getImageSource('success', actualTheme)}
               style={{ width: 100, height: 100 }}
             />
             <Text

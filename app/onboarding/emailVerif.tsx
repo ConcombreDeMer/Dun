@@ -23,7 +23,7 @@ import { supabase } from '../../lib/supabase';
 
 export default function EmailVerificationScreen() {
     const router = useRouter();
-    const { colors, theme } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { email } = useLocalSearchParams<{ email: string }>();
 
     const [loading, setLoading] = useState(false);
@@ -111,7 +111,7 @@ export default function EmailVerificationScreen() {
                         style={styles.successIconContainer}
                     >
                         <Image
-                            source={getImageSource('success', theme)}
+                            source={getImageSource('success', actualTheme)}
                             style={styles.successIcon}
                         />
                     </Animated.View>

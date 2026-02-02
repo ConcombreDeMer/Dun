@@ -13,7 +13,7 @@ interface SettingItemProps {
 }
 
 export default function SettingItem({ image, title, subtitle, onPress, rightContent, type = 'default' }: SettingItemProps) {
-    const { theme } = useTheme();
+    const { actualTheme } = useTheme();
     const { fontSizes } = useFont();
     const isDanger = type === 'danger';
     const iconTintColor = isDanger ? '#A10606' : '#000000';
@@ -26,7 +26,7 @@ export default function SettingItem({ image, title, subtitle, onPress, rightCont
                     {image &&
                         <Image
                             style={{ width: 26, height: 26, tintColor: iconTintColor }}
-                            source={getImageSource(image, theme)}
+                            source={getImageSource(image, actualTheme)}
                         ></Image>
                     }
                     <View style={{ flex: 1 }}>
