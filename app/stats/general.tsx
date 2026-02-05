@@ -1,3 +1,5 @@
+import PopUpModal from "@/components/popUpModal";
+import SecondaryButton from "@/components/secondaryButton";
 import StatsBarGraph from "@/components/statsBarGraph";
 import StatsCardCharge from "@/components/statsCardCharge";
 import StatsCardCompletion from "@/components/statsCardCompletion";
@@ -19,6 +21,7 @@ interface StatsData {
 export default function Stats() {
   const { colors } = useTheme();
   const [previousDays, setPreviousDays] = React.useState<any[]>([]);
+  const [showInfoPopUp, setShowInfoPopUp] = React.useState(false);
 
   // FONCTION UNIQUE DE CALCUL DE TOUS LES STATS
   // Cela évite de parcourir previousDays 4 fois et élimine les calculs redondants
@@ -225,6 +228,31 @@ export default function Stats() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+
+      <View
+        style={{ position: 'absolute', top: 70, right: 20, zIndex: 10 }}
+      >
+        <SecondaryButton
+          image='info'
+          onPress={showInfoPopUp ? () => setShowInfoPopUp(false) : () => setShowInfoPopUp(true)}
+        />
+      </View>
+
+      <PopUpModal
+        isVisible={showInfoPopUp}
+        title="À propos des stats"
+        message="Les statistiques sont calculées sur la base des 7 derniers jours. Elles prennent en compte la charge de travail moyenne, le taux de complétion des tâches, la série de jours consécutifs avec toutes les tâches terminées, ainsi qu'un statut global reflétant votre productivité."
+        onCancel={() => setShowInfoPopUp(false)}
+        confirmText="Compris"
+        onConfirm={() => setShowInfoPopUp(false)}
+        withNavbar={true}
+        symbolName="info.circle"
+      />
+
+
+
+
+
       <View
         style={styles.topContainer}
       >
@@ -257,7 +285,6 @@ export default function Stats() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 70,
     display: 'flex',
     gap: 20,
     justifyContent: 'flex-start',
@@ -265,6 +292,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
     height: '100%',
+    paddingTop: 70,
   },
 
   topContainer: {

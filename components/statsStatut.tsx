@@ -70,8 +70,8 @@ export default function StatsStatut({ value }: StatsStatutProps) {
 
             <Image source={getImageSource()} style={styles.image} />
             <View style={styles.textContainer}>
-                <Text style={[styles.title, { color: colors.text, fontSize: fontSizes['2xl'] }]}>{value}</Text>
-                <Text style={[styles.description, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>{getDescription()}</Text>
+                <Text style={[styles.title, { color: colors.text, fontSize: fontSizes['3xl'] }]}>{value}</Text>
+                {/* <Text style={[styles.description, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>{getDescription()}</Text> */}
             </View>
 
         </View>
@@ -81,27 +81,31 @@ export default function StatsStatut({ value }: StatsStatutProps) {
 const styles = StyleSheet.create({
     container: {
         display: 'flex',
-        flexDirection: 'row',
+        flexDirection: 'column',
         justifyContent: 'space-between',
         alignItems: 'center',
         alignSelf: 'center',
-        width: '90%',
-        height: 100,
-        borderRadius: 30,
+        width: '50%',
+        height: 150,
+        // borderTopLeftRadius: 20,
+        // borderTopRightRadius: 20,
+        // borderBottomLeftRadius: 20,
+        // borderBottomRightRadius: 20,
+        borderRadius: 25,
         borderWidth: 0.5,
         paddingHorizontal: 20,
     },
     image: {
-        width: '30%',
+        height: '70%',
         resizeMode: 'contain',
     },
     textContainer: {
         display: 'flex',
         flexDirection: 'column',
         gap: 5,
-        width: '60%',
+        height: '30%',
         justifyContent: 'center',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         textAlign: 'left',
     },
     title: {

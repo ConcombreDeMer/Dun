@@ -15,6 +15,7 @@ interface PopUpModalProps {
     confirmText?: string;
     cancelText?: string;
     symbolName?: SFSymbol;
+    withNavbar?: boolean;
 }
 
 export default function PopUpModal({
@@ -23,9 +24,10 @@ export default function PopUpModal({
     message,
     onConfirm,
     onCancel,
-    confirmText = 'Confirm',
-    cancelText = 'Cancel',
-    symbolName = 'mail'
+    confirmText,
+    cancelText,
+    symbolName,
+    withNavbar = false,
 }: PopUpModalProps) {
     const { colors } = useTheme();
     const { fontSizes } = useFont();
@@ -45,15 +47,22 @@ export default function PopUpModal({
                 <Animated.View
                     entering={SlideInDown.springify().duration(900)}
                     exiting={SlideOutDown.springify().duration(900)}
-                    style={[styles.modal, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    style={[styles.modal, { backgroundColor: colors.card, borderColor: colors.border, paddingTop: 20, paddingBottom: withNavbar ? 100 : 20 }]}
                 >
 
-                    <SymbolView
-                        name={symbolName}
-                        style={styles.symbol}
-                        type="palette"
-                        tintColor={colors.text}
-                    />
+                    {
+                        symbolName && (
+
+                            <SymbolView
+                                name={symbolName}
+                                style={styles.symbol}
+                                type="palette"
+                                tintColor={colors.text}
+                            />
+
+                        )
+                    }
+
 
 
                     <View
@@ -86,18 +95,29 @@ export default function PopUpModal({
                         style={styles.bottomButtons}
                     >
 
-                        <PrimaryButton
-                            onPress={onConfirm}
-                            title={confirmText}
-                            size='L'
-                        />
+                        {
+                            confirmText && (
 
-                        <PrimaryButton
-                            onPress={onCancel}
-                            title={cancelText}
-                            size='L'
-                            type='reverse'
-                        />
+                                <PrimaryButton
+                                    onPress={onConfirm}
+                                    title={confirmText}
+                                    size='L'
+                                />
+                            )
+                        }
+
+                        {
+                            cancelText && (
+                                <PrimaryButton
+                                    onPress={onCancel}
+                                    title={cancelText}
+                                    size='L'
+                                    type='reverse'
+                                />
+                            )
+                        }
+
+
 
                     </View>
 
