@@ -151,7 +151,7 @@ export default function Account() {
             setShowModal(true);
         }
 
-        if( name !== userData?.name) {
+        if (name !== userData?.name) {
             const { data, error } = await supabase.auth.updateUser(
                 { data: { name: name } }
             )
@@ -186,6 +186,7 @@ export default function Account() {
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             <PopUpModal
+                symbolName="mail"
                 isVisible={showModal}
                 title="Changement d'email"
                 message="Vous venez de renseigner un nouvel email. Etes vous sûr de vouloir continuer ? Un email de confirmation va vous être envoyé."

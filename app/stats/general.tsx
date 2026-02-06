@@ -241,7 +241,7 @@ export default function Stats() {
       <PopUpModal
         isVisible={showInfoPopUp}
         title="À propos des stats"
-        message="Les statistiques sont calculées sur la base des 7 derniers jours. Elles prennent en compte la charge de travail moyenne, le taux de complétion des tâches, la série de jours consécutifs avec toutes les tâches terminées, ainsi qu'un statut global reflétant votre productivité."
+        message="L'onglet statistique est en cours de développement et sera aggrémenté de nouvelles fonctionnalités au fil du temps."
         onCancel={() => setShowInfoPopUp(false)}
         confirmText="Compris"
         onConfirm={() => setShowInfoPopUp(false)}
