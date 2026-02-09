@@ -397,7 +397,7 @@ export default function Register() {
           <PrimaryButton
             image='chevron.left'
             onPress={handleBackPress}
-            size='S'
+            size='XS'
           />
 
           {page < 5 && (

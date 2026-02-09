@@ -2,6 +2,7 @@ import Headline from "@/components/headline";
 import PopUpModal from "@/components/popUpModal";
 import PrimaryButton from "@/components/primaryButton";
 import SecondaryButton from "@/components/secondaryButton";
+import SettingItem from "@/components/settingItem";
 import TextInput from "@/components/textInput";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -182,6 +183,22 @@ export default function Account() {
         console.log("Un email de confirmation a été envoyé à votre nouvelle adresse email.");
     }
 
+    const handleLogout = async () => {
+        try {
+            const { error } = await supabase.auth.signOut();
+            if (error) {
+                console.error("Erreur lors de la déconnexion : " + error.message);
+                return;
+            }
+            // Nettoyer le cache des requêtes
+            queryClient.clear();
+            // Rediriger vers le login
+            router.replace("/onboarding/start");
+        } catch (error) {
+            console.error("Erreur lors de la déconnexion : ", error);
+        }
+    }
+
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -225,64 +242,74 @@ export default function Account() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-
-
-                <TextInput
-                    name="Nom d'utilisateur"
-                    placeholder="Votre nom d'utilisateur"
-                    value={name}
-                    onChangeText={setName}
-                    isLoading={isLoading}
-                />
-
-                <View>
+                <View
+                    style={{ display: 'flex', gap: 16, backgroundColor: "#f8f8f8", borderRadius: 10, padding: 20 }}
+                >
 
                     <TextInput
-                        name="Email"
-                        placeholder="Votre email"
-                        value={email}
-                        onChangeText={setEmail}
+                        name="Nom d'utilisateur"
+                        placeholder="Votre nom d'utilisateur"
+                        value={name}
+                        onChangeText={setName}
                         isLoading={isLoading}
                     />
 
-                    {newEmail.length > 0 &&
+                    <View>
 
-                        <Animated.View
-                            entering={FadeInUp.springify()}
-                            exiting={FadeOutUp.springify()}
-                            style={styles.alertEmail}
-                        >
-                            <View>
-                                <Text
-                                    style={{ color: '#a5a5a5' }}
-                                >
-                                    Un changement d'email est en cours vers :
-                                </Text>
-                                <Text
-                                    style={{ color: '#fff', fontWeight: '500' }}
-                                >
-                                    {newEmail}
-                                </Text>
-                            </View>
-                            <TouchableOpacity
-                                style={styles.alerteEmailButton}
-                                onPress={seeMore}
+                        <TextInput
+                            name="Email"
+                            placeholder="Votre email"
+                            value={email}
+                            onChangeText={setEmail}
+                            isLoading={isLoading}
+                        />
+
+                        {newEmail.length > 0 &&
+
+                            <Animated.View
+                                entering={FadeInUp.springify()}
+                                exiting={FadeOutUp.springify()}
+                                style={styles.alertEmail}
                             >
-                                <SymbolView
-                                    name="eye"
-                                    style={styles.symbol}
-                                    type="palette"
-                                    tintColor={'#000000'}
-                                />
-                            </TouchableOpacity>
+                                <View>
+                                    <Text
+                                        style={{ color: '#a5a5a5' }}
+                                    >
+                                        Un changement d'email est en cours vers :
+                                    </Text>
+                                    <Text
+                                        style={{ color: '#fff', fontWeight: '500' }}
+                                    >
+                                        {newEmail}
+                                    </Text>
+                                </View>
+                                <TouchableOpacity
+                                    style={styles.alerteEmailButton}
+                                    onPress={seeMore}
+                                >
+                                    <SymbolView
+                                        name="eye"
+                                        style={styles.symbol}
+                                        type="palette"
+                                        tintColor={'#000000'}
+                                    />
+                                </TouchableOpacity>
 
 
-                        </Animated.View>
+                            </Animated.View>
 
-                    }
+                        }
 
+                    </View>
                 </View>
 
+
+                <SettingItem
+                    title="Se déconnecter"
+                    onPress={handleLogout}
+                    type="danger"
+                    image="iphone.and.arrow.forward.outward"
+                />
 
 
                 {/* <Text style={{ color: '#383838ff', fontSize: 12, alignSelf: "center" }}>
