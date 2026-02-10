@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   taskItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 64,
+    minHeight: 64,
     paddingHorizontal: 12,
     marginBottom: 10,
     justifyContent: 'space-between',
@@ -157,6 +157,7 @@ const styles = StyleSheet.create({
 
   taskContent: {
     flex: 1,
+    paddingVertical: 12,
   },
 
   taskName: {
