@@ -369,8 +369,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
-            // taskEmitter.emit("taskDeleted", id);
-            router.back();
+            onClose();
         },
         onError: (error: any) => {
             Alert.alert("Erreur", error.message || "Impossible de supprimer la tâche");
