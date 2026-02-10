@@ -28,10 +28,13 @@ export default function EmailVerificationScreen() {
 
     const [loading, setLoading] = useState(false);
     const [checkingVerification, setCheckingVerification] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
+    const [timeLeft, setTimeLeft] = useState(3600); // 1 heure
     const [isVerified, setIsVerified] = useState(false);
+    const [retryError, setRetryError] = useState('');
+    const [retryWaitTime, setRetryWaitTime] = useState(0);
+    const [retrySuccess, setRetrySuccess] = useState('');
 
-    // Compte à rebours
+    // Compte à rebours du lien de vérification
     useEffect(() => {
         const interval = setInterval(() => {
             setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
@@ -39,6 +42,34 @@ export default function EmailVerificationScreen() {
 
         return () => clearInterval(interval);
     }, []);
+
+    // Compte à rebours du temps d'attente pour renvoyer l'email
+    useEffect(() => {
+        if (retryWaitTime <= 0) return;
+
+        const interval = setInterval(() => {
+            setRetryWaitTime((prev) => {
+                const newTime = prev - 1;
+                if (newTime <= 0) {
+                    setRetryError('');
+                }
+                return newTime > 0 ? newTime : 0;
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [retryWaitTime]);
+
+    // Afficher le message de succès pendant 3 secondes
+    useEffect(() => {
+        if (!retrySuccess) return;
+
+        const timer = setTimeout(() => {
+            setRetrySuccess('');
+        }, 3000);
+
+        return () => clearTimeout(timer);
+    }, [retrySuccess]);
 
     // Formater le temps (MM:SS)
     const formatTime = (seconds: number) => {
@@ -49,29 +80,7 @@ export default function EmailVerificationScreen() {
 
     // Vérifier si l'email a été confirmé
     const checkEmailVerification = async () => {
-        console.log('Vérification de l\'email pour:', email);
-        setCheckingVerification(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-
-            if (session?.user?.email_confirmed_at) {
-                console.log('Email vérifié pour:', email);
-                setIsVerified(true);
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                // Naviguer vers l'accueil après 1.5 secondes
-                setTimeout(() => {
-                    router.replace('/onboarding/successMail');
-                }, 1500);
-            } else {
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                console.log('Email non encore vérifié pour:', email);
-            }
-        } catch (error) {
-            console.error('Erreur lors de la vérification:', error);
-            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-        } finally {
-            setCheckingVerification(false);
-        }
+       router.replace('/onboarding/login');
     };
 
     // Renvoyer l'email de vérification
@@ -79,6 +88,8 @@ export default function EmailVerificationScreen() {
         if (!email) return;
 
         setLoading(true);
+        setRetryError('');
+        setRetrySuccess('');
         try {
             // Resend verification email using signUp with the same email
             const { error } = await supabase.auth.signUp({
@@ -88,12 +99,25 @@ export default function EmailVerificationScreen() {
 
             if (error) {
                 console.error('Erreur lors de l\'envoi:', error);
+                const errorMessage = error.message || '';
+                
+                // Extraire le temps d'attente de l'erreur
+                const waitTimeMatch = errorMessage.match(/after (\d+) seconds/);
+                if (waitTimeMatch) {
+                    const waitSeconds = parseInt(waitTimeMatch[1], 10);
+                    setRetryWaitTime(waitSeconds);
+                    setRetryError('Email non envoyé, veuillez attendre');
+                } else {
+                    setRetryError('Une erreur s\'est produite lors de l\'envoi de l\'email');
+                }
             } else {
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                setTimeLeft(300); // Réinitialiser le compte à rebours
+                setTimeLeft(3600); // Réinitialiser le compte à rebours
+                setRetrySuccess('Email renvoyé avec succès!');
             }
         } catch (err) {
             console.error('Erreur:', err);
+            setRetryError('Une erreur s\'est produite');
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
         } finally {
             setLoading(false);
@@ -224,15 +248,46 @@ export default function EmailVerificationScreen() {
                     </TouchableOpacity>
 
 
+                    {retrySuccess !== '' && (
+                        <Animated.Text
+                            entering={FadeInDown.springify()}
+                            exiting={FadeOutDown.springify()}
+                            style={[styles.successMessage, { color: '#4CAF50' }]}
+                        >
+                            {retrySuccess}
+                        </Animated.Text>
+                    )}
+
+                    {retryError !== '' && (
+                        <Animated.Text
+                            entering={FadeInDown.springify()}
+                            style={[styles.errorMessage, { color: colors.actionButton }]}
+                        >
+                            {retryError}
+                            {retryWaitTime > 0 && ` ${retryWaitTime}s`}
+                        </Animated.Text>
+                    )}
+
                     <TouchableOpacity
                         style={[
                             styles.secondaryButton,
-                            { borderColor: colors.border, borderWidth: 1.5 },
+                            {
+                                borderColor: loading || retryWaitTime > 0 ? colors.border : colors.border,
+                                borderWidth: 1.5,
+                                opacity: loading || retryWaitTime > 0 ? 0.5 : 1,
+                            },
                         ]}
                         onPress={resendVerificationEmail}
-                        disabled={loading || timeLeft <= 0}
+                        disabled={loading || retryWaitTime > 0}
                     >
-                        <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
+
+                        {/* ici */}
+                        <Text style={[
+                            styles.secondaryButtonText,
+                            {
+                                color: loading || retryWaitTime > 0 ? colors.textSecondary : colors.text
+                            }
+                        ]}>
                             Renvoyer l'email
                         </Text>
                     </TouchableOpacity>
@@ -401,6 +456,7 @@ const createStyles = (colors: any) =>
             borderRadius: 50,
             alignItems: 'center',
             justifyContent: 'center',
+            zIndex: 2,
         },
         secondaryButtonText: {
             fontSize: 16,
@@ -411,5 +467,21 @@ const createStyles = (colors: any) =>
             textAlign: 'center',
             width: '100%',
             marginTop: 20,
+        },
+        errorMessage: {
+            fontSize: 13,
+            fontWeight: '500',
+            textAlign: 'center',
+            marginBottom: 12,
+            paddingHorizontal: 12,
+            zIndex: 1,
+        },
+        successMessage: {
+            fontSize: 13,
+            fontWeight: '500',
+            textAlign: 'center',
+            marginBottom: 12,
+            paddingHorizontal: 12,
+            zIndex: 1,
         },
     });

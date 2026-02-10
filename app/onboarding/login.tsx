@@ -1,32 +1,25 @@
+import PrimaryButton from '@/components/primaryButton';
+import SimpleInput from '@/components/textInput';
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    View,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    StyleSheet,
-    SafeAreaView,
-    KeyboardAvoidingView,
-    Platform,
-    ActivityIndicator,
+    Image,
     Keyboard,
     Pressable,
-    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useTheme } from '../../lib/ThemeContext';
-import { supabase } from '../../lib/supabase';
 import Animated, {
     FadeIn,
-    FadeOut,
     FadeInUp,
-    FadeOutDown,
-    FadeInDown,
+    FadeOut,
+    FadeOutDown
 } from 'react-native-reanimated';
-import { getImageSource } from '@/lib/imageHelper';
-import * as Haptics from 'expo-haptics';
-import SimpleInput from '@/components/textInput';
-import PrimaryButton from '@/components/primaryButton';
+import { useTheme } from '../../lib/ThemeContext';
+import { supabase } from '../../lib/supabase';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -73,7 +66,43 @@ export default function LoginScreen() {
                 return;
             }
 
+            // chercher si le user existe dans la table "profiles"
             if (data.user) {
+                const { data: profileData, error: profileError } = await supabase
+                    .from('Profiles')
+                    .select('*')
+                    .eq('id', data.user.id)
+                    .single();
+
+                // if (profileError) {
+                //     console.error('Erreur lors de la récupération du profil:', profileError);
+                //     setError('Erreur lors de la récupération du profil. Veuillez réessayer.');
+                //     setLoading(false);
+                //     return;
+                // }
+
+                if (!profileData) {
+                    console.log('Aucun profil trouvé pour cet utilisateur, création en cours...');
+                    console.log('Données utilisateur:', data.user);
+                    
+                    // créer le profil
+                    const { error: createProfileError } = await supabase
+                        .from('Profiles')
+                        .insert({
+                            id: data.user.id,
+                            email: data.user.email,
+                            name : data.user.user_metadata.name
+                        });
+
+                    if (createProfileError) {
+                        console.error('Erreur lors de la création du profil:', createProfileError);
+                        setError('Erreur lors de la création du profil. Veuillez réessayer.');
+                        setLoading(false);
+                        return;
+                    }
+                    setLoading(false);
+                }
+
                 router.replace('/');
             }
         } catch (err: any) {

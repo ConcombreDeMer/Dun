@@ -1,6 +1,6 @@
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
     FadeIn,
@@ -15,7 +15,25 @@ export default function ReVerifEmail() {
     const { colors } = useTheme();
     const router = useRouter();
     const { email } = useLocalSearchParams() as { email?: string };
-    const [error, setError] = React.useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [retryWaitTime, setRetryWaitTime] = useState(0);
+
+    // Compte à rebours du temps d'attente pour renvoyer l'email
+    useEffect(() => {
+        if (retryWaitTime <= 0) return;
+
+        const interval = setInterval(() => {
+            setRetryWaitTime((prev) => {
+                const newTime = prev - 1;
+                if (newTime <= 0) {
+                    setError(null);
+                }
+                return newTime > 0 ? newTime : 0;
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [retryWaitTime]);
 
     const handleRetry = async () => {
         if (!email) {
@@ -34,7 +52,17 @@ export default function ReVerifEmail() {
 
             if (error) {
                 console.error('Erreur lors de l\'envoi de l\'email:', error);
-                setError('Une erreur est survenue lors de l\'envoi de l\'email. Veuillez réessayer.');
+                const errorMessage = error.message || '';
+                
+                // Extraire le temps d'attente de l'erreur
+                const waitTimeMatch = errorMessage.match(/after (\d+) seconds/);
+                if (waitTimeMatch) {
+                    const waitSeconds = parseInt(waitTimeMatch[1], 10);
+                    setRetryWaitTime(waitSeconds);
+                    setError('Email non envoyé, veuillez attendre');
+                } else {
+                    setError('Une erreur s\'est produite lors de l\'envoi de l\'email');
+                }
                 return;
             } else {
                 router.push({
@@ -86,13 +114,23 @@ export default function ReVerifEmail() {
                         entering={FadeInDown.delay(300).duration(600)}
                         exiting={FadeOutDown}
                     >
-                        <Text style={{ textAlign: "center", color: "red" }}>{error}</Text>
+                        <Text style={{ textAlign: "center", color: "red" }}>
+                            {error}
+                            {retryWaitTime > 0 && ` ${retryWaitTime}s`}
+                        </Text>
                     </Animated.View>
                 }
 
                 <TouchableOpacity
-                    style={[styles.button, { backgroundColor: colors.actionButton }]}
+                    style={[
+                        styles.button,
+                        {
+                            backgroundColor: colors.actionButton,
+                            opacity: retryWaitTime > 0 ? 0.5 : 1,
+                        },
+                    ]}
                     onPress={handleRetry}
+                    disabled={retryWaitTime > 0}
                 >
                     <Text style={[styles.buttonText, { color: colors.buttonText }]}>
                         Réessayer la vérification

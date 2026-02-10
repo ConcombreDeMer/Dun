@@ -225,7 +225,7 @@ export default function ChangeEmail() {
                 title="Renvoyer"
                 onPress={handleResend}
                 disabled={isResending}
-                image='edit'
+                image='pencil'
                 style={styles.resendButton}
                 size='M'
             />
