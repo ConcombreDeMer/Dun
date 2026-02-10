@@ -3,7 +3,6 @@ import SecondaryButton from "@/components/secondaryButton";
 import StatsBarGraph from "@/components/statsBarGraph";
 import StatsCardCharge from "@/components/statsCardCharge";
 import StatsCardCompletion from "@/components/statsCardCompletion";
-import StatsStatut from "@/components/statsStatut";
 import StatsStreak from "@/components/statsStreak";
 import { useQuery } from "@tanstack/react-query";
 import React from "react";
@@ -249,23 +248,14 @@ export default function Stats() {
         symbolName="info.circle"
       />
 
-
-
-
-
       <View
         style={styles.topContainer}
       >
-        <StatsStatut
-          value={stats.statut}
-        />
+
         <StatsStreak
           value={stats.streak.toString()} />
 
       </View>
-
-      <StatsBarGraph daysData={React.useMemo(() => daysQuery.data || [], [daysQuery.data])} />
-
       <View
         style={styles.cardsContainer}
       >
@@ -279,6 +269,9 @@ export default function Stats() {
           value={stats.charge.toString()} />
 
       </View>
+
+      <StatsBarGraph daysData={React.useMemo(() => daysQuery.data || [], [daysQuery.data])} />
+
     </View>
   );
 }

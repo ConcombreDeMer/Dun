@@ -22,8 +22,8 @@ export default function StatsStatut({ value }: { value: string }) {
         >
             <Image source={require('../assets/images/stats/streak/high.png')} style={styles.image} />
             <Text style={[styles.value, { color: colors.text, fontSize: fontSizes.lg }]}>
-                <Text style={{fontWeight: '500'}}>{value}</Text>
-                <Text> jours de streak</Text>
+                <Text style={{fontWeight: '500'}}>{value} jours</Text>
+                <Text> de streak</Text>
             </Text>
 
         </View>
