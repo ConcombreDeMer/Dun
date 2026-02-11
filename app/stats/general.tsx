@@ -1,36 +1,90 @@
 import PopUpModal from "@/components/popUpModal";
 import SecondaryButton from "@/components/secondaryButton";
 import StatsBarGraph from "@/components/statsBarGraph";
+import StatsCard from "@/components/statsCard";
 import StatsCardCharge from "@/components/statsCardCharge";
 import StatsCardCompletion from "@/components/statsCardCompletion";
 import StatsStreak from "@/components/statsStreak";
 import { useQuery } from "@tanstack/react-query";
-import React from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { supabase } from "../../lib/supabase";
 import { useTheme } from "../../lib/ThemeContext";
+
 
 interface StatsData {
   completion: string;
   charge: number;
   streak: number;
-  statut: string;
 }
 
 export default function Stats() {
   const { colors } = useTheme();
-  const [previousDays, setPreviousDays] = React.useState<any[]>([]);
-  const [showInfoPopUp, setShowInfoPopUp] = React.useState(false);
+  const [previousDays, setPreviousDays] = useState<any[]>([]);
+  const [showInfoPopUp, setShowInfoPopUp] = useState(false);
+  const [period, setPeriod] = useState<'last week' | 'last month' | 'last year' | 'all time'>('last week');
+  const [totalDone, setTotalDone] = useState(0);
+  const [perfectDays, setPerfectDays] = useState(0);
+
+
+  const getPerfectDays = async () => {
+    const { data, error } = await supabase
+      .from("Days")
+      .select("*");
+    if (error) {
+      console.error('Erreur lors de la récupération des jours:', error);
+      return 0;
+    }
+    // Filtrer côté client
+    const perfectDays = data.filter(day => day.done_count === day.total && day.total > 0);
+    return perfectDays.length;
+  };
+
+  const perfectDaysQuery = useQuery({
+    queryKey: ['perfectDays'],
+    queryFn: getPerfectDays,
+  });
+
+  useEffect(() => {
+    if (perfectDaysQuery.data !== undefined) {
+      setPerfectDays(perfectDaysQuery.data);
+    }
+  }, [perfectDaysQuery.data]);
+
+  const getTotalDone = async () => {
+    const { count, error } = await supabase
+      .from("Tasks")
+      .select("*", { count: "exact", head: true })
+      .eq("done", true);
+    if (error) {
+      console.error('Erreur lors de la récupération du total des tâches faites:', error);
+      return 0;
+    }
+    return count || 0;
+  };
+
+  const totalDoneQuery = useQuery({
+    queryKey: ['totalDone'],
+    queryFn: getTotalDone,
+  });
+
+  useEffect(() => {
+    if (totalDoneQuery.data !== undefined) {
+      setTotalDone(totalDoneQuery.data);
+    }
+  }, [totalDoneQuery.data]);
+
+
+
 
   // FONCTION UNIQUE DE CALCUL DE TOUS LES STATS
   // Cela évite de parcourir previousDays 4 fois et élimine les calculs redondants
-  const calculateAllStats = React.useCallback((days: any[]): StatsData => {
+  const calculateAllStats = useCallback((days: any[]): StatsData => {
     if (!days || days.length === 0) {
       return {
         completion: "0%",
         charge: 0,
         streak: 0,
-        statut: "Fantôme",
       };
     }
 
@@ -84,75 +138,7 @@ export default function Stats() {
         break;
       }
     }
-
-    // Calcul du statut en utilisant les agrégats déjà calculés
-    let statut = "Fantôme";
-    if (averageCharge === 0 || daysWithTasks === 0) {
-      statut = "Fantôme";
-    } else if (averageCharge >= 10 && averageCompletion === 100) {
-      statut = "Robot";
-    } else if (averageCharge >= 7 && averageCompletion >= 90) {
-      statut = "Acharné";
-    } else if (averageCharge >= 7 && averageCompletion < 50) {
-      statut = "Ambitieux";
-    } else if (averageCharge < 3 && averageCompletion < 30) {
-      statut = "Procrastinateur";
-    } else if (
-      averageCharge >= 5 &&
-      averageCharge <= 7 &&
-      averageCompletion >= 80 &&
-      daysWithTasks >= 7
-    ) {
-      statut = "Productif";
-    } else if (
-      averageCharge >= 5 &&
-      averageCharge <= 7 &&
-      averageCompletion >= 80 &&
-      daysWithTasks < 7
-    ) {
-      //   statut = "Sur le bon chemin";
-      // } else if (
-      //   averageCharge >= 5 &&
-      //   averageCharge < 7 &&
-      //   averageCompletion >= 70 &&
-      //   averageCompletion < 80
-      // ) {
-      statut = "Équilibré";
-    } else if (
-      averageCharge >= 5 &&
-      averageCharge < 7 &&
-      averageCompletion >= 40 &&
-      averageCompletion < 70
-    ) {
-      statut = "En progression";
-    } else if (
-      averageCharge >= 3 &&
-      averageCharge < 5 &&
-      averageCompletion >= 70
-    ) {
-      statut = "Potentiel";
-    } else if (
-      averageCharge >= 3 &&
-      averageCharge < 5 &&
-      averageCompletion >= 50 &&
-      averageCompletion < 70
-    ) {
-      statut = "En construction";
-    } else if (
-      averageCharge < 3 &&
-      averageCompletion >= 30 &&
-      averageCompletion < 60
-    ) {
-      statut = "Hésitant";
-    } else if (
-      averageCharge < 3 &&
-      averageCompletion >= 60 &&
-      averageCompletion < 80
-    ) {
-      statut = "Flâneur";
-    }
-
-    return { completion, charge: averageCharge, streak, statut };
+    return { completion, charge: averageCharge, streak };
   }, []);
 
 
@@ -180,7 +166,7 @@ export default function Stats() {
   });
 
   // Cela évite de recréer la fonction à chaque rendu
-  const getLastWeekDays = React.useCallback((daysData: any[]) => {
+  const getLastWeekDays = useCallback((daysData: any[]) => {
     const lastWeekDays = [];
     const today = new Date();
     today.setHours(23, 59, 59, 999);
@@ -213,12 +199,12 @@ export default function Stats() {
   }, []);
 
   // Cela évite de recalculer tous les stats à chaque rendu
-  const stats = React.useMemo(() => {
+  const stats = useMemo(() => {
     return calculateAllStats(previousDays);
   }, [previousDays, calculateAllStats]);
 
   // On récupère les données brutes et on les transforme directement
-  React.useEffect(() => {
+  useEffect(() => {
     if (daysQuery.data) {
       setPreviousDays(getLastWeekDays(daysQuery.data));
     }
@@ -259,6 +245,23 @@ export default function Stats() {
       <View
         style={styles.cardsContainer}
       >
+        <StatsCard
+          image={require('../../assets/images/stats/done.png')}
+          title="Tâches faites"
+          value={totalDone.toString()}
+        />
+
+        <StatsCard
+          image={require('../../assets/images/stats/perfect.png')}
+          title="Jours parfaits"
+          value={perfectDays.toString()}
+        />
+
+      </View>
+
+      <View
+        style={styles.cardsContainer}
+      >
         <StatsCardCompletion
           image={require('../../assets/images/stats/completion.png')}
           title="Complétion"
@@ -267,10 +270,9 @@ export default function Stats() {
           image={require('../../assets/images/stats/charge.png')}
           title="Charge"
           value={stats.charge.toString()} />
-
       </View>
 
-      <StatsBarGraph daysData={React.useMemo(() => daysQuery.data || [], [daysQuery.data])} />
+      <StatsBarGraph daysData={useMemo(() => daysQuery.data || [], [daysQuery.data])} />
 
     </View>
   );

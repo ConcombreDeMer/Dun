@@ -21,9 +21,9 @@ export default function StatsStatut({ value }: { value: string }) {
             onTouchEnd={handleExplicationPress}
         >
             <Image source={require('../assets/images/stats/streak/high.png')} style={styles.image} />
-            <Text style={[styles.value, { color: colors.text, fontSize: fontSizes.lg }]}>
-                <Text style={{fontWeight: '500'}}>{value} jours</Text>
-                <Text> de streak</Text>
+            <Text style={[styles.value, { color: colors.text, fontSize: fontSizes.lg, fontFamily: 'Satoshi-Medium' }]}>
+                <Text>{value} jours</Text>
+                <Text style={{opacity: 0.6}}> de streak</Text>
             </Text>
 
         </View>

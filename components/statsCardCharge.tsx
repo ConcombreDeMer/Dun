@@ -45,8 +45,8 @@ export default function StatsCardCharge({ image, title, value }: StatsCardProps)
             style={[styles.container, { borderColor: analyzeChargeColor(), backgroundColor: colors.card }]}
             onTouchEnd={handleExplicationPress}>
             <Image source={image} style={styles.image} />
-            <Text style={[styles.title, { color: colors.textSecondary, fontSize: fontSizes.lg }]}>{title}</Text>
-            <Text style={[styles.value, { color: colors.text, fontSize: fontSizes['2xl'] }]}>{value}</Text>
+            <Text style={[styles.title, { color: colors.text, opacity: 0.7, fontSize: fontSizes.lg }]}>{title}</Text>
+            <Text style={[styles.value, { color: colors.text, fontSize: fontSizes['3xl'] }]}>{value}</Text>
         </View>
     );
 }
@@ -76,11 +76,14 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 10,
         left: 15,
+        fontFamily: 'Satoshi-Medium',
     },
     value: {
-        fontWeight: '500',
+        fontWeight: '700',
         position: 'absolute',
         top: 10,
         right: 15,
+        fontFamily: 'Satoshi-Bold',
+
     },
 });
