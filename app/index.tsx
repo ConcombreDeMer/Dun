@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 60,
     paddingHorizontal: 23,
-    paddingVertical: 23,
+    height: "100%",
   },
 
   header: {
@@ -315,6 +315,7 @@ const styles = StyleSheet.create({
 
   listContainer: {
     flex: 1,
+    height: "100%",
   },
 
   title: {

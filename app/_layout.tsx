@@ -107,7 +107,23 @@ function RootLayoutContent() {
   return (
 
     <QueryClientProvider client={queryClient}>
-      <View style={{ flex: 1 }}>
+
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "transparent",
+          boxShadow: `inset 0px 40px 50px -40px ${colors.background}, inset 0px -120px 50px -40px ${colors.background}`,
+          zIndex: 100,
+        }}
+      >
+
+      </View>
+      <View style={{ flex: 1, backgroundColor: "red" }}>
         <Stack
           screenOptions={{
             headerStyle: {

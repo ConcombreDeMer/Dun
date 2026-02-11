@@ -129,6 +129,7 @@ const styles = StyleSheet.create({
         display: "flex",
         flexDirection: "row",
         gap: 20,
+        zIndex: 200,
     },
 
     navbar: {
