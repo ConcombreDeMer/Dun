@@ -3,14 +3,16 @@ import { useTheme } from "@/lib/ThemeContext";
 import { router } from "expo-router";
 import React from "react";
 import { Image, Pressable, StyleSheet, Text } from "react-native";
+import Animated, { FadeInLeft, FadeOut } from "react-native-reanimated";
 
 interface StatsCardProps {
     image: any;
     title: string;
     value: string;
+    loading?: boolean;
 }
 
-export default function StatsCardCompletion({ image, title, value }: StatsCardProps) {
+export default function StatsCardCompletion({ image, title, value, loading }: StatsCardProps) {
 
     const { colors } = useTheme();
     const { fontSizes } = useFont();
@@ -41,7 +43,19 @@ export default function StatsCardCompletion({ image, title, value }: StatsCardPr
         >
             <Image source={image} style={styles.image} />
             <Text style={[styles.title, { color: colors.text, opacity: 0.7, fontSize: fontSizes.lg }]}>{title}</Text>
-            <Text style={[styles.value, { color: colors.text, fontSize: fontSizes['3xl'] }]}>{value}</Text>
+
+            {
+                loading && (<Animated.Text
+                    exiting={FadeOut.springify()}
+                    style={[styles.value, { color: colors.text, fontSize: fontSizes['3xl'] }]}></Animated.Text>)
+            }
+
+            {
+                !loading && value && (<Animated.Text
+                    entering={FadeInLeft.springify()}
+                    style={[styles.value, { color: colors.text, fontSize: fontSizes['3xl'] }]}>{value}</Animated.Text>)
+            }
+
         </Pressable>
     );
 }

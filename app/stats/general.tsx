@@ -11,6 +11,7 @@ import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { Extrapolate, interpolate, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { useFont } from "../../lib/FontContext";
 import { supabase } from "../../lib/supabase";
 import { useTheme } from "../../lib/ThemeContext";
 
@@ -20,19 +21,32 @@ interface StatsData {
   streak: number;
 }
 
+type Slide = {
+  bars: Array<{
+    stacks: Array<{ value: number; color: string; marginBottom?: number }>;
+    label: string;
+    date: string;
+  }>;
+  periodLabel: string;
+  id: string;
+};
+
 export default function Stats() {
   const { colors } = useTheme();
   const [previousDays, setPreviousDays] = useState<any[]>([]);
   const [showInfoPopUp, setShowInfoPopUp] = useState(false);
-  const [period, setPeriod] = useState<'last week' | 'last month' | 'last year' | 'all time'>('last week');
+  const [period, setPeriod] = useState<'Par semaine' | 'Par mois' | 'Par année' | 'Global'>('Par semaine');
   const [showPeriodSelector, setShowPeriodSelector] = useState(false);
   const [totalDone, setTotalDone] = useState(0);
   const [perfectDays, setPerfectDays] = useState(0);
   const [completion, setCompletion] = useState("0%");
   const [charge, setCharge] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState<Slide | null>(null);
   const periodSelectorHeight = useSharedValue(0);
   const periodSelectorOpacity = useSharedValue(0);
   const chevronRotation = useSharedValue(0);
+  const [loadingState, setLoadingState] = useState(true);
+  const { fontSizes } = useFont();
 
 
 
@@ -43,19 +57,19 @@ export default function Stats() {
     let startDate: Date | null = null;
 
     switch (selectedPeriod) {
-      case 'last week':
+      case 'Par semaine':
         startDate = new Date(today);
         startDate.setDate(today.getDate() - 7);
         break;
-      case 'last month':
+      case 'Par mois':
         startDate = new Date(today);
         startDate.setDate(today.getDate() - 30);
         break;
-      case 'last year':
+      case 'Par année':
         startDate = new Date(today);
         startDate.setFullYear(today.getFullYear() - 1);
         break;
-      case 'all time':
+      case 'Global':
       default:
         startDate = null;
     }
@@ -105,8 +119,8 @@ export default function Stats() {
 
     // Calculer le nombre total de jours dans la période pour la charge moyenne
     let totalDaysInPeriod = daysCount;
-    if (selectedPeriod === 'all time' && firstDayDate) {
-      // Pour "all time", calculer depuis le premier jour de données
+    if (selectedPeriod === 'Global' && firstDayDate) {
+      // Pour "Global", calculer depuis le premier jour de données
       const endDate = new Date(today);
       endDate.setDate(endDate.getDate() + 1);
       totalDaysInPeriod = Math.ceil((endDate.getTime() - firstDayDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -127,7 +141,54 @@ export default function Stats() {
 
 
 
-  // FONCTION UNIQUE DE CALCUL DE TOUS LES STATS
+  // Fonction pour calculer les stats basées sur un slide
+  const calculateStatsFromSlide = useCallback((slide: Slide) => {
+    if (!slide || !slide.bars) {
+      return { totalDoneCount: 0, perfectDaysCount: 0, completion: "0%", charge: 0 };
+    }
+
+    let totalDoneCount = 0;
+    let perfectDaysCount = 0;
+    let totalCharge = 0;
+    let daysInSlide = 0;
+
+    slide.bars.forEach((bar) => {
+      const done = bar.stacks[0]?.value || 0;
+      const incomplete = bar.stacks[1]?.value || 0;
+      const total = done + incomplete;
+
+      totalDoneCount += done;
+      totalCharge += total;
+
+      if (total > 0 && done === total) {
+        perfectDaysCount++;
+      }
+
+      daysInSlide++;
+    });
+
+    const averageCharge = daysInSlide > 0 ? Math.round((totalCharge / daysInSlide) * 10) / 10 : 0;
+    const averageCompletion = totalCharge > 0 ? Math.round((totalDoneCount / totalCharge) * 100) : 0;
+    const completionString = `${averageCompletion}%`;
+
+    return { totalDoneCount, perfectDaysCount, completion: completionString, charge: averageCharge };
+  }, []);
+
+  // Gestionnaire pour les changements de slide
+  const handleSlideChange = useCallback((slide: Slide) => {
+    // Ne mettre à jour les stats que si ce n'est pas "Global"
+    if (period === 'Global') return;
+
+    setCurrentSlide(slide);
+    const stats = calculateStatsFromSlide(slide);
+    setTotalDone(stats.totalDoneCount);
+    setPerfectDays(stats.perfectDaysCount);
+    setCompletion(stats.completion);
+    setCharge(stats.charge);
+    setLoadingState(false);
+  }, [calculateStatsFromSlide, period]);
+
+
   // Cela évite de parcourir previousDays 4 fois et élimine les calculs redondants
   const calculateAllStats = useCallback((days: any[]): StatsData => {
     if (!days || days.length === 0) {
@@ -207,17 +268,6 @@ export default function Stats() {
       console.error('Erreur lors de la récupération des jours:', error);
       return [];
     }
-
-    // Calculer les perfect days côté client
-    const perfectDaysCount = data.filter(
-      day => day.done_count === day.total && day.total > 0
-    ).length;
-    setPerfectDays(perfectDaysCount);
-
-    // calculer le total des tâches faites côté client
-    // const totalDoneCount = data.reduce((sum, day) => sum + (day.done_count || 0), 0);
-    // setTotalDone(totalDoneCount);
-
     return data;
   };
 
@@ -273,11 +323,17 @@ export default function Stats() {
 
   useEffect(() => {
     if (daysQuery.data) {
+      if (period != 'Global') {
+        return;
+      }
       const { totalDoneCount, perfectDaysCount, completion: newCompletion, charge: newCharge } = calculatePeriodStats(daysQuery.data, period);
       setTotalDone(totalDoneCount);
       setPerfectDays(perfectDaysCount);
       setCompletion(newCompletion);
       setCharge(newCharge);
+      // Réinitialiser le slide actuel quand la période change
+      setCurrentSlide(null);
+      setLoadingState(false);
     }
   }, [period, daysQuery.data, calculatePeriodStats]);
 
@@ -309,17 +365,18 @@ export default function Stats() {
     setShowPeriodSelector(prev => !prev);
   }, []);
 
-  const periodOptions: Array<'last week' | 'last month' | 'last year' | 'all time'> = ['last week', 'last month', 'last year', 'all time'];
+  const periodOptions: Array<'Par semaine' | 'Par mois' | 'Par année' | 'Global'> = ['Par semaine', 'Par mois', 'Par année', 'Global'];
 
   const getDisplayedPeriod = (period: string) => {
-    return period.charAt(0).toUpperCase() + period.slice(1);
+    return period;
   };
 
-  const handlePeriodSelect = async (selectedPeriod: 'last week' | 'last month' | 'last year' | 'all time') => {
+  const handlePeriodSelect = async (selectedPeriod: 'Par semaine' | 'Par mois' | 'Par année' | 'Global') => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setPeriod(selectedPeriod);
     setShowPeriodSelector(false);
     console.log('Période sélectionnée :', selectedPeriod);
+    setLoadingState(true);
   };
 
   return (
@@ -392,6 +449,7 @@ export default function Stats() {
                   color: colors.buttonText,
                   opacity: 0.7,
                   fontFamily: 'Satoshi-Medium',
+                  fontSize: fontSizes.sm,
                 }}
               >
                 {getDisplayedPeriod(period)}
@@ -428,7 +486,11 @@ export default function Stats() {
             {periodOptions.map((option) => (
               <Pressable
                 key={option}
-                onPress={() => handlePeriodSelect(option)}
+                onPress={() => {
+                  if (option !== period) {
+                    handlePeriodSelect(option);
+                  }
+                }}
                 style={{
                   width: '100%',
                   paddingVertical: 8,
@@ -438,12 +500,14 @@ export default function Stats() {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   gap: 8,
+                  pointerEvents: option === period ? 'none' : 'auto',
                 }}
               >
                 <Text style={{
                   color: colors.buttonText,
                   fontFamily: 'Satoshi-Medium',
                   opacity: option === period ? 1 : 0.5,
+                  fontSize: fontSizes.sm,
                 }}>
                   {getDisplayedPeriod(option)}
                 </Text>
@@ -466,11 +530,13 @@ export default function Stats() {
             image={require('../../assets/images/stats/done.png')}
             title="Tâches faites"
             value={totalDone.toString()}
+            loading={loadingState}
           />
           <StatsCard
             image={require('../../assets/images/stats/perfect.png')}
             title="Jours parfaits"
             value={perfectDays.toString()}
+            loading={loadingState}
           />
         </View>
         <View style={styles.cardsContainer}>
@@ -478,15 +544,17 @@ export default function Stats() {
             image={require('../../assets/images/stats/completion.png')}
             title="Complétion"
             value={completion}
+            loading={loadingState}
           />
           <StatsCardCharge
             image={require('../../assets/images/stats/charge.png')}
             title="Charge"
             value={charge.toString()}
+            loading={loadingState}
           />
         </View>
 
-        <StatsBarGraph daysData={useMemo(() => daysQuery.data || [], [daysQuery.data])} />
+        <StatsBarGraph daysData={useMemo(() => daysQuery.data || [], [daysQuery.data])} period={period} onSlideChange={handleSlideChange} />
       </Animated.ScrollView>
     </View>
   );

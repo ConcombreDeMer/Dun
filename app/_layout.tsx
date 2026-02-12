@@ -108,7 +108,7 @@ function RootLayoutContent() {
 
     <QueryClientProvider client={queryClient}>
 
-      <View
+      {/* <View
         pointerEvents="none"
         style={{
           position: "absolute",
@@ -122,7 +122,7 @@ function RootLayoutContent() {
         }}
       >
 
-      </View>
+      </View> */}
       <View style={{ flex: 1, backgroundColor: "red" }}>
         <Stack
           screenOptions={{
