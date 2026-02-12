@@ -2,7 +2,7 @@ import { useFont } from "@/lib/FontContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text } from "react-native";
 
 interface StatsCardProps {
     image: any;
@@ -41,13 +41,13 @@ export default function StatsCardCharge({ image, title, value }: StatsCardProps)
 
 
     return (
-        <View
+        <Pressable
             style={[styles.container, { borderColor: analyzeChargeColor(), backgroundColor: colors.card }]}
-            onTouchEnd={handleExplicationPress}>
+            onPress={handleExplicationPress}>
             <Image source={image} style={styles.image} />
             <Text style={[styles.title, { color: colors.text, opacity: 0.7, fontSize: fontSizes.lg }]}>{title}</Text>
             <Text style={[styles.value, { color: colors.text, fontSize: fontSizes['3xl'] }]}>{value}</Text>
-        </View>
+        </Pressable>
     );
 }
 

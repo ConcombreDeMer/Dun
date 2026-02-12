@@ -32,7 +32,7 @@ export default function StatsStatut({ value }: { value: string }) {
 
 const styles = StyleSheet.create({
     container: {
-        height: 42,
+        height: 48,
         borderRadius: 30,
         borderWidth: 0.5,
         position: 'relative',

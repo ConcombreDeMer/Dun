@@ -2,7 +2,7 @@ import { useFont } from "@/lib/FontContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { router } from "expo-router";
 import React from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text } from "react-native";
 
 interface StatsCardProps {
     image: any;
@@ -36,13 +36,13 @@ export default function StatsCardCompletion({ image, title, value }: StatsCardPr
     }
 
     return (
-        <View style={[styles.container, { borderColor: analyzeCompletionColor(), backgroundColor: colors.card }]}
-            onTouchEnd={handleCompletionPress}
+        <Pressable style={[styles.container, { borderColor: analyzeCompletionColor(), backgroundColor: colors.card }]}
+            onPress={handleCompletionPress}
         >
             <Image source={image} style={styles.image} />
             <Text style={[styles.title, { color: colors.text, opacity: 0.7, fontSize: fontSizes.lg }]}>{title}</Text>
             <Text style={[styles.value, { color: colors.text, fontSize: fontSizes['3xl'] }]}>{value}</Text>
-        </View>
+        </Pressable>
     );
 }
 
