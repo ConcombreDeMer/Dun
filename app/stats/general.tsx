@@ -6,11 +6,13 @@ import StatsCardCharge from "@/components/statsCardCharge";
 import StatsCardCompletion from "@/components/statsCardCompletion";
 import StatsStreak from "@/components/statsStreak";
 import { useQuery } from "@tanstack/react-query";
+import * as Haptics from "expo-haptics";
+import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, { Extrapolate, interpolate, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { supabase } from "../../lib/supabase";
 import { useTheme } from "../../lib/ThemeContext";
-
 
 interface StatsData {
   completion: string;
@@ -23,56 +25,104 @@ export default function Stats() {
   const [previousDays, setPreviousDays] = useState<any[]>([]);
   const [showInfoPopUp, setShowInfoPopUp] = useState(false);
   const [period, setPeriod] = useState<'last week' | 'last month' | 'last year' | 'all time'>('last week');
+  const [showPeriodSelector, setShowPeriodSelector] = useState(false);
   const [totalDone, setTotalDone] = useState(0);
   const [perfectDays, setPerfectDays] = useState(0);
+  const [completion, setCompletion] = useState("0%");
+  const [charge, setCharge] = useState(0);
+  const periodSelectorHeight = useSharedValue(0);
+  const periodSelectorOpacity = useSharedValue(0);
+  const chevronRotation = useSharedValue(0);
 
 
-  const getPerfectDays = async () => {
-    const { data, error } = await supabase
-      .from("Days")
-      .select("*");
-    if (error) {
-      console.error('Erreur lors de la récupération des jours:', error);
-      return 0;
+
+  // Fonction unique qui fait le filtrage une seule fois et retourne tous les stats
+  const calculatePeriodStats = useCallback((daysData: any[], selectedPeriod: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let startDate: Date | null = null;
+
+    switch (selectedPeriod) {
+      case 'last week':
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - 7);
+        break;
+      case 'last month':
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - 30);
+        break;
+      case 'last year':
+        startDate = new Date(today);
+        startDate.setFullYear(today.getFullYear() - 1);
+        break;
+      case 'all time':
+      default:
+        startDate = null;
     }
-    // Filtrer côté client
-    const perfectDays = data.filter(day => day.done_count === day.total && day.total > 0);
-    return perfectDays.length;
-  };
 
-  const perfectDaysQuery = useQuery({
-    queryKey: ['perfectDays'],
-    queryFn: getPerfectDays,
-  });
-
-  useEffect(() => {
-    if (perfectDaysQuery.data !== undefined) {
-      setPerfectDays(perfectDaysQuery.data);
+    // Trouver le premier jour de données
+    let firstDayDate: Date | null = null;
+    if (daysData.length > 0) {
+      firstDayDate = new Date(daysData[daysData.length - 1].date);
+      firstDayDate.setHours(0, 0, 0, 0);
     }
-  }, [perfectDaysQuery.data]);
 
-  const getTotalDone = async () => {
-    const { count, error } = await supabase
-      .from("Tasks")
-      .select("*", { count: "exact", head: true })
-      .eq("done", true);
-    if (error) {
-      console.error('Erreur lors de la récupération du total des tâches faites:', error);
-      return 0;
+    // Si la startDate remonte plus loin que le premier jour de données, utiliser le premier jour
+    if (startDate && firstDayDate && startDate < firstDayDate) {
+      startDate = new Date(firstDayDate);
     }
-    return count || 0;
-  };
 
-  const totalDoneQuery = useQuery({
-    queryKey: ['totalDone'],
-    queryFn: getTotalDone,
-  });
+    // Un seul parcours pour calculer tous les stats
+    let totalDoneCount = 0;
+    let perfectDaysCount = 0;
+    let totalCharge = 0;
+    let totalCompletion = 0;
+    let daysWithTasks = 0;
+    let daysCount = 0;
 
-  useEffect(() => {
-    if (totalDoneQuery.data !== undefined) {
-      setTotalDone(totalDoneQuery.data);
+    for (const day of daysData) {
+      const dayDate = new Date(day.date);
+      dayDate.setHours(0, 0, 0, 0);
+
+      // Filtrer si nécessaire
+      if (startDate && dayDate < startDate) {
+        continue;
+      }
+
+      // Calculer tous les stats en un seul parcours
+      totalDoneCount += day.done_count || 0;
+      if (day.done_count === day.total && day.total > 0) {
+        perfectDaysCount++;
+      }
+
+      totalCharge += day.total || 0;
+      if (day.total > 0) {
+        totalCompletion += (day.done_count / day.total) * 100;
+        daysWithTasks++;
+      }
+      daysCount++;
     }
-  }, [totalDoneQuery.data]);
+
+    // Calculer le nombre total de jours dans la période pour la charge moyenne
+    let totalDaysInPeriod = daysCount;
+    if (selectedPeriod === 'all time' && firstDayDate) {
+      // Pour "all time", calculer depuis le premier jour de données
+      const endDate = new Date(today);
+      endDate.setDate(endDate.getDate() + 1);
+      totalDaysInPeriod = Math.ceil((endDate.getTime() - firstDayDate.getTime()) / (1000 * 60 * 60 * 24));
+    } else if (startDate && firstDayDate) {
+      // Pour les autres périodes, calculer depuis startDate
+      const endDate = new Date(today);
+      endDate.setDate(endDate.getDate() + 1);
+      totalDaysInPeriod = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    }
+
+    const averageCharge = totalDaysInPeriod > 0 ? Math.round((totalCharge / totalDaysInPeriod) * 10) / 10 : 0;
+    const averageCompletion = daysWithTasks > 0 ? Math.round(totalCompletion / daysWithTasks) : 0;
+    const completionString = `${averageCompletion}%`;
+
+    return { totalDoneCount, perfectDaysCount, completion: completionString, charge: averageCharge };
+  }, []);
 
 
 
@@ -157,6 +207,17 @@ export default function Stats() {
       console.error('Erreur lors de la récupération des jours:', error);
       return [];
     }
+
+    // Calculer les perfect days côté client
+    const perfectDaysCount = data.filter(
+      day => day.done_count === day.total && day.total > 0
+    ).length;
+    setPerfectDays(perfectDaysCount);
+
+    // calculer le total des tâches faites côté client
+    // const totalDoneCount = data.reduce((sum, day) => sum + (day.done_count || 0), 0);
+    // setTotalDone(totalDoneCount);
+
     return data;
   };
 
@@ -198,9 +259,9 @@ export default function Stats() {
     return lastWeekDays;
   }, []);
 
-  // Cela évite de recalculer tous les stats à chaque rendu
-  const stats = useMemo(() => {
-    return calculateAllStats(previousDays);
+  // Cela évite de recalculer le streak à chaque rendu
+  const streak = useMemo(() => {
+    return calculateAllStats(previousDays).streak;
   }, [previousDays, calculateAllStats]);
 
   // On récupère les données brutes et on les transforme directement
@@ -210,10 +271,59 @@ export default function Stats() {
     }
   }, [daysQuery.data, getLastWeekDays]);
 
+  useEffect(() => {
+    if (daysQuery.data) {
+      const { totalDoneCount, perfectDaysCount, completion: newCompletion, charge: newCharge } = calculatePeriodStats(daysQuery.data, period);
+      setTotalDone(totalDoneCount);
+      setPerfectDays(perfectDaysCount);
+      setCompletion(newCompletion);
+      setCharge(newCharge);
+    }
+  }, [period, daysQuery.data, calculatePeriodStats]);
+
+
+
+  useEffect(() => {
+    periodSelectorHeight.value = withSpring(showPeriodSelector ? 170 : 0);
+    periodSelectorOpacity.value = withSpring(showPeriodSelector ? 1 : 0);
+    chevronRotation.value = withSpring(showPeriodSelector ? 0 : 180);
+  }, [showPeriodSelector, periodSelectorHeight, periodSelectorOpacity, chevronRotation]);
+
+  const animatedPeriodSelectorStyle = useAnimatedStyle(() => ({
+    height: periodSelectorHeight.value,
+    opacity: periodSelectorOpacity.value,
+    paddingVertical: interpolate(
+      periodSelectorHeight.value,
+      [0, 110],
+      [0, 10],
+      Extrapolate.CLAMP
+    ),
+  }));
+
+  const animatedChevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${chevronRotation.value}deg` }],
+  }));
+
+  const openPeriodSelector = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowPeriodSelector(prev => !prev);
+  }, []);
+
+  const periodOptions: Array<'last week' | 'last month' | 'last year' | 'all time'> = ['last week', 'last month', 'last year', 'all time'];
+
+  const getDisplayedPeriod = (period: string) => {
+    return period.charAt(0).toUpperCase() + period.slice(1);
+  };
+
+  const handlePeriodSelect = async (selectedPeriod: 'last week' | 'last month' | 'last year' | 'all time') => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPeriod(selectedPeriod);
+    setShowPeriodSelector(false);
+    console.log('Période sélectionnée :', selectedPeriod);
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-
       <View
         style={{ position: 'absolute', top: 70, right: 20, zIndex: 10 }}
       >
@@ -234,51 +344,156 @@ export default function Stats() {
         symbolName="info.circle"
       />
 
-      <View
-        style={styles.topContainer}
+      {/* Scrollable content */}
+      <Animated.ScrollView
+        style={{ width: '100%' }}
+        contentContainerStyle={{ alignItems: 'center', paddingBottom: 40, display: 'flex', gap: 20 }}
+        showsVerticalScrollIndicator={false}
       >
+        <View style={styles.topContainer}>
+          <StatsStreak value={streak.toString()} />
+        </View>
 
-        <StatsStreak
-          value={stats.streak.toString()} />
 
-      </View>
-      <View
-        style={styles.cardsContainer}
-      >
-        <StatsCard
-          image={require('../../assets/images/stats/done.png')}
-          title="Tâches faites"
-          value={totalDone.toString()}
-        />
+        <View
+          style={{
+            width: '50%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 5,
+          }}
+        >
+          <Pressable
+            onPress={openPeriodSelector}
+            style={{
+              width: '80%',
+              minHeight: 40,
+              paddingHorizontal: 20,
+              paddingVertical: 10,
+              backgroundColor: colors.taskDone,
+              borderRadius: 30,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.buttonText,
+                  opacity: 0.7,
+                  fontFamily: 'Satoshi-Medium',
+                }}
+              >
+                {getDisplayedPeriod(period)}
+              </Text>
+              <Animated.View
+                style={[animatedChevronStyle, { opacity: 0.7 }]}
+              >
+                <SymbolView
+                  name="chevron.up"
+                  tintColor={colors.buttonText}
+                  size={20}
+                />
+              </Animated.View>
 
-        <StatsCard
-          image={require('../../assets/images/stats/perfect.png')}
-          title="Jours parfaits"
-          value={perfectDays.toString()}
-        />
+            </View>
+          </Pressable>
+          <Animated.View
+            style={[
+              {
+                width: '100%',
+                backgroundColor: colors.taskDone,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 5,
+                overflow: 'hidden',
+                paddingHorizontal: 10,
+                borderRadius: 20,
+              },
+              animatedPeriodSelectorStyle,
+            ]}
+          >
+            {periodOptions.map((option) => (
+              <Pressable
+                key={option}
+                onPress={() => handlePeriodSelect(option)}
+                style={{
+                  width: '100%',
+                  paddingVertical: 8,
+                  paddingHorizontal: 10,
+                  display: 'flex',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <Text style={{
+                  color: colors.buttonText,
+                  fontFamily: 'Satoshi-Medium',
+                  opacity: option === period ? 1 : 0.5,
+                }}>
+                  {getDisplayedPeriod(option)}
+                </Text>
+                {option === period && (
+                  <SymbolView
+                    name="checkmark"
+                    tintColor={colors.buttonText}
+                    size={16}
+                  />
+                )}
+              </Pressable>
+            ))}
+          </Animated.View>
 
-      </View>
+        </View>
 
-      <View
-        style={styles.cardsContainer}
-      >
-        <StatsCardCompletion
-          image={require('../../assets/images/stats/completion.png')}
-          title="Complétion"
-          value={stats.completion} />
-        <StatsCardCharge
-          image={require('../../assets/images/stats/charge.png')}
-          title="Charge"
-          value={stats.charge.toString()} />
-      </View>
 
-      <StatsBarGraph daysData={useMemo(() => daysQuery.data || [], [daysQuery.data])} />
+        <View style={styles.cardsContainer}>
+          <StatsCard
+            image={require('../../assets/images/stats/done.png')}
+            title="Tâches faites"
+            value={totalDone.toString()}
+          />
+          <StatsCard
+            image={require('../../assets/images/stats/perfect.png')}
+            title="Jours parfaits"
+            value={perfectDays.toString()}
+          />
+        </View>
+        <View style={styles.cardsContainer}>
+          <StatsCardCompletion
+            image={require('../../assets/images/stats/completion.png')}
+            title="Complétion"
+            value={completion}
+          />
+          <StatsCardCharge
+            image={require('../../assets/images/stats/charge.png')}
+            title="Charge"
+            value={charge.toString()}
+          />
+        </View>
 
+        <StatsBarGraph daysData={useMemo(() => daysQuery.data || [], [daysQuery.data])} />
+      </Animated.ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+
   container: {
     display: 'flex',
     gap: 20,
