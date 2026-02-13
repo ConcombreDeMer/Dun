@@ -23,7 +23,7 @@ interface SimpleInputProps {
     bold?: boolean;
     transparent?: boolean;
     initialEditable?: boolean;
-    fontSize?: FontSizeKey;
+    fontSize?: FontSizeKey | number;
     isLoading?: boolean;
 }
 

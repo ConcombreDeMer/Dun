@@ -201,7 +201,7 @@ export default function CreateTask() {
 
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf: "center", width: "100%", position: "absolute", bottom: 23 }}>
                 <PrimaryButton size="XS" image="xmark" onPress={handleCancel} />
-                <PrimaryButton size="M" title="Créer la tâche" onPress={handleCreateTask} />
+                <PrimaryButton size="M" title="Valider" onPress={handleCreateTask} />
             </View>
 
         </KeyboardAvoidingView>

@@ -1,5 +1,6 @@
 import PrimaryButton from '@/components/primaryButton';
 import SimpleInput from '@/components/textInput';
+import { useFont } from '@/lib/FontContext';
 import { getImageSource } from '@/lib/imageHelper';
 import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
@@ -39,6 +40,8 @@ export default function Register() {
   const [errorMessage, setErrorMessage] = useState('');
   const [page, setPage] = useState(0);
   const styles = createStyles(colors);
+  const { fontSizes } = useFont();
+
 
   const inputAnimationTitle = FadeInUp.springify().delay(500).duration(1500);
   const inputAnimation = FadeInUp.springify().delay(800).duration(1500);
@@ -249,6 +252,8 @@ export default function Register() {
                 onChangeText={setUsername}
                 center
                 scale="large"
+                bold
+                fontSize="2xl"
               />
               {errorMessage ? (
                 <Animated.Text
@@ -285,6 +290,8 @@ export default function Register() {
                 onChangeText={setEmail}
                 center
                 scale="large"
+                bold
+                fontSize="2xl"
               />
               {errorMessage ? (
                 <Animated.Text
@@ -321,6 +328,8 @@ export default function Register() {
                 center
                 scale="large"
                 password
+                bold
+                fontSize="2xl"
               />
               {errorMessage && page === 3 ? (
                 <Animated.Text
@@ -346,6 +355,8 @@ export default function Register() {
                   center
                   scale="large"
                   password
+                  bold
+                  fontSize="2xl" 
                 />
                 {errorMessage ? (
                   <Animated.Text
