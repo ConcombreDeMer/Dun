@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { Animated, KeyboardType, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { useFont } from '../lib/FontContext';
 import { useTheme } from '../lib/ThemeContext';
 
@@ -25,6 +25,7 @@ interface SimpleInputProps {
     initialEditable?: boolean;
     fontSize?: FontSizeKey | number;
     isLoading?: boolean;
+    type?: KeyboardType;
 }
 
 export default function SimpleInput({
@@ -45,6 +46,7 @@ export default function SimpleInput({
     transparent = false,
     fontSize,
     isLoading = false,
+    type = 'default',
 }: SimpleInputProps) {
     const [text, setText] = useState(value);
     const [showPassword, setShowPassword] = useState(false);
@@ -131,6 +133,7 @@ export default function SimpleInput({
                         onTouchCancel={enableEditing}
                         editable={isEditable}
                         autoCorrect={false}
+                        keyboardType={type}
                     />
 
                     {password && (

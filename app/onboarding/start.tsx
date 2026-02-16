@@ -1,32 +1,21 @@
-import React, { useState, useRef, useEffect } from 'react';
+import PrimaryButton from '@/components/primaryButton';
+import * as Haptics from "expo-haptics";
+import { useRouter } from 'expo-router';
+import React from 'react';
 import {
-    View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
     Keyboard,
     Pressable,
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useTheme } from '../../lib/ThemeContext';
-import { supabase } from '../../lib/supabase';
 import Animated, {
     FadeIn,
-    FadeOut,
-    SlideInUp,
-    SlideOutDown,
-    ZoomIn,
-    ZoomOut,
-    useSharedValue,
-    useAnimatedStyle,
-    withSpring,
     FadeInUp,
-    FadeOutDown,
-    FadeInDown,
+    FadeOut,
+    FadeOutDown
 } from 'react-native-reanimated';
-import * as Haptics from "expo-haptics";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import PrimaryButton from '@/components/primaryButton';
+import { useTheme } from '../../lib/ThemeContext';
 
 
 export default function StartScreen() {

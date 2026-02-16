@@ -3,7 +3,6 @@ import SimpleInput from '@/components/textInput';
 import { useFont } from '@/lib/FontContext';
 import { getImageSource } from '@/lib/imageHelper';
 import * as Haptics from "expo-haptics";
-import * as Linking from "expo-linking";
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -60,7 +59,10 @@ export default function Register() {
   };
 
   const handleSignUp = async () => {
+    console.log('Tentative d\'inscription avec:', { username, email, password, confirmPassword });
     setLoading(true);
+    setError('');
+
     try {
       // Créer le compte avec Supabase Auth
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
@@ -70,11 +72,12 @@ export default function Register() {
           data: {
             name: username.trim(),
           },
-          emailRedirectTo: Linking.createURL('/onboarding/successMail'),
+          emailRedirectTo: 'https://dun-app.com/successMail',
         },
       });
 
       if (signUpError) {
+        console.error('Erreur Supabase:', signUpError.message);
         setError(signUpError.message);
         setLoading(false);
         return;
@@ -97,6 +100,7 @@ export default function Register() {
         // Si email_confirmed_at existe, l'utilisateur est confirmé
         // Sinon, il doit confirmer son email
         if (authData.user.email_confirmed_at) {
+          setLoading(false);
           router.replace('/');
         } else {
           // Email de vérification envoyé - Navigation vers la page de vérification
@@ -106,8 +110,12 @@ export default function Register() {
             params: { email: email.trim() }
           });
         }
+      } else {
+        setError('Erreur lors de la création du compte. Veuillez réessayer.');
+        setLoading(false);
       }
     } catch (err: any) {
+      console.error('Exception lors de l\'inscription:', err);
       setError(err.message || 'Erreur lors de l\'inscription. Veuillez réessayer.');
       setLoading(false);
     }
@@ -292,6 +300,7 @@ export default function Register() {
                 scale="large"
                 bold
                 fontSize="2xl"
+                type={page === 2 ? 'email-address' : 'default'}
               />
               {errorMessage ? (
                 <Animated.Text
@@ -356,7 +365,7 @@ export default function Register() {
                   scale="large"
                   password
                   bold
-                  fontSize="2xl" 
+                  fontSize="2xl"
                 />
                 {errorMessage ? (
                   <Animated.Text
@@ -392,6 +401,15 @@ export default function Register() {
             >
               Ton profil est prêt à être créer.
             </Text>
+            {error && (
+              <Animated.Text
+                entering={FadeInUp.springify()}
+                exiting={FadeOut.springify()}
+                style={[styles.errorText, { color: colors.danger, marginTop: 20 }]}
+              >
+                {error}
+              </Animated.Text>
+            )}
           </Animated.View>
         )}
 
@@ -435,7 +453,7 @@ export default function Register() {
             // </TouchableOpacity>
 
             <PrimaryButton
-              title={loading ? "" : "Créer le profil"}
+              title={loading ? "Chargement..." : "Créer le profil"}
               onPress={handleSignUp}
               size='M'
               disabled={loading}

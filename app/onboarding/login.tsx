@@ -159,6 +159,9 @@ export default function LoginScreen() {
                         onChangeText={setEmail}
                         center
                         scale="large"
+                        bold
+                        fontSize="lg"
+                        type ="email-address"
                     />
                 </Animated.View>
 
@@ -175,6 +178,8 @@ export default function LoginScreen() {
                         center
                         scale="large"
                         password
+                        bold
+                        fontSize="lg"
                     />
                 </Animated.View>
 

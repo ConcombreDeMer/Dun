@@ -12,6 +12,9 @@ export default function AuthCallbackScreen() {
     useEffect(() => {
         const handleDeepLink = async () => {
             try {
+                // Petit délai pour laisser Supabase traiter le token
+                await new Promise(resolve => setTimeout(resolve, 500));
+
                 // Récupérer la session depuis Supabase
                 const { data: { session }, error } = await supabase.auth.getSession();
                 
@@ -22,8 +25,15 @@ export default function AuthCallbackScreen() {
                 }
 
                 if (session) {
-                    // L'utilisateur est authentifié
-                    router.replace('/');
+                    // Vérifier si l'email a été confirmé
+                    const user = session.user;
+                    if (user.email_confirmed_at) {
+                        // Email confirmé - redirection vers successMail
+                        router.replace('/onboarding/successMail');
+                    } else {
+                        // Email toujours non confirmé
+                        router.replace('/onboarding/emailVerif');
+                    }
                 } else {
                     // Pas de session, redirection vers le login
                     console.log('Pas de session trouvée');
