@@ -138,6 +138,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 0.5,
     borderColor: '#00000020',
+    boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.2)',
   },
 
   taskItemDone: {
@@ -153,6 +154,7 @@ const styles = StyleSheet.create({
     marginRight: 'auto',
     overflow: 'hidden',
     backgroundColor: '#475c48ff',
+    boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.2)',
   },
 
   taskContent: {

@@ -22,7 +22,7 @@ export default function StatsCardCharge({ image, title, value, loading }: StatsC
         const charge = Number(value);
         switch (true) {
             case charge < 2:
-                return '#FF1744'; // Rouge foncé (trop faible)
+                return '#ff174591'; // Rouge foncé (trop faible)
             case charge >= 2 && charge < 3:
                 return '#FF4C4C'; // Rouge (faible)
             case charge >= 3 && charge < 5:
@@ -69,12 +69,13 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         alignSelf: 'center',
-        width: '47.5%',
+        width: '48.5%',
         height: '100%',
-        borderRadius: 30,
+        borderRadius: 15,
         borderWidth: 0.5,
         padding: 15,
         gap: 8,
+        boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',
     },
     image: {
         width: 80,

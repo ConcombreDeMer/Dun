@@ -404,7 +404,7 @@ export default function Stats() {
       {/* Scrollable content */}
       <Animated.ScrollView
         style={{ width: '100%' }}
-        contentContainerStyle={{ alignItems: 'center', paddingBottom: 40, display: 'flex', gap: 20 }}
+        contentContainerStyle={{ alignItems: 'center', paddingBottom: 40, display: 'flex', gap: 10 }}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topContainer}>
@@ -524,8 +524,18 @@ export default function Stats() {
 
         </View>
 
-
-        <View style={styles.cardsContainer}>
+        <View
+          style={{
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 10,
+            marginVertical: 10,
+          }}
+        >
+        <View style={styles.cardsRow}>
           <StatsCard
             image={require('../../assets/images/stats/done.png')}
             title="Tâches faites"
@@ -539,7 +549,7 @@ export default function Stats() {
             loading={loadingState}
           />
         </View>
-        <View style={styles.cardsContainer}>
+        <View style={styles.cardsRow}>
           <StatsCardCompletion
             image={require('../../assets/images/stats/completion.png')}
             title="Complétion"
@@ -554,6 +564,8 @@ export default function Stats() {
           />
         </View>
 
+        </View>
+
         <StatsBarGraph daysData={useMemo(() => daysQuery.data || [], [daysQuery.data])} period={period} onSlideChange={handleSlideChange} />
       </Animated.ScrollView>
     </View>
@@ -564,7 +576,6 @@ const styles = StyleSheet.create({
 
   container: {
     display: 'flex',
-    gap: 20,
     justifyContent: 'flex-start',
     alignItems: 'center',
     alignSelf: 'center',
@@ -582,7 +593,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
-  cardsContainer: {
+  cardsRow: {
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',

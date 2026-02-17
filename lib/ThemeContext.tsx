@@ -33,10 +33,10 @@ export interface Colors {
 
 
 export const lightColors: Colors = {
-    background: '#F1F1F1',
+    background: '#EFEFEF',
     text: '#000000',
     textSecondary: '#999999',
-    border: '#ebebeb',
+    border: '#c9c9c9',
     input: '#F1F1F1',
     inputPlaceholder: '#999999',
     card: '#ffffff',

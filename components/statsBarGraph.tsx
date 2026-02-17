@@ -556,7 +556,7 @@ export default function StatsBarGraph({ daysData, period, onSlideChange }: Stats
 const getStyles = (colors: any) => StyleSheet.create({
   barCharContainer: {
     backgroundColor: colors.card,
-    borderRadius: 30,
+    borderRadius: 15,
     borderColor: colors.border,
     borderWidth: 0.5,
     display: 'flex',
@@ -566,6 +566,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 16,
     overflow: 'hidden',
+    boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',
   },
   weekContainer: {
     justifyContent: 'center',

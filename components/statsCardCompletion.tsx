@@ -21,7 +21,7 @@ export default function StatsCardCompletion({ image, title, value, loading }: St
         const compValue = parseInt(value.toString());
         switch (true) {
             case compValue < 30:
-                return '#FF1744'; // Rouge foncé (très mauvais)
+                return '#ff174591'; // Rouge foncé (très mauvais)
             case compValue >= 30 && compValue < 50:
                 return '#FF4C4C'; // Rouge (mauvais)
             case compValue >= 50 && compValue < 70:
@@ -65,12 +65,13 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         alignSelf: 'center',
-        width: '47.5%',
+        width: '48.5%',
         height: '100%',
-        borderRadius: 30,
+        borderRadius: 15,
         borderWidth: 0.5,
         padding: 15,
         gap: 8,
+        boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',
     },
     image: {
         width: 80,

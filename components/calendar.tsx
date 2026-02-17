@@ -746,6 +746,7 @@ export default function CalendarComponent({
 const styles = StyleSheet.create({
     container: {
         borderRadius: 8,
+        paddingHorizontal: 20,
     },
     collapsedHeader: {
         flexDirection: "row",
