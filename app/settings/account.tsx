@@ -7,7 +7,7 @@ import TextInput from "@/components/textInput";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SymbolView } from 'expo-symbols';
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
     ScrollView,
     StyleSheet,
@@ -39,30 +39,35 @@ export default function Account() {
     const [modalConfig, setModalConfig] = useState({ title: '', message: '' });
     const queryClient = useQueryClient();
 
-    const fetchUserData = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                // console.log("user", user);
-                setUserData(
-                    {
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadUserData = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user && isMounted) {
+                    setUserData({
                         name: user.user_metadata.name || '',
                         email: user.email || '',
+                    });
+                    if (user.new_email) {
+                        setNewEmail(user.new_email);
                     }
-                );
-                if (user.new_email) {
-                    setNewEmail(user.new_email);
+                }
+            } catch (error) {
+                console.error("Erreur lors de la récupération des données utilisateur:", error);
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
                 }
             }
-        } catch (error) {
-            console.error("Erreur lors de la récupération des données utilisateur:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+        };
 
-    useEffect(() => {
-        fetchUserData();
+        loadUserData();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     useEffect(() => {
@@ -126,10 +131,20 @@ export default function Account() {
     //  utiliser onAuthStateChange pour détecter les changements d'email
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            // console.log("Auth event:", event);
             if (event === 'USER_UPDATED') {
                 console.log("L'utilisateur a mis à jour son email.");
-                fetchUserData();
+                // Recharger les données utilisateur
+                supabase.auth.getUser().then(({ data: { user } }) => {
+                    if (user) {
+                        setUserData({
+                            name: user.user_metadata.name || '',
+                            email: user.email || '',
+                        });
+                        if (user.new_email) {
+                            setNewEmail(user.new_email);
+                        }
+                    }
+                });
             }
         });
 
@@ -139,8 +154,7 @@ export default function Account() {
     }, []);
 
 
-    const handleSave = async () => {
-
+    const handleSave = useCallback(async () => {
         if (!hasChanges) return;
         // si l'email a changé, on doit vérifier qu'il est valide
         if (email !== userData?.email) {
@@ -163,15 +177,13 @@ export default function Account() {
             console.log("Nom d'utilisateur mis à jour avec succès.");
             setHasChanges(false);
         }
+    }, [hasChanges, email, userData, name]);
 
-        // updateProfileMutation.mutate();
-    }
-
-    const seeMore = () => {
+    const seeMore = useCallback(() => {
         router.push("/settings/changeEmail");
-    }
+    }, [router]);
 
-    const sendChangeEmailConfirmation = async () => {
+    const sendChangeEmailConfirmation = useCallback(async () => {
         const { data, error } = await supabase.auth.updateUser(
             { email: email },
             { emailRedirectTo: "dun://settings/changeEmail" }
@@ -181,9 +193,9 @@ export default function Account() {
             return;
         }
         console.log("Un email de confirmation a été envoyé à votre nouvelle adresse email.");
-    }
+    }, [email]);
 
-    const handleLogout = async () => {
+    const handleLogout = useCallback(async () => {
         try {
             const { error } = await supabase.auth.signOut();
             if (error) {
@@ -197,7 +209,7 @@ export default function Account() {
         } catch (error) {
             console.error("Erreur lors de la déconnexion : ", error);
         }
-    }
+    }, [queryClient, router]);
 
 
     return (

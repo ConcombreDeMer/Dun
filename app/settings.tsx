@@ -21,22 +21,29 @@ export default function Settings() {
     const [isLoading, setIsLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
 
-
-    const fetchUserData = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                setUser(user);
-            }
-        } catch (error) {
-            console.error("Erreur lors de la récupération des données utilisateur:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     useEffect(() => {
-        fetchUserData();
+        let isMounted = true;
+
+        const loadUserData = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user && isMounted) {
+                    setUser(user);
+                }
+            } catch (error) {
+                console.error("Erreur lors de la récupération des données utilisateur:", error);
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        loadUserData();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
 

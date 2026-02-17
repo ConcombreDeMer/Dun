@@ -31,12 +31,6 @@ export default function Navbar() {
 
     const activeTab = getActiveTab();
 
-    // Masquer la navbar si on est sur /settings/*
-    const isSettingsSubroute = segments.length > 1 && segments[0] === "settings";
-    if (isSettingsSubroute) {
-        return null;
-    }
-
     const handleNavigation = useCallback(async (tab: string) => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 

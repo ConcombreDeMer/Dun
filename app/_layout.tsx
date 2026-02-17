@@ -120,6 +120,7 @@ function RootLayoutContent() {
 
   // Vérifier si on est sur l'onboarding pour masquer la navbar
   const isOnboarding = segments[0] === "onboarding";
+  const isSettingsSubroute = segments.length > 1 && segments[0] === "settings";
 
   const duration = 200;
 
@@ -219,7 +220,7 @@ function RootLayoutContent() {
             }}
           />
         </Stack>
-        {!isOnboarding && <Navbar />}
+        {!isOnboarding && !isSettingsSubroute && <Navbar />}
       </View>
     </QueryClientProvider>
   );
