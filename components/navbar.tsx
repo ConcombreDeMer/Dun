@@ -1,14 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter, useSegments } from "expo-router";
-import React from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { useRef } from "react";
+import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../lib/ThemeContext";
 
 export default function Navbar() {
     const { colors } = useTheme();
     const router = useRouter();
     const segments = useSegments();
+
+    // Animation refs
+    const navbarScaleRef = useRef(new Animated.Value(1));
+    const addButtonScaleRef = useRef(new Animated.Value(1));
 
     // Masquer la navbar si on est sur /settings/*
     const isSettingsSubroute = segments.length > 1 && segments[0] === "settings";
@@ -45,6 +49,33 @@ export default function Navbar() {
         }
     };
 
+    const animateScale = (animValue: Animated.Value, toValue: number) => {
+        Animated.spring(animValue, {
+            toValue,
+            useNativeDriver: true,
+            friction: 3,
+            tension: 40,
+        }).start();
+    };
+
+    const handleTabPressIn = () => {
+        animateScale(navbarScaleRef.current, 0.95);
+    };
+
+    const handleTabPressOut = () => {
+        animateScale(navbarScaleRef.current, 1);
+    };
+
+    const handleAddPressIn = () => {
+        animateScale(navbarScaleRef.current, 0.95);
+        animateScale(addButtonScaleRef.current, 0.85);
+    };
+
+    const handleAddPressOut = () => {
+        animateScale(navbarScaleRef.current, 1);
+        animateScale(addButtonScaleRef.current, 1);
+    };
+
     const tabs = [
         { name: "home", label: "Accueil", icon: "home" },
         { name: "stats", label: "Stats", icon: "stats-chart" },
@@ -58,10 +89,14 @@ export default function Navbar() {
                 <View
                     style={styles.container}
                 >
-                    <View
+                    <Animated.View
                         style={[
                             styles.navbar,
-                            { backgroundColor: colors.actionButton, borderColor: colors.border }
+                            { 
+                                backgroundColor: colors.actionButton, 
+                                borderColor: colors.border,
+                                transform: [{ scale: navbarScaleRef.current }],
+                            }
                         ]}
                     >
                         {tabs.map((tab) => {
@@ -71,6 +106,8 @@ export default function Navbar() {
                                     key={tab.name}
                                     style={styles.tabButton}
                                     onPress={() => handleNavigation(tab.name)}
+                                    onPressIn={handleTabPressIn}
+                                    onPressOut={handleTabPressOut}
                                     activeOpacity={0.7}
                                     disabled={isActive}
                                 >
@@ -82,18 +119,26 @@ export default function Navbar() {
                                 </TouchableOpacity>
                             );
                         })}
-                    </View>
-                    <TouchableOpacity
-                        style={[styles.addButton, { backgroundColor: colors.actionButton, borderColor: colors.border }]}
-                        onPress={() => handleNavigation("add")}
-                        activeOpacity={0.7}
+                    </Animated.View>
+                    <Animated.View
+                        style={{
+                            transform: [{ scale: addButtonScaleRef.current }],
+                        }}
                     >
-                        <Ionicons
-                            name={activeTab === "add" ? "add" : "add-outline"}
-                            size={24}
-                            color={activeTab === "add" ? "#FFFFFF" : colors.textSecondary}
-                        />
-                    </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.addButton, { backgroundColor: colors.actionButton, borderColor: colors.border }]}
+                            onPress={() => handleNavigation("add")}
+                            onPressIn={handleAddPressIn}
+                            onPressOut={handleAddPressOut}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons
+                                name={activeTab === "add" ? "add" : "add-outline"}
+                                size={24}
+                                color={activeTab === "add" ? "#FFFFFF" : colors.textSecondary}
+                            />
+                        </TouchableOpacity>
+                    </Animated.View>
                 </View>
 
             </View>
