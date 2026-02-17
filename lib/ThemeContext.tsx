@@ -33,13 +33,13 @@ export interface Colors {
 
 
 export const lightColors: Colors = {
-    background: '#ffffff',
+    background: '#F1F1F1',
     text: '#000000',
     textSecondary: '#999999',
     border: '#ebebeb',
     input: '#F1F1F1',
     inputPlaceholder: '#999999',
-    card: '#f5f5f5',
+    card: '#ffffff',
     button: '#B3B3B3',
     buttonText: '#ffffffff',
     danger: '#d32f2f',
@@ -47,7 +47,7 @@ export const lightColors: Colors = {
     icon: '#000000',
     donePrimary: '#CFE7CB',
     doneSecondary: '#000000',
-    task: '#F1F1F1',
+    task: '#FFFFFF',
     checkbox: '#DDDDDD',
     taskDone: '#424242',
     checkboxDone: '#616161',

@@ -162,6 +162,7 @@ export default function LoginScreen() {
                         bold
                         fontSize="lg"
                         type ="email-address"
+                        cap='none'
                     />
                 </Animated.View>
 

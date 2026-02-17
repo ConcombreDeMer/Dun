@@ -262,6 +262,7 @@ export default function Account() {
                             value={email}
                             onChangeText={setEmail}
                             isLoading={isLoading}
+                            cap="none"
                         />
 
                         {newEmail.length > 0 &&

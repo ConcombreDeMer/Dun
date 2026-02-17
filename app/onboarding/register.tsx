@@ -301,6 +301,7 @@ export default function Register() {
                 bold
                 fontSize="2xl"
                 type={page === 2 ? 'email-address' : 'default'}
+                cap={page === 2 ? 'none' : 'sentences'}
               />
               {errorMessage ? (
                 <Animated.Text

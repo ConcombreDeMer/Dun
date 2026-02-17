@@ -29,7 +29,7 @@ export default function ProgressBar({ progress }: {
 
     return (
         <View style={styles.progressBarContainer}>
-            <View style={[styles.container, { backgroundColor: colors.border }]}>
+            <View style={[styles.container, { backgroundColor: colors.task, borderColor: colors.border, borderWidth: 0.5 }]}>
                 <Animated.View
                     style={[styles.filler, { width: widthInterpolation, backgroundColor: colors.text }]}
                 />

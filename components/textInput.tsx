@@ -26,6 +26,7 @@ interface SimpleInputProps {
     fontSize?: FontSizeKey | number;
     isLoading?: boolean;
     type?: KeyboardType;
+    cap?: 'none' | 'sentences' | 'words' | 'characters';
 }
 
 export default function SimpleInput({
@@ -47,6 +48,7 @@ export default function SimpleInput({
     fontSize,
     isLoading = false,
     type = 'default',
+    cap='sentences',
 }: SimpleInputProps) {
     const [text, setText] = useState(value);
     const [showPassword, setShowPassword] = useState(false);
@@ -121,7 +123,7 @@ export default function SimpleInput({
 
                 <View>
                     <TextInput
-                        style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }, transparent && { backgroundColor: 'transparent', borderWidth: 0 }, { fontSize: fontSize ? fontSizes[fontSize] : fontSizes.lg, backgroundColor: transparent ? 'transparent' : colors.input, borderColor: colors.border, color: colors.text }]}
+                        style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }, transparent && { backgroundColor: 'transparent', borderWidth: 0 }, { fontSize: fontSize ? fontSizes[fontSize] : fontSizes.lg, backgroundColor: transparent ? 'transparent' : colors.task, borderColor: colors.border, color: colors.text }]}
                         placeholder={placeholder}
                         placeholderTextColor={colors.inputPlaceholder}
                         value={text}
@@ -134,11 +136,12 @@ export default function SimpleInput({
                         editable={isEditable}
                         autoCorrect={false}
                         keyboardType={type}
+                        autoCapitalize={cap}
                     />
 
                     {password && (
                         <TouchableOpacity
-                            style={[styles.eyeButton, { backgroundColor: colors.input }]}
+                            style={[styles.eyeButton, { backgroundColor: "transparent" }]}
                             onPress={() => setShowPassword(!showPassword)}
                         >
                             <MaterialIcons

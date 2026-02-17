@@ -80,7 +80,7 @@ export default function EmailVerificationScreen() {
 
     // Vérifier si l'email a été confirmé
     const checkEmailVerification = async () => {
-       router.replace('/onboarding/login');
+        router.replace('/onboarding/login');
     };
 
     // Renvoyer l'email de vérification
@@ -100,7 +100,7 @@ export default function EmailVerificationScreen() {
             if (error) {
                 console.error('Erreur lors de l\'envoi:', error);
                 const errorMessage = error.message || '';
-                
+
                 // Extraire le temps d'attente de l'erreur
                 const waitTimeMatch = errorMessage.match(/after (\d+) seconds/);
                 if (waitTimeMatch) {
@@ -219,7 +219,7 @@ export default function EmailVerificationScreen() {
                     {/* Timer */}
                     <Animated.View
                         entering={FadeInUp.springify().delay(1000).duration(1000)}
-                        style={[styles.timerContainer, { backgroundColor: colors.input, borderColor: colors.border }]}
+                        style={[styles.timerContainer, { backgroundColor: colors.task, borderColor: colors.border }]}
                     >
                         <Text style={[styles.timerLabel, { color: colors.textSecondary }]}>
                             Expiration du lien dans:
@@ -347,7 +347,7 @@ const createStyles = (colors: any) =>
             marginBottom: 5,
         },
         instructionsContainer: {
-            backgroundColor: colors.input,
+            backgroundColor: colors.task,
             borderRadius: 12,
             padding: 16,
             marginBottom: 24,
@@ -457,6 +457,7 @@ const createStyles = (colors: any) =>
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 2,
+            backgroundColor: colors.task,
         },
         secondaryButtonText: {
             fontSize: 16,

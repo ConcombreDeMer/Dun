@@ -33,7 +33,7 @@ export default function StartScreen() {
 
     return (
         <Pressable
-            style={styles.content}
+            style={[styles.content, { backgroundColor: colors.background }]}
             onPress={() => Keyboard.dismiss()}
         >
 
