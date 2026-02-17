@@ -15,6 +15,7 @@ import PrimaryButton from "./primaryButton";
 import SecondaryButton from "./secondaryButton";
 import SimpleInput from "./textInput";
 
+const LottieView = require("lottie-react-native").default;
 
 export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: number }) {
     const { colors } = useTheme();
@@ -31,13 +32,14 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
     const [isDone, setIsDone] = useState(false);
     const queryClient = useQueryClient();
     const initialDate = task && task.date ? new Date(task.date) : new Date();
-    const LottieView = require("lottie-react-native").default;
 
 
 
     const taskQuery = useQuery({
         queryKey: ['tasks', id],
         queryFn: getTask,
+        gcTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 2,
     });
 
     async function getTask() {
@@ -470,7 +472,8 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
         }
 
         return () => {
-            // taskEmitter.off("taskUpdated", handleEditTask);
+            setTask(null);
+            setLoading(false);
         };
     }, [id]);
 

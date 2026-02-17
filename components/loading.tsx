@@ -1,8 +1,8 @@
 import { View } from "react-native";
 
-export default function Loading() {
+const LottieView = require("lottie-react-native").default;
 
-    const LottieView = require("lottie-react-native").default;
+export default function Loading() {
 
 
     return (

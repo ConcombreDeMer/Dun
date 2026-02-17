@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import ReAnimated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useFont } from "../lib/FontContext";
 import { useTheme } from "../lib/ThemeContext";
 
@@ -28,6 +28,13 @@ export const TaskItem = ({
   const { fontSizes } = useFont();
   const dotScale = useSharedValue(item.done ? 100 : 1);
   const isExpanded = useSharedValue(item.done);
+  const height = useSharedValue(64);
+  const isHeightExpandedRef = { current: false };
+
+  const animateHeight = (toValue: number) => {
+    isHeightExpandedRef.current = toValue === 192;
+    height.value = withSpring(toValue);
+  };
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -37,6 +44,12 @@ export const TaskItem = ({
       opacity: withSpring(isActive ? 1 : 1),
     };
   });
+
+  const heightAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      height: withSpring(height.value),
+    };
+  }, [height]);
 
   const shadowStyle = useAnimatedStyle(() => {
     return {
@@ -69,7 +82,8 @@ export const TaskItem = ({
   const handlePress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!isActive) {
-      handleTaskPress(item.id);
+      animateHeight(isHeightExpandedRef.current ? 64 : 192);
+      // handleTaskPress(item.id);
     }
   }, [isActive, item.id, handleTaskPress]);
 
@@ -87,12 +101,21 @@ export const TaskItem = ({
   }, [item.done, dotScale, isExpanded]);
 
   return (
-    <Animated.View style={[animatedStyle, shadowStyle]}>
-      <TouchableOpacity
+    <ReAnimated.View style={[animatedStyle, shadowStyle]}>
+      <ReAnimated.View style={[taskItemStyle, heightAnimatedStyle]}>
+        <TouchableOpacity
         onLongPress={drag}
         disabled={isActive}
         delayLongPress={200}
-        style={taskItemStyle}
+        style={{
+          width: "100%",
+          height: "100%",
+          flexDirection: "row",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+        }}
         activeOpacity={0.7}
         onPress={handlePress}
       >
@@ -105,7 +128,7 @@ export const TaskItem = ({
           </Text>
         </View>
         <View style={styles.checkboxContainer}>
-          <Animated.View style={[styles.checkboxDot, dotAnimatedStyle, { backgroundColor: colors.taskDone }]} />
+          <ReAnimated.View style={[styles.checkboxDot, dotAnimatedStyle, { backgroundColor: colors.taskDone }]} />
           <TouchableOpacity
             style={[
               styles.taskCheckbox,
@@ -119,7 +142,8 @@ export const TaskItem = ({
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
-    </Animated.View>
+      </ReAnimated.View>
+    </ReAnimated.View>
   );
 };
 
@@ -127,7 +151,7 @@ const styles = StyleSheet.create({
   taskItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 64,
+    height: 64,
     paddingHorizontal: 12,
     marginBottom: 10,
     justifyContent: 'space-between',

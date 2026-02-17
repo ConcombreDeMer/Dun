@@ -265,6 +265,8 @@ export default function CalendarComponent({
     const daysQuery = useQuery({
         queryKey: ['days'],
         queryFn: getDays,
+        gcTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 1,
     });
 
 
@@ -320,7 +322,7 @@ export default function CalendarComponent({
                 // Si drag vers le bas (expand): scale à 0.98
                 // Si drag vers le haut (collapse): scale à 1.02
                 const scaleValue = gestureState.dy > 0 ? 0.98 : 1.02;
-                calendarScaleRef.value = withSpring(scaleValue, { friction: 7, tension: 30 });
+                calendarScaleRef.value = withSpring(scaleValue);
 
                 // Utiliser les refs pour avoir les valeurs actuelles
                 const height = calendarHeightRef.current;
@@ -336,7 +338,7 @@ export default function CalendarComponent({
             },
             onPanResponderRelease: (event, gestureState) => {
                 // Réinitialiser la scale du calendrier
-                calendarScaleRef.value = withSpring(1, { friction: 7, tension: 30 });
+                calendarScaleRef.value = withSpring(1);
 
                 const height = calendarHeightRef.current;
                 if (isExpandedRef.current) {
@@ -419,13 +421,13 @@ export default function CalendarComponent({
     // Jours de la semaine - réutiliser directement la constante
     const dayNames = DAYS;
 
-    // Générer une liste de jours infinie - MEMOIZED et LIMITED (12 mois seulement)
+    // Générer une liste de jours infinie - MEMOIZED et LIMITED (90 jours seulement)
     const infiniteDays = useMemo(() => {
         const baseDate = new Date(); // Date d'aujourd'hui
         const days: Date[] = [];
 
-        // Générer 12 mois total (6 passé, 6 futur) pour réduire au minimum
-        for (let i = -180; i < 180; i++) {
+        // Générer 90 jours total (45 passé, 45 futur) pour réduire la consommation RAM
+        for (let i = -45; i < 45; i++) {
             const date = new Date(baseDate);
             date.setDate(date.getDate() + i);
             days.push(date);

@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import Navbar from "../components/navbar";
 import { FontProvider } from "../lib/FontContext";
@@ -11,6 +11,23 @@ import { supabase } from "../lib/supabase";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 
 SplashScreen.preventAutoHideAsync();
+
+// Créer le QueryClient une seule fois - PAS à chaque render!
+let queryClientInstance: QueryClient | null = null;
+
+const getQueryClient = () => {
+  if (!queryClientInstance) {
+    queryClientInstance = new QueryClient({
+      defaultOptions: {
+        queries: {
+          gcTime: 1000 * 60 * 5,
+          staleTime: 1000 * 60 * 2,
+        },
+      },
+    });
+  }
+  return queryClientInstance;
+};
 
 function RootLayoutContent() {
   const { colors, isLoading } = useTheme();
@@ -29,6 +46,8 @@ function RootLayoutContent() {
 
   // Écouter les changements d'authentification
   useEffect(() => {
+    let authListener: any = null;
+
     // Gérer les deep links (confirmation d'email, réinitialisation de mot de passe, etc.)
     const handleDeepLink = async () => {
       try {
@@ -47,7 +66,8 @@ function RootLayoutContent() {
     // Appeler immédiatement pour traiter les deep links
     handleDeepLink();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
+    // S'abonner aux changements d'état d'authentification
+    const { data } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event);
         setSession(session);
@@ -55,14 +75,17 @@ function RootLayoutContent() {
       }
     );
 
+    authListener = data?.subscription;
+
     // Vérifier l'état de session actuel
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setIsAuthLoading(false);
     });
 
+    // Cleanup: désabonner au unmount
     return () => {
-      authListener?.subscription.unsubscribe();
+      authListener?.unsubscribe();
     };
   }, []);
 
@@ -100,7 +123,7 @@ function RootLayoutContent() {
 
   const duration = 200;
 
-  const queryClient = new QueryClient();
+  const queryClient = useMemo(() => getQueryClient(), []);
 
 
 

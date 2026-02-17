@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter, useSegments } from "expo-router";
-import React, { useRef } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../lib/ThemeContext";
 
@@ -10,9 +10,26 @@ export default function Navbar() {
     const router = useRouter();
     const segments = useSegments();
 
-    // Animation refs
+    // Animation refs - créés une seule fois avec useRef
     const navbarScaleRef = useRef(new Animated.Value(1));
     const addButtonScaleRef = useRef(new Animated.Value(1));
+
+    // Memoized tabs array
+    const tabs = useMemo(() => [
+        { name: "home", label: "Accueil", icon: "home" },
+        { name: "stats", label: "Stats", icon: "stats-chart" },
+        { name: "settings", label: "Paramètres", icon: "settings" },
+    ], []);
+
+    // Déterminer l'onglet actif basé sur le chemin actuel
+    const getActiveTab = useCallback(() => {
+        if (segments[0] === "stats") return "stats";
+        if (segments[0] === "settings") return "settings";
+        if (segments[0] === "create-task") return "add";
+        return "home";
+    }, [segments]);
+
+    const activeTab = getActiveTab();
 
     // Masquer la navbar si on est sur /settings/*
     const isSettingsSubroute = segments.length > 1 && segments[0] === "settings";
@@ -20,17 +37,7 @@ export default function Navbar() {
         return null;
     }
 
-    // Déterminer l'onglet actif basé sur le chemin actuel
-    const getActiveTab = () => {
-        if (segments[0] === "stats") return "stats";
-        if (segments[0] === "settings") return "settings";
-        if (segments[0] === "create-task") return "add";
-        return "home";
-    };
-
-    const activeTab = getActiveTab();
-
-    const handleNavigation = async (tab: string) => {
+    const handleNavigation = useCallback(async (tab: string) => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
         switch (tab) {
@@ -47,40 +54,34 @@ export default function Navbar() {
                 router.replace("/settings");
                 break;
         }
-    };
+    }, [router]);
 
-    const animateScale = (animValue: Animated.Value, toValue: number) => {
+    const animateScale = useCallback((animValue: Animated.Value, toValue: number) => {
         Animated.spring(animValue, {
             toValue,
             useNativeDriver: true,
             friction: 7,
             tension: 30,
         }).start();
-    };
+    }, []);
 
-    const handleTabPressIn = () => {
+    const handleTabPressIn = useCallback(() => {
         animateScale(navbarScaleRef.current, 1.05);
-    };
+    }, [animateScale]);
 
-    const handleTabPressOut = () => {
+    const handleTabPressOut = useCallback(() => {
         animateScale(navbarScaleRef.current, 1);
-    };
+    }, [animateScale]);
 
-    const handleAddPressIn = () => {
+    const handleAddPressIn = useCallback(() => {
         animateScale(navbarScaleRef.current, 1.05);
         animateScale(addButtonScaleRef.current, 1.10);
-    };
+    }, [animateScale]);
 
-    const handleAddPressOut = () => {
+    const handleAddPressOut = useCallback(() => {
         animateScale(navbarScaleRef.current, 1);
         animateScale(addButtonScaleRef.current, 1);
-    };
-
-    const tabs = [
-        { name: "home", label: "Accueil", icon: "home" },
-        { name: "stats", label: "Stats", icon: "stats-chart" },
-        { name: "settings", label: "Paramètres", icon: "settings" },
-    ];
+    }, [animateScale]);
 
     return (
         <>
