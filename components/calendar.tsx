@@ -245,6 +245,9 @@ export default function CalendarComponent({
     const todayButtonHeightValue = useSharedValue(0);
     const todayButtonOpacityValue = useSharedValue(0);
 
+    // Animation pour le calendrier entier lors du drag
+    const calendarScaleRef = useSharedValue(1);
+
 
 
     const getDays = async () => {
@@ -313,6 +316,12 @@ export default function CalendarComponent({
             onStartShouldSetPanResponder: () => true,
             onMoveShouldSetPanResponder: () => true,
             onPanResponderMove: (event, gestureState) => {
+                // Animer le calendrier selon la direction du drag
+                // Si drag vers le bas (expand): scale à 0.98
+                // Si drag vers le haut (collapse): scale à 1.02
+                const scaleValue = gestureState.dy > 0 ? 0.98 : 1.02;
+                calendarScaleRef.value = withSpring(scaleValue, { friction: 7, tension: 30 });
+
                 // Utiliser les refs pour avoir les valeurs actuelles
                 const height = calendarHeightRef.current;
                 if (isExpandedRef.current) {
@@ -326,6 +335,9 @@ export default function CalendarComponent({
                 }
             },
             onPanResponderRelease: (event, gestureState) => {
+                // Réinitialiser la scale du calendrier
+                calendarScaleRef.value = withSpring(1, { friction: 7, tension: 30 });
+
                 const height = calendarHeightRef.current;
                 if (isExpandedRef.current) {
                     // Quand on est expanded, si on drag vers le haut de plus de 30% de la hauteur, on rétracte
@@ -532,6 +544,13 @@ export default function CalendarComponent({
         };
     });
 
+    // Animation de scale du calendrier
+    const animatedCalendarScaleStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ scale: calendarScaleRef.value }],
+        };
+    });
+
     // Obtenir les semaines du mois
     const getWeeksInMonth = useCallback(() => {
         const daysInMonth = getDaysInMonth(currentMonth);
@@ -610,7 +629,7 @@ export default function CalendarComponent({
         <View style={[styles.container]}>
             {/* Slider avec calendrier intérieur */}
             <Animated.View
-                style={[styles.sliderBackground, animatedSliderStyle]}
+                style={[styles.sliderBackground, animatedSliderStyle, animatedCalendarScaleStyle]}
             >
                 {slider ? (
                     <>

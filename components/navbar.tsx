@@ -53,13 +53,13 @@ export default function Navbar() {
         Animated.spring(animValue, {
             toValue,
             useNativeDriver: true,
-            friction: 3,
-            tension: 40,
+            friction: 7,
+            tension: 30,
         }).start();
     };
 
     const handleTabPressIn = () => {
-        animateScale(navbarScaleRef.current, 0.95);
+        animateScale(navbarScaleRef.current, 1.05);
     };
 
     const handleTabPressOut = () => {
@@ -67,8 +67,8 @@ export default function Navbar() {
     };
 
     const handleAddPressIn = () => {
-        animateScale(navbarScaleRef.current, 0.95);
-        animateScale(addButtonScaleRef.current, 0.85);
+        animateScale(navbarScaleRef.current, 1.05);
+        animateScale(addButtonScaleRef.current, 1.10);
     };
 
     const handleAddPressOut = () => {
