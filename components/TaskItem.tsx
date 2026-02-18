@@ -1,9 +1,10 @@
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { default as Animated, FadeInUp, FadeOut, default as ReAnimated, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { FadeIn, default as ReAnimated, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useFont } from "../lib/FontContext";
 import { useTheme } from "../lib/ThemeContext";
+import PopUpTask from "./popUpTask";
 interface TaskItemProps {
   item: {
     id: number;
@@ -36,7 +37,7 @@ export const TaskItem = ({
   const height = useSharedValue(64);
   const pressScale = useSharedValue(1);
   const isHeightExpandedRef = { current: false };
-  const [isOpen , setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const animateHeight = (toValue: number) => {
     isHeightExpandedRef.current = toValue === 400;
@@ -63,7 +64,7 @@ export const TaskItem = ({
         energyThreshold: 6e-9,
         velocity: 5,
       }),
-      marginBottom: withSpring(isHidden ? 0 : 10 ),
+      marginBottom: withSpring(isHidden ? 0 : 10),
       borderWidth: withSpring(isHidden ? 0 : 0.5),
       opacity: withSpring(isHidden ? 0 : 1),
       display: isDisplayNone ? 'none' : 'flex',
@@ -155,7 +156,7 @@ export const TaskItem = ({
   useEffect(() => {
     if (selectedTaskId === item.id) {
       // Cette tâche est sélectionnée, l'agrandir avec la hauteur de la liste
-      animateHeight(listHeight*0.8);
+      animateHeight(listHeight * 0.8);
     } else if (selectedTaskId !== null) {
       // Une autre tâche est sélectionnée, la faire disparaître
       animateHeight(0);
@@ -186,42 +187,67 @@ export const TaskItem = ({
           onPressOut={handlePressOut}
         >
           <View style={styles.taskContent}>
-            <Text style={[
-              item.done ? styles.taskNameDone : styles.taskName,
-              { color: item.done ? colors.textDone : colors.text, fontSize: fontSizes.lg }
-            ]}>
-              {item.name}
-            </Text>
 
-           {
-            isOpen &&
+            {
+              !isOpen &&
 
-            <Animated.Text
-              entering={FadeInUp.springify().delay(300)}
-              exiting={FadeOut.springify()}
-              style={{ 
-                marginTop: 200,
-                color: colors.textSecondary,
-                fontSize: fontSizes.base,
-               }}
-            >
-              {item.description}
-            </Animated.Text>
-           } 
-          </View>
-          <View style={styles.checkboxContainer}>
-            <ReAnimated.View style={[styles.checkboxDot, dotAnimatedStyle, { backgroundColor: colors.taskDone }]} />
-            <TouchableOpacity
-              style={[
-                styles.taskCheckbox,
-                item.done && { backgroundColor: colors.checkboxDone },
-                !item.done && { backgroundColor: colors.checkbox }
-              ]}
-              onPress={handleCheckboxPress}
-              activeOpacity={0.7}
-            >
-              {item.done && <Text style={[styles.checkmark, { color: colors.checkMark }]}>✓</Text>}
-            </TouchableOpacity>
+              <ReAnimated.View
+                entering={FadeIn.springify().delay(400)}
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Text style={[
+                  item.done ? styles.taskNameDone : styles.taskName,
+                  { color: item.done ? colors.textDone : colors.text, fontSize: fontSizes.lg }
+                ]}>
+                  {item.name}
+                </Text>
+
+                <View style={styles.checkboxContainer}>
+                  <ReAnimated.View style={[styles.checkboxDot, dotAnimatedStyle, { backgroundColor: colors.taskDone }]} />
+                  <TouchableOpacity
+                    style={[
+                      styles.taskCheckbox,
+                      item.done && { backgroundColor: colors.checkboxDone },
+                      !item.done && { backgroundColor: colors.checkbox }
+                    ]}
+                    onPress={handleCheckboxPress}
+                    activeOpacity={0.7}
+                  >
+                    {item.done && <Text style={[styles.checkmark, { color: colors.checkMark }]}>✓</Text>}
+                  </TouchableOpacity>
+                </View>
+
+              </ReAnimated.View>
+            }
+
+
+            {
+              isOpen &&
+
+              <PopUpTask
+                onClose={() => handlePress()}
+                id={item.id}
+              />
+
+
+              // <Animated.Text
+              //   entering={FadeInUp.springify().delay(300)}
+              //   exiting={FadeOut.springify()}
+              //   style={{ 
+              //     marginTop: 200,
+              //     color: colors.textSecondary,
+              //     fontSize: fontSizes.base,
+              //    }}
+              // >
+              //   {item.description}
+              // </Animated.Text>
+            }
           </View>
         </Pressable>
       </ReAnimated.View>
@@ -244,7 +270,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 0.5,
     borderColor: '#00000020',
-    boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.2)',
+    boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.15)',
   },
 
   taskItemDone: {
@@ -265,7 +291,10 @@ const styles = StyleSheet.create({
 
   taskContent: {
     flex: 1,
-    paddingVertical: 12,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
 
   taskName: {

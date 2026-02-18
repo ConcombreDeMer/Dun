@@ -1,11 +1,10 @@
 import { supabase } from "@/lib/supabase";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useFont } from "../lib/FontContext";
 import { useTheme } from "../lib/ThemeContext";
 import AnimatedCheckbox from "./checkboxAnimated";
@@ -458,7 +457,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                 console.error("Erreur:", error);
             } finally {
                 // setTimeout(() => {
-                    setLoading(false);
+                setLoading(false);
                 // }, 5000);
             }
         };
@@ -567,127 +566,123 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
 
     return (
         <Animated.View
-            entering={FadeIn.springify().duration(500)}
+            entering={FadeIn.springify().duration(500).delay(300)}
             exiting={FadeOut.springify().duration(500)}
             style={styles.container}
         >
-            <BlurView intensity={20} style={[styles.blur, { backgroundColor: colors.text + '80' }]}>
 
-                <Animated.View
-                    entering={SlideInDown.springify().duration(900)}
-                    exiting={SlideOutDown.springify().duration(900)}
+            <Animated.View
+            // entering={SlideInDown.springify().duration(900)}
+            // exiting={SlideOutDown.springify().duration(900)}
+            >
+
+                {!loading && !name.trim() && (
+                    <View
+                        style={[styles.nameAlert, { backgroundColor: colors.danger }]}>
+                        <Text style={{ color: colors.text, fontSize: fontSizes.base }}>Le nom de la tâche est requis</Text>
+                    </View>
+                )}
+
+
+                <View
+                    style={[styles.card, { backgroundColor: "transparent" }]}
                 >
-
-                    {!loading && !name.trim() && (
-                        <View
-                            style={[styles.nameAlert, { backgroundColor: colors.danger }]}>
-                            <Text style={{ color: colors.text, fontSize: fontSizes.base }}>Le nom de la tâche est requis</Text>
-                        </View>
-                    )}
 
 
                     <View
-                        style={[styles.card, { backgroundColor: colors.card, width: width * 0.9, height: height * 0.8 }]}
+                        style={styles.header}
                     >
-
-
-                        <View
-                            style={styles.header}
-                        >
-                            <SecondaryButton
-                                onPress={onClose}
-                                image="xmark"
-                            />
-                        </View>
-
-                        {
-                            loading && (
-                                <Loading />
-                            )
-
-                        }
-
-                        {
-                            !loading && (
-                                <Animated.View
-                                    entering={FadeIn.springify().duration(500)}
-                                    exiting={FadeOut.springify().duration(500)}
-                                    style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}
-                                >
-                                    <View style={styles.scrollContent}>
-                                        <SimpleInput
-                                            value={taskQuery.data ? taskQuery.data.name : name}
-                                            onChangeText={setName}
-                                            bold
-                                            transparent
-                                            style={{ height: '5%' }}
-                                            scale="large"
-                                            fontSize="4xl"
-                                        />
-
-                                        <SimpleInput
-                                            value={description}
-                                            onChangeText={setDescription}
-                                            placeholder="Insérer une description"
-                                            multiline
-                                            style={{ overflow: "hidden", textAlignVertical: "top", height: '95%', boxShadow: `inset 0px -25px 29px -10px ${colors.card}` }}
-                                            transparent
-                                        />
-
-
-                                    </View>
-                                    <Text style={[{ color: colors.textSecondary, fontSize: fontSizes.xs, alignSelf: "center" }]}>
-                                        Dernière mise à jour : {formatLastUpdateDate(taskQuery.data ? new Date(taskQuery.data.last_update_date) : last_update_date)}
-                                    </Text>
-
-                                    <View style={styles.bottom}>
-                                        <PrimaryButton
-                                            size="XS"
-                                            width={48}
-                                            type="danger"
-                                            image="trash.fill"
-                                            onPress={handleDeleteTask}
-                                        />
-
-                                        <DateInput
-                                            value={selectedDate}
-                                            onChange={handleDateChange}
-                                            disabled={updateTaskMutation.isPending || deleteTaskMutation.isPending}
-                                            bold
-                                        />
-
-                                        <AnimatedCheckbox
-                                            checked={isDone}
-                                            onChange={handleToggleTask}
-                                            size={48}
-                                        />
-                                    </View>
-
-                                </Animated.View>
-
-
-
-                            )
-
-                        }
-
+                        <SecondaryButton
+                            onPress={onClose}
+                            image="xmark"
+                        />
                     </View>
-                </Animated.View>
-            </BlurView>
+
+                    {
+                        loading && (
+                            <Loading />
+                        )
+
+                    }
+
+                    {
+                        !loading && (
+                            <Animated.View
+                                entering={FadeIn.springify().duration(500)}
+                                exiting={FadeOut.springify().duration(500)}
+                                style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}
+                            >
+                                <View style={styles.scrollContent}>
+                                    <SimpleInput
+                                        value={taskQuery.data ? taskQuery.data.name : name}
+                                        onChangeText={setName}
+                                        bold
+                                        transparent
+                                        style={{ height: '5%' }}
+                                        scale="large"
+                                        fontSize="4xl"
+                                    />
+
+                                    <SimpleInput
+                                        value={description}
+                                        onChangeText={setDescription}
+                                        placeholder="Insérer une description"
+                                        multiline
+                                        style={{ overflow: "hidden", textAlignVertical: "top", height: '95%', boxShadow: `inset 0px -25px 29px -10px ${colors.card}` }}
+                                        transparent
+                                    />
+
+
+                                </View>
+                                <Text style={[{ color: colors.textSecondary, fontSize: fontSizes.xs, alignSelf: "center" }]}>
+                                    Dernière mise à jour : {formatLastUpdateDate(taskQuery.data ? new Date(taskQuery.data.last_update_date) : last_update_date)}
+                                </Text>
+
+                                <View style={styles.bottom}>
+                                    <PrimaryButton
+                                        size="XS"
+                                        width={48}
+                                        type="danger"
+                                        image="trash.fill"
+                                        onPress={handleDeleteTask}
+                                    />
+
+                                    <DateInput
+                                        value={selectedDate}
+                                        onChange={handleDateChange}
+                                        disabled={updateTaskMutation.isPending || deleteTaskMutation.isPending}
+                                        bold
+                                    />
+
+                                    <AnimatedCheckbox
+                                        checked={isDone}
+                                        onChange={handleToggleTask}
+                                        size={48}
+                                    />
+                                </View>
+
+                            </Animated.View>
+
+
+
+                        )
+
+                    }
+
+                </View>
+            </Animated.View>
         </Animated.View>
     );
 }
 const styles = StyleSheet.create({
 
     container: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
+        position: 'relative',
         width: '100%',
         height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 2000,
+        zIndex: 2,
     },
 
     blur: {
@@ -726,7 +721,7 @@ const styles = StyleSheet.create({
         alignSelf: "flex-end",
         width: "100%",
         // backgroundColor: "#a1232338",
-        paddingHorizontal: 20,
+        // paddingHorizontal: 20,
         paddingVertical: 20,
     },
 
@@ -739,13 +734,12 @@ const styles = StyleSheet.create({
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        marginBottom: 50,
     },
 
     header: {
         position: "absolute",
-        top: 20,
-        right: 20,
+        top: 10,
+        right: 0,
         zIndex: 10,
     },
     title: {
@@ -756,8 +750,8 @@ const styles = StyleSheet.create({
         display: "flex",
         flexDirection: "column",
         height: "85%",
-        paddingHorizontal: 10,
-        paddingTop: 10,
+        // paddingHorizontal: 10,
+        // paddingTop: 10,
         overflow: "hidden",
 
     },

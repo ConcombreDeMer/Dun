@@ -321,7 +321,7 @@ export default function CalendarComponent({
                 // Animer le calendrier selon la direction du drag
                 // Si drag vers le bas (expand): scale à 0.98
                 // Si drag vers le haut (collapse): scale à 1.02
-                const scaleValue = gestureState.dy > 0 ? 0.98 : 1.02;
+                const scaleValue = gestureState.dy > 0 ? 0.90 : 1.05;
                 calendarScaleRef.value = withSpring(scaleValue);
 
                 // Utiliser les refs pour avoir les valeurs actuelles
