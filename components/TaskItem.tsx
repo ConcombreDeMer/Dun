@@ -1,20 +1,22 @@
 import * as Haptics from "expo-haptics";
-import { useCallback, useEffect } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import ReAnimated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { useCallback, useEffect, useState } from "react";
+import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { default as Animated, FadeInUp, FadeOut, default as ReAnimated, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useFont } from "../lib/FontContext";
 import { useTheme } from "../lib/ThemeContext";
-
 interface TaskItemProps {
   item: {
     id: number;
     name: string;
     done: boolean;
+    description: string;
   };
   drag: () => void;
   isActive: boolean;
   handleToggleTask: (taskId: number, currentDone: boolean) => void;
   handleTaskPress: (taskId: number) => void;
+  selectedTaskId: number | null;
+  listHeight: number;
 }
 
 export const TaskItem = ({
@@ -23,33 +25,51 @@ export const TaskItem = ({
   isActive,
   handleToggleTask,
   handleTaskPress,
+  selectedTaskId,
+  listHeight,
 }: TaskItemProps) => {
   const { colors } = useTheme();
   const { fontSizes } = useFont();
+  const [isDisplayNone, setIsDisplayNone] = useState(false);
   const dotScale = useSharedValue(item.done ? 100 : 1);
   const isExpanded = useSharedValue(item.done);
   const height = useSharedValue(64);
+  const pressScale = useSharedValue(1);
   const isHeightExpandedRef = { current: false };
+  const [isOpen , setIsOpen] = useState(false);
 
   const animateHeight = (toValue: number) => {
-    isHeightExpandedRef.current = toValue === 192;
+    isHeightExpandedRef.current = toValue === 400;
     height.value = withSpring(toValue);
   };
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        { scale: withSpring(isActive ? 1.02 : 1) },
+        { scale: (isActive ? 1.02 : 1) * pressScale.value },
       ],
       opacity: withSpring(isActive ? 1 : 1),
     };
   });
 
   const heightAnimatedStyle = useAnimatedStyle(() => {
+    const isHidden = selectedTaskId !== null && selectedTaskId !== item.id;
     return {
-      height: withSpring(height.value),
-    };
-  }, [height]);
+      height: withSpring(height.value, {
+        stiffness: 250,      // Plus élevé = animation plus rapide
+        damping: 14,         // Augmenté pour réduire le bounce
+        mass: 1,
+        overshootClamping: false,  // Autorise le bounce
+        energyThreshold: 6e-9,
+        velocity: 5,
+      }),
+      marginBottom: withSpring(isHidden ? 0 : 10 ),
+      borderWidth: withSpring(isHidden ? 0 : 0.5),
+      opacity: withSpring(isHidden ? 0 : 1),
+      display: isDisplayNone ? 'none' : 'flex',
+
+    } as any;
+  }, [height, selectedTaskId, item.id, isDisplayNone]);
 
   const shadowStyle = useAnimatedStyle(() => {
     return {
@@ -60,9 +80,9 @@ export const TaskItem = ({
 
   const dotAnimatedStyle = useAnimatedStyle(() => {
     return {
-      width: withSpring(10 * dotScale.value),
-      height: withSpring(10 * dotScale.value),
-      borderRadius: withSpring(2.5 * dotScale.value),
+      width: withSpring(20 * dotScale.value),
+      height: withSpring(20 * dotScale.value),
+      borderRadius: withSpring(20 * dotScale.value),
     };
   });
 
@@ -80,12 +100,30 @@ export const TaskItem = ({
   }, [item.id, item.done, handleToggleTask, dotScale, isExpanded]);
 
   const handlePress = useCallback(() => {
+    console.log("Task pressed:", item.id);
+    setIsOpen(prev => !prev);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!isActive) {
-      animateHeight(isHeightExpandedRef.current ? 64 : 192);
-      // handleTaskPress(item.id);
+      animateHeight(isHeightExpandedRef.current ? 64 : 400);
+      handleTaskPress(item.id);
     }
   }, [isActive, item.id, handleTaskPress]);
+
+  const handlePressIn = useCallback(() => {
+    pressScale.value = withSpring(0.98, {
+      damping: 15,
+      mass: 1,
+      stiffness: 300,
+    });
+  }, [pressScale]);
+
+  const handlePressOut = useCallback(() => {
+    pressScale.value = withSpring(1, {
+      damping: 15,
+      mass: 1,
+      stiffness: 300,
+    });
+  }, [pressScale]);
 
   const taskItemStyle =
     [styles.taskItem, { backgroundColor: colors.task }];
@@ -100,48 +138,92 @@ export const TaskItem = ({
     }
   }, [item.done, dotScale, isExpanded]);
 
+  useEffect(() => {
+    const isHidden = selectedTaskId !== null && selectedTaskId !== item.id;
+    if (isHidden) {
+      // Appliquer display:none après 500ms
+      const timeout = setTimeout(() => {
+        setIsDisplayNone(true);
+      }, 300);
+      return () => clearTimeout(timeout);
+    } else {
+      // Retirer display:none immédiatement pour la réapparition
+      setIsDisplayNone(false);
+    }
+  }, [selectedTaskId, item.id]);
+
+  useEffect(() => {
+    if (selectedTaskId === item.id) {
+      // Cette tâche est sélectionnée, l'agrandir avec la hauteur de la liste
+      animateHeight(listHeight*0.8);
+    } else if (selectedTaskId !== null) {
+      // Une autre tâche est sélectionnée, la faire disparaître
+      animateHeight(0);
+    } else {
+      // Aucune tâche sélectionnée, retour à la taille normale
+      animateHeight(64);
+    }
+  }, [selectedTaskId, item.id, listHeight]);
+
   return (
     <ReAnimated.View style={[animatedStyle, shadowStyle]}>
       <ReAnimated.View style={[taskItemStyle, heightAnimatedStyle]}>
-        <TouchableOpacity
-        onLongPress={drag}
-        disabled={isActive}
-        delayLongPress={200}
-        style={{
-          width: "100%",
-          height: "100%",
-          flexDirection: "row",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          paddingHorizontal: 12,
-          paddingVertical: 10,
-        }}
-        activeOpacity={0.7}
-        onPress={handlePress}
-      >
-        <View style={styles.taskContent}>
-          <Text style={[
-            item.done ? styles.taskNameDone : styles.taskName,
-            { color: item.done ? colors.textDone : colors.text, fontSize: fontSizes.lg }
-          ]}>
-            {item.name}
-          </Text>
-        </View>
-        <View style={styles.checkboxContainer}>
-          <ReAnimated.View style={[styles.checkboxDot, dotAnimatedStyle, { backgroundColor: colors.taskDone }]} />
-          <TouchableOpacity
-            style={[
-              styles.taskCheckbox,
-              item.done && { backgroundColor: colors.checkboxDone },
-              !item.done && { backgroundColor: colors.checkbox }
-            ]}
-            onPress={handleCheckboxPress}
-            activeOpacity={0.7}
-          >
-            {item.done && <Text style={[styles.checkmark, { color: colors.checkMark }]}>✓</Text>}
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
+        <Pressable
+          onLongPress={drag}
+          disabled={isActive}
+          delayLongPress={500}
+          style={{
+            width: "100%",
+            height: "100%",
+            flexDirection: "row",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+          }}
+          onPress={handlePress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+        >
+          <View style={styles.taskContent}>
+            <Text style={[
+              item.done ? styles.taskNameDone : styles.taskName,
+              { color: item.done ? colors.textDone : colors.text, fontSize: fontSizes.lg }
+            ]}>
+              {item.name}
+            </Text>
+
+           {
+            isOpen &&
+
+            <Animated.Text
+              entering={FadeInUp.springify().delay(300)}
+              exiting={FadeOut.springify()}
+              style={{ 
+                marginTop: 200,
+                color: colors.textSecondary,
+                fontSize: fontSizes.base,
+               }}
+            >
+              {item.description}
+            </Animated.Text>
+           } 
+          </View>
+          <View style={styles.checkboxContainer}>
+            <ReAnimated.View style={[styles.checkboxDot, dotAnimatedStyle, { backgroundColor: colors.taskDone }]} />
+            <TouchableOpacity
+              style={[
+                styles.taskCheckbox,
+                item.done && { backgroundColor: colors.checkboxDone },
+                !item.done && { backgroundColor: colors.checkbox }
+              ]}
+              onPress={handleCheckboxPress}
+              activeOpacity={0.7}
+            >
+              {item.done && <Text style={[styles.checkmark, { color: colors.checkMark }]}>✓</Text>}
+            </TouchableOpacity>
+          </View>
+        </Pressable>
       </ReAnimated.View>
     </ReAnimated.View>
   );
@@ -153,7 +235,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 64,
     paddingHorizontal: 12,
-    marginBottom: 10,
+    // marginBottom: 10,
     justifyContent: 'space-between',
     borderRadius: 15,
     width: '100%',
