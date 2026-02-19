@@ -5,7 +5,7 @@ import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter, useSegments } from "expo-router";
 import React, { useCallback, useEffect, useMemo, } from "react";
 import { Alert, Dimensions, Keyboard, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Animated, { FadeInDown, FadeOutDown, SharedValue, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp, FadeOutDown, FadeOutUp, SharedValue, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { taskEmitter } from "../lib/eventEmitter";
 import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
@@ -28,6 +28,7 @@ export default function Navbar() {
     const setSelectedDate = useStore((state) => state.setSelectedDate);
     const [numberDateIcon, setNumberDateIcon] = React.useState("1.calendar");
     const [showDateInput, setShowDateInput] = React.useState(false);
+    const [windowWidth, setWindowWidth] = React.useState(Dimensions.get("window").width);
 
 
     // Reanimated shared values
@@ -399,7 +400,7 @@ export default function Navbar() {
                                 style={[
                                     {
                                         position: "absolute",
-                                        width: navbarWidth + 50,
+                                        width: windowWidth * 0.9,
                                         backgroundColor: '#dadada',
                                         borderRadius: 30,
                                         alignItems: "center",
@@ -409,7 +410,8 @@ export default function Navbar() {
                                         gap: 12,
                                         padding: 12,
                                         zIndex: -3,
-                                        marginLeft: -25,
+                                        left: "50%",
+                                        transform: [{ translateX: -((windowWidth * 0.9) / 2) }],
                                         borderWidth: 0.5,
                                         borderColor: colors.border,
                                         boxShadow: '0px 6px 20px rgba(0, 0, 0, 0.4)',
@@ -429,19 +431,42 @@ export default function Navbar() {
                                     style={{
                                         width: "100%",
                                         display: "flex",
-                                        flexDirection: "column",
+                                        flexDirection: "row",
                                         gap: 8,
-                                        justifyContent: "center",
+                                        justifyContent: "space-between",
                                         alignItems: "center",
                                     }}
                                 >
-                                    <SimpleInput
-                                        placeholder="Créer une tâche..."
-                                        borderRadius={20}
-                                        scale="large"
-                                        value={name}
-                                        onChangeText={setName}
-                                    />
+                                    <View
+                                        style={{ flex: 1 }}
+                                    >
+                                        <SimpleInput
+                                            placeholder="Créer une tâche..."
+                                            borderRadius={20}
+                                            scale="large"
+                                            value={name}
+                                            onChangeText={setName}
+                                        />
+                                    </View>
+
+                                    {
+                                        keyboardHeight > 0 && (
+
+
+                                            <Animated.View
+                                                entering={FadeInDown.springify()}
+                                                exiting={FadeOutDown.springify()}
+                                            >
+
+                                                <SecondaryButton
+                                                    onPress={handleCreateTask}
+                                                    image="checkmark"
+                                                />
+                                            </Animated.View>
+
+                                        )
+
+                                    }
                                 </View>
 
                                 <View
@@ -586,11 +611,23 @@ export default function Navbar() {
                                         />
                                     </View>
 
+                                    {
+                                        keyboardHeight === 0 && (
 
-                                    <SecondaryButton
-                                        onPress={handleCreateTask}
-                                        image="checkmark"
-                                    />
+                                            <Animated.View
+                                                entering={FadeInUp.springify()}
+                                                exiting={FadeOutUp.springify()}
+                                            >
+
+                                                <SecondaryButton
+                                                    onPress={handleCreateTask}
+                                                    image="checkmark"
+                                                />
+                                            </Animated.View>
+                                            
+                                        )
+                                    }
+
 
                                 </View>
 
