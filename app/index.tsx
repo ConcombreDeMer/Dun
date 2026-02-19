@@ -9,6 +9,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import ReAnimated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { TaskItem } from "../components/TaskItem";
 import { useTheme } from "../lib/ThemeContext";
 import { supabase } from "../lib/supabase";
@@ -28,7 +29,9 @@ export default function Index() {
   const [progress, setProgress] = useState(0);
   const [isTaskOpen, setIsTaskOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+  const [listHeight, setListHeight] = useState(0);
   const queryClient = useQueryClient();
+  const headerScale = useSharedValue(1);
 
   useEffect(() => {
     const fetchUserName = async () => {
@@ -55,7 +58,7 @@ export default function Index() {
   const getTasks = async () => {
     const { data, error } = await supabase
       .from("Tasks")
-      .select("id, name, done, order")
+      .select("id, name, description, done, order")
       .eq("date", dateKey)
       .order("order", { ascending: true });
     if (error) {
@@ -212,9 +215,8 @@ export default function Index() {
   }, [dateKey, queryClient]);
 
   const handleTaskPress = useCallback((taskId: number) => {
-    setSelectedTaskId(taskId);
-    setIsTaskOpen(true);
-  }, [router]);
+    setSelectedTaskId(prevId => prevId === taskId ? null : taskId);
+  }, []);
 
   // useEffect(() => {
   //   if(selectedTaskId !== null) {
@@ -236,26 +238,49 @@ export default function Index() {
     setStoreDate(newDate);
   }, [setStoreDate, setSelectedDate]);
 
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: withSpring(headerScale.value) }],
+      marginTop: withSpring(selectedTaskId !== null ? -200 : 0),
+      opacity: withSpring(selectedTaskId !== null ? 0 : 1),
+    };
+  }, [headerScale, selectedTaskId]);
+
+  useEffect(() => {
+    headerScale.value = selectedTaskId !== null ? 0 : 1;
+  }, [selectedTaskId, headerScale]);
+
   return (
 
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style={theme == "dark" ? "light" : "auto"} />
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View
+        style={[styles.container, { backgroundColor: colors.background }]}
+        onLayout={(event) => {
+          const { height } = event.nativeEvent.layout;
+          setListHeight(height);
+        }}
+
+      >
         <View style={styles.header}>
 
-          <CalendarComponent
-            slider={true}
-            initialDate={selectedDate}
-            onDateSelect={(date) => changeDate(date)}
-          />
+          <ReAnimated.View style={headerAnimatedStyle}>
+            <CalendarComponent
+              slider={true}
+              initialDate={selectedDate}
+              onDateSelect={(date) => changeDate(date)}
+            />
 
-          <ProgressBar
-            progress={progress}
-          />
+            <ProgressBar
+              progress={progress}
+            />
+          </ReAnimated.View>
 
         </View>
 
-        <View style={styles.listContainer}>
+        <View
+          style={styles.listContainer}
+        >
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.text} />
@@ -280,6 +305,8 @@ export default function Index() {
                   isActive={isActive}
                   handleToggleTask={handleToggleTask}
                   handleTaskPress={handleTaskPress}
+                  selectedTaskId={selectedTaskId}
+                  listHeight={listHeight}
                 />
               )}
               ListEmptyComponent={
