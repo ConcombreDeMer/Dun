@@ -1,3 +1,4 @@
+import { useStore } from "@/store/store";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -231,8 +232,11 @@ export default function CalendarComponent({
 }: CalendarProps) {
     const { colors, theme } = useTheme();
     const { fontSizes } = useFont();
+    const storeSelectedDate = useStore((state) => state.selectedDate);
+    const setStoreSelectedDate = useStore((state) => state.setSelectedDate);
+    
     // Initialiser la date sélectionnée une seule fois
-    const [selectedDate, setSelectedDate] = useState<Date>(() => initialDate || new Date());
+    const [selectedDate, setSelectedDate] = useState<Date>(() => initialDate || storeSelectedDate || new Date());
     const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
     const [isExpanded, setIsExpanded] = useState(false);
     const sliderRef = useRef<FlatList>(null);
@@ -248,7 +252,12 @@ export default function CalendarComponent({
     // Animation pour le calendrier entier lors du drag
     const calendarScaleRef = useSharedValue(1);
 
-
+    // Sync with store's selectedDate when it changes from outside
+    useEffect(() => {
+        if (storeSelectedDate && !isSameDay(selectedDate, storeSelectedDate)) {
+            setSelectedDate(new Date(storeSelectedDate));
+        }
+    }, [storeSelectedDate?.getTime()]);
 
     const getDays = async () => {
         const { data, error } = await supabase
@@ -497,9 +506,11 @@ export default function CalendarComponent({
 
     // Gestion de la sélection de date
     const handleDateSelect = useCallback((date: Date) => {
-        setSelectedDate(new Date(date));
-        onDateSelect?.(new Date(date));
-    }, [onDateSelect]);
+        const newDate = new Date(date);
+        setSelectedDate(newDate);
+        setStoreSelectedDate(newDate);
+        onDateSelect?.(newDate);
+    }, [onDateSelect, setStoreSelectedDate]);
 
     // Gestion de la rétraction
     const toggleExpanded = async () => {

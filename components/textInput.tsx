@@ -27,6 +27,7 @@ interface SimpleInputProps {
     isLoading?: boolean;
     type?: KeyboardType;
     cap?: 'none' | 'sentences' | 'words' | 'characters';
+    borderRadius?: number;
 }
 
 export default function SimpleInput({
@@ -49,6 +50,7 @@ export default function SimpleInput({
     isLoading = false,
     type = 'default',
     cap='sentences',
+    borderRadius = 8,
 }: SimpleInputProps) {
     const [text, setText] = useState(value);
     const [showPassword, setShowPassword] = useState(false);
@@ -123,7 +125,7 @@ export default function SimpleInput({
 
                 <View>
                     <TextInput
-                        style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }, transparent && { backgroundColor: 'transparent', borderWidth: 0 }, { fontSize: fontSize ? fontSizes[fontSize] : fontSizes.lg, backgroundColor: transparent ? 'transparent' : colors.task, borderColor: colors.border, color: colors.text }]}
+                        style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }, transparent && { backgroundColor: 'transparent', borderWidth: 0 }, { fontSize: fontSize ? fontSizes[fontSize] : fontSizes.lg, backgroundColor: transparent ? 'transparent' : colors.task, borderColor: colors.border, color: colors.text, borderRadius: borderRadius }]}
                         placeholder={placeholder}
                         placeholderTextColor={colors.inputPlaceholder}
                         value={text}

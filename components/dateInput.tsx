@@ -75,7 +75,7 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
                 </Text>
             }
             <TouchableOpacity
-                style={[styles.dateButton, { backgroundColor: colors.input, borderColor: colors.border }]}
+                style={[styles.dateButton, { backgroundColor: colors.task, borderColor: colors.border }]}
                 onPress={() => setShowDatePicker(true)}
                 disabled={disabled}
             >
@@ -168,9 +168,9 @@ const styles = StyleSheet.create({
         marginBottom: 5,
     },
     dateButton: {
-        height: 48,
+        height: 64,
         borderWidth: 1,
-        borderRadius: 8,
+        borderRadius: 20,
         padding: 12,
         justifyContent: "center",
         alignItems: "center",
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     },
     datePickerContent: {
         paddingBottom: 10,
-        borderRadius: 10,
+        borderRadius: 30,
         marginLeft: "auto",
         marginRight: "auto",
         width: "90%",

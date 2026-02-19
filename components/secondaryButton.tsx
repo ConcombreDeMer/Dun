@@ -8,28 +8,57 @@ interface SecondaryButtonProps {
     onPress?: () => void;
     image?: SFSymbol;
     title?: string;
+    type?: 'default' | 'danger';
 }
 
-export default function SecondaryButton({ onPress, image, title }: SecondaryButtonProps) {
+export default function SecondaryButton({ onPress, image, title, type = 'default' }: SecondaryButtonProps) {
 
     const { colors, theme } = useTheme();
     const { fontSizes } = useFont();
 
+    const getButtonStyle = () => {
+        let baseStyle: any = {
+            backgroundColor: colors.input,
+            borderColor: colors.border,
+        };
+
+        if (type === 'danger') {
+            baseStyle.backgroundColor = '#F7C1C1';
+            baseStyle.borderColor = '#F7C1C1';
+        }
+
+        return baseStyle;
+    };
+
+    const getIconColor = () => {
+        if (type === 'danger') {
+            return '#A10606';
+        }
+        return colors.text;
+    };
+
+    const getTitleColor = () => {
+        if (type === 'danger') {
+            return '#A10606';
+        }
+        return colors.text;
+    };
+
     return (
         <View>
-            <TouchableOpacity style={[styles.button, { backgroundColor: colors.input, borderColor: colors.border }]} onPress={onPress}>
+            <TouchableOpacity style={[styles.button, getButtonStyle()]} onPress={onPress}>
                 <View style={styles.content}>
                     {image &&
                         <SymbolView
                             name={image}
                             style={{ width: 24, height: 24, opacity: 0.3 }}
                             type="palette"
-                            tintColor={colors.text}
+                            tintColor={getIconColor()}
                         />
                     }
                 </View>
             </TouchableOpacity>
-            {title && <Text style={[styles.title, { color: colors.text, fontSize: fontSizes.sm }]}>{title}</Text>}
+            {title && <Text style={[styles.title, { color: getTitleColor(), fontSize: fontSizes.sm }]}>{title}</Text>}
         </View>
     );
 }
