@@ -3,17 +3,17 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    Keyboard,
-    Pressable,
+    Dimensions,
+    Image,
     StyleSheet,
     Text,
     View
 } from 'react-native';
 import Animated, {
-    FadeIn,
+    FadeInDown,
     FadeInUp,
-    FadeOut,
-    FadeOutDown
+    FadeOutDown,
+    useSharedValue
 } from 'react-native-reanimated';
 import { useTheme } from '../../lib/ThemeContext';
 
@@ -23,6 +23,11 @@ export default function StartScreen() {
     const { colors, theme } = useTheme();
     const styles = createStyles(colors);
     const LottieView = require("lottie-react-native").default;
+    const screenWidth = React.useState(Dimensions.get('window').width)[0];
+    const screenHeight = React.useState(Dimensions.get('window').height)[0];
+
+    const scale = useSharedValue(0.8);
+    const opacity = useSharedValue(0);
 
 
     const goToRegister = () => {
@@ -32,28 +37,98 @@ export default function StartScreen() {
 
 
     return (
-        <Pressable
+        <View
             style={[styles.content, { backgroundColor: colors.background }]}
-            onPress={() => Keyboard.dismiss()}
         >
 
-            <Animated.View
-                style={styles.animationContainer}
-                entering={FadeIn.springify().duration(1500)}
-                exiting={FadeOut.springify()}
+            <View
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginTop: 100,
+                }}
             >
-                <LottieView
-                    source={require("../../assets/animations/Onboard.json")}
-                    autoPlay
-                    loop={false}
-                    style={styles.lottieAnimation}
-                />
-            </Animated.View>
+                <Animated.Text
+                    style={{
+                        fontSize: 60,
+                        fontFamily: 'Satoshi-Black',
+                        color: colors.text,
+                        textAlign: 'center',
+                        letterSpacing: -2,
+                    }}
+                    entering={FadeInUp.springify().delay(3000).duration(1000)}
+                    exiting={FadeOutDown.springify().duration(500)}
+                >
+                    Dun.
+                </Animated.Text>
+                <Animated.Text
+                    style={{
+                        fontSize: 24,
+                        fontFamily: 'Satoshi-Bold',
+                        color: colors.textSecondary,
+                        textAlign: 'center',
+                        width: '50%',
+                        lineHeight: 26,
+
+                    }}
+                    entering={FadeInUp.springify().delay(3000).duration(1000)}
+                    exiting={FadeOutDown.springify().delay(100).duration(500)}
+                >
+                    Prend le contrôle de tes journées
+                </Animated.Text>
+            </View>
+
+            <View
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: 20,
+                    position: 'absolute',
+                    zIndex: 1,
+                    top: '20%',
+                    left: 0,
+                    right: 0,
+                    height: '50%',
+
+                }}
+            >
+                <Animated.View
+                    style={styles.imageContainer}
+                    entering={FadeInUp.springify().delay(1000).duration(3000)}
+                    exiting={FadeOutDown.springify().duration(500)}
+                >
+                    <Image
+                        source={require('@/assets/images/character/1.png')}
+                        style={styles.characterImage}
+                        resizeMode="contain"
+                    />
+                </Animated.View>
+
+                <Animated.View
+                    style={[styles.imageContainer, { marginTop: 300 }]}
+                    entering={FadeInDown.springify().delay(1000).duration(3000)}
+                    exiting={FadeOutDown.springify().duration(500)}
+                >
+                    <Image
+                        source={require('@/assets/images/character/0.png')}
+                        style={styles.characterImage}
+                        resizeMode="contain"
+                    />
+                </Animated.View>
+
+            </View>
+
+
+
+
 
             <Animated.View
                 style={styles.buttonSection}
-                entering={FadeInUp.springify().delay(1500).duration(1500)}
-                exiting={FadeOutDown.springify().delay(100).duration(500)}
+                entering={FadeInDown.springify().delay(3000).duration(1500)}
+                exiting={FadeOutDown.springify().duration(500)}
 
             >
                 <View style={styles.pin}>
@@ -76,7 +151,7 @@ export default function StartScreen() {
                 </Text>
             </Animated.View>
 
-        </Pressable >
+        </View >
     );
 }
 
@@ -84,7 +159,9 @@ const createStyles = (colors: any) =>
     StyleSheet.create({
         content: {
             flex: 1,
-            justifyContent: 'space-between',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-start',
         },
 
         buttonSection: {
@@ -155,6 +232,19 @@ const createStyles = (colors: any) =>
         lottieAnimation: {
             width: '100%',
             height: '100%',
+        },
+
+        imageContainer: {
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginVertical: 40,
+            position: 'absolute',
+        },
+
+        characterImage: {
+            width: 200,
+            height: 200,
         },
 
     });

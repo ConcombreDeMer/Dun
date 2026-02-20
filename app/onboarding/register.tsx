@@ -15,7 +15,6 @@ import {
   View
 } from 'react-native';
 import Animated, {
-  FadeIn,
   FadeInUp,
   FadeOut,
   FadeOutDown
@@ -184,16 +183,6 @@ export default function Register() {
     router.back();
   }
 
-  const getTextInputStyle = () => [
-    styles.textInput,
-    {
-      backgroundColor: colors.input,
-      borderColor: colors.border,
-      color: colors.text,
-    }
-  ];
-
-
   return (
 
     <Pressable
@@ -205,7 +194,7 @@ export default function Register() {
         {/* ----------------------- HEADER ---------------------------- */}
 
         <Animated.View
-          entering={FadeIn.springify().delay(1500).duration(1500)}
+          entering={FadeInUp.springify().delay(1500).duration(1500)}
           exiting={FadeOut.springify()}
           style={styles.headerContainer}
         >
@@ -241,6 +230,21 @@ export default function Register() {
 
         {page == 1 && (
           <View style={styles.formContainer}>
+
+
+            <Animated.View
+              style={styles.imageContainer}
+              entering={FadeInUp.springify().delay(300).duration(3000)}
+              exiting={FadeOutDown.springify().duration(500)}
+            >
+              <Image
+                source={require('@/assets/images/character/9.png')}
+                style={styles.characterImage}
+                resizeMode="contain"
+              />
+            </Animated.View>
+
+
             <Animated.View
               entering={inputAnimationTitle}
               exiting={FadeOutDown.springify()}
@@ -279,6 +283,21 @@ export default function Register() {
 
         {page == 2 && (
           <View style={styles.formContainer}>
+
+
+            <Animated.View
+              style={styles.imageContainer}
+              entering={FadeInUp.springify().delay(300).duration(3000)}
+              exiting={FadeOutDown.springify().duration(500)}
+            >
+              <Image
+                source={require('@/assets/images/character/8.png')}
+                style={styles.characterImage}
+                resizeMode="contain"
+              />
+            </Animated.View>
+
+
             <Animated.View
               entering={inputAnimationTitle}
               exiting={FadeOutDown.springify()}
@@ -318,6 +337,20 @@ export default function Register() {
 
         {(page == 3 || page == 4) && (
           <View style={styles.formContainer}>
+
+            <Animated.View
+              style={styles.imageContainer}
+              entering={FadeInUp.springify().delay(300).duration(3000)}
+              exiting={FadeOutDown.springify().duration(500)}
+            >
+              <Image
+                source={require('@/assets/images/character/7.png')}
+                style={styles.characterImage}
+                resizeMode="contain"
+              />
+            </Animated.View>
+
+
             <Animated.View
               entering={inputAnimationTitle}
               exiting={FadeOutDown.springify()}
@@ -599,12 +632,15 @@ const createStyles = (colors: any) =>
     },
     formContainer: {
       position: 'absolute',
-      top: '50%',
+      top: '40%',
       left: 0,
       right: 0,
       transform: [{ translateY: -100 }],
       alignItems: 'center',
       zIndex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12,
     },
     inputContainer: {
       width: '100%',
@@ -623,7 +659,7 @@ const createStyles = (colors: any) =>
     headerContainer: {
       position: 'absolute',
       width: '100%',
-      top: 70,
+      top: 40,
       alignSelf: 'center',
       zIndex: 3,
       alignItems: 'center',
@@ -648,5 +684,17 @@ const createStyles = (colors: any) =>
       marginTop: 8,
       textAlign: 'center',
       zIndex: 0,
+    },
+
+    imageContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      position: 'relative',
+    },
+
+    characterImage: {
+      width: 150,
+      height: 150,
     },
   });
