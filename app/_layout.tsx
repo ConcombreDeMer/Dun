@@ -1,11 +1,12 @@
 import { Session } from "@supabase/supabase-js";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
-import { Stack, useRouter, useSegments } from "expo-router";
+import * as Haptics from 'expo-haptics';
+import { useRouter, useSegments } from "expo-router";
+import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useMemo, useState } from "react";
-import { View } from "react-native";
-import Navbar from "../components/navbar";
+import { Platform, View } from "react-native";
 import { FontProvider } from "../lib/FontContext";
 import { supabase } from "../lib/supabase";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
@@ -126,6 +127,14 @@ function RootLayoutContent() {
 
   const queryClient = useMemo(() => getQueryClient(), []);
 
+  const hapticFeedback = () => {
+    if (Platform.OS === "ios") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else {
+      Haptics.selectionAsync();
+    }
+  };
+
 
 
   return (
@@ -148,7 +157,7 @@ function RootLayoutContent() {
 
       </View> */}
       <View style={{ flex: 1 }}>
-        <Stack
+        {/* <Stack
           screenOptions={{
             headerStyle: {
               backgroundColor: colors.background,
@@ -219,8 +228,33 @@ function RootLayoutContent() {
               animationDuration: duration,
             }}
           />
-        </Stack>
-        {!isOnboarding && !isSettingsSubroute && <Navbar />}
+        </Stack> */}
+        {/* {!isOnboarding && !isSettingsSubroute && <Navbar />} */}
+
+
+        <NativeTabs
+          tintColor={"black"}
+          minimizeBehavior="onScrollDown"
+        >
+          <NativeTabs.Trigger name="index" >
+            <Label hidden>Home</Label>
+            <Icon sf={{ default: 'list.bullet.rectangle.portrait', selected: 'list.bullet.rectangle.portrait.fill' }} ></Icon>
+          </NativeTabs.Trigger>
+          <NativeTabs.Trigger name="stats">
+            <Label hidden>Stats</Label>
+            <Icon sf={{ default: 'chart.bar', selected: 'chart.bar.fill' }} ></Icon>
+          </NativeTabs.Trigger>
+          <NativeTabs.Trigger name="settings">
+            <Label hidden>Settings</Label>
+            <Icon sf={{ default: 'gearshape', selected: 'gearshape.fill' }} ></Icon>
+          </NativeTabs.Trigger>
+          <NativeTabs.Trigger name="create-task" role="search">
+            <Icon sf="plus"></Icon>
+          </NativeTabs.Trigger>
+
+        </NativeTabs>
+
+
       </View>
     </QueryClientProvider>
   );

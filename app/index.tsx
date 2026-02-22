@@ -1,6 +1,7 @@
 import CalendarComponent from "@/components/calendar";
 import PopUpTask from "@/components/popUpTask";
 import ProgressBar from "@/components/progressBar";
+import { Host, Picker } from '@expo/ui/swift-ui';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -14,6 +15,7 @@ import { TaskItem } from "../components/TaskItem";
 import { useTheme } from "../lib/ThemeContext";
 import { supabase } from "../lib/supabase";
 import { useStore } from "../store/store";
+
 
 
 const LottieView = require("lottie-react-native").default;
@@ -32,6 +34,8 @@ export default function Index() {
   const [listHeight, setListHeight] = useState(0);
   const queryClient = useQueryClient();
   const headerScale = useSharedValue(1);
+  const [switchValue, setSwitchValue] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
     const fetchUserName = async () => {
@@ -250,6 +254,10 @@ export default function Index() {
     headerScale.value = selectedTaskId !== null ? 0 : 1;
   }, [selectedTaskId, headerScale]);
 
+  function pickerStyle(arg0: string) {
+    throw new Error("Function not implemented.");
+  }
+
   return (
 
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -278,54 +286,73 @@ export default function Index() {
 
         </View>
 
-        <View
-          style={styles.listContainer}
+        <Host
+          matchContents={true}
         >
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.text} />
-            </View>
-          ) : (
-            <DraggableFlatList
-              data={taskQuery.data || []}
-              keyExtractor={(item) => item.id.toString()}
-              scrollEnabled={true}
-              nestedScrollEnabled={true}
-              showsVerticalScrollIndicator={false}
-              persistentScrollbar={true}
-              removeClippedSubviews={false}
-              contentContainerStyle={styles.flatListContent}
-              activationDistance={20}
-              onDragEnd={handleDragEnd}
-              onPlaceholderIndexChange={handlePlaceholderIndexChange}
-              renderItem={({ item, drag, isActive }) => (
-                <TaskItem
-                  item={item}
-                  drag={drag}
-                  isActive={isActive}
-                  handleToggleTask={handleToggleTask}
-                  handleTaskPress={handleTaskPress}
-                  selectedTaskId={selectedTaskId}
-                  listHeight={listHeight}
-                />
-              )}
-              ListEmptyComponent={
-                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Aucune tâche pour cette date</Text>
-              }
-            />
-          )}
-        </View>
+
+          <Picker
+            options={['$', '$$', '$$$', '$$$$']}
+            selectedIndex={selectedIndex}
+            onOptionSelected={({ nativeEvent: { index } }) => {
+              setSelectedIndex(index);
+            }}
+            variant="segmented"
+            
+          />
+      </Host>
 
 
 
+      <View
+        style={styles.listContainer}
+      >
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.text} />
+          </View>
+        ) : (
+          <DraggableFlatList
+            data={taskQuery.data || []}
+            keyExtractor={(item) => item.id.toString()}
+            scrollEnabled={true}
+            nestedScrollEnabled={true}
+            showsVerticalScrollIndicator={false}
+            persistentScrollbar={true}
+            removeClippedSubviews={false}
+            contentContainerStyle={styles.flatListContent}
+            activationDistance={20}
+            onDragEnd={handleDragEnd}
+            onPlaceholderIndexChange={handlePlaceholderIndexChange}
+            renderItem={({ item, drag, isActive }) => (
+              <TaskItem
+                item={item}
+                drag={drag}
+                isActive={isActive}
+                handleToggleTask={handleToggleTask}
+                handleTaskPress={handleTaskPress}
+                selectedTaskId={selectedTaskId}
+                listHeight={listHeight}
+              />
+            )}
+            ListEmptyComponent={
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Aucune tâche pour cette date</Text>
+            }
+          />
+        )}
       </View>
-      {isTaskOpen && (
-        <PopUpTask
-          id={selectedTaskId!}
-          onClose={closeTaskPopup}
-        />
-      )}
-    </GestureHandlerRootView>
+
+
+
+    </View>
+      {
+    isTaskOpen && (
+      <PopUpTask
+        id={selectedTaskId!}
+        onClose={closeTaskPopup}
+      />
+    )
+  }
+    </GestureHandlerRootView >
   );
 }
 
