@@ -27,6 +27,7 @@ interface SimpleInputProps {
     isLoading?: boolean;
     type?: KeyboardType;
     cap?: 'none' | 'sentences' | 'words' | 'characters';
+    returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send';
 }
 
 export default function SimpleInput({
@@ -48,7 +49,8 @@ export default function SimpleInput({
     fontSize,
     isLoading = false,
     type = 'default',
-    cap='sentences',
+    cap = 'sentences',
+    returnKeyType = 'done',
 }: SimpleInputProps) {
     const [text, setText] = useState(value);
     const [showPassword, setShowPassword] = useState(false);
@@ -137,6 +139,7 @@ export default function SimpleInput({
                         autoCorrect={false}
                         keyboardType={type}
                         autoCapitalize={cap}
+                        returnKeyType={returnKeyType}
                     />
 
                     {password && (
@@ -197,6 +200,6 @@ const styles = StyleSheet.create({
         width: '100%',
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#00000020',        
+        borderColor: '#00000020',
     },
 });

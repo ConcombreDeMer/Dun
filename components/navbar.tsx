@@ -4,11 +4,13 @@ import { useRouter, useSegments } from "expo-router";
 import React, { useCallback, useMemo, useRef } from "react";
 import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../lib/ThemeContext";
+import CreateModal from "./createModal";
 
 export default function Navbar() {
     const { colors } = useTheme();
     const router = useRouter();
     const segments = useSegments();
+    const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
 
     // Animation refs - créés une seule fois avec useRef
     const navbarScaleRef = useRef(new Animated.Value(1));
@@ -40,9 +42,6 @@ export default function Navbar() {
                 break;
             case "stats":
                 router.replace("/stats/general");
-                break;
-            case "add":
-                router.push("/create-task");
                 break;
             case "settings":
                 router.replace("/settings");
@@ -76,6 +75,15 @@ export default function Navbar() {
         animateScale(navbarScaleRef.current, 1);
         animateScale(addButtonScaleRef.current, 1);
     }, [animateScale]);
+
+    const openAddTask = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        if(isCreateModalOpen) {
+            setIsCreateModalOpen(false);
+        } else {
+            setIsCreateModalOpen(true);
+        }
+    };
 
     return (
         <>
@@ -122,7 +130,7 @@ export default function Navbar() {
                     >
                         <TouchableOpacity
                             style={[styles.addButton, { backgroundColor: colors.actionButton, borderColor: colors.border }]}
-                            onPress={() => handleNavigation("add")}
+                            onPress={openAddTask}
                             onPressIn={handleAddPressIn}
                             onPressOut={handleAddPressOut}
                             activeOpacity={0.7}
@@ -135,6 +143,14 @@ export default function Navbar() {
                         </TouchableOpacity>
                     </Animated.View>
                 </View>
+                {
+                    isCreateModalOpen && (
+                        <CreateModal 
+                            onClose={() => setIsCreateModalOpen(false)}
+                        />
+                    )
+
+                }
 
             </View>
 
@@ -148,7 +164,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 0,
         width: "100%",
-        height: 100,
+        height: "100%",
         alignItems: "center",
         // backgroundColor: "white",
         // shadowColor: "#ffffffff",
