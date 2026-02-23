@@ -131,11 +131,11 @@ export default function SimpleInput({
                         width: '100%',
                         backgroundColor: transparent ? 'transparent' : colors.task,
                         borderColor: colors.border,
-                        borderWidth: 1,
+                        borderWidth: transparent ? 0 : 1,
                         borderRadius: 15,
                         paddingVertical: multiline ? 10 : 0,
                         overflow: 'hidden',
-                        paddingHorizontal: 12,
+                        paddingHorizontal: 8,
                     }}
                 >
                     <TextInput
