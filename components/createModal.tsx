@@ -181,7 +181,8 @@ const handleCreateTask = async () => {
         isIntentionalBlurRef.current = false;
     };
 
-    const openPage = () => {
+    const openPage = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         console.log("Ouvrir page de création de tâche complète");
         router.push("/create-task");
         onClose?.();
