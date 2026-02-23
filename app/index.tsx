@@ -4,6 +4,7 @@ import ProgressBar from "@/components/progressBar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { SquircleView } from "expo-squircle-view";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
@@ -14,6 +15,7 @@ import { TaskItem } from "../components/TaskItem";
 import { useTheme } from "../lib/ThemeContext";
 import { supabase } from "../lib/supabase";
 import { useStore } from "../store/store";
+
 
 
 const LottieView = require("lottie-react-native").default;
@@ -277,6 +279,27 @@ export default function Index() {
           </ReAnimated.View>
 
         </View>
+
+
+        <SquircleView
+          cornerSmoothing={100} // 0-100
+          preserveSmoothing={true} // false matches figma, true has more rounding
+          style={{
+            width: "90%",
+            height: 64,
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            alignSelf: "center",
+            backgroundColor: colors.card,
+            borderRadius: 23,
+            borderColor: "#e6e6e6",
+            borderWidth: 1,
+            boxShadow: `0px 4px 20px rgba(0, 0, 0, 0.1)`,
+            marginBottom: 20,
+
+          }}
+        ></SquircleView>
 
         <View
           style={styles.listContainer}
