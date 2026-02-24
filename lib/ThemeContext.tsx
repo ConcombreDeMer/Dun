@@ -36,7 +36,7 @@ export const lightColors: Colors = {
     background: '#EFEFEF',
     text: '#000000',
     textSecondary: '#999999',
-    border: '#c9c9c9',
+    border: '#ececec',
     input: '#F1F1F1',
     inputPlaceholder: '#999999',
     card: '#ffffff',

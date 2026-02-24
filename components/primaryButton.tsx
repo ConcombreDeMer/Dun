@@ -14,9 +14,10 @@ interface PrimaryButtonProps {
     style?: ViewStyle;
     type?: 'danger' | 'reverse'
     width?: number;
+    height ?: number;
 }
 
-export default function PrimaryButton({ title, onPress, disabled = false, image = '', size = 'L', style, type, width }: PrimaryButtonProps) {
+export default function PrimaryButton({ title, onPress, disabled = false, image = '', size = 'L', style, type, width, height }: PrimaryButtonProps) {
     const { colors, theme } = useTheme();
     const { fontSizes } = useFont();
 
@@ -24,7 +25,7 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
         let baseStyle: any = {
             backgroundColor: colors.actionButton,
             width: '100%',
-            height: 64,
+            height: height || 64,
             borderRadius: 30,
             alignItems: 'center',
             justifyContent: 'center',
@@ -83,12 +84,12 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
             {image &&
                 <SymbolView
                     name={image}
-                    style={{ width: 24, height: 24 }}
+                    style={{ width: 24, height: 24, alignSelf: 'center'}}
                     type="palette"
                     tintColor={colors.buttonText}
                 />
             }
-            {(size === 'L' || size === 'M' || size === 'S') && <Text style={getTextStyle()}>{title}</Text>}
+            {(size === 'L' || size === 'M' || size === 'S') && title && <Text style={getTextStyle()}>{title}</Text>}
         </TouchableOpacity>
     );
 }

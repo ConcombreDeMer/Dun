@@ -8,23 +8,25 @@ interface SecondaryButtonProps {
     onPress?: () => void;
     image?: SFSymbol;
     title?: string;
+    backgroundColor?: string;
+    imageColor?: string;
 }
 
-export default function SecondaryButton({ onPress, image, title }: SecondaryButtonProps) {
+export default function SecondaryButton({ onPress, image, title, backgroundColor, imageColor }: SecondaryButtonProps) {
 
     const { colors, theme } = useTheme();
     const { fontSizes } = useFont();
 
     return (
         <View>
-            <TouchableOpacity style={[styles.button, { backgroundColor: colors.input, borderColor: colors.border }]} onPress={onPress}>
+            <TouchableOpacity style={[styles.button, { backgroundColor: backgroundColor || colors.input, borderColor: colors.border }]} onPress={onPress}>
                 <View style={styles.content}>
                     {image &&
                         <SymbolView
                             name={image}
-                            style={{ width: 24, height: 24, opacity: 0.3 }}
+                            style={{ width: 24, height: 24, opacity: 1 }}
                             type="palette"
-                            tintColor={colors.text}
+                            tintColor={imageColor || colors.textSecondary}
                         />
                     }
                 </View>

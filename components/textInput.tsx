@@ -1,4 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
+import { SquircleView } from 'expo-squircle-view';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, KeyboardType, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { useFont } from '../lib/FontContext';
@@ -27,6 +28,7 @@ interface SimpleInputProps {
     isLoading?: boolean;
     type?: KeyboardType;
     cap?: 'none' | 'sentences' | 'words' | 'characters';
+    returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send';
 }
 
 export default function SimpleInput({
@@ -48,7 +50,8 @@ export default function SimpleInput({
     fontSize,
     isLoading = false,
     type = 'default',
-    cap='sentences',
+    cap = 'sentences',
+    returnKeyType = undefined,
 }: SimpleInputProps) {
     const [text, setText] = useState(value);
     const [showPassword, setShowPassword] = useState(false);
@@ -121,9 +124,22 @@ export default function SimpleInput({
 
             {!isLoading && (
 
-                <View>
+                <SquircleView
+                    cornerSmoothing={100} // 0-100
+                    preserveSmoothing={true} // false matches figma, true has more rounding
+                    style={{
+                        width: '100%',
+                        backgroundColor: transparent ? 'transparent' : colors.task,
+                        borderColor: colors.border,
+                        borderWidth: transparent ? 0 : 1,
+                        borderRadius: 15,
+                        paddingVertical: multiline ? 10 : 0,
+                        overflow: 'hidden',
+                        paddingHorizontal: 8,
+                    }}
+                >
                     <TextInput
-                        style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }, transparent && { backgroundColor: 'transparent', borderWidth: 0 }, { fontSize: fontSize ? fontSizes[fontSize] : fontSizes.lg, backgroundColor: transparent ? 'transparent' : colors.task, borderColor: colors.border, color: colors.text }]}
+                        style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }, transparent && { backgroundColor: 'transparent', borderWidth: 0 }, { fontSize: fontSize ? fontSizes[fontSize] : fontSizes.lg, backgroundColor: transparent ? 'transparent' : colors.task, color: colors.text }]}
                         placeholder={placeholder}
                         placeholderTextColor={colors.inputPlaceholder}
                         value={text}
@@ -137,6 +153,7 @@ export default function SimpleInput({
                         autoCorrect={false}
                         keyboardType={type}
                         autoCapitalize={cap}
+                        returnKeyType={returnKeyType}
                     />
 
                     {password && (
@@ -151,7 +168,7 @@ export default function SimpleInput({
                             />
                         </TouchableOpacity>
                     )}
-                </View>
+                </SquircleView>
             )}
         </View>
     );
@@ -169,19 +186,16 @@ const styles = StyleSheet.create({
     input: {
         width: '100%',
         height: 48,
-        borderWidth: 1,
         borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        paddingHorizontal: 8,
+        paddingVertical: 8,
         fontWeight: '600',
     },
     inputMultiline: {
         width: '100%',
         minHeight: 100,
-        borderWidth: 1,
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingTop: 10,
+        paddingHorizontal: 8,
+        paddingTop: 8,
         paddingBottom: 240,
         fontWeight: '600',
         textAlignVertical: 'top',
@@ -197,6 +211,6 @@ const styles = StyleSheet.create({
         width: '100%',
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#00000020',        
+        borderColor: '#00000020',
     },
 });

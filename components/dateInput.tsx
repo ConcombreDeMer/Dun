@@ -1,4 +1,5 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { SquircleView } from "expo-squircle-view";
 import React, { useEffect, useState } from "react";
 import {
     Modal,
@@ -11,6 +12,7 @@ import {
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useFont } from "../lib/FontContext";
 import { useTheme } from "../lib/ThemeContext";
+import PrimaryButton from "./primaryButton";
 
 interface DateInputProps {
     value: Date;
@@ -74,20 +76,35 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
                     {label}
                 </Text>
             }
-            <TouchableOpacity
-                style={[styles.dateButton, { backgroundColor: colors.input, borderColor: colors.border }]}
-                onPress={() => setShowDatePicker(true)}
-                disabled={disabled}
+            <SquircleView
+                cornerSmoothing={100} // 0-100
+                preserveSmoothing={true} // false matches figma, true has more rounding
+                style={{
+                    width: '100%',
+                    backgroundColor: colors.task,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                    borderRadius: 15,
+                    paddingVertical: 8,
+                    paddingHorizontal: 8,
+                }}
             >
-                <Text style={[styles.dateButtonText, { color: colors.text, fontWeight: bold ? '400' : '200', fontSize: fontSizes.lg }]}>
-                    {value.toLocaleDateString("fr-FR", {
-                        weekday: "short",
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                    })}
-                </Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.dateButton, { backgroundColor: "transparent" }]}
+                    onPress={() => setShowDatePicker(true)}
+                    disabled={disabled}
+                >
+                    <Text style={[styles.dateButtonText, { color: colors.text, fontWeight: bold ? '400' : '200', fontSize: fontSizes.lg, fontFamily: 'Satoshi-Medium' }]}>
+                        {value.toLocaleDateString("fr-FR", {
+                            weekday: "short",
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                        })}
+                    </Text>
+                </TouchableOpacity>
+
+            </SquircleView>
 
 
             {showTodayButton &&
@@ -101,11 +118,11 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
                             animatedTodayButtonStyle,
                             {
                                 overflow: 'hidden',
-                                backgroundColor: colors.border,
+                                backgroundColor: colors.task,
                             }
                         ]}
                     >
-                        <Text style={[styles.todayButtonText, { color: colors.buttonText, fontSize: fontSizes.xs }]}>Retour à aujourd'hui</Text>
+                        <Text style={[styles.todayButtonText, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>Retour à aujourd'hui</Text>
                     </Animated.View>
                 </TouchableOpacity>
             }
@@ -124,7 +141,9 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
                         onPress={handleCloseDatePicker}
                     >
                         <View style={styles.datePickerContainer}>
-                            <View
+                            <SquircleView
+                                cornerSmoothing={100} // 0-100
+                                preserveSmoothing={true} // false matches figma, true has more rounding
                                 style={[styles.datePickerContent, { backgroundColor: colors.card }]}
                                 onTouchEnd={(e) => e.stopPropagation()}
                             >
@@ -134,15 +153,14 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
                                     display="spinner"
                                     onChange={handleDateChange}
                                 />
-                                <TouchableOpacity
-                                    style={[styles.datePickerCloseButton, { backgroundColor: colors.actionButton }]}
+
+                                <PrimaryButton
+                                    size="S"
                                     onPress={handleCloseDatePicker}
-                                >
-                                    <Text style={[styles.datePickerCloseText, { color: colors.buttonText }]}>
-                                        Fermer
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
+                                    image="checkmark"
+                                    height={48}
+                                />
+                            </SquircleView>
                         </View>
                     </TouchableOpacity>
                 </Modal>
@@ -169,7 +187,6 @@ const styles = StyleSheet.create({
     },
     dateButton: {
         height: 48,
-        borderWidth: 1,
         borderRadius: 8,
         padding: 12,
         justifyContent: "center",
@@ -205,12 +222,13 @@ const styles = StyleSheet.create({
     },
     datePickerContent: {
         paddingBottom: 10,
-        borderRadius: 10,
+        borderRadius: 30,
         marginLeft: "auto",
         marginRight: "auto",
         width: "90%",
         display: "flex",
         alignItems: "center",
+        gap: 10,
     },
     datePickerCloseButton: {
         paddingVertical: 12,

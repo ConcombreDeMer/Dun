@@ -60,7 +60,7 @@ export default function Index() {
       .from("Tasks")
       .select("id, name, description, done, order")
       .eq("date", dateKey)
-      .order("order", { ascending: true });
+      .order("order", { ascending: false });
     if (error) {
       console.error('Erreur lors de la récupération des tâches:', error);
       return [];

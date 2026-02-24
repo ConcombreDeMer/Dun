@@ -167,7 +167,7 @@ export default function CreateTask() {
             style={[styles.container, { backgroundColor: colors.background }]}
         >
             <View style={styles.handleContainer}>
-                <View style={[styles.handle, { backgroundColor: colors.border }]} />
+                <View style={[styles.handle, { backgroundColor: colors.textSecondary }]} />
             </View>
             <Headline title="Créer" subtitle="une tâche" />
             <ScrollView contentContainerStyle={styles.scrollContent}>
