@@ -1,5 +1,6 @@
 import PrimaryButton from '@/components/primaryButton';
 import SimpleInput from '@/components/textInput';
+import * as Google from 'expo-auth-session/providers/google';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -84,14 +85,14 @@ export default function LoginScreen() {
                 if (!profileData) {
                     console.log('Aucun profil trouvé pour cet utilisateur, création en cours...');
                     console.log('Données utilisateur:', data.user);
-                    
+
                     // créer le profil
                     const { error: createProfileError } = await supabase
                         .from('Profiles')
                         .insert({
                             id: data.user.id,
                             email: data.user.email,
-                            name : data.user.user_metadata.name
+                            name: data.user.user_metadata.name
                         });
 
                     if (createProfileError) {
@@ -114,6 +115,48 @@ export default function LoginScreen() {
     const handleBackPress = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         router.back();
+    };
+
+
+    const [request, response, promptAsync] = Google.useAuthRequest({
+        clientId: '655132375234-u8q4aig0tprhb7m8a4e5r2jn42nvo7ne.apps.googleusercontent.com',
+        // ...
+    });
+
+    const handleGoogleSignIn = async () => {
+        const result = await promptAsync();
+
+        if (result?.type === 'success' && result.authentication?.idToken) {
+            const { idToken } = result.authentication;
+
+            const { data, error } = await supabase.auth.signInWithIdToken({
+                provider: 'google',
+                token: idToken,
+            });
+
+            if (!error && data.user) {
+                // Créer le profil si nécessaire
+                const { data: profileData } = await supabase
+                    .from('Profiles')
+                    .select('*')
+                    .eq('id', data.user.id)
+                    .single();
+
+                if (!profileData) {
+                    await supabase
+                        .from('Profiles')
+                        .insert({
+                            id: data.user.id,
+                            email: data.user.email,
+                            name: data.user.user_metadata?.name || 'User'
+                        });
+                }
+
+                router.replace('/');
+            } else {
+                setError(error?.message || 'Erreur de connexion Google');
+            }
+        }
     };
 
     return (
@@ -161,7 +204,7 @@ export default function LoginScreen() {
                         scale="large"
                         bold
                         fontSize="lg"
-                        type ="email-address"
+                        type="email-address"
                         cap='none'
                     />
                 </Animated.View>
@@ -206,6 +249,15 @@ export default function LoginScreen() {
                     size="L"
                     onPress={handleLogin}
                     disabled={loading}
+                />
+
+
+                <PrimaryButton
+                    title="Se connecter avec Google"
+                    size="L"
+                    onPress={handleGoogleSignIn}
+                    disabled={!request}
+                    type="reverse"
                 />
 
                 <TouchableOpacity onPress={() => router.push('/onboarding/register')}>
