@@ -62,6 +62,7 @@ export default function Register() {
     setLoading(true);
     setError('');
 
+
     try {
       // Créer le compte avec Supabase Auth
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
@@ -69,7 +70,7 @@ export default function Register() {
         password: password.trim(),
         options: {
           data: {
-            name: username.trim(),
+            name: "test",
           },
           emailRedirectTo: 'https://dun-app.com/successMail',
         },
@@ -125,14 +126,14 @@ export default function Register() {
     setErrorMessage('');
 
     // Validation pour chaque page
-    if (page === 1) {
-      if (!username.trim()) {
-        setErrorMessage('Veuillez entrer votre prénom');
-        return;
-      }
-    }
+    // if (page === 1) {
+    //   if (!username.trim()) {
+    //     setErrorMessage('Veuillez entrer votre prénom');
+    //     return;
+    //   }
+    // }
 
-    if (page === 2) {
+    if (page === 1) {
       if (!email.trim()) {
         setErrorMessage('Veuillez entrer votre email');
         return;
@@ -143,7 +144,7 @@ export default function Register() {
       }
     }
 
-    if (page === 3) {
+    if (page === 2) {
       if (!password.trim()) {
         setErrorMessage('Veuillez entrer un mot de passe');
         return;
@@ -154,7 +155,7 @@ export default function Register() {
       }
     }
 
-    if (page === 4) {
+    if (page === 3) {
       if (!confirmPassword.trim()) {
         setErrorMessage('Veuillez confirmer votre mot de passe');
         return;
@@ -165,7 +166,7 @@ export default function Register() {
       }
     }
 
-    if (page < 6) {
+    if (page < 5) {
       setPage(page + 1);
     }
   }
@@ -210,7 +211,7 @@ export default function Register() {
           </TouchableOpacity>
 
           <View style={styles.dotsContainer}>
-            {[1, 2, 3, 4, 5].map((index) => (
+            {[1, 2, 3, 4].map((index) => (
               <View
                 key={index}
                 style={[
@@ -228,7 +229,7 @@ export default function Register() {
 
         {/* ----------------------- FORMULAIRE ---------------------------- */}
 
-        {page == 1 && (
+        {/* {page == 1 && (
           <View style={styles.formContainer}>
 
 
@@ -279,9 +280,9 @@ export default function Register() {
             </Animated.View>
 
           </View>
-        )}
+        )} */}
 
-        {page == 2 && (
+        {page == 1 && (
           <View style={styles.formContainer}>
 
 
@@ -319,8 +320,8 @@ export default function Register() {
                 scale="large"
                 bold
                 fontSize="2xl"
-                type={page === 2 ? 'email-address' : 'default'}
-                cap={page === 2 ? 'none' : 'sentences'}
+                type={page === 1 ? 'email-address' : 'default'}
+                cap={page === 1 ? 'none' : 'sentences'}
               />
               {errorMessage ? (
                 <Animated.Text
@@ -335,7 +336,7 @@ export default function Register() {
           </View>
         )}
 
-        {(page == 3 || page == 4) && (
+        {(page == 2 || page == 3) && (
           <View style={styles.formContainer}>
 
             <Animated.View
@@ -384,7 +385,7 @@ export default function Register() {
                 </Animated.Text>
               ) : null}
             </Animated.View>
-            {page == 4 && (
+            {page == 3 && (
               <Animated.View
                 entering={inputAnimationNoDelay}
                 exiting={FadeOutDown.springify()}
@@ -415,7 +416,7 @@ export default function Register() {
           </View>
         )}
 
-        {page === 5 && (
+        {page === 4 && (
           <Animated.View
             style={styles.animationContainer}
             entering={inputAnimation}
@@ -463,7 +464,7 @@ export default function Register() {
             size='XS'
           />
 
-          {page < 5 && (
+          {page < 4 && (
             <PrimaryButton
               title="Valider"
               onPress={handleAnimatePress}
@@ -471,7 +472,7 @@ export default function Register() {
             />
           )}
 
-          {page === 5 && (
+          {page === 4 && (
             // <TouchableOpacity
             //   style={[styles.validateButton, { backgroundColor: colors.actionButton }]}
             //   onPress={handleSignUp}
