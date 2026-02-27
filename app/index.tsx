@@ -4,10 +4,9 @@ import ProgressBar from "@/components/progressBar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { SquircleView } from "expo-squircle-view";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReAnimated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
@@ -334,7 +333,7 @@ export default function Index() {
 
         </View>
 
-        {
+        {/* {
           userHasSeenTutorial === false && (
 
             <SquircleView
@@ -387,7 +386,7 @@ export default function Index() {
             </SquircleView>
 
           )
-        }
+        } */}
 
         <View
           style={styles.listContainer}

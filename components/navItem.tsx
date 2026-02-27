@@ -1,7 +1,8 @@
 import { useFont } from '@/lib/FontContext';
 import { getImageSource } from '@/lib/imageHelper';
 import { useTheme } from '@/lib/ThemeContext';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SquircleButton } from 'expo-squircle-view';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 interface NavItemProps {
     image?: any;
@@ -13,7 +14,7 @@ export default function NavItem({ image, title, onPress }: NavItemProps) {
     const { actualTheme, colors } = useTheme();
     const { fontSizes } = useFont();
     return (
-        <TouchableOpacity style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={onPress}>
+        <SquircleButton style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={onPress}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 {image &&
                     <Image
@@ -29,7 +30,7 @@ export default function NavItem({ image, title, onPress }: NavItemProps) {
                     source={getImageSource("chevron", actualTheme)}
                 ></Image>
             </View>
-        </TouchableOpacity>
+        </SquircleButton>
     );
 }
 
@@ -39,7 +40,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         height: 64,
-        borderRadius: 10,
+        borderRadius: 15,
         paddingHorizontal: 23,
         borderWidth: 0.5,
     },

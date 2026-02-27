@@ -5,6 +5,7 @@ import { FadeIn, default as ReAnimated, useAnimatedStyle, useSharedValue, withSp
 import { useFont } from "../lib/FontContext";
 import { useTheme } from "../lib/ThemeContext";
 import PopUpTask from "./popUpTask";
+import Squircle from "./Squircle";
 interface TaskItemProps {
   item: {
     id: number;
@@ -65,7 +66,7 @@ export const TaskItem = ({
         velocity: 5,
       }),
       marginBottom: withSpring(isHidden ? 0 : 10),
-      borderWidth: withSpring(isHidden ? 0 : 0.5),
+      // borderWidth: withSpring(isHidden ? 0 : 0.5),
       opacity: withSpring(isHidden ? 0 : 1),
       display: isDisplayNone ? 'none' : 'flex',
 
@@ -168,7 +169,7 @@ export const TaskItem = ({
 
   return (
     <ReAnimated.View style={[animatedStyle, shadowStyle]}>
-      <ReAnimated.View style={[taskItemStyle, heightAnimatedStyle]}>
+      <Squircle style={[taskItemStyle, heightAnimatedStyle]}>
         <Pressable
           onLongPress={drag}
           disabled={isActive}
@@ -250,7 +251,7 @@ export const TaskItem = ({
             }
           </View>
         </Pressable>
-      </ReAnimated.View>
+      </Squircle>
     </ReAnimated.View>
   );
 };
@@ -263,13 +264,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     // marginBottom: 10,
     justifyContent: 'space-between',
-    borderRadius: 15,
+    borderRadius: 20,
     width: '100%',
     marginLeft: 'auto',
     marginRight: 'auto',
     overflow: 'hidden',
-    borderWidth: 0.5,
-    borderColor: '#00000020',
     boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.15)',
   },
 
@@ -286,7 +285,7 @@ const styles = StyleSheet.create({
     marginRight: 'auto',
     overflow: 'hidden',
     backgroundColor: '#475c48ff',
-    boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.2)',
+    // boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.2)',
   },
 
   taskContent: {

@@ -2,6 +2,7 @@ import { useFont } from '@/lib/FontContext';
 import { useTheme } from '@/lib/ThemeContext';
 import { SymbolView } from 'expo-symbols';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Squircle from './Squircle';
 
 interface SettingItemProps {
     image?: any;
@@ -22,7 +23,7 @@ export default function SettingItem({ image, title, subtitle, onPress, rightCont
 
     return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-            <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: border ? 0.5 : 0 }]}>
+            <Squircle style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: border ? 0.5 : 0 }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
                     {image &&
                         <SymbolView
@@ -38,7 +39,7 @@ export default function SettingItem({ image, title, subtitle, onPress, rightCont
                     </View>
                 </View>
                 {rightContent}
-            </View>
+            </Squircle>
         </TouchableOpacity>
     );
 }
@@ -49,7 +50,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         height: 64,
-        borderRadius: 10,
+        borderRadius: 15,
         paddingHorizontal: 23,
     },
     label: {

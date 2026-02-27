@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
+import { SquircleButton } from "expo-squircle-view";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     FlatList,
@@ -19,6 +20,7 @@ import Animated, {
 import { useFont } from "../lib/FontContext";
 import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
+import Squircle from "./Squircle";
 import TaskIndicator from "./taskIndicator";
 
 
@@ -175,7 +177,8 @@ const SliderDayCell = memo(({
 }: any) => {
 
     return (
-        <TouchableOpacity
+        <SquircleButton
+            
             style={[
                 styles.sliderDay,
                 isSelected && {
@@ -209,7 +212,7 @@ const SliderDayCell = memo(({
                     type={taskInfo.type}
                 />
             )}
-        </TouchableOpacity>
+        </SquircleButton>
     );
 }, (prevProps, nextProps) => {
     // Retourner true si les props sont identiques (ne pas re-render)
@@ -321,7 +324,7 @@ export default function CalendarComponent({
                 // Animer le calendrier selon la direction du drag
                 // Si drag vers le bas (expand): scale à 0.98
                 // Si drag vers le haut (collapse): scale à 1.02
-                const scaleValue = gestureState.dy > 0 ? 0.90 : 1.05;
+                const scaleValue = gestureState.dy > 0 ? 0.98 : 1.02;
                 calendarScaleRef.value = withSpring(scaleValue);
 
                 // Utiliser les refs pour avoir les valeurs actuelles
@@ -630,7 +633,7 @@ export default function CalendarComponent({
 
         <View style={[styles.container]}>
             {/* Slider avec calendrier intérieur */}
-            <Animated.View
+            <Squircle
                 style={[styles.sliderBackground, animatedSliderStyle, animatedCalendarScaleStyle]}
             >
                 {slider ? (
@@ -677,7 +680,7 @@ export default function CalendarComponent({
                         />
 
                         {/* Contenu du calendrier - grossit vers le bas */}
-                        <Animated.View style={[animatedContentStyle, styles.calendarContentInside]}>
+                        <Squircle style={[animatedContentStyle, styles.calendarContentInside]}>
                             {/* En-tête du calendrier */}
                             <View style={[styles.header, { borderBottomColor: "rgba(255, 255, 255, 0.2)" }]}>
                                 <TouchableOpacity onPress={previousMonth} style={styles.navButton}>
@@ -724,7 +727,7 @@ export default function CalendarComponent({
                             <View style={styles.calendarGrid}>
                                 {dayGridItems}
                             </View>
-                        </Animated.View>
+                        </Squircle>
 
                         {/* Handle bar wrapper draggable - au bottom */}
                         <View
@@ -737,7 +740,7 @@ export default function CalendarComponent({
                 ) : (
                     <CollapsedDateDisplay selectedDate={selectedDate} colors={colors} fontSizes={fontSizes} />
                 )}
-            </Animated.View>
+            </Squircle>
 
             <TouchableOpacity
                 activeOpacity={0.7}
@@ -779,7 +782,7 @@ const styles = StyleSheet.create({
     },
     sliderBackground: {
         backgroundColor: "#272727ff",
-        borderRadius: 15,
+        borderRadius: 30,
         paddingHorizontal: 12,
         paddingTop: 12,
         flexDirection: "column",
@@ -790,7 +793,7 @@ const styles = StyleSheet.create({
     calendarContentInside: {
         marginTop: 12,
         backgroundColor: "#353535ff",
-        borderRadius: 15,
+        borderRadius: 25,
         overflow: "hidden",
         alignSelf: "center",
     },

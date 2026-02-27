@@ -1,4 +1,5 @@
 import NavItem from "@/components/navItem";
+import Squircle from "@/components/Squircle";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -55,7 +56,7 @@ export default function Settings() {
 
             {user &&
 
-                <View
+                <Squircle
                     style={styles.header}
                 >
 
@@ -101,7 +102,7 @@ export default function Settings() {
 
 
 
-                </View>
+                </Squircle>
 
             }
 
