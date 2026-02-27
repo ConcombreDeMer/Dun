@@ -23,7 +23,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.Dun"
     },
     "web": {
       "output": "static",
@@ -43,7 +44,17 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-router"
+      "expo-router",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.655132375234-u8q4aig0tprhb7m8a4e5r2jn42nvo7ne",
+          "iosClientId": "655132375234-u8q4aig0tprhb7m8a4e5r2jn42nvo7ne.apps.googleusercontent.com",
+          "androidClientId": "",
+          "webClientId": "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com"
+        }
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -35,6 +35,7 @@ function RootLayoutContent() {
   const segments = useSegments();
   const [session, setSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const redirectRef = React.useRef(false);
 
   const [fontsLoaded] = useFonts({
     "Satoshi-Regular": require("../assets/fonts/Satoshi-Regular.otf"),
@@ -44,46 +45,34 @@ function RootLayoutContent() {
     "Satoshi-Variable": require("../assets/fonts/Satoshi-Variable.ttf"),
   });
 
-  // Écouter les changements d'authentification
+  const queryClient = useMemo(() => getQueryClient(), []);
+
+  // Initialiser l'authentification et écouter les changements
   useEffect(() => {
     let authListener: any = null;
 
-    // Gérer les deep links (confirmation d'email, réinitialisation de mot de passe, etc.)
-    const handleDeepLink = async () => {
-      try {
-        // Vérifier et traiter le fragment URL (token de confirmation)
-        const { data, error } = await supabase.auth.refreshSession();
-        if (error) {
-          console.error("Erreur lors du refresh de session:", error);
-        } else if (data.session) {
-          setSession(data.session);
-        }
-      } catch (error) {
-        console.error("Erreur lors de la gestion du deep link:", error);
+    const initAuth = async () => {
+      // Essayer de récupérer la session existante
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError && sessionError.message !== "Auth session missing!") {
+        console.error("Erreur session:", sessionError);
       }
+
+      setSession(sessionData?.session ?? null);
+      setIsAuthLoading(false);
     };
 
-    // Appeler immédiatement pour traiter les deep links
-    handleDeepLink();
+    // Initialiser et s'abonner aux changements
+    initAuth();
 
-    // S'abonner aux changements d'état d'authentification
-    const { data } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Auth state changed:", event);
-        setSession(session);
-        setIsAuthLoading(false);
-      }
-    );
-
-    authListener = data?.subscription;
-
-    // Vérifier l'état de session actuel
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    const { data } = supabase.auth.onAuthStateChange((event, newSession) => {
+      setSession(newSession ?? null);
       setIsAuthLoading(false);
     });
 
-    // Cleanup: désabonner au unmount
+    authListener = data?.subscription;
+
     return () => {
       authListener?.unsubscribe();
     };
@@ -99,20 +88,50 @@ function RootLayoutContent() {
   useEffect(() => {
     if (isAuthLoading) return;
 
-    const isOnboarding = segments[0] === "onboarding";
-
     if (!session) {
-      // Pas authentifié → rediriger vers onboarding/start
-      if (!isOnboarding) {
+      if (!redirectRef.current) {
+        redirectRef.current = true;
         router.replace("/onboarding/start");
       }
-    } else {
-      // Authentifié → rediriger vers l'app principale
-      if (isOnboarding) {
-        router.replace("/");
-      }
+      return;
     }
-  }, [session, isAuthLoading, segments]);
+
+    const checkUserAndRedirect = async () => {
+      if (redirectRef.current) return;
+
+      try {
+        const { data: profileData, error } = await supabase
+          .from("Profiles")
+          .select("hasName")
+          .eq("id", session.user.id)
+          .single();
+
+        if (error) {
+          console.error("Erreur profil:", error);
+          if (!redirectRef.current) {
+            redirectRef.current = true;
+            router.replace("/onboarding/tutorial");
+          }
+          return;
+        }
+
+        const hasName = profileData?.hasName ?? false;
+        const isOnboarding = segments[0] === "onboarding";
+
+        if (!hasName && !isOnboarding && !redirectRef.current) {
+          redirectRef.current = true;
+          router.replace("/onboarding/tutorial");
+        } else if (hasName && isOnboarding && !redirectRef.current) {
+          redirectRef.current = true;
+          router.replace("/");
+        }
+      } catch (error) {
+        console.error("Erreur redirection:", error);
+      }
+    };
+
+    checkUserAndRedirect();
+  }, [session, isAuthLoading]);
 
   if (!fontsLoaded || isLoading || isAuthLoading) {
     return null;
@@ -123,10 +142,6 @@ function RootLayoutContent() {
   const isSettingsSubroute = segments.length > 1 && segments[0] === "settings";
 
   const duration = 200;
-
-  const queryClient = useMemo(() => getQueryClient(), []);
-
-
 
   return (
 

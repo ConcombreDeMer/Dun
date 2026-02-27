@@ -4,9 +4,10 @@ import ProgressBar from "@/components/progressBar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { SquircleView } from "expo-squircle-view";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReAnimated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
@@ -23,6 +24,7 @@ export default function Index() {
   const storedDate = useStore((state) => state.selectedDate);
   const [selectedDate, setSelectedDate] = useState<Date>(storedDate || new Date());
   const [userName, setUserName] = useState<string>('');
+  const [userHasSeenTutorial, setUserHasSeenTutorial] = useState<boolean>(false);
   const router = useRouter();
   const { colors, theme } = useTheme();
   const setStoreDate = useStore((state) => state.setSelectedDate);
@@ -32,6 +34,9 @@ export default function Index() {
   const [listHeight, setListHeight] = useState(0);
   const queryClient = useQueryClient();
   const headerScale = useSharedValue(1);
+
+
+
 
   useEffect(() => {
     const fetchUserName = async () => {
@@ -49,6 +54,35 @@ export default function Index() {
 
     fetchUserName();
   }, []);
+
+
+  useEffect(() => {
+    const checkUserConnection = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          const { data: profileData, error: profileError } = await supabase
+            .from("Profiles")
+            .select("hasSeenTutorial")
+            .eq("id", user.id)
+            .single();
+
+          if (profileError) {
+            console.error('Erreur lors de la récupération du profil utilisateur:', profileError);
+            return;
+          }
+
+          setUserHasSeenTutorial(profileData?.hasSeenTutorial || false);
+        }
+      } catch (error) {
+        console.error('Erreur lors de la vérification de la connexion utilisateur:', error);
+      }
+    };
+
+    checkUserConnection();
+  }, []);
+
 
   const dateKey = useMemo(
     () => selectedDate.toISOString().split('T')[0],
@@ -250,6 +284,27 @@ export default function Index() {
     headerScale.value = selectedTaskId !== null ? 0 : 1;
   }, [selectedTaskId, headerScale]);
 
+  const closeTutorial = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setUserHasSeenTutorial(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const { error } = await supabase
+          .from("Profiles")
+          .update({ hasSeenTutorial: true })
+          .eq("id", user.id);
+
+        if (error) {
+          console.error('Erreur lors de la mise à jour du profil utilisateur:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du profil utilisateur:', error);
+    }
+  }, []);
+
   return (
 
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -262,6 +317,7 @@ export default function Index() {
         }}
 
       >
+
         <View style={styles.header}>
 
           <ReAnimated.View style={headerAnimatedStyle}>
@@ -277,6 +333,61 @@ export default function Index() {
           </ReAnimated.View>
 
         </View>
+
+        {
+          userHasSeenTutorial === false && (
+
+            <SquircleView
+              cornerSmoothing={100} // 0-100
+              preserveSmoothing={true} // false matches figma, true has more rounding
+              style={{
+                position: 'relative',
+                alignSelf: 'center',
+                height: 64,
+                width: 300,
+                backgroundColor: "#cfcfcf",
+                borderRadius: 20,
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 20,
+              }}
+            >
+              <Text
+                style={{
+                  color: 'white',
+                  fontSize: 20,
+                  fontFamily: 'Satoshi-Medium',
+                }}
+              >
+                Tutorial Card Test
+              </Text>
+
+              <Pressable
+                style={{
+                  position: 'relative',
+                  backgroundColor: '#7dcf7d',
+                  paddingVertical: 10,
+                  paddingHorizontal: 20,
+                  borderRadius: 30,
+                }}
+                onPress={closeTutorial}
+              >
+                <Text
+                  style={{
+                    color: 'white',
+                    fontFamily: 'Satoshi-Medium',
+                  }}
+                >
+                  OK
+                </Text>
+              </Pressable>
+
+            </SquircleView>
+
+          )
+        }
 
         <View
           style={styles.listContainer}
