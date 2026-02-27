@@ -7,6 +7,7 @@ import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { BarChart } from "react-native-gifted-charts";
+import Squircle from "./Squircle";
 
 interface StatsBarGraphProps {
   daysData: any[];
@@ -506,7 +507,7 @@ export default function StatsBarGraph({ daysData, period, onSlideChange }: Stats
   }, [displayedSlides, itemWidth, onSlideChange]);
 
   return (
-    <View style={containerStyles.barCharContainer}>
+    <Squircle style={containerStyles.barCharContainer}>
       {isLoadingSlides ? (
         <View style={{ 
           justifyContent: 'center', 
@@ -549,16 +550,16 @@ export default function StatsBarGraph({ daysData, period, onSlideChange }: Stats
           maxToRenderPerBatch={2}
         />
       )}
-    </View>
+    </Squircle>
   );
 }
 
 const getStyles = (colors: any) => StyleSheet.create({
   barCharContainer: {
     backgroundColor: colors.card,
-    borderRadius: 15,
+    borderRadius: 30,
     borderColor: colors.border,
-    borderWidth: 0.5,
+    // borderWidth: 0.5,
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',

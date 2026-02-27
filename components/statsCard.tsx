@@ -2,8 +2,9 @@ import { useFont } from "@/lib/FontContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text } from "react-native";
 import Animated, { FadeInLeft, FadeOut } from "react-native-reanimated";
+import Squircle from "./Squircle";
 
 interface StatsCardProps {
     image: any;
@@ -27,7 +28,7 @@ export default function StatsCardCharge({ image, title, value, loading }: StatsC
 
 
     return (
-        <View
+        <Squircle
             style={[styles.container, { borderColor: colors.border, backgroundColor: colors.card }]}
         >
             <Image source={image} style={styles.image} />
@@ -45,7 +46,7 @@ export default function StatsCardCharge({ image, title, value, loading }: StatsC
                     style={[styles.value, { color: colors.text, fontSize: fontSizes['3xl'] }]}>{value}</Animated.Text>)
             }
 
-        </View>
+        </Squircle>
     );
 }
 
@@ -56,8 +57,8 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         width: '48.5%',
         height: '100%',
-        borderRadius: 15,
-        borderWidth: 0.5,
+        borderRadius: 20,
+        // borderWidth: 0.5,
         padding: 15,
         gap: 8,
         boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',

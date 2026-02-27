@@ -1,7 +1,8 @@
 import { useFont } from "@/lib/FontContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { useRouter } from "expo-router";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text } from "react-native";
+import Squircle from "./Squircle";
 
 
 export default function StatsStatut({ value }: { value: string }) {
@@ -16,7 +17,7 @@ export default function StatsStatut({ value }: { value: string }) {
 
 
     return (
-        <View
+        <Squircle
             style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}
             onTouchEnd={handleExplicationPress}
         >
@@ -26,7 +27,7 @@ export default function StatsStatut({ value }: { value: string }) {
                 <Text style={{opacity: 0.6}}> de streak</Text>
             </Text>
 
-        </View>
+        </Squircle>
     );
 }
 
