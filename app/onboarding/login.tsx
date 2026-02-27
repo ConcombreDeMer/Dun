@@ -32,6 +32,7 @@ export default function LoginScreen() {
     const styles = createStyles(colors);
 
     const handleLogin = async () => {
+        console.log('Tentative de connexion avec email:', email);
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setError('');
 
@@ -68,18 +69,14 @@ export default function LoginScreen() {
 
             // chercher si le user existe dans la table "profiles"
             if (data.user) {
+
+                console.log('Utilisateur connecté:', data.user);
+
                 const { data: profileData, error: profileError } = await supabase
                     .from('Profiles')
                     .select('*')
                     .eq('id', data.user.id)
                     .single();
-
-                // if (profileError) {
-                //     console.error('Erreur lors de la récupération du profil:', profileError);
-                //     setError('Erreur lors de la récupération du profil. Veuillez réessayer.');
-                //     setLoading(false);
-                //     return;
-                // }
 
                 if (!profileData) {
                     console.log('Aucun profil trouvé pour cet utilisateur, création en cours...');
@@ -91,7 +88,7 @@ export default function LoginScreen() {
                         .insert({
                             id: data.user.id,
                             email: data.user.email,
-                            name: data.user.user_metadata.name
+                            name: data.user.user_metadata.name,
                         });
 
                     if (createProfileError) {
@@ -101,6 +98,16 @@ export default function LoginScreen() {
                         return;
                     }
                     setLoading(false);
+                    router.replace('/onboarding/tutorial');
+                    return;
+                }
+
+                console.log('Profil trouvé:', profileData);
+                if (profileData.hasName == false) {
+                    console.log('Profil trouvé mais nom non défini, redirection vers le tutoriel pour compléter le profil.');   
+                    setLoading(false);
+                    router.replace('/onboarding/tutorial');
+                    return;
                 }
 
                 router.replace('/');

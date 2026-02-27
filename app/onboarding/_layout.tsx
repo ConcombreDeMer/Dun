@@ -49,6 +49,14 @@ export default function OnboardingLayout() {
           title: 'Vérification Email',
         }}
       />
+
+      <Stack.Screen
+        name="tutorial"
+        options={{
+          title: 'Tutoriel',
+        }}
+      />
+
     </Stack>
   );
 }

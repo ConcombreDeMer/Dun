@@ -70,7 +70,7 @@ export default function Register() {
         password: password.trim(),
         options: {
           data: {
-            name: "test",
+            name: email.trim().split('@')[0], // Utiliser la partie avant @ comme nom d'utilisateur par défaut
           },
           emailRedirectTo: 'https://dun-app.com/successMail',
         },
@@ -84,19 +84,6 @@ export default function Register() {
       }
 
       if (authData.user) {
-        // Créer ou mettre à jour le profil utilisateur dans la table Profiles
-        // const { error: profileError } = await supabase
-        //   .from('Profiles')
-        //   .upsert({
-        //     id: authData.user.id,
-        //     name: username.trim(),
-        //     email: email.trim(),
-        //   });
-
-        // if (profileError) {
-        //   console.error('Erreur lors de la création du profil:', profileError);
-        // }
-
         // Si email_confirmed_at existe, l'utilisateur est confirmé
         // Sinon, il doit confirmer son email
         if (authData.user.email_confirmed_at) {
