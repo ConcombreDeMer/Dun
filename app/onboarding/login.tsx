@@ -1,10 +1,10 @@
-import PrimaryButton from '@/components/primaryButton';
 import SimpleInput from '@/components/textInput';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { SquircleButton } from 'expo-squircle-view';
 import React, { useState } from 'react';
 import {
-    Image,
     Keyboard,
     Pressable,
     StyleSheet,
@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import Animated, {
     FadeIn,
+    FadeInDown,
     FadeInUp,
     FadeOut,
     FadeOutDown
@@ -104,7 +105,7 @@ export default function LoginScreen() {
 
                 console.log('Profil trouvé:', profileData);
                 if (profileData.hasName == false) {
-                    console.log('Profil trouvé mais nom non défini, redirection vers le tutoriel pour compléter le profil.');   
+                    console.log('Profil trouvé mais nom non défini, redirection vers le tutoriel pour compléter le profil.');
                     setLoading(false);
                     router.replace('/onboarding/tutorial');
                     return;
@@ -201,28 +202,55 @@ export default function LoginScreen() {
                         {error}
                     </Animated.Text>
                 ) : null}
+
+                <Animated.View
+                    entering={FadeInUp.springify().delay(1300).duration(1500)}
+                    exiting={FadeOutDown.springify()}
+                    style={{
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'row',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                    }}
+                >
+                    <SquircleButton
+                        cornerSmoothing={100} // 0-100
+                        preserveSmoothing={true} // false matches figma, true has more rounding
+                        style={styles.squircleButton}
+                        onPress={handleLogin}
+                        disabled={loading}
+                        backgroundColor={colors.actionButton}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={{
+                            fontSize: 16,
+                            fontFamily: 'Satoshi-Regular',
+                            color: colors.background,
+                        }}>
+                            {loading ? 'Connexion...' : 'Se connecter'}
+                        </Text>
+                    </SquircleButton>
+                </Animated.View>
+
+
             </View>
-
-            {/* Footer */}
             <Animated.View
-                style={styles.buttonSection}
-                entering={FadeInUp.springify().delay(1500).duration(1000)}
-                exiting={FadeOutDown.springify().delay(100).duration(1500)}
+                entering={FadeInDown.springify().delay(200).duration(1500)}
+                exiting={FadeOutDown.springify()}
+                style={{ position: 'absolute', bottom: -50, width: '100%', height: 200, zIndex: 0, }}
             >
-                <PrimaryButton
-                    title={loading ? 'Connexion...' : 'Se connecter'}
-                    size="L"
-                    onPress={handleLogin}
-                    disabled={loading}
+                <Image
+                    style={{
+                        width: "100%",
+                        height: "100%",
+                        alignSelf: 'center',
+                    }}
+                    source={require('../../assets/images/character/3.png')}
+                    contentFit="contain"
                 />
-
-
-                <TouchableOpacity onPress={() => router.push('/onboarding/register')}>
-                    <Text style={[styles.footerLink, { color: colors.actionButton }]}>
-                        Pas encore de compte ? S'inscrire
-                    </Text>
-                </TouchableOpacity>
             </Animated.View>
+
         </Pressable>
     );
 }
@@ -232,8 +260,6 @@ const createStyles = (colors: any) =>
         content: {
             width: '100%',
             height: '100%',
-            paddingHorizontal: 23,
-            paddingVertical: 23,
             backgroundColor: colors.background,
         },
         headerContainer: {
@@ -243,6 +269,7 @@ const createStyles = (colors: any) =>
             alignSelf: 'center',
             zIndex: 3,
             alignItems: 'flex-start',
+            paddingHorizontal: 20,
         },
         backButton: {
             height: 30,
@@ -264,7 +291,7 @@ const createStyles = (colors: any) =>
         },
         formContainer: {
             position: 'absolute',
-            top: '50%',
+            top: '42%',
             left: 0,
             right: 0,
             transform: [{ translateY: -100 }],
@@ -295,35 +322,24 @@ const createStyles = (colors: any) =>
             textAlign: 'center',
             zIndex: 0,
         },
-        buttonSection: {
-            zIndex: 2,
-            position: 'absolute',
-            bottom: 50,
-            width: '90%',
+
+        squircleButton: {
+            width: '60%',
+            height: 48,
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            borderRadius: 18,
+            borderWidth: 1.5,
             alignSelf: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-        },
-        validateButton: {
-            height: 70,
-            width: '80%',
-            borderRadius: 100,
-            position: 'relative',
-            left: 0,
-            alignItems: 'center',
-            justifyContent: 'center',
-            alignSelf: 'center',
+            paddingHorizontal: 20,
+            gap: 20,
+            marginTop: 20,
         },
         validateButtonText: {
             fontSize: 20,
             fontWeight: '600',
             fontFamily: 'Satoshi-Bold',
         },
-        footerLink: {
-            fontSize: 14,
-            fontWeight: '600',
-            textDecorationLine: 'underline',
-            textAlign: 'center',
-        },
+
     });

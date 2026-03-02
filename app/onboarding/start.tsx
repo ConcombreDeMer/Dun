@@ -422,8 +422,6 @@ const createStyles = (colors: any) =>
             paddingHorizontal: 20,
             gap: 20,
         },
-
-
         content: {
             flex: 1,
             display: 'flex',
