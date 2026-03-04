@@ -5,13 +5,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReAnimated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { TaskItem } from "../components/TaskItem";
 import { useTheme } from "../lib/ThemeContext";
+import { initNotifications, setupMorningReminderTask, setupNotificationResponseListener, triggerNotificationNow } from "../lib/notificationService";
 import { supabase } from "../lib/supabase";
 import { useStore } from "../store/store";
 
@@ -38,7 +39,15 @@ export default function Index() {
 
 
   useEffect(() => {
-    const fetchUserName = async () => {
+    const initApp = async () => {
+      // Initialiser les notifications
+      await initNotifications();
+      await setupMorningReminderTask();
+      
+      // Écouter les actions des notifications
+      const subscription = setupNotificationResponseListener();
+
+      // Récupérer le nom utilisateur
       try {
         const { data: { user } } = await supabase.auth.getUser();
 
@@ -49,9 +58,17 @@ export default function Index() {
       } catch (error) {
         console.error('Erreur lors de la récupération du nom utilisateur:', error);
       }
+
+      // Cleanup du listener
+      return () => {
+        subscription.remove();
+      };
     };
 
-    fetchUserName();
+    const cleanup = initApp().then((cleanupFn) => cleanupFn);
+    return () => {
+      cleanup.then((fn) => fn?.());
+    };
   }, []);
 
 
@@ -387,6 +404,24 @@ export default function Index() {
 
           )
         } */}
+
+
+        <Pressable
+          style={{
+            height: 70,
+            width: 70,
+            borderRadius: 100,
+            backgroundColor: "red",
+            position: 'absolute',
+            bottom: 500,
+            right: 30,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          onPress={() => triggerNotificationNow("Test", "Ceci est une notification de test")}
+        >
+
+        </Pressable>
 
         <View
           style={styles.listContainer}

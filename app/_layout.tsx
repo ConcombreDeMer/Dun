@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import Navbar from "../components/navbar";
 import { FontProvider } from "../lib/FontContext";
+import { initNotifications, setupMorningReminderTask } from "../lib/notificationService";
 import { supabase } from "../lib/supabase";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 
@@ -47,6 +48,14 @@ function RootLayoutContent() {
 
   const queryClient = useMemo(() => getQueryClient(), []);
 
+  // Dans RootLayoutContent():
+  useEffect(() => {
+    if (session && !isAuthLoading) {
+      initNotifications();
+      setupMorningReminderTask(); // ← Utiliser celle-ci
+    }
+  }, [session, isAuthLoading]);
+
   // Initialiser l'authentification et écouter les changements
   useEffect(() => {
     let authListener: any = null;
@@ -54,7 +63,7 @@ function RootLayoutContent() {
     const initAuth = async () => {
       // Essayer de récupérer la session existante
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
+
       if (sessionError && sessionError.message !== "Auth session missing!") {
         console.error("Erreur session:", sessionError);
       }
