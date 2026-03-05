@@ -34,6 +34,7 @@ const isSameDay = (date1: Date, date2: Date): boolean => {
 
 export default function DateInput({ value, onChange, disabled = false, label, bold = false, showTodayButton = false }: DateInputProps) {
     const [showDatePicker, setShowDatePicker] = useState(false);
+    const [tempDate, setTempDate] = useState(value);
     const { colors } = useTheme();
     const { fontSizes } = useFont();
 
@@ -44,15 +45,26 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
     const handleDateChange = (event: any, date?: Date) => {
         if (Platform.OS === "android") {
             setShowDatePicker(false);
+            if (date) {
+                onChange(date);
+            }
         }
         if (date) {
-            onChange(date);
+            setTempDate(date);
         }
     };
 
     const handleCloseDatePicker = () => {
+        onChange(tempDate);
         setShowDatePicker(false);
     };
+
+    // Initialiser tempDate quand le picker s'ouvre
+    useEffect(() => {
+        if (showDatePicker) {
+            setTempDate(value);
+        }
+    }, [showDatePicker]);
 
     // Mettre à jour la hauteur du bouton avec animation
     useEffect(() => {
@@ -148,7 +160,7 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
                                 onTouchEnd={(e) => e.stopPropagation()}
                             >
                                 <DateTimePicker
-                                    value={value}
+                                    value={tempDate}
                                     mode="date"
                                     display="spinner"
                                     onChange={handleDateChange}
@@ -168,7 +180,7 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
 
             {showDatePicker && Platform.OS === "android" && (
                 <DateTimePicker
-                    value={value}
+                    value={tempDate}
                     mode="date"
                     display="default"
                     onChange={handleDateChange}
