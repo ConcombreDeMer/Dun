@@ -23,3 +23,47 @@ export async function cancelPendingEmailChange() {
 
   return data;
 }
+
+export async function deleteUserAccount() {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error("Utilisateur non trouvé");
+  }
+
+  try {
+    // Supprimer tous les Tasks de l'utilisateur
+    const { error: tasksError } = await supabase
+      .from("Tasks")
+      .delete()
+      .eq("user_id", user.id);
+    
+    if (tasksError) throw tasksError;
+
+    // Supprimer tous les Days de l'utilisateur
+    const { error: daysError } = await supabase
+      .from("Days")
+      .delete()
+      .eq("user_id", user.id);
+    
+    if (daysError) throw daysError;
+
+    // Supprimer le profil de l'utilisateur
+    const { error: profileError } = await supabase
+      .from("Profiles")
+      .delete()
+      .eq("id", user.id);
+    
+    if (profileError) throw profileError;
+
+    // Appeler la RPC pour supprimer le compte d'auth
+    const { data, error: rpcError } = await supabase.rpc("delete_account");
+    
+    if (rpcError) throw rpcError;
+
+    return { success: true };
+  } catch (error) {
+    console.error("Erreur lors de la suppression du compte:", error);
+    throw error;
+  }
+}
