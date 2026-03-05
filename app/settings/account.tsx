@@ -18,7 +18,7 @@ import {
 } from "react-native";
 import Animated, { FadeInUp, FadeOutUp } from "react-native-reanimated";
 import { useTheme } from "../../lib/ThemeContext";
-import { supabase, deleteUserAccount } from "../../lib/supabase";
+import { deleteUserAccount, supabase } from "../../lib/supabase";
 
 
 interface UserData {
