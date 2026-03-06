@@ -525,6 +525,22 @@ export default function StatsBarGraph({ daysData, period, onSlideChange }: Stats
             Chargement...
           </Text>
         </View>
+      ) : displayedSlides.length === 0 ? (
+        <View style={{ 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: 220,
+          width: itemWidth 
+        }}>
+          <Text style={{ 
+            fontSize: 16, 
+            color: colors.textSecondary,
+            fontFamily: 'Satoshi-Medium',
+            textAlign: 'center'
+          }}>
+            Aucune donnée disponible
+          </Text>
+        </View>
       ) : (
         <FlatList
           ref={flatListRef}

@@ -9,6 +9,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useState } from "react";
 import {
+    Alert,
     ScrollView,
     StyleSheet,
     Text,
@@ -17,7 +18,7 @@ import {
 } from "react-native";
 import Animated, { FadeInUp, FadeOutUp } from "react-native-reanimated";
 import { useTheme } from "../../lib/ThemeContext";
-import { supabase } from "../../lib/supabase";
+import { deleteUserAccount, supabase } from "../../lib/supabase";
 
 
 interface UserData {
@@ -29,6 +30,7 @@ export default function Account() {
     const router = useRouter();
     const { theme, colors } = useTheme();
     const [isLoading, setIsLoading] = useState(true);
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
     const { id } = useLocalSearchParams();
     const [hasChanges, setHasChanges] = useState(false);
     const [name, setName] = useState('');
@@ -163,6 +165,22 @@ export default function Account() {
                 alert("Veuillez entrer un email valide.");
                 return;
             }
+            // vérifier si l'email est déjà utilisé
+            const { data: emailExists, error: fetchError } = await supabase
+                .rpc('email_exists', { email_input: email.trim() });
+
+            console.log('Email existe?', emailExists, fetchError);
+
+            if (fetchError) {
+                console.error('Erreur:', fetchError);
+                alert('Erreur lors de la vérification de l\'email.');
+                return;
+            }
+
+            if (emailExists) {
+                alert('Cette adresse email est déjà utilisée');
+                return;
+            }
             setShowModal(true);
         }
 
@@ -209,6 +227,47 @@ export default function Account() {
         } catch (error) {
             console.error("Erreur lors de la déconnexion : ", error);
         }
+    }, [queryClient, router]);
+
+    const handleDeleteAccount = useCallback(async () => {
+        Alert.alert(
+            "Supprimer le compte",
+            "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible et supprimera toutes vos données.",
+            [
+                {
+                    text: "Annuler",
+                    onPress: () => console.log("Suppression annulée"),
+                    style: "cancel",
+                },
+                {
+                    text: "Supprimer",
+                    onPress: async () => {
+                        setIsDeletingAccount(true);
+                        try {
+                            await deleteUserAccount();
+                            Alert.alert("Succès", "Votre compte a été supprimé avec succès.", [
+                                {
+                                    text: "OK",
+                                    onPress: () => {
+                                        queryClient.clear();
+                                        router.replace("/onboarding/start");
+                                    },
+                                },
+                            ]);
+                        } catch (error) {
+                            console.error("Erreur lors de la suppression du compte:", error);
+                            Alert.alert(
+                                "Erreur",
+                                "Une erreur est survenue lors de la suppression du compte. Veuillez réessayer."
+                            );
+                        } finally {
+                            setIsDeletingAccount(false);
+                        }
+                    },
+                    style: "destructive",
+                },
+            ]
+        );
     }, [queryClient, router]);
 
 
@@ -322,6 +381,13 @@ export default function Account() {
                     onPress={handleLogout}
                     type="danger"
                     image="iphone.and.arrow.forward.outward"
+                />
+
+                <SettingItem
+                    title="Supprimer le compte"
+                    onPress={!isDeletingAccount ? handleDeleteAccount : undefined}
+                    type="danger"
+                    image="trash"
                 />
 
 

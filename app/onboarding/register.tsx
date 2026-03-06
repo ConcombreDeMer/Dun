@@ -62,7 +62,6 @@ export default function Register() {
     setLoading(true);
     setError('');
 
-
     try {
       // Créer le compte avec Supabase Auth
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
@@ -127,6 +126,22 @@ export default function Register() {
       }
       if (!isValidEmail(email.trim())) {
         setErrorMessage('Veuillez entrer une adresse email valide');
+        return;
+      }
+      // vérifier si l'email est déjà utilisé
+      const { data: emailExists, error: fetchError } = await supabase
+        .rpc('email_exists', { email_input: email.trim() });
+
+      console.log('Email existe?', emailExists, fetchError);
+
+      if (fetchError) {
+        console.error('Erreur:', fetchError);
+        setErrorMessage('Erreur lors de la vérification de l\'email.');
+        return;
+      }
+
+      if (emailExists) {
+        setErrorMessage('Cette adresse email est déjà utilisée');
         return;
       }
     }

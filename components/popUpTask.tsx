@@ -25,7 +25,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
     const [loading, setLoading] = useState(true);
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
-    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [taskDate, setTaskDate] = useState<Date>(new Date());
     const [last_update_date, setLastUpdateDate] = useState<Date | null>(null);
     const [hasChanges, setHasChanges] = useState(false);
     const [isDone, setIsDone] = useState(false);
@@ -78,7 +78,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                             .from("Days")
                             .select("*")
                             .eq("user_id", user.id)
-                            .eq("date", selectedDate.toDateString())
+                            .eq("date", taskDate.toDateString())
                             .maybeSingle();
 
                         if (fetchError) {
@@ -153,7 +153,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                             .from("Days")
                             .select("*")
                             .eq("user_id", user.id)
-                            .eq("date", selectedDate.toDateString())
+                            .eq("date", taskDate.toDateString())
                             .maybeSingle();
 
                         if (fetchError) {
@@ -258,7 +258,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                             .from("Days")
                             .select("*")
                             .eq("user_id", user.id)
-                            .eq("date", selectedDate.toDateString())
+                            .eq("date", taskDate.toDateString())
                             .maybeSingle();
 
                         if (fetchError) {
@@ -271,7 +271,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                             const { error: insertError } = await supabase.from("Days").insert([
                                 {
                                     user_id: user.id,
-                                    date: selectedDate.toDateString(),
+                                    date: taskDate.toDateString(),
                                     total: 1,
                                     done_count: isDone ? 1 : 0,
                                     updated_at: new Date().toDateString(),
@@ -388,7 +388,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                 .update({
                     name: name.trim(),
                     description: description.trim(),
-                    date: selectedDate.toDateString(),
+                    date: taskDate.toDateString(),
                     done: isDone,
                     last_update_date: new Date().toISOString(),
                 })
@@ -412,11 +412,11 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
         const isModified =
             name !== task.name ||
             description !== (task.description || "") ||
-            selectedDate.toDateString() !== (task.date ? new Date(task.date).toDateString() : new Date().toDateString()) ||
+            taskDate.toDateString() !== (task.date ? new Date(task.date).toDateString() : new Date().toDateString()) ||
             isDone !== task.done;
 
         setHasChanges(isModified);
-    }, [name, description, selectedDate, task, isDone]);
+    }, [name, description, taskDate, task, isDone]);
 
     // Sauvegarde automatique avec debounce
     useEffect(() => {
@@ -450,7 +450,9 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                 setTask(data);
                 setName(data.name);
                 setDescription(data.description || "");
-                setSelectedDate(data.date ? new Date(data.date) : new Date());
+
+
+                setTaskDate(data.date ? new Date(data.date) : new Date());
                 setIsDone(data.done || false);
                 setLastUpdateDate(data.last_update_date ? new Date(data.last_update_date) : null);
             } catch (error) {
@@ -518,9 +520,16 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
         );
     };
 
-    const handleDateChange = (date: Date) => {
-        setSelectedDate(date);
-        changeDayMutation.mutate();
+    const handleDateChange = async (date: Date) => {
+        setTaskDate(date);
+        try {
+            await Promise.all([
+                updateTaskMutation.mutateAsync(),
+                changeDayMutation.mutateAsync()
+            ]);
+        } finally {
+            onClose();
+        }
     };
 
     const handleToggleTask = async () => {
@@ -648,7 +657,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                                     />
 
                                     <DateInput
-                                        value={selectedDate}
+                                        value={taskDate}
                                         onChange={handleDateChange}
                                         disabled={updateTaskMutation.isPending || deleteTaskMutation.isPending}
                                         bold
