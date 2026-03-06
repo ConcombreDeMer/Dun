@@ -635,7 +635,7 @@ const createStyles = (colors: any) =>
     },
     formContainer: {
       position: 'absolute',
-      top: '40%',
+      bottom: '30%',
       left: 0,
       right: 0,
       transform: [{ translateY: -100 }],
