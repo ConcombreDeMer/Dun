@@ -165,6 +165,22 @@ export default function Account() {
                 alert("Veuillez entrer un email valide.");
                 return;
             }
+            // vérifier si l'email est déjà utilisé
+            const { data: emailExists, error: fetchError } = await supabase
+                .rpc('email_exists', { email_input: email.trim() });
+
+            console.log('Email existe?', emailExists, fetchError);
+
+            if (fetchError) {
+                console.error('Erreur:', fetchError);
+                alert('Erreur lors de la vérification de l\'email.');
+                return;
+            }
+
+            if (emailExists) {
+                alert('Cette adresse email est déjà utilisée');
+                return;
+            }
             setShowModal(true);
         }
 

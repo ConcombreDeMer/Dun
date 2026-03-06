@@ -62,7 +62,6 @@ export default function Register() {
     setLoading(true);
     setError('');
 
-
     try {
       // Créer le compte avec Supabase Auth
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
