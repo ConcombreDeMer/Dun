@@ -35,6 +35,9 @@ export default function NotificationsSettings() {
     const [insistanceDelais, setInsistanceDelais] = useState('');
     const [insistanceRepetitions, setInsistanceRepetitions] = useState('');
     
+    const [initialWeekendEnabled, setInitialWeekendEnabled] = useState(false);
+    const [weekendEnabled, setWeekendEnabled] = useState(false);
+    
     const [isModified, setIsModified] = useState(false);
 
 
@@ -45,7 +48,7 @@ export default function NotificationsSettings() {
     const initAlertSettings = async () => {
         const { data, error } = await supabase
             .from('Profiles')
-            .select('alertSetupHour, alertSetupMinute, alertSetupActive, alertInsistanceActive, alertInsistanceDelais, alertInsistanceRepetitions')
+            .select('alertSetupHour, alertSetupMinute, alertSetupActive, alertInsistanceActive, alertInsistanceDelais, alertInsistanceRepetitions, alertWeekendsActive')
             .eq('id', store.user.id)
             .single();
 
@@ -59,6 +62,7 @@ export default function NotificationsSettings() {
             setInitialInsistanceEnabled(data.alertInsistanceActive || false);
             setInitialInsistanceDelais(data.alertInsistanceDelais || '');
             setInitialInsistanceRepetitions(data.alertInsistanceRepetitions || '');
+            setInitialWeekendEnabled(data.alertWeekendsActive || false);
 
             setAlertHour(data.alertSetupHour || '');
             setAlertMinute(data.alertSetupMinute || '');
@@ -66,6 +70,7 @@ export default function NotificationsSettings() {
             setInsistanceEnabled(data.alertInsistanceActive || false);
             setInsistanceDelais(data.alertInsistanceDelais || '');
             setInsistanceRepetitions(data.alertInsistanceRepetitions || '');
+            setWeekendEnabled(data.alertWeekendsActive || false);
         }
         setIsLoading(false);
     };
@@ -78,9 +83,10 @@ export default function NotificationsSettings() {
             alertsEnabled !== initialAlertsEnabled ||
             insistanceEnabled !== initialInsistanceEnabled ||
             insistanceDelais !== initialInsistanceDelais ||
-            insistanceRepetitions !== initialInsistanceRepetitions;
+            insistanceRepetitions !== initialInsistanceRepetitions ||
+            weekendEnabled !== initialWeekendEnabled;
         setIsModified(modified);
-    }, [alertHour, alertMinute, alertsEnabled, insistanceEnabled, insistanceDelais, insistanceRepetitions]);
+    }, [alertHour, alertMinute, alertsEnabled, insistanceEnabled, insistanceDelais, insistanceRepetitions, weekendEnabled]);
 
 
     const save = async () => {
@@ -103,13 +109,14 @@ export default function NotificationsSettings() {
                 alertSetupActive: alertsEnabled,
                 alertInsistanceActive: insistanceEnabled,
                 alertInsistanceDelais: insistanceDelais,
-                alertInsistanceRepetitions: insistanceRepetitions
+                alertInsistanceRepetitions: insistanceRepetitions,
+                alertWeekendsActive: weekendEnabled
             })
             .eq('id', store.user.id);
         if (updateError) {
             console.error("Erreur lors de la mise à jour de l'heure de notification:", updateError);
         }
-        console.log("Préférences de notification mises à jour:", { alertHour, alertMinute, alertsEnabled, insistanceEnabled, insistanceDelais, insistanceRepetitions });
+        console.log("Préférences de notification mises à jour:", { alertHour, alertMinute, alertsEnabled, insistanceEnabled, insistanceDelais, insistanceRepetitions, weekendEnabled });
         // Mettre à jour les notifications sur l'appareil
         if (alertsEnabled) {
             const hasPermission = await requestNotificationPermissions();
@@ -119,7 +126,8 @@ export default function NotificationsSettings() {
                     parseInt(alertMinute),
                     insistanceEnabled,
                     insistanceDelais,
-                    insistanceRepetitions
+                    insistanceRepetitions,
+                    weekendEnabled
                 );
             }
         } else {
@@ -132,6 +140,7 @@ export default function NotificationsSettings() {
         setInitialInsistanceEnabled(insistanceEnabled);
         setInitialInsistanceDelais(insistanceDelais);
         setInitialInsistanceRepetitions(insistanceRepetitions);
+        setInitialWeekendEnabled(weekendEnabled);
         setIsModified(false);
         console.log("Notifications mises à jour sur l'appareil :", { alertHour, alertMinute, alertsEnabled });
     };
@@ -339,6 +348,25 @@ export default function NotificationsSettings() {
                     Dans le cas où vous n'avez pas réagis à un rappel, Dun peut insister pour vous aider à maintenir votre régularité.
                 </Text>
 
+            </SquircleView>
+
+            <SquircleView
+                style={{
+                    paddingHorizontal: 20,
+                    backgroundColor: "#ffffff",
+                    borderRadius: 20,
+                    width: '90%',
+                    alignSelf: 'center',
+                    marginTop: 20,
+                }}
+                cornerSmoothing={100}
+                preserveSmoothing={true}
+            >
+                <SwitchItem
+                    title="Week-ends"
+                    event={setWeekendEnabled}
+                    currentValue={weekendEnabled}
+                />
             </SquircleView>
 
             <PrimaryButton

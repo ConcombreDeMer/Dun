@@ -9,9 +9,10 @@ interface SwitchItemProps {
     title?: string;
     event?: (value: boolean) => void;
     currentValue?: boolean;
+    activeColor?: string;
 }
 
-export default function SwitchItem({ image, title, event, currentValue }: SwitchItemProps) {
+export default function SwitchItem({ image, title, event, currentValue, activeColor = "#000" }: SwitchItemProps) {
     const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
     const [isEnabled, setIsEnabled] = useState(false);
@@ -33,7 +34,7 @@ export default function SwitchItem({ image, title, event, currentValue }: Switch
                 {title && <Text style={[styles.label, { color: colors.text, fontSize: fontSizes.lg }]}>{title}</Text>}
             </View>
             <Switch
-                trackColor={{ false: "#ccc", true: "#000" }}
+                trackColor={{ false: "#ccc", true: activeColor }}
                 thumbColor="#fff"
                 onValueChange={toggleSwitch}
                 value={currentValue}

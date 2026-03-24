@@ -38,24 +38,53 @@ export async function scheduleDailyReminder(
   minute: number,
   insistanceActive: boolean = false,
   insistanceDelais: string = '',
-  insistanceRepetitions: string = ''
+  insistanceRepetitions: string = '',
+  weekendsActive: boolean = true
 ) {
   await Notifications.cancelAllScheduledNotificationsAsync();
-  
-  // Rappel principal
-  await Notifications.scheduleNotificationAsync({
-    content: {
+
+  const scheduleNotification = async (triggerHour: number, triggerMinute: number, isMain: boolean) => {
+    const content = isMain ? {
       title: 'Hello ! 👋',
       body: 'On check tes tâches du jour ?',
       sound: true,
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour,
-      minute,
-      channelId: 'daily-reminders',
-    },
-  });
+    } : {
+      title: 'Toujours là ? 👀',
+      body: 'N\'oublie pas d\'aller vérifier tes tâches du jour !',
+      sound: true,
+    };
+
+    if (weekendsActive) {
+      await Notifications.scheduleNotificationAsync({
+        content,
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+          hour: triggerHour,
+          minute: triggerMinute,
+          channelId: 'daily-reminders',
+        },
+      });
+    } else {
+      // Si les week-ends sont désactivés, on programme pour chaque jour de la semaine
+      // Expo WeeklyTrigger: 1 = Dimanche, 2 = Lundi, ..., 7 = Samedi
+      const weekdays = [2, 3, 4, 5, 6];
+      for (const weekday of weekdays) {
+        await Notifications.scheduleNotificationAsync({
+          content,
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+            weekday,
+            hour: triggerHour,
+            minute: triggerMinute,
+            channelId: 'daily-reminders',
+          },
+        });
+      }
+    }
+  };
+
+  // Rappel principal
+  await scheduleNotification(hour, minute, true);
 
   // Rappels d'insistance si activé
   if (insistanceActive && insistanceDelais && insistanceRepetitions) {
@@ -68,19 +97,7 @@ export async function scheduleDailyReminder(
         const newHour = Math.floor(hour + (totalMinutes / 60)) % 24;
         const newMinute = totalMinutes % 60;
 
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: 'Toujours là ? 👀',
-            body: 'N\'oublie pas d\'aller vérifier tes tâches du jour !',
-            sound: true,
-          },
-          trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.DAILY,
-            hour: newHour,
-            minute: newMinute,
-            channelId: 'daily-reminders',
-          },
-        });
+        await scheduleNotification(newHour, newMinute, false);
       }
     }
   }
