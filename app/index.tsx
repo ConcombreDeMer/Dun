@@ -63,7 +63,7 @@ export default function Index() {
             if (data.alertSetupActive) {
               const hasPermission = await requestNotificationPermissions();
               if (hasPermission) {
-                await scheduleDailyReminder(data.alertSetupHour, data.alertSetupMinute);
+                await scheduleDailyReminder(parseInt(data.alertSetupHour), parseInt(data.alertSetupMinute));
               }
             } else {
               await cancelDailyReminder();
