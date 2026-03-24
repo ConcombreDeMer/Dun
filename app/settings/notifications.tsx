@@ -1,342 +1,389 @@
 import Headline from "@/components/headline";
+import PrimaryButton from "@/components/primaryButton";
 import SecondaryButton from "@/components/secondaryButton";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import SwitchItem from "@/components/switchItem";
+import SimpleInput from "@/components/textInput";
 import { useRouter } from "expo-router";
+import { SquircleView } from "expo-squircle-view";
 import { useEffect, useState } from "react";
-import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View
-} from "react-native";
-import { useTheme } from "../../lib/ThemeContext";
-import { getImageSource } from "../../lib/imageHelper";
+import { StyleSheet, Text, View } from "react-native";
+import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "../../lib/notificationService";
+import { supabase } from "../../lib/supabase";
+import { useStore } from "../../store/store";
 
-interface NotificationSettings {
-    taskReminders: boolean;
-    dailySummary: boolean;
-    completionCelebration: boolean;
-    dueTodayNotification: boolean;
-    weeklyReport: boolean;
-}
 
-export default function Notifications() {
+export default function NotificationsSettings() {
+
+    const store = useStore();
     const router = useRouter();
-    const { actualTheme, colors } = useTheme();
-    const [settings, setSettings] = useState<NotificationSettings>({
-        taskReminders: true,
-        dailySummary: true,
-        completionCelebration: true,
-        dueTodayNotification: true,
-        weeklyReport: false,
-    });
     const [isLoading, setIsLoading] = useState(true);
 
+
+    const [initialAlertHour, setInitialAlertHour] = useState('');
+    const [initialAlertMinute, setInitialAlertMinute] = useState('');
+    const [initialAlertsEnabled, setInitialAlertsEnabled] = useState(false);
+    const [initialInsistanceEnabled, setInitialInsistanceEnabled] = useState(false);
+    const [initialInsistanceDelais, setInitialInsistanceDelais] = useState('');
+    const [initialInsistanceRepetitions, setInitialInsistanceRepetitions] = useState('');
+
+
+    const [alertHour, setAlertHour] = useState('');
+    const [alertMinute, setAlertMinute] = useState('');
+    const [alertsEnabled, setAlertsEnabled] = useState(false);
+    
+    const [insistanceEnabled, setInsistanceEnabled] = useState(false);
+    const [insistanceDelais, setInsistanceDelais] = useState('');
+    const [insistanceRepetitions, setInsistanceRepetitions] = useState('');
+    
+    const [initialWeekendEnabled, setInitialWeekendEnabled] = useState(false);
+    const [weekendEnabled, setWeekendEnabled] = useState(false);
+    
+    const [isModified, setIsModified] = useState(false);
+
+
     useEffect(() => {
-        loadSettings();
+        initAlertSettings();
     }, []);
 
-    const loadSettings = async () => {
-        try {
-            const saved = await AsyncStorage.getItem("notificationSettings");
-            if (saved) {
-                setSettings(JSON.parse(saved));
+    const initAlertSettings = async () => {
+        const { data, error } = await supabase
+            .from('Profiles')
+            .select('alertSetupHour, alertSetupMinute, alertSetupActive, alertInsistanceActive, alertInsistanceDelais, alertInsistanceRepetitions, alertWeekendsActive')
+            .eq('id', store.user.id)
+            .single();
+
+        if (error) {
+            console.error("Erreur lors de la récupération des préférences de notification:", error);
+        } else if (data) {
+
+            setInitialAlertHour(data.alertSetupHour || '');
+            setInitialAlertMinute(data.alertSetupMinute || '');
+            setInitialAlertsEnabled(data.alertSetupActive || false);
+            setInitialInsistanceEnabled(data.alertInsistanceActive || false);
+            setInitialInsistanceDelais(data.alertInsistanceDelais || '');
+            setInitialInsistanceRepetitions(data.alertInsistanceRepetitions || '');
+            setInitialWeekendEnabled(data.alertWeekendsActive || false);
+
+            setAlertHour(data.alertSetupHour || '');
+            setAlertMinute(data.alertSetupMinute || '');
+            setAlertsEnabled(data.alertSetupActive || false);
+            setInsistanceEnabled(data.alertInsistanceActive || false);
+            setInsistanceDelais(data.alertInsistanceDelais || '');
+            setInsistanceRepetitions(data.alertInsistanceRepetitions || '');
+            setWeekendEnabled(data.alertWeekendsActive || false);
+        }
+        setIsLoading(false);
+    };
+
+
+    useEffect(() => {
+        const modified =
+            alertHour !== initialAlertHour ||
+            alertMinute !== initialAlertMinute ||
+            alertsEnabled !== initialAlertsEnabled ||
+            insistanceEnabled !== initialInsistanceEnabled ||
+            insistanceDelais !== initialInsistanceDelais ||
+            insistanceRepetitions !== initialInsistanceRepetitions ||
+            weekendEnabled !== initialWeekendEnabled;
+        setIsModified(modified);
+    }, [alertHour, alertMinute, alertsEnabled, insistanceEnabled, insistanceDelais, insistanceRepetitions, weekendEnabled]);
+
+
+    const save = async () => {
+        // Vérifier si l'heur est au format valide
+        if (alertsEnabled) {
+            const hourNum = parseInt(alertHour);
+            const minuteNum = parseInt(alertMinute);
+
+            if (isNaN(hourNum) || isNaN(minuteNum) || hourNum < 0 || hourNum > 23 || minuteNum < 0 || minuteNum > 59) {
+                alert("Veuillez entrer une heure valide (HH:MM).");
+                return;
             }
-        } catch (error) {
-            console.error("Erreur lors du chargement des paramètres:", error);
-        } finally {
-            setIsLoading(false);
+        }
+        // Envoyer les préférences de notification à Supabase
+        const { error: updateError } = await supabase
+            .from('Profiles')
+            .update({ 
+                alertSetupHour: alertHour, 
+                alertSetupMinute: alertMinute, 
+                alertSetupActive: alertsEnabled,
+                alertInsistanceActive: insistanceEnabled,
+                alertInsistanceDelais: insistanceDelais,
+                alertInsistanceRepetitions: insistanceRepetitions,
+                alertWeekendsActive: weekendEnabled
+            })
+            .eq('id', store.user.id);
+        if (updateError) {
+            console.error("Erreur lors de la mise à jour de l'heure de notification:", updateError);
+        }
+        console.log("Préférences de notification mises à jour:", { alertHour, alertMinute, alertsEnabled, insistanceEnabled, insistanceDelais, insistanceRepetitions, weekendEnabled });
+        // Mettre à jour les notifications sur l'appareil
+        if (alertsEnabled) {
+            const hasPermission = await requestNotificationPermissions();
+            if (hasPermission) {
+                await scheduleDailyReminder(
+                    parseInt(alertHour), 
+                    parseInt(alertMinute),
+                    insistanceEnabled,
+                    insistanceDelais,
+                    insistanceRepetitions,
+                    weekendEnabled
+                );
+            }
+        } else {
+            await cancelDailyReminder();
+        }
+        // Mettre à jour les valeurs initiales pour refléter les nouvelles préférences
+        setInitialAlertHour(alertHour);
+        setInitialAlertMinute(alertMinute);
+        setInitialAlertsEnabled(alertsEnabled);
+        setInitialInsistanceEnabled(insistanceEnabled);
+        setInitialInsistanceDelais(insistanceDelais);
+        setInitialInsistanceRepetitions(insistanceRepetitions);
+        setInitialWeekendEnabled(weekendEnabled);
+        setIsModified(false);
+        console.log("Notifications mises à jour sur l'appareil :", { alertHour, alertMinute, alertsEnabled });
+    };
+
+    const toggleNotifications = async () => {
+        if (alertsEnabled) {
+            setAlertsEnabled(false);
+        } else {
+            setAlertsEnabled(true);
         }
     };
 
-    const saveSettings = async (newSettings: NotificationSettings) => {
-        try {
-            await AsyncStorage.setItem(
-                "notificationSettings",
-                JSON.stringify(newSettings)
-            );
-            setSettings(newSettings);
-        } catch (error) {
-            console.error("Erreur lors de la sauvegarde des paramètres:", error);
-        }
-    };
-
-    const toggleSetting = (key: keyof NotificationSettings) => {
-        const newSettings = {
-            ...settings,
-            [key]: !settings[key],
-        };
-        saveSettings(newSettings);
-    };
-
-    const handleEnableAll = () => {
-        const newSettings: NotificationSettings = {
-            taskReminders: true,
-            dailySummary: true,
-            completionCelebration: true,
-            dueTodayNotification: true,
-            weeklyReport: true,
-        };
-        saveSettings(newSettings);
-    };
-
-    const handleDisableAll = () => {
-        const newSettings: NotificationSettings = {
-            taskReminders: false,
-            dailySummary: false,
-            completionCelebration: false,
-            dueTodayNotification: false,
-            weeklyReport: false,
-        };
-        saveSettings(newSettings);
-    };
-
-    const NotificationToggleItem = ({
-        title,
-        description,
-        icon,
-        settingKey,
-    }: {
-        title: string;
-        description: string;
-        icon: string;
-        settingKey: keyof NotificationSettings;
-    }) => (
-        <View
-            style={[
-                styles.notificationItem,
-                { backgroundColor: colors.card },
-            ]}
-        >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
-                <Image
-                    style={{ width: 26, height: 26, tintColor: colors.text }}
-                    source={getImageSource(icon, actualTheme)}
-                />
-                <View style={{ flex: 1 }}>
-                    <Text style={[styles.itemTitle, { color: colors.text }]}>
-                        {title}
-                    </Text>
-                    <Text
-                        style={[
-                            styles.itemDescription,
-                            { color: colors.textSecondary },
-                        ]}
-                    >
-                        {description}
-                    </Text>
-                </View>
-            </View>
-            <Switch
-                trackColor={{ false: "#ccc", true: "#000" }}
-                thumbColor="#fff"
-                onValueChange={() => toggleSetting(settingKey)}
-                value={settings[settingKey]}
-                style={{ alignSelf: 'center' }}
-            />
-        </View>
-    );
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
+
+        <View
+            style={styles.container}
+        >
             <View
-                style={{ marginBottom: 20, flexDirection: "row", alignItems: "center", gap: 20 }}
+                style={{
+                    marginBottom: 20,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 20,
+                    paddingHorizontal: 20,
+                    paddingTop: 60
+                }}
             >
                 <SecondaryButton
                     onPress={() => router.back()}
                     image="chevron.left"
                 />
-                <Headline title="Notifications" subtitle="Gérer vos alertes" />
+                <Headline title="Notifications" subtitle="Gères tes alertes" />
             </View>
 
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
+            <SquircleView
+                style={{
+                    paddingHorizontal: 20,
+                    paddingBottom: 15,
+                    backgroundColor: "#ffffff",
+                    borderRadius: 20,
+                    width: '90%',
+                    alignSelf: 'center',
+                }}
+                cornerSmoothing={100} // 0-100
+                preserveSmoothing={true} // false matches figma, true has more rounding
             >
-                {/* Quick Actions */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        Actions rapides
-                    </Text>
-                    <View style={styles.buttonGroup}>
-                        <TouchableOpacity
-                            onPress={handleEnableAll}
-                            style={[
-                                styles.quickButton,
-                                { backgroundColor: colors.button },
-                            ]}
+                <SwitchItem
+                    image="notification"
+                    title="Préparation de la journée"
+                    event={toggleNotifications}
+                    currentValue={alertsEnabled}
+                />
+
+
+                <View>
+                    <SquircleView
+                        cornerSmoothing={100} // 0-100
+                        preserveSmoothing={true} // false matches figma, true has more rounding
+                        style={{
+                            width: '100%',
+                            backgroundColor: "#F5F5F5",
+                            borderRadius: 15,
+                            paddingVertical: 8,
+                            paddingLeft: 24,
+                            paddingRight: 12,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignSelf: 'center',
+                        }}
+                    >
+                        <Text
+                            style={{ color: "#333", fontSize: 16, fontFamily: 'Satoshi-Regular' }}
                         >
-                            <Text style={[styles.quickButtonText, { color: colors.buttonText }]}>
-                                Activer tout
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={handleDisableAll}
-                            style={[
-                                styles.quickButton,
-                                { backgroundColor: colors.card },
-                            ]}
+                            Heure
+                        </Text>
+
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 8,
+                            }}
                         >
-                            <Text style={[styles.quickButtonText, { color: colors.text }]}>
-                                Désactiver tout
+                            <SimpleInput
+                                value={alertHour || ''}
+                                onChangeText={setAlertHour}
+                                placeholder="HH"
+                                type="numeric"
+                                returnKeyType="done"
+                                isLoading={isLoading}
+                                inputWidth={80}
+                                style={{ textAlign: 'center' }}
+                            />
+                            <Text>
+                                :
                             </Text>
-                        </TouchableOpacity>
-                    </View>
+                            <SimpleInput
+                                value={alertMinute || ''}
+                                onChangeText={setAlertMinute}
+                                placeholder="HH"
+                                type="numeric"
+                                returnKeyType="done"
+                                isLoading={isLoading}
+                                inputWidth={80}
+                                style={{ textAlign: 'center' }}
+                            />
+                        </View>
+                    </SquircleView>
                 </View>
 
-                {/* Task Notifications */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        Tâches
-                    </Text>
-                    <NotificationToggleItem
-                        title="Rappels des tâches"
-                        description="Recevez des rappels pour vos tâches à faire"
-                        icon="notification"
-                        settingKey="taskReminders"
-                    />
-                    <NotificationToggleItem
-                        title="Tâches dues aujourd'hui"
-                        description="Alertes pour les tâches ayant la date limite d'aujourd'hui"
-                        icon="calendar"
-                        settingKey="dueTodayNotification"
-                    />
+
+
+            </SquircleView>
+
+            <SquircleView
+                style={{
+                    paddingHorizontal: 20,
+                    paddingBottom: 15,
+                    backgroundColor: "#ffffff",
+                    borderRadius: 20,
+                    width: '90%',
+                    alignSelf: 'center',
+                    marginTop: 20,
+                }}
+                cornerSmoothing={100}
+                preserveSmoothing={true}
+            >
+                <SwitchItem
+                    title="Insistance"
+                    event={setInsistanceEnabled}
+                    currentValue={insistanceEnabled}
+                />
+
+                <View>
+                    <SquircleView
+                        cornerSmoothing={100}
+                        preserveSmoothing={true}
+                        style={{
+                            width: '100%',
+                            backgroundColor: "#F5F5F5",
+                            borderRadius: 15,
+                            paddingTop: 12,
+                            paddingBottom: 12,
+                            paddingLeft: 24,
+                            paddingRight: 12,
+                            alignSelf: 'center',
+                        }}
+                    >
+                        <View style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: 'space-between',
+                            marginBottom: 8,
+                        }}>
+                            <Text style={{ color: "#333", fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
+                                Délais
+                            </Text>
+
+                            <SimpleInput
+                                value={insistanceDelais}
+                                onChangeText={setInsistanceDelais}
+                                placeholder="..."
+                                type="numeric"
+                                returnKeyType="done"
+                                isLoading={isLoading}
+                                inputWidth={120}
+                                style={{ textAlign: 'center', backgroundColor: '#e5e5e5' }}
+                            />
+                        </View>
+                        
+                        <View style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: 'space-between',
+                        }}>
+                            <Text style={{ color: "#333", fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
+                                Répétitions
+                            </Text>
+
+                            <SimpleInput
+                                value={insistanceRepetitions}
+                                onChangeText={setInsistanceRepetitions}
+                                placeholder="..."
+                                type="numeric"
+                                returnKeyType="done"
+                                isLoading={isLoading}
+                                inputWidth={120}
+                                style={{ textAlign: 'center', backgroundColor: '#e5e5e5' }}
+                            />
+                        </View>
+                    </SquircleView>
                 </View>
 
-                {/* Summary Notifications */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        Résumés
-                    </Text>
-                    <NotificationToggleItem
-                        title="Résumé quotidien"
-                        description="Reçois un résumé de ta journée chaque soir"
-                        icon="dashboard"
-                        settingKey="dailySummary"
-                    />
-                    <NotificationToggleItem
-                        title="Rapport hebdomadaire"
-                        description="Aperçu de votre productivité hebdomadaire"
-                        icon="chart"
-                        settingKey="weeklyReport"
-                    />
-                </View>
+                <Text style={{
+                    color: "#999999",
+                    fontSize: 14,
+                    lineHeight: 20,
+                    marginTop: 15,
+                    fontFamily: 'Satoshi-Regular',
+                    paddingHorizontal: 5
+                }}>
+                    Dans le cas où vous n'avez pas réagis à un rappel, Dun peut insister pour vous aider à maintenir votre régularité.
+                </Text>
 
-                {/* Celebration Notifications */}
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        Récompenses
-                    </Text>
-                    <NotificationToggleItem
-                        title="Célébration d'achèvement"
-                        description="Félicitations quand vous complétez une tâche"
-                        icon="star"
-                        settingKey="completionCelebration"
-                    />
-                </View>
+            </SquircleView>
 
-                {/* Info Section */}
-                <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
-                    <Image
-                        style={{ width: 24, height: 24, tintColor: colors.text }}
-                        source={getImageSource('info', actualTheme)}
-                    />
-                    <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-                        Les paramètres de notification sont stockés localement sur votre appareil.
-                    </Text>
-                </View>
-            </ScrollView>
+            <SquircleView
+                style={{
+                    paddingHorizontal: 20,
+                    backgroundColor: "#ffffff",
+                    borderRadius: 20,
+                    width: '90%',
+                    alignSelf: 'center',
+                    marginTop: 20,
+                }}
+                cornerSmoothing={100}
+                preserveSmoothing={true}
+            >
+                <SwitchItem
+                    title="Week-ends"
+                    event={setWeekendEnabled}
+                    currentValue={weekendEnabled}
+                />
+            </SquircleView>
+
+            <PrimaryButton
+                title="Enregistrer"
+                onPress={save}
+                style={{ width: '90%', alignSelf: 'center', marginTop: 30 }}
+                disabled={!isModified}
+            />
+
 
         </View>
+
     );
 }
 
+
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
-        paddingLeft: 20,
-        paddingRight: 20,
-        paddingTop: 60,
-        backgroundColor: "#fff",
-    },
-
-    scrollContent: {
-        marginTop: 20,
-        paddingBottom: 120,
-        gap: 24,
-    },
-
-    section: {
-        gap: 12,
-    },
-
-    sectionTitle: {
-        fontSize: 14,
-        fontWeight: "600",
-        fontFamily: "Satoshi-Bold",
-        textTransform: "uppercase",
-        letterSpacing: 0.5,
-    },
-
-    buttonGroup: {
-        flexDirection: "row",
-        gap: 12,
-    },
-
-    quickButton: {
-        flex: 1,
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 10,
-        alignItems: "center",
-        justifyContent: "center",
-        height: 50,
-    },
-
-    quickButtonText: {
-        fontSize: 14,
-        fontWeight: "600",
-        fontFamily: "Satoshi-Bold",
-    },
-
-    notificationItem: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        borderRadius: 12,
-        padding: 16,
-        gap: 12,
-        marginBottom: 12,
-    },
-
-    itemTitle: {
-        fontSize: 16,
-        fontWeight: "600",
-        fontFamily: "Satoshi-Bold",
-        marginBottom: 4,
-    },
-
-    itemDescription: {
-        fontSize: 13,
-        fontFamily: "Satoshi-Regular",
-    },
-
-    infoCard: {
-        flexDirection: "row",
-        alignItems: "center",
-        borderRadius: 12,
-        padding: 16,
-        gap: 12,
-        marginTop: 12,
-    },
-
-    infoText: {
-        fontSize: 13,
-        fontFamily: "Satoshi-Regular",
-        flex: 1,
-        lineHeight: 18,
     },
 });

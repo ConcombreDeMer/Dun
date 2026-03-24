@@ -5,13 +5,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReAnimated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { TaskItem } from "../components/TaskItem";
 import { useTheme } from "../lib/ThemeContext";
+import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "../lib/notificationService";
 import { supabase } from "../lib/supabase";
 import { useStore } from "../store/store";
 
@@ -33,26 +34,61 @@ export default function Index() {
   const [listHeight, setListHeight] = useState(0);
   const queryClient = useQueryClient();
   const headerScale = useSharedValue(1);
+  const store = useStore();
 
 
 
 
   useEffect(() => {
-    const fetchUserName = async () => {
+    const initApp = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
+          console.log("Utilisateur connecté : ", user);
           const name = user.user_metadata?.name || user.email?.split('@')[0] || 'Utilisateur';
           setUserName(name);
+          store.setUser({ id: user.id });
+
+          const { data , error } = await supabase
+            .from("Profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single();
+
+          if (error) {
+            console.error('Erreur lors de la récupération du profil utilisateur:', error);
+          } else if (data) {
+
+            if (data.alertSetupActive) {
+              const hasPermission = await requestNotificationPermissions();
+              if (hasPermission) {
+                await scheduleDailyReminder(parseInt(data.alertSetupHour), parseInt(data.alertSetupMinute));
+              }
+            } else {
+              await cancelDailyReminder();
+            }
+          }
         }
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Erreur lors de la récupération du nom utilisateur:', error);
       }
-    };
 
-    fetchUserName();
+    }
+    initApp();
   }, []);
+
+
+
+  // const logStoreState = useCallback(() => {
+  //   console.log("Store modifié : ", useStore.getState());
+  // }, [store.alertSetupHour, store.alertSetupMinute]);
+
+  // useEffect(() => {
+  //   logStoreState();
+  // }, [logStoreState]);
+  
 
 
   useEffect(() => {

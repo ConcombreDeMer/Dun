@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import Animated, { FadeInUp, FadeOutUp } from "react-native-reanimated";
 import { useTheme } from "../../lib/ThemeContext";
+import { useStore } from "../../store/store";
 import { deleteUserAccount, supabase } from "../../lib/supabase";
 
 
@@ -40,6 +41,7 @@ export default function Account() {
     const [showModal, setShowModal] = useState(false);
     const [modalConfig, setModalConfig] = useState({ title: '', message: '' });
     const queryClient = useQueryClient();
+    const store = useStore();
 
     useEffect(() => {
         let isMounted = true;
@@ -223,6 +225,7 @@ export default function Account() {
             // Nettoyer le cache des requêtes
             queryClient.clear();
             // Rediriger vers le login
+            store.clearStore();
             router.replace("/onboarding/start");
         } catch (error) {
             console.error("Erreur lors de la déconnexion : ", error);

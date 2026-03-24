@@ -54,7 +54,7 @@ function RootLayoutContent() {
     const initAuth = async () => {
       // Essayer de récupérer la session existante
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
+
       if (sessionError && sessionError.message !== "Auth session missing!") {
         console.error("Erreur session:", sessionError);
       }
@@ -191,7 +191,7 @@ function RootLayoutContent() {
               animationDuration: duration,
             }}
           />
-          <Stack.Screen
+          {/* <Stack.Screen
             name="details"
             options={{
               title: "Détails",
@@ -200,7 +200,7 @@ function RootLayoutContent() {
               animationMatchesGesture: true,
               animationDuration: duration,
             }}
-          />
+          /> */}
           <Stack.Screen
             name="settings"
             options={{
@@ -218,14 +218,14 @@ function RootLayoutContent() {
               animationDuration: duration,
             }}
           />
-          <Stack.Screen
+          {/* <Stack.Screen
             name="edit-task"
             options={{
               title: "Modifier une tâche",
               animation: "fade",
               animationDuration: duration,
             }}
-          />
+          /> */}
           <Stack.Screen
             name="stats"
             options={{

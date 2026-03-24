@@ -1,7 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { SquircleView } from 'expo-squircle-view';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, KeyboardType, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { Animated, DimensionValue, KeyboardType, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { useFont } from '../lib/FontContext';
 import { useTheme } from '../lib/ThemeContext';
 
@@ -29,6 +29,8 @@ interface SimpleInputProps {
     type?: KeyboardType;
     cap?: 'none' | 'sentences' | 'words' | 'characters';
     returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send';
+    maxLength?: number;
+    inputWidth?: DimensionValue;
 }
 
 export default function SimpleInput({
@@ -52,6 +54,8 @@ export default function SimpleInput({
     type = 'default',
     cap = 'sentences',
     returnKeyType = undefined,
+    maxLength,
+    inputWidth = '100%',
 }: SimpleInputProps) {
     const [text, setText] = useState(value);
     const [showPassword, setShowPassword] = useState(false);
@@ -100,7 +104,7 @@ export default function SimpleInput({
 
     return (
 
-        <View style={[styles.container, containerStyle]}>
+        <View style={[styles.container, containerStyle, { width: inputWidth || '100%' }]}>
 
             <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 {name && <Text style={[styles.label, labelStyle, { color: colors.text, fontSize: fontSizes['2xl'] }]}>{name}</Text>}
@@ -154,6 +158,7 @@ export default function SimpleInput({
                         keyboardType={type}
                         autoCapitalize={cap}
                         returnKeyType={returnKeyType}
+                        maxLength={maxLength}
                     />
 
                     {password && (
@@ -176,7 +181,6 @@ export default function SimpleInput({
 
 const styles = StyleSheet.create({
     container: {
-        width: '100%',
         position: 'relative',
     },
     label: {
