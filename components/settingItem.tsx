@@ -12,9 +12,10 @@ interface SettingItemProps {
     rightContent?: React.ReactNode;
     type?: 'default' | 'danger';
     border?: boolean;
+    transparent?: boolean;
 }
 
-export default function SettingItem({ image, title, subtitle, onPress, rightContent, type = 'default', border = false }: SettingItemProps) {
+export default function SettingItem({ image, title, subtitle, onPress, rightContent, type = 'default', border = false, transparent }: SettingItemProps) {
     const { colors } = useTheme();
     const { fontSizes } = useFont();
     const isDanger = type === 'danger';
@@ -23,7 +24,7 @@ export default function SettingItem({ image, title, subtitle, onPress, rightCont
 
     return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-            <Squircle style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: border ? 0.5 : 0 }]}>
+            <Squircle style={[styles.container, transparent ? { borderWidth: 0 } : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: border ? 0.5 : 0, height: 64 }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
                     {image &&
                         <SymbolView
@@ -49,7 +50,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: 64,
         borderRadius: 15,
         paddingHorizontal: 23,
     },

@@ -1,8 +1,8 @@
 import { SquircleView } from "expo-squircle-view";
 import { ComponentProps, ReactNode } from "react";
-import Animated from "react-native-reanimated";
+import Animated, { AnimatedProps } from "react-native-reanimated";
 
-type SquircleProps = ComponentProps<typeof SquircleView> & {
+type SquircleProps = AnimatedProps<ComponentProps<typeof SquircleView>> & {
     children?: ReactNode;
 }
 

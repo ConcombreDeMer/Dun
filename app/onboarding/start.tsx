@@ -202,24 +202,6 @@ export default function StartScreen() {
                 exiting={FadeOutDown.springify().duration(500)}
 
             >
-                {/* <View style={styles.pin}>
-                    <Text>~ 30 sec</Text>
-                </View>
-
-                <PrimaryButton
-                    title="Créer un compte"
-                    onPress={goToRegister}
-                />
-
-                <PrimaryButton
-                    title="Se connecter"
-                    onPress={() => router.push('/onboarding/login')}
-                    type="reverse"
-                />
-
-                <Text style={[styles.footerInfo, { color: colors.textSecondary }]}>
-                    Aucune donnée personnelle ne sera partagée
-                </Text> */}
 
                 <Animated.View
                     style={[

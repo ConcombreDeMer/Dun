@@ -1,25 +1,32 @@
 import Headline from "@/components/headline";
-import PopUpModal from "@/components/popUpModal";
-import PrimaryButton from "@/components/primaryButton";
+import NavItem from "@/components/navItem";
+import PopUpContainer from "@/components/popUpContainer";
 import SecondaryButton from "@/components/secondaryButton";
 import SettingItem from "@/components/settingItem";
-import TextInput from "@/components/textInput";
+import Squircle from "@/components/Squircle";
+import SimpleInput from "@/components/textInput";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { SymbolView } from 'expo-symbols';
+import { SquircleButton, SquircleView } from "expo-squircle-view";
+import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useState } from "react";
 import {
     Alert,
+    Dimensions,
+    Image,
+    Keyboard,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
-import Animated, { FadeInUp, FadeOutUp } from "react-native-reanimated";
+import Animated, { FadeInUp, FadeOutUp, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { useFont } from "../../lib/FontContext";
+import { deleteUserAccount, supabase } from "../../lib/supabase";
 import { useTheme } from "../../lib/ThemeContext";
 import { useStore } from "../../store/store";
-import { deleteUserAccount, supabase } from "../../lib/supabase";
 
 
 interface UserData {
@@ -36,12 +43,135 @@ export default function Account() {
     const [hasChanges, setHasChanges] = useState(false);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isCheckingPassword, setIsCheckingPassword] = useState(false);
+    const [newEmailInput, setNewEmailInput] = useState('');
+    const [isCheckingEmail, setIsCheckingEmail] = useState(false);
     const [userData, setUserData] = useState<UserData>();
     const [newEmail, setNewEmail] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [modalConfig, setModalConfig] = useState({ title: '', message: '' });
     const queryClient = useQueryClient();
     const store = useStore();
+    const { fontSizes } = useFont();
+
+    const screenWidth = Dimensions.get('window').width;
+    const page1X = useSharedValue(0);
+    const page2X = useSharedValue(screenWidth);
+    const page3X = useSharedValue(screenWidth * 2);
+
+    const page1AnimatedStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ translateX: page1X.value }],
+        };
+    });
+
+    const page2AnimatedStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ translateX: page2X.value }],
+        };
+    });
+
+    const page3AnimatedStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ translateX: page3X.value }],
+        };
+    });
+
+    const handleNext1 = async () => {
+        if (!password) {
+            Alert.alert("Erreur", "Veuillez entrer votre mot de passe.");
+            return;
+        }
+
+        setIsCheckingPassword(true);
+        const { error } = await supabase.auth.signInWithPassword({
+            email: userData?.email || '',
+            password: password,
+        });
+        setIsCheckingPassword(false);
+
+        if (error) {
+            Alert.alert("Erreur", "Mot de passe incorrect.");
+            return;
+        }
+
+        page1X.value = withSpring(-screenWidth);
+        page2X.value = withSpring(0);
+        page3X.value = withSpring(screenWidth);
+    };
+
+    const handleNext2 = async () => {
+        if (!newEmailInput) {
+            Alert.alert("Erreur", "Veuillez entrer un nouvel email.");
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(newEmailInput)) {
+            Alert.alert("Erreur", "Veuillez entrer un email valide.");
+            return;
+        }
+
+        if (newEmailInput.trim().toLowerCase() === userData?.email?.toLowerCase()) {
+            Alert.alert("Erreur", "Le nouvel email doit être différent de l'actuel.");
+            return;
+        }
+
+        setIsCheckingEmail(true);
+        const { data: emailExists, error: fetchError } = await supabase
+            .rpc('email_exists', { email_input: newEmailInput.trim() });
+
+        if (fetchError) {
+            console.error('Erreur:', fetchError);
+            Alert.alert('Erreur', 'Erreur lors de la vérification de l\'email.');
+            setIsCheckingEmail(false);
+            return;
+        }
+
+        if (emailExists) {
+            Alert.alert('Erreur', 'Cette adresse email est déjà utilisée.');
+            setIsCheckingEmail(false);
+            return;
+        }
+
+        const { error: updateError } = await supabase.auth.updateUser(
+            { email: newEmailInput.trim() },
+            { emailRedirectTo: "dun://settings/changeEmail" }
+        )
+
+        setIsCheckingEmail(false);
+
+        if (updateError) {
+            console.error("Erreur lors de la mise à jour de l'email : " + updateError.message);
+            Alert.alert("Erreur", "Une erreur est survenue lors du changement d'email.");
+            return;
+        }
+
+        page1X.value = withSpring(-screenWidth * 2);
+        page2X.value = withSpring(-screenWidth);
+        page3X.value = withSpring(0);
+    };
+
+    const handleBack1 = () => {
+        page1X.value = withSpring(0);
+        page2X.value = withSpring(screenWidth);
+        page3X.value = withSpring(screenWidth * 2);
+    };
+
+    const handleBack2 = () => {
+        page1X.value = withSpring(-screenWidth);
+        page2X.value = withSpring(0);
+        page3X.value = withSpring(screenWidth);
+    };
+
+    useEffect(() => {
+        if (!showModal) {
+            page1X.value = 0;
+            page2X.value = screenWidth;
+            page3X.value = screenWidth * 2;
+        }
+    }, [showModal]);
 
     useEffect(() => {
         let isMounted = true;
@@ -276,25 +406,225 @@ export default function Account() {
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <PopUpModal
-                symbolName="mail"
+
+
+
+
+
+            <PopUpContainer
                 isVisible={showModal}
-                title="Changement d'email"
-                message="Vous venez de renseigner un nouvel email. Etes vous sûr de vouloir continuer ? Un email de confirmation va vous être envoyé."
-                onConfirm={() => {
-                    // Gérer l'action de confirmation
-                    console.log("Confirmé");
-                    setShowModal(false);
-                    sendChangeEmailConfirmation();
-                }}
-                onCancel={() => {
-                    // Gérer l'action d'annulation
-                    console.log("Annulé");
-                    setShowModal(false);
-                }}
-                confirmText="Confirmer"
-                cancelText="Annuler"
+                onClose={() => setShowModal(false)}
+                children={
+                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                        <View style={{ overflow: 'hidden', height: 400, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
+
+                            {/* PAGE 1 */}
+                            <Animated.View style={[{ display: 'flex', gap: 20, alignItems: 'center', width: '90%', height: 400, justifyContent: 'space-around', position: 'absolute' }, page1AnimatedStyle]}>
+                                <View
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: 20,
+                                        width: '100%',
+                                    }}
+                                >
+                                    <Image
+                                        source={require('@/assets/images/character/7.png')}
+                                        style={{ width: 120, height: 120 }}
+                                        resizeMode="contain"
+                                    />
+
+                                    <Text
+                                        style={{ color: colors.text, fontSize: fontSizes['2xl'], textAlign: 'center' }}
+                                    >
+                                        Entre ton mot de passe
+                                    </Text>
+
+                                    <SimpleInput
+                                        placeholder="..."
+                                        inputWidth={'100%'}
+                                        password
+                                        returnKeyType="done"
+                                        scale="large"
+                                        style={{ textAlign: 'center' }}
+                                        value={password}
+                                        onChangeText={setPassword}
+                                    />
+
+                                </View>
+
+                                <SquircleButton
+                                    onPress={!isCheckingPassword ? handleNext1 : undefined}
+                                    style={{
+                                        width: 100,
+                                        height: 48,
+                                        backgroundColor: colors.task,
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        borderRadius: 15,
+                                    }}
+                                    cornerSmoothing={100}
+                                    preserveSmoothing={true}
+                                >
+
+                                    <SymbolView
+                                        name="arrow.right"
+                                        weight="bold"
+                                        scale="large"
+                                        tintColor={colors.textSecondary}
+                                    />
+
+                                </SquircleButton>
+                            </Animated.View>
+
+                            {/* PAGE 2 */}
+                            <Animated.View style={[{ display: 'flex', gap: 20, alignItems: 'center', width: '90%', height: 400, justifyContent: 'space-around', position: 'absolute' }, page2AnimatedStyle]}>
+                                <View
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: 20,
+                                        width: '100%',
+                                    }}
+                                >
+                                    <View
+                                        style={{ position: 'absolute', top: 0, left: 0 }}
+                                    >
+                                        <SecondaryButton
+                                            onPress={handleBack1}
+                                            image="chevron.left"
+                                        />
+
+                                    </View>
+                                    <Image
+                                        source={require('@/assets/images/character/8.png')}
+                                        style={{ width: 120, height: 120 }}
+                                        resizeMode="contain"
+                                    />
+
+                                    <Text
+                                        style={{ color: colors.text, fontSize: fontSizes['2xl'], textAlign: 'center' }}
+                                    >
+                                        Entre ton nouvel email
+                                    </Text>
+
+                                    <SimpleInput
+                                        placeholder="..."
+                                        inputWidth={'100%'}
+                                        returnKeyType="done"
+                                        scale="large"
+                                        style={{ textAlign: 'center' }}
+                                        value={newEmailInput}
+                                        onChangeText={setNewEmailInput}
+                                        type="email-address"
+                                        cap="none"
+                                    />
+
+                                </View>
+
+                                <SquircleButton
+                                    onPress={!isCheckingEmail ? handleNext2 : undefined}
+                                    style={{
+                                        width: 100,
+                                        height: 48,
+                                        backgroundColor: colors.task,
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        borderRadius: 15,
+                                    }}
+                                    cornerSmoothing={100}
+                                    preserveSmoothing={true}
+                                >
+
+                                    <SymbolView
+                                        name="arrow.right"
+                                        weight="bold"
+                                        scale="large"
+                                        tintColor={colors.textSecondary}
+                                    />
+
+                                </SquircleButton>
+                            </Animated.View>
+
+                            {/* PAGE 3 */}
+                            <Animated.View style={[{ display: 'flex', gap: 20, alignItems: 'center', width: '90%', height: 400, justifyContent: 'space-around', position: 'absolute' }, page3AnimatedStyle]}>
+                                <View
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: 20,
+                                        width: '100%',
+                                    }}
+                                >
+                                    <View
+                                        style={{ position: 'absolute', top: 0, left: 0 }}
+                                    >
+                                        <SecondaryButton
+                                            onPress={handleBack2}
+                                            image="chevron.left"
+                                        />
+                                    </View>
+                                    <Image
+                                        source={require('@/assets/images/character/6.png')}
+                                        style={{ width: 150, height: 150 }}
+                                        resizeMode="contain"
+                                    />
+
+                                    <Text
+                                        style={{ color: colors.text, fontSize: fontSizes['lg'], textAlign: 'center' }}
+                                    >
+                                        Un mail de confirmation a été envoyé à{" "}
+                                        <Text style={{ fontWeight: 'bold' }}>
+                                            ton ancienne et ta nouvelle
+                                        </Text>
+                                        adresse email.
+                                    </Text>
+                                    <Text
+                                        style={{ color: colors.textSecondary, fontSize: fontSizes.sm, textAlign: 'center' }}
+                                    >
+                                        Pense à vérifier tes spams si tu ne le vois pas arriver dans les prochaines minutes
+                                    </Text>
+
+                                </View>
+
+                                <SquircleButton
+                                    onPress={() => setShowModal(false)}
+                                    style={{
+                                        width: 100,
+                                        height: 48,
+                                        backgroundColor: colors.text,
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        borderRadius: 15,
+                                    }}
+                                    cornerSmoothing={100}
+                                    preserveSmoothing={true}
+                                >
+
+                                    <SymbolView
+                                        name="checkmark"
+                                        weight="bold"
+                                        scale="large"
+                                        tintColor={colors.textSecondary}
+                                    />
+
+                                </SquircleButton>
+                            </Animated.View>
+
+                        </View>
+                    </TouchableWithoutFeedback>
+                }
             />
+
+
+
+
+
+
+
             <View
                 style={{
                     marginBottom: 20,
@@ -316,7 +646,7 @@ export default function Account() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                <View
+                {/* <View
                     style={{ display: 'flex', gap: 16, backgroundColor: "#f8f8f8", borderRadius: 10, padding: 20 }}
                 >
 
@@ -376,22 +706,139 @@ export default function Account() {
                         }
 
                     </View>
+                </View> */}
+
+                <View
+                    style={{ display: 'flex', gap: 8 }}
+                >
+                    <Text
+                        style={{ color: colors.textSecondary, fontSize: fontSizes.xl }}
+                    >
+                        INFORMATIONS
+                    </Text>
+                    <SquircleView>
+                        <SettingItem
+                            title="Prénom"
+                            // placeholder="Votre nom d'utilisateur"
+                            rightContent={
+                                <SimpleInput
+                                    placeholder="..."
+                                    value={name}
+                                    onChangeText={setName}
+                                    inputWidth={150}
+                                    style={{ textAlign: "right" }}
+                                    isLoading={isLoading}
+                                    transparent
+
+                                />
+                            }
+                        />
+                    </SquircleView>
                 </View>
 
+                <View
+                    style={{ display: 'flex', gap: 8 }}
+                >
+                    <Text
+                        style={{ color: colors.textSecondary, fontSize: fontSizes.xl }}
+                    >
+                        ABONNEMENT
+                    </Text>
+                    <SquircleView>
+                        <NavItem title="Gestion de l'abonnement" onPress={() => console.log("Clique sur abonnement")} />
+                    </SquircleView>
+                </View>
 
-                <SettingItem
-                    title="Se déconnecter"
-                    onPress={handleLogout}
-                    type="danger"
-                    image="iphone.and.arrow.forward.outward"
-                />
+                <View
+                    style={{ display: 'flex', gap: 8 }}
+                >
+                    <Text
+                        style={{ color: colors.textSecondary, fontSize: fontSizes.xl }}
+                    >
+                        SÉCURITÉ
+                    </Text>
+                    <SquircleView
+                        style={{ display: 'flex', flexDirection: 'column', gap: 16, backgroundColor: colors.card, borderRadius: 20, paddingVertical: 16 }}
 
-                <SettingItem
-                    title="Supprimer le compte"
-                    onPress={!isDeletingAccount ? handleDeleteAccount : undefined}
-                    type="danger"
-                    image="trash"
-                />
+                    >
+                        <NavItem title="Changer le mot de passe" onPress={() => console.log("Changement de mot de passe")} transparent />
+                        <NavItem title="Changer l'email" onPress={() => setShowModal(true)} transparent />
+                        {newEmail.length > 0 &&
+
+                            <Squircle
+                                entering={FadeInUp.springify()}
+                                exiting={FadeOutUp.springify()}
+                                style={[styles.alertEmail, { backgroundColor: colors.textSecondary + '20' }]}
+                            >
+                                <View>
+                                    <Text
+                                        style={{ color: colors.text + '50', fontFamily: 'Satoshi-Regular' }}
+                                    >
+                                        Un changement d'email est en cours vers
+                                    </Text>
+                                    <Text
+                                        style={{ color: colors.text+ '90', fontFamily: 'Satoshi-Bold' }}
+                                    >
+                                        {newEmail}
+                                    </Text>
+                                </View>
+                                <TouchableOpacity
+                                    style={styles.alerteEmailButton}
+                                    onPress={seeMore}
+                                >
+                                    <SymbolView
+                                        name="chevron.right"
+                                        style={styles.symbol}
+                                        type="palette"
+                                        tintColor={'#00000050'}
+                                    />
+                                </TouchableOpacity>
+
+
+                            </Squircle>
+
+                        }
+                    </SquircleView>
+                </View>
+
+                <View
+                    style={{ display: 'flex', gap: 8 }}
+                >
+                    <Text
+                        style={{ color: colors.textSecondary, fontSize: fontSizes.xl }}
+                    >
+                        ZONE DE DANGER
+                    </Text>
+
+                    <SettingItem
+                        title="Se déconnecter"
+                        onPress={handleLogout}
+                        type="danger"
+                        image="iphone.and.arrow.forward.outward"
+                    />
+
+                    <SquircleView
+                        style={{ display: 'flex', flexDirection: 'column', gap: 24, backgroundColor: colors.card, borderRadius: 20, paddingVertical: 24 }}
+                    >
+
+                        <SettingItem
+                            title="Supprimer les données"
+                            onPress={!isDeletingAccount ? handleDeleteAccount : undefined}
+                            type="danger"
+                            image="trash"
+                            transparent
+                        />
+
+                        <SettingItem
+                            title="Supprimer le compte"
+                            onPress={!isDeletingAccount ? handleDeleteAccount : undefined}
+                            type="danger"
+                            image="trash"
+                            transparent
+                        />
+                    </SquircleView>
+                </View>
+
 
 
                 {/* <Text style={{ color: '#383838ff', fontSize: 12, alignSelf: "center" }}>
@@ -401,7 +848,7 @@ export default function Account() {
 
 
             </ScrollView>
-            <View
+            {/* <View
                 style={styles.buttonsContainer}
             >
                 <PrimaryButton
@@ -425,7 +872,7 @@ export default function Account() {
                     size="M"
                 />
 
-            </View>
+            </View> */}
         </View>
     );
 }
@@ -436,21 +883,21 @@ const styles = StyleSheet.create({
     },
 
     symbol: {
-        width: 35,
-        height: 35,
+        width: 15,
+        height: 15,
         margin: 5,
     },
 
     alertEmail: {
-        backgroundColor: '#272727ff',
-        borderRadius: 8,
+        borderRadius: 15,
         textAlign: 'center',
         paddingHorizontal: 20,
         paddingVertical: 10,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginTop: 10,
+        width: '90%',
+        alignSelf: 'center',
     },
 
     alerteEmailButton: {
@@ -458,15 +905,12 @@ const styles = StyleSheet.create({
         height: 40,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#ffffff20',
         borderRadius: 5,
-        borderWidth: 0.5,
-        borderColor: '#ffffff40',
     },
 
     scrollContent: {
         marginTop: 20,
-        paddingBottom: 120,
+        paddingBottom: 100,
         gap: 24,
         paddingHorizontal: 20,
     },

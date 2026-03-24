@@ -8,13 +8,14 @@ interface NavItemProps {
     image?: any;
     title?: string;
     onPress?: () => void;
+    transparent?: boolean;
 }
 
-export default function NavItem({ image, title, onPress }: NavItemProps) {
+export default function NavItem({ image, title, onPress, transparent }: NavItemProps) {
     const { actualTheme, colors } = useTheme();
     const { fontSizes } = useFont();
     return (
-        <SquircleButton style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={onPress}>
+        <SquircleButton style={[styles.container, transparent ? { borderWidth: 0 } : { backgroundColor: colors.card, borderColor: colors.border, height: 64 }]} onPress={onPress}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 {image &&
                     <Image
@@ -39,7 +40,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: 64,
         borderRadius: 15,
         paddingHorizontal: 23,
         borderWidth: 0.5,
