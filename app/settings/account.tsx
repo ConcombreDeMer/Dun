@@ -47,6 +47,12 @@ export default function Account() {
     const [isCheckingPassword, setIsCheckingPassword] = useState(false);
     const [newEmailInput, setNewEmailInput] = useState('');
     const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+    
+    // Nouveaux états pour le mot de passe
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [oldPassword, setOldPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
     const [userData, setUserData] = useState<UserData>();
     const [newEmail, setNewEmail] = useState('');
     const [showModal, setShowModal] = useState(false);
@@ -76,6 +82,21 @@ export default function Account() {
         return {
             transform: [{ translateX: page3X.value }],
         };
+    });
+
+    // --- Animations pour la modale Mdp ---
+    const passPage1X = useSharedValue(0);
+    const passPage2X = useSharedValue(screenWidth);
+    const passPage3X = useSharedValue(screenWidth * 2);
+
+    const passPage1AnimatedStyle = useAnimatedStyle(() => {
+        return { transform: [{ translateX: passPage1X.value }] };
+    });
+    const passPage2AnimatedStyle = useAnimatedStyle(() => {
+        return { transform: [{ translateX: passPage2X.value }] };
+    });
+    const passPage3AnimatedStyle = useAnimatedStyle(() => {
+        return { transform: [{ translateX: passPage3X.value }] };
     });
 
     const handleNext1 = async () => {
@@ -172,6 +193,75 @@ export default function Account() {
             page3X.value = screenWidth * 2;
         }
     }, [showModal]);
+
+    // --- Fonctions pour la modale Mdp ---
+    const handlePassNext1 = async () => {
+        if (!oldPassword) {
+            Alert.alert("Erreur", "Veuillez entrer votre mot de passe actuel.");
+            return;
+        }
+
+        setIsCheckingPassword(true);
+        const { error } = await supabase.auth.signInWithPassword({
+            email: userData?.email || '',
+            password: oldPassword,
+        });
+        setIsCheckingPassword(false);
+
+        if (error) {
+            Alert.alert("Erreur", "Mot de passe incorrect.");
+            return;
+        }
+
+        passPage1X.value = withSpring(-screenWidth);
+        passPage2X.value = withSpring(0);
+        passPage3X.value = withSpring(screenWidth);
+    };
+
+    const handlePassNext2 = async () => {
+        if (!newPassword) {
+            Alert.alert("Erreur", "Veuillez entrer un nouveau mot de passe.");
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            Alert.alert("Erreur", "Le mot de passe doit contenir au moins 6 caractères.");
+            return;
+        }
+
+        setIsUpdatingPassword(true);
+        const { error: updateError } = await supabase.auth.updateUser({
+            password: newPassword
+        });
+        setIsUpdatingPassword(false);
+
+        if (updateError) {
+            console.error("Erreur Mdp : " + updateError.message);
+            Alert.alert("Erreur", "Une erreur est survenue lors du changement de mot de passe.");
+            return;
+        }
+
+        passPage1X.value = withSpring(-screenWidth * 2);
+        passPage2X.value = withSpring(-screenWidth);
+        passPage3X.value = withSpring(0);
+    };
+
+    const handlePassBack1 = () => {
+        passPage1X.value = withSpring(0);
+        passPage2X.value = withSpring(screenWidth);
+        passPage3X.value = withSpring(screenWidth * 2);
+    };
+
+    useEffect(() => {
+        if (!showPasswordModal) {
+            passPage1X.value = 0;
+            passPage2X.value = screenWidth;
+            passPage3X.value = screenWidth * 2;
+            setOldPassword('');
+            setNewPassword('');
+        }
+    }, [showPasswordModal]);
+
 
     useEffect(() => {
         let isMounted = true;
@@ -619,11 +709,107 @@ export default function Account() {
                 }
             />
 
+            {/* Modal Mot de passe */}
+            <PopUpContainer
+                isVisible={showPasswordModal}
+                onClose={() => setShowPasswordModal(false)}
+                children={
+                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                        <View style={{ overflow: 'hidden', height: 400, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
 
+                            {/* PAGE 1 */}
+                            <Animated.View style={[{ display: 'flex', gap: 20, alignItems: 'center', width: '90%', height: 400, justifyContent: 'space-around', position: 'absolute' }, passPage1AnimatedStyle]}>
+                                <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%' }}>
+                                    <Image
+                                        source={require('@/assets/images/character/7.png')}
+                                        style={{ width: 120, height: 120 }}
+                                        resizeMode="contain"
+                                    />
+                                    <Text style={{ color: colors.text, fontSize: fontSizes['2xl'], textAlign: 'center' }}>
+                                        Mot de passe actuel
+                                    </Text>
+                                    <SimpleInput
+                                        placeholder="..."
+                                        inputWidth={'100%'}
+                                        password
+                                        returnKeyType="done"
+                                        scale="large"
+                                        style={{ textAlign: 'center' }}
+                                        value={oldPassword}
+                                        onChangeText={setOldPassword}
+                                    />
+                                </View>
+                                <SquircleButton
+                                    onPress={!isCheckingPassword ? handlePassNext1 : undefined}
+                                    style={{ width: 100, height: 48, backgroundColor: colors.task, justifyContent: 'center', alignItems: 'center', borderRadius: 15 }}
+                                    cornerSmoothing={100}
+                                    preserveSmoothing={true}
+                                >
+                                    <SymbolView name="arrow.right" weight="bold" scale="large" tintColor={colors.textSecondary} />
+                                </SquircleButton>
+                            </Animated.View>
 
+                            {/* PAGE 2 */}
+                            <Animated.View style={[{ display: 'flex', gap: 20, alignItems: 'center', width: '90%', height: 400, justifyContent: 'space-around', position: 'absolute' }, passPage2AnimatedStyle]}>
+                                <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%' }}>
+                                    <View style={{ position: 'absolute', top: 0, left: 0 }}>
+                                        <SecondaryButton onPress={handlePassBack1} image="chevron.left" />
+                                    </View>
+                                    <Image
+                                        source={require('@/assets/images/character/8.png')}
+                                        style={{ width: 120, height: 120 }}
+                                        resizeMode="contain"
+                                    />
+                                    <Text style={{ color: colors.text, fontSize: fontSizes['2xl'], textAlign: 'center' }}>
+                                        Nouveau mot de passe
+                                    </Text>
+                                    <SimpleInput
+                                        placeholder="..."
+                                        inputWidth={'100%'}
+                                        password
+                                        returnKeyType="done"
+                                        scale="large"
+                                        style={{ textAlign: 'center' }}
+                                        value={newPassword}
+                                        onChangeText={setNewPassword}
+                                    />
+                                </View>
+                                <SquircleButton
+                                    onPress={!isUpdatingPassword ? handlePassNext2 : undefined}
+                                    style={{ width: 100, height: 48, backgroundColor: colors.task, justifyContent: 'center', alignItems: 'center', borderRadius: 15 }}
+                                    cornerSmoothing={100}
+                                    preserveSmoothing={true}
+                                >
+                                    <SymbolView name="arrow.right" weight="bold" scale="large" tintColor={colors.textSecondary} />
+                                </SquircleButton>
+                            </Animated.View>
 
+                            {/* PAGE 3 */}
+                            <Animated.View style={[{ display: 'flex', gap: 20, alignItems: 'center', width: '90%', height: 400, justifyContent: 'space-around', position: 'absolute' }, passPage3AnimatedStyle]}>
+                                <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%' }}>
+                                    <Image
+                                        source={require('@/assets/images/character/6.png')}
+                                        style={{ width: 150, height: 150 }}
+                                        resizeMode="contain"
+                                    />
+                                    <Text style={{ color: colors.text, fontSize: fontSizes['lg'], textAlign: 'center' }}>
+                                        Ton mot de passe a été modifié avec succès.
+                                    </Text>
+                                </View>
+                                <SquircleButton
+                                    onPress={() => setShowPasswordModal(false)}
+                                    style={{ width: 100, height: 48, backgroundColor: colors.text, justifyContent: 'center', alignItems: 'center', borderRadius: 15 }}
+                                    cornerSmoothing={100}
+                                    preserveSmoothing={true}
+                                >
+                                    <SymbolView name="checkmark" weight="bold" scale="large" tintColor={colors.textSecondary} />
+                                </SquircleButton>
+                            </Animated.View>
 
-
+                        </View>
+                    </TouchableWithoutFeedback>
+                }
+            />
 
             <View
                 style={{
@@ -646,67 +832,6 @@ export default function Account() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* <View
-                    style={{ display: 'flex', gap: 16, backgroundColor: "#f8f8f8", borderRadius: 10, padding: 20 }}
-                >
-
-                    <TextInput
-                        name="Nom d'utilisateur"
-                        placeholder="Votre nom d'utilisateur"
-                        value={name}
-                        onChangeText={setName}
-                        isLoading={isLoading}
-                    />
-
-                    <View>
-
-                        <TextInput
-                            name="Email"
-                            placeholder="Votre email"
-                            value={email}
-                            onChangeText={setEmail}
-                            isLoading={isLoading}
-                            cap="none"
-                        />
-
-                        {newEmail.length > 0 &&
-
-                            <Animated.View
-                                entering={FadeInUp.springify()}
-                                exiting={FadeOutUp.springify()}
-                                style={styles.alertEmail}
-                            >
-                                <View>
-                                    <Text
-                                        style={{ color: '#a5a5a5' }}
-                                    >
-                                        Un changement d'email est en cours vers :
-                                    </Text>
-                                    <Text
-                                        style={{ color: '#fff', fontWeight: '500' }}
-                                    >
-                                        {newEmail}
-                                    </Text>
-                                </View>
-                                <TouchableOpacity
-                                    style={styles.alerteEmailButton}
-                                    onPress={seeMore}
-                                >
-                                    <SymbolView
-                                        name="eye"
-                                        style={styles.symbol}
-                                        type="palette"
-                                        tintColor={'#000000'}
-                                    />
-                                </TouchableOpacity>
-
-
-                            </Animated.View>
-
-                        }
-
-                    </View>
-                </View> */}
 
                 <View
                     style={{ display: 'flex', gap: 8 }}
@@ -761,7 +886,7 @@ export default function Account() {
                         style={{ display: 'flex', flexDirection: 'column', gap: 16, backgroundColor: colors.card, borderRadius: 20, paddingVertical: 16 }}
 
                     >
-                        <NavItem title="Changer le mot de passe" onPress={() => console.log("Changement de mot de passe")} transparent />
+                        <NavItem title="Changer le mot de passe" onPress={() => setShowPasswordModal(true)} transparent />
                         <NavItem title="Changer l'email" onPress={() => setShowModal(true)} transparent />
                         {newEmail.length > 0 &&
 
@@ -838,13 +963,6 @@ export default function Account() {
                         />
                     </SquircleView>
                 </View>
-
-
-
-                {/* <Text style={{ color: '#383838ff', fontSize: 12, alignSelf: "center" }}>
-                    Dernière mise à jour : {formatLastUpdateDate(profileQuery.data ? new Date(profileQuery.data.last_update_date) : null)}
-                </Text> */}
-
 
 
             </ScrollView>
