@@ -7,7 +7,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import Navbar from "../components/navbar";
 import { FontProvider } from "../lib/FontContext";
-import { initNotifications, setupMorningReminderTask } from "../lib/notificationService";
 import { supabase } from "../lib/supabase";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 
@@ -47,14 +46,6 @@ function RootLayoutContent() {
   });
 
   const queryClient = useMemo(() => getQueryClient(), []);
-
-  // Dans RootLayoutContent():
-  useEffect(() => {
-    if (session && !isAuthLoading) {
-      initNotifications();
-      setupMorningReminderTask(); // ← Utiliser celle-ci
-    }
-  }, [session, isAuthLoading]);
 
   // Initialiser l'authentification et écouter les changements
   useEffect(() => {
@@ -200,7 +191,7 @@ function RootLayoutContent() {
               animationDuration: duration,
             }}
           />
-          <Stack.Screen
+          {/* <Stack.Screen
             name="details"
             options={{
               title: "Détails",
@@ -209,7 +200,7 @@ function RootLayoutContent() {
               animationMatchesGesture: true,
               animationDuration: duration,
             }}
-          />
+          /> */}
           <Stack.Screen
             name="settings"
             options={{
@@ -227,14 +218,14 @@ function RootLayoutContent() {
               animationDuration: duration,
             }}
           />
-          <Stack.Screen
+          {/* <Stack.Screen
             name="edit-task"
             options={{
               title: "Modifier une tâche",
               animation: "fade",
               animationDuration: duration,
             }}
-          />
+          /> */}
           <Stack.Screen
             name="stats"
             options={{

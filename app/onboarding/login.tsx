@@ -21,6 +21,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useTheme } from '../../lib/ThemeContext';
 import { supabase } from '../../lib/supabase';
+import { useStore } from '../../store/store';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -31,6 +32,9 @@ export default function LoginScreen() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const styles = createStyles(colors);
+
+
+    const store = useStore();
 
     const handleLogin = async () => {
         console.log('Tentative de connexion avec email:', email);
@@ -58,63 +62,49 @@ export default function LoginScreen() {
                 if (signInError.message === 'Email not confirmed') {
                     router.push({
                         pathname: '/onboarding/reVerifEmail',
-                        params: {
-                            email: email.trim(),
-                        }
+                        params: { email: email.trim() }
                     });
+                    setLoading(false);
+                    return; // ← Sortir immédiatement
                 }
                 setError(signInError.message);
                 setLoading(false);
                 return;
             }
 
-            // chercher si le user existe dans la table "profiles"
             if (data.user) {
-
-                console.log('Utilisateur connecté:', data.user);
-
-                const { data: profileData, error: profileError } = await supabase
+                let profileData = await supabase
                     .from('Profiles')
                     .select('*')
                     .eq('id', data.user.id)
                     .single();
 
-                if (!profileData) {
-                    console.log('Aucun profil trouvé pour cet utilisateur, création en cours...');
-                    console.log('Données utilisateur:', data.user);
+                // Si pas de profil, créer et récupérer les données
+                if (!profileData.data) {
+                    await supabase.from('Profiles').insert({
+                        id: data.user.id,
+                        email: data.user.email,
+                        name: data.user.user_metadata.name,
+                    });
 
-                    // créer le profil
-                    const { error: createProfileError } = await supabase
+                    // ✅ Re-fetch pour avoir les bonnes données
+                    profileData = await supabase
                         .from('Profiles')
-                        .insert({
-                            id: data.user.id,
-                            email: data.user.email,
-                            name: data.user.user_metadata.name,
-                        });
-
-                    if (createProfileError) {
-                        console.error('Erreur lors de la création du profil:', createProfileError);
-                        setError('Erreur lors de la création du profil. Veuillez réessayer.');
-                        setLoading(false);
-                        return;
-                    }
-                    setLoading(false);
-                    router.replace('/onboarding/tutorial');
-                    return;
+                        .select('*')
+                        .eq('id', data.user.id)
+                        .single();
                 }
 
-                console.log('Profil trouvé:', profileData);
-                if (profileData.hasName == false) {
-                    console.log('Profil trouvé mais nom non défini, redirection vers le tutoriel pour compléter le profil.');
+                if (profileData.error) {
+                    setError('Erreur avec le profil utilisateur');
                     setLoading(false);
-                    router.replace('/onboarding/tutorial');
                     return;
                 }
-
-                router.replace('/');
+                // Redirection basée sur le profil
+                router.replace(profileData.data.hasName ? '/' : '/onboarding/tutorial');
             }
         } catch (err: any) {
-            setError(err.message || 'Erreur de connexion. Veuillez réessayer.');
+            setError(err.message || 'Erreur de connexion');
             setLoading(false);
         }
     };

@@ -12,7 +12,7 @@ interface SwitchItemProps {
 }
 
 export default function SwitchItem({ image, title, event, currentValue }: SwitchItemProps) {
-    const { theme, colors } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
     const [isEnabled, setIsEnabled] = useState(false);
 
@@ -22,12 +22,12 @@ export default function SwitchItem({ image, title, event, currentValue }: Switch
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.container]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 {image &&
                     <Image
                         style={{ width: 26, height: 26, tintColor: colors.text }}
-                        source={getImageSource(image, theme)}
+                        source={getImageSource(image, actualTheme)}
                     ></Image>
                 }
                 {title && <Text style={[styles.label, { color: colors.text, fontSize: fontSizes.lg }]}>{title}</Text>}
@@ -49,9 +49,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         height: 64,
-        borderRadius: 10,
-        paddingHorizontal: 23,
-        borderWidth: 0.5,
     },
     label: {
         fontFamily: 'Satoshi-Regular',
