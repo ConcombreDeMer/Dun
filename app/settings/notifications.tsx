@@ -22,11 +22,19 @@ export default function NotificationsSettings() {
     const [initialAlertHour, setInitialAlertHour] = useState('');
     const [initialAlertMinute, setInitialAlertMinute] = useState('');
     const [initialAlertsEnabled, setInitialAlertsEnabled] = useState(false);
+    const [initialInsistanceEnabled, setInitialInsistanceEnabled] = useState(false);
+    const [initialInsistanceDelais, setInitialInsistanceDelais] = useState('');
+    const [initialInsistanceRepetitions, setInitialInsistanceRepetitions] = useState('');
 
 
     const [alertHour, setAlertHour] = useState('');
     const [alertMinute, setAlertMinute] = useState('');
     const [alertsEnabled, setAlertsEnabled] = useState(false);
+    
+    const [insistanceEnabled, setInsistanceEnabled] = useState(false);
+    const [insistanceDelais, setInsistanceDelais] = useState('');
+    const [insistanceRepetitions, setInsistanceRepetitions] = useState('');
+    
     const [isModified, setIsModified] = useState(false);
 
 
@@ -37,7 +45,7 @@ export default function NotificationsSettings() {
     const initAlertSettings = async () => {
         const { data, error } = await supabase
             .from('Profiles')
-            .select('alertSetupHour, alertSetupMinute, alertSetupActive')
+            .select('alertSetupHour, alertSetupMinute, alertSetupActive, alertInsistanceActive, alertInsistanceDelais, alertInsistanceRepetitions')
             .eq('id', store.user.id)
             .single();
 
@@ -48,10 +56,16 @@ export default function NotificationsSettings() {
             setInitialAlertHour(data.alertSetupHour || '');
             setInitialAlertMinute(data.alertSetupMinute || '');
             setInitialAlertsEnabled(data.alertSetupActive || false);
+            setInitialInsistanceEnabled(data.alertInsistanceActive || false);
+            setInitialInsistanceDelais(data.alertInsistanceDelais || '');
+            setInitialInsistanceRepetitions(data.alertInsistanceRepetitions || '');
 
-            setAlertHour(data.alertSetupHour);
-            setAlertMinute(data.alertSetupMinute);
-            setAlertsEnabled(data.alertSetupActive);
+            setAlertHour(data.alertSetupHour || '');
+            setAlertMinute(data.alertSetupMinute || '');
+            setAlertsEnabled(data.alertSetupActive || false);
+            setInsistanceEnabled(data.alertInsistanceActive || false);
+            setInsistanceDelais(data.alertInsistanceDelais || '');
+            setInsistanceRepetitions(data.alertInsistanceRepetitions || '');
         }
         setIsLoading(false);
     };
@@ -61,9 +75,12 @@ export default function NotificationsSettings() {
         const modified =
             alertHour !== initialAlertHour ||
             alertMinute !== initialAlertMinute ||
-            alertsEnabled !== initialAlertsEnabled;
+            alertsEnabled !== initialAlertsEnabled ||
+            insistanceEnabled !== initialInsistanceEnabled ||
+            insistanceDelais !== initialInsistanceDelais ||
+            insistanceRepetitions !== initialInsistanceRepetitions;
         setIsModified(modified);
-    }, [alertHour, alertMinute, alertsEnabled]);
+    }, [alertHour, alertMinute, alertsEnabled, insistanceEnabled, insistanceDelais, insistanceRepetitions]);
 
 
     const save = async () => {
@@ -80,17 +97,30 @@ export default function NotificationsSettings() {
         // Envoyer les préférences de notification à Supabase
         const { error: updateError } = await supabase
             .from('Profiles')
-            .update({ alertSetupHour: alertHour, alertSetupMinute: alertMinute, alertSetupActive: alertsEnabled })
+            .update({ 
+                alertSetupHour: alertHour, 
+                alertSetupMinute: alertMinute, 
+                alertSetupActive: alertsEnabled,
+                alertInsistanceActive: insistanceEnabled,
+                alertInsistanceDelais: insistanceDelais,
+                alertInsistanceRepetitions: insistanceRepetitions
+            })
             .eq('id', store.user.id);
         if (updateError) {
             console.error("Erreur lors de la mise à jour de l'heure de notification:", updateError);
         }
-        console.log("Préférences de notification mises à jour:", { alertHour, alertMinute, alertsEnabled });
+        console.log("Préférences de notification mises à jour:", { alertHour, alertMinute, alertsEnabled, insistanceEnabled, insistanceDelais, insistanceRepetitions });
         // Mettre à jour les notifications sur l'appareil
         if (alertsEnabled) {
             const hasPermission = await requestNotificationPermissions();
             if (hasPermission) {
-                await scheduleDailyReminder(parseInt(alertHour), parseInt(alertMinute));
+                await scheduleDailyReminder(
+                    parseInt(alertHour), 
+                    parseInt(alertMinute),
+                    insistanceEnabled,
+                    insistanceDelais,
+                    insistanceRepetitions
+                );
             }
         } else {
             await cancelDailyReminder();
@@ -99,6 +129,9 @@ export default function NotificationsSettings() {
         setInitialAlertHour(alertHour);
         setInitialAlertMinute(alertMinute);
         setInitialAlertsEnabled(alertsEnabled);
+        setInitialInsistanceEnabled(insistanceEnabled);
+        setInitialInsistanceDelais(insistanceDelais);
+        setInitialInsistanceRepetitions(insistanceRepetitions);
         setIsModified(false);
         console.log("Notifications mises à jour sur l'appareil :", { alertHour, alertMinute, alertsEnabled });
     };
@@ -148,7 +181,7 @@ export default function NotificationsSettings() {
             >
                 <SwitchItem
                     image="notification"
-                    title="Rappel quotidien"
+                    title="Préparation de la journée"
                     event={toggleNotifications}
                     currentValue={alertsEnabled}
                 />
@@ -213,6 +246,98 @@ export default function NotificationsSettings() {
                 </View>
 
 
+
+            </SquircleView>
+
+            <SquircleView
+                style={{
+                    paddingHorizontal: 20,
+                    paddingBottom: 15,
+                    backgroundColor: "#ffffff",
+                    borderRadius: 20,
+                    width: '90%',
+                    alignSelf: 'center',
+                    marginTop: 20,
+                }}
+                cornerSmoothing={100}
+                preserveSmoothing={true}
+            >
+                <SwitchItem
+                    title="Insistance"
+                    event={setInsistanceEnabled}
+                    currentValue={insistanceEnabled}
+                />
+
+                <View>
+                    <SquircleView
+                        cornerSmoothing={100}
+                        preserveSmoothing={true}
+                        style={{
+                            width: '100%',
+                            backgroundColor: "#F5F5F5",
+                            borderRadius: 15,
+                            paddingTop: 12,
+                            paddingBottom: 12,
+                            paddingLeft: 24,
+                            paddingRight: 12,
+                            alignSelf: 'center',
+                        }}
+                    >
+                        <View style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: 'space-between',
+                            marginBottom: 8,
+                        }}>
+                            <Text style={{ color: "#333", fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
+                                Délais
+                            </Text>
+
+                            <SimpleInput
+                                value={insistanceDelais}
+                                onChangeText={setInsistanceDelais}
+                                placeholder="..."
+                                type="numeric"
+                                returnKeyType="done"
+                                isLoading={isLoading}
+                                inputWidth={120}
+                                style={{ textAlign: 'center', backgroundColor: '#e5e5e5' }}
+                            />
+                        </View>
+                        
+                        <View style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: 'space-between',
+                        }}>
+                            <Text style={{ color: "#333", fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
+                                Répétitions
+                            </Text>
+
+                            <SimpleInput
+                                value={insistanceRepetitions}
+                                onChangeText={setInsistanceRepetitions}
+                                placeholder="..."
+                                type="numeric"
+                                returnKeyType="done"
+                                isLoading={isLoading}
+                                inputWidth={120}
+                                style={{ textAlign: 'center', backgroundColor: '#e5e5e5' }}
+                            />
+                        </View>
+                    </SquircleView>
+                </View>
+
+                <Text style={{
+                    color: "#999999",
+                    fontSize: 14,
+                    lineHeight: 20,
+                    marginTop: 15,
+                    fontFamily: 'Satoshi-Regular',
+                    paddingHorizontal: 5
+                }}>
+                    Dans le cas où vous n'avez pas réagis à un rappel, Dun peut insister pour vous aider à maintenir votre régularité.
+                </Text>
 
             </SquircleView>
 

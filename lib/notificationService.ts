@@ -33,8 +33,16 @@ export async function requestNotificationPermissions() {
 //   }
 // }
 
-export async function scheduleDailyReminder(hour: number, minute: number) {
+export async function scheduleDailyReminder(
+  hour: number, 
+  minute: number,
+  insistanceActive: boolean = false,
+  insistanceDelais: string = '',
+  insistanceRepetitions: string = ''
+) {
   await Notifications.cancelAllScheduledNotificationsAsync();
+  
+  // Rappel principal
   await Notifications.scheduleNotificationAsync({
     content: {
       title: 'Hello ! 👋',
@@ -48,6 +56,34 @@ export async function scheduleDailyReminder(hour: number, minute: number) {
       channelId: 'daily-reminders',
     },
   });
+
+  // Rappels d'insistance si activé
+  if (insistanceActive && insistanceDelais && insistanceRepetitions) {
+    const delay = parseInt(insistanceDelais, 10);
+    const repetitions = parseInt(insistanceRepetitions, 10);
+
+    if (!isNaN(delay) && !isNaN(repetitions) && delay > 0 && repetitions > 0) {
+      for (let i = 1; i <= repetitions; i++) {
+        const totalMinutes = minute + (delay * i);
+        const newHour = Math.floor(hour + (totalMinutes / 60)) % 24;
+        const newMinute = totalMinutes % 60;
+
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Toujours là ? 👀',
+            body: 'N\'oublie pas d\'aller vérifier tes tâches du jour !',
+            sound: true,
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DAILY,
+            hour: newHour,
+            minute: newMinute,
+            channelId: 'daily-reminders',
+          },
+        });
+      }
+    }
+  }
 }
 
 // clear badge number on app open
