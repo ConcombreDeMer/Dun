@@ -65,7 +65,7 @@ interface FontProviderProps {
 }
 
 export const FontProvider: React.FC<FontProviderProps> = ({ children }) => {
-    const [fontSize, setFontSize] = useState<FontSize>('medium');
+    const [fontSize, setFontSize] = useState<FontSize>('small');
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {

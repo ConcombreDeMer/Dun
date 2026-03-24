@@ -96,7 +96,7 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const systemTheme = useColorScheme();
-    const [theme, setTheme] = useState<Theme>('light');
+    const [theme, setTheme] = useState<Theme>('system');
     const [isLoading, setIsLoading] = useState(true);
     const pathname = usePathname();
     const isOnboarding = pathname?.includes('/onboarding') ?? false;
