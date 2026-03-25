@@ -1,6 +1,7 @@
 import NavItem from "@/components/navItem";
 import Squircle from "@/components/Squircle";
 import { useRouter } from "expo-router";
+import { SquircleButton } from "expo-squircle-view";
 import { useEffect, useState } from "react";
 import {
     Image,
@@ -119,6 +120,96 @@ export default function Settings() {
                 {/* <SwitchItem image="display" title="Mode sombre" event={toggleTheme} currentValue={theme === 'dark'} /> */}
 
             </ScrollView>
+
+
+
+            <SquircleButton
+                style={{
+                    position: "absolute",
+                    bottom: 120,
+                    left: 20,
+                    right: 20,
+                    height: 150,
+                    borderRadius: 30,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    borderWidth: 1,
+                    borderColor: "#FFDB7F",
+                    backgroundColor: "#FFE39C",
+                }}
+                onPress={() => router.push("/settings/premium")}
+            >
+
+                <View
+                    style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                        position: "absolute",
+                        top: 20,
+                        left: 20,  
+                    }}
+                >
+                    <View
+                        style={{
+                            display: "flex",
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 10,
+                        }}
+                    >
+                        <Text
+                            style={{
+                                color: colors.text,
+                                fontSize: fontSizes['6xl'],
+                                fontFamily: 'Satoshi-Black',
+                            }}
+                        >
+                            Dun
+                        </Text>
+                        <Text
+                            style={{
+                                color: "#FFBB00",
+                                fontSize: fontSizes['7xl'],
+                                fontFamily: 'Satoshi-Black',
+                            }}
+                        >
+                            +
+                        </Text>
+                    </View>
+
+                    <Text
+                        style={{
+                            color: colors.text,
+                            fontSize: fontSizes.lg,
+                            fontFamily: 'Satoshi-Medium',
+                            opacity: 0.3,
+                            marginTop: -6,
+                        }}
+                    >
+                        Atteint ton potentiel maximal
+                    </Text>
+
+                </View>
+
+
+
+                <Image
+                    source={require("../assets/images/character/16.png")}
+                    style={{
+                        height: '90%',
+                        aspectRatio: 1,
+                        alignSelf: "flex-end",
+                    }}
+                />
+
+
+
+
+
+            </SquircleButton>
+
+
 
         </View>
     );
