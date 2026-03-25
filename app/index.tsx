@@ -50,7 +50,7 @@ export default function Index() {
           setUserName(name);
           store.setUser({ id: user.id });
 
-          const { data , error } = await supabase
+          const { data, error } = await supabase
             .from("Profiles")
             .select("*")
             .eq("id", user.id)
@@ -88,7 +88,7 @@ export default function Index() {
   // useEffect(() => {
   //   logStoreState();
   // }, [logStoreState]);
-  
+
 
 
   useEffect(() => {
@@ -423,6 +423,7 @@ export default function Index() {
 
           )
         } */}
+
 
         <View
           style={styles.listContainer}

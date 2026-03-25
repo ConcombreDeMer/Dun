@@ -1,6 +1,7 @@
 import Headline from "@/components/headline";
 import NavItem from "@/components/navItem";
 import PopUpContainer from "@/components/popUpContainer";
+import PrimaryButton from "@/components/primaryButton";
 import SecondaryButton from "@/components/secondaryButton";
 import SettingItem from "@/components/settingItem";
 import Squircle from "@/components/Squircle";
@@ -22,7 +23,7 @@ import {
     TouchableWithoutFeedback,
     View,
 } from "react-native";
-import Animated, { FadeInUp, FadeOutUp, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import Animated, { FadeInUp, FadeOutUp, SlideInDown, SlideOutDown, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useFont } from "../../lib/FontContext";
 import { deleteUserAccount, supabase } from "../../lib/supabase";
 import { useTheme } from "../../lib/ThemeContext";
@@ -47,7 +48,7 @@ export default function Account() {
     const [isCheckingPassword, setIsCheckingPassword] = useState(false);
     const [newEmailInput, setNewEmailInput] = useState('');
     const [isCheckingEmail, setIsCheckingEmail] = useState(false);
-    
+
     // Nouveaux états pour le mot de passe
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [oldPassword, setOldPassword] = useState('');
@@ -196,54 +197,44 @@ export default function Account() {
 
     // --- Fonctions pour la modale Mdp ---
     const handlePassNext1 = async () => {
-        if (!oldPassword) {
-            Alert.alert("Erreur", "Veuillez entrer votre mot de passe actuel.");
-            return;
-        }
+        // if (!oldPassword) {
+        //     Alert.alert("Erreur", "Veuillez entrer votre mot de passe actuel.");
+        //     return;
+        // }
 
-        setIsCheckingPassword(true);
-        const { error } = await supabase.auth.signInWithPassword({
-            email: userData?.email || '',
-            password: oldPassword,
-        });
-        setIsCheckingPassword(false);
+        // setIsCheckingPassword(true);
+        // const { error } = await supabase.auth.signInWithPassword({
+        //     email: userData?.email || '',
+        //     password: oldPassword,
+        // });
+        // setIsCheckingPassword(false);
 
-        if (error) {
-            Alert.alert("Erreur", "Mot de passe incorrect.");
-            return;
-        }
+        // if (error) {
+        //     Alert.alert("Erreur", "Mot de passe incorrect.");
+        //     return;
+        // }
 
         passPage1X.value = withSpring(-screenWidth);
         passPage2X.value = withSpring(0);
         passPage3X.value = withSpring(screenWidth);
+
+
+        // reset password supabase mail
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+            userData?.email || '',
+            { redirectTo: "https://dun-app.com/resetPassword" }
+        );
+        if (resetError) {
+            console.error("Erreur lors de l'envoi de l'email de réinitialisation : " + resetError.message);
+            Alert.alert("Erreur", "Une erreur est survenue lors de l'envoi de l'email de réinitialisation.");
+            return;
+        }
+
+
     };
 
     const handlePassNext2 = async () => {
-        if (!newPassword) {
-            Alert.alert("Erreur", "Veuillez entrer un nouveau mot de passe.");
-            return;
-        }
-
-        if (newPassword.length < 6) {
-            Alert.alert("Erreur", "Le mot de passe doit contenir au moins 6 caractères.");
-            return;
-        }
-
-        setIsUpdatingPassword(true);
-        const { error: updateError } = await supabase.auth.updateUser({
-            password: newPassword
-        });
-        setIsUpdatingPassword(false);
-
-        if (updateError) {
-            console.error("Erreur Mdp : " + updateError.message);
-            Alert.alert("Erreur", "Une erreur est survenue lors du changement de mot de passe.");
-            return;
-        }
-
-        passPage1X.value = withSpring(-screenWidth * 2);
-        passPage2X.value = withSpring(-screenWidth);
-        passPage3X.value = withSpring(0);
+        setShowPasswordModal(false);
     };
 
     const handlePassBack1 = () => {
@@ -586,14 +577,12 @@ export default function Account() {
                                             onPress={handleBack1}
                                             image="chevron.left"
                                         />
-
                                     </View>
                                     <Image
                                         source={require('@/assets/images/character/8.png')}
                                         style={{ width: 120, height: 120 }}
                                         resizeMode="contain"
                                     />
-
                                     <Text
                                         style={{ color: colors.text, fontSize: fontSizes['2xl'], textAlign: 'center' }}
                                     >
@@ -611,7 +600,6 @@ export default function Account() {
                                         type="email-address"
                                         cap="none"
                                     />
-
                                 </View>
 
                                 <SquircleButton
@@ -627,14 +615,12 @@ export default function Account() {
                                     cornerSmoothing={100}
                                     preserveSmoothing={true}
                                 >
-
                                     <SymbolView
                                         name="arrow.right"
                                         weight="bold"
                                         scale="large"
                                         tintColor={colors.textSecondary}
                                     />
-
                                 </SquircleButton>
                             </Animated.View>
 
@@ -715,77 +701,42 @@ export default function Account() {
                 onClose={() => setShowPasswordModal(false)}
                 children={
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <View style={{ overflow: 'hidden', height: 400, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                        <View style={{ overflow: 'hidden', height: 450, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
 
                             {/* PAGE 1 */}
-                            <Animated.View style={[{ display: 'flex', gap: 20, alignItems: 'center', width: '90%', height: 400, justifyContent: 'space-around', position: 'absolute' }, passPage1AnimatedStyle]}>
+                            <Animated.View style={[{ display: 'flex', gap: 20, alignItems: 'center', width: '90%', height: '100%', justifyContent: 'space-between', position: 'absolute' }, passPage1AnimatedStyle]}>
                                 <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%' }}>
                                     <Image
                                         source={require('@/assets/images/character/7.png')}
                                         style={{ width: 120, height: 120 }}
                                         resizeMode="contain"
                                     />
-                                    <Text style={{ color: colors.text, fontSize: fontSizes['2xl'], textAlign: 'center' }}>
-                                        Mot de passe actuel
+                                    <Text style={{ fontFamily: 'Satoshi-Regular', color: colors.text, fontSize: fontSizes['xl'], textAlign: 'center' }}>
+                                        Es tu sûr de vouloir <Text style={{ fontFamily: 'Satoshi-Bold' }}>réinitialiser ton mot de passe</Text> ?
                                     </Text>
-                                    <SimpleInput
-                                        placeholder="..."
-                                        inputWidth={'100%'}
-                                        password
-                                        returnKeyType="done"
-                                        scale="large"
-                                        style={{ textAlign: 'center' }}
-                                        value={oldPassword}
-                                        onChangeText={setOldPassword}
-                                    />
+
+                                    <Text
+                                        style={{ fontFamily: 'Satoshi-Regular', color: colors.textSecondary, fontSize: fontSizes.lg, textAlign: 'center' }}
+                                    >
+                                        Si tu continues, <Text style={{ fontFamily: 'Satoshi-Bold' }}>un mail de réinitialisation</Text> de mot de passe te sera envoyé.
+                                    </Text>
+
+                                    <Text
+                                        style={{ fontFamily: 'Satoshi-Regular', color: colors.textSecondary, fontSize: fontSizes.lg, textAlign: 'center' }}
+                                    >
+                                        Une fois le mot de passe réinitialisé, tu seras <Text style={{ fontFamily: 'Satoshi-Bold' }}>déconnecté de ton compte</Text>  et tu devras te reconnecter avec ton nouveau mot de passe.
+                                    </Text>
+
                                 </View>
-                                <SquircleButton
-                                    onPress={!isCheckingPassword ? handlePassNext1 : undefined}
-                                    style={{ width: 100, height: 48, backgroundColor: colors.task, justifyContent: 'center', alignItems: 'center', borderRadius: 15 }}
-                                    cornerSmoothing={100}
-                                    preserveSmoothing={true}
-                                >
-                                    <SymbolView name="arrow.right" weight="bold" scale="large" tintColor={colors.textSecondary} />
-                                </SquircleButton>
+
+                                <PrimaryButton
+                                    title="Confirmer"
+                                    onPress={handlePassNext1}
+                                />
                             </Animated.View>
 
                             {/* PAGE 2 */}
                             <Animated.View style={[{ display: 'flex', gap: 20, alignItems: 'center', width: '90%', height: 400, justifyContent: 'space-around', position: 'absolute' }, passPage2AnimatedStyle]}>
-                                <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%' }}>
-                                    <View style={{ position: 'absolute', top: 0, left: 0 }}>
-                                        <SecondaryButton onPress={handlePassBack1} image="chevron.left" />
-                                    </View>
-                                    <Image
-                                        source={require('@/assets/images/character/8.png')}
-                                        style={{ width: 120, height: 120 }}
-                                        resizeMode="contain"
-                                    />
-                                    <Text style={{ color: colors.text, fontSize: fontSizes['2xl'], textAlign: 'center' }}>
-                                        Nouveau mot de passe
-                                    </Text>
-                                    <SimpleInput
-                                        placeholder="..."
-                                        inputWidth={'100%'}
-                                        password
-                                        returnKeyType="done"
-                                        scale="large"
-                                        style={{ textAlign: 'center' }}
-                                        value={newPassword}
-                                        onChangeText={setNewPassword}
-                                    />
-                                </View>
-                                <SquircleButton
-                                    onPress={!isUpdatingPassword ? handlePassNext2 : undefined}
-                                    style={{ width: 100, height: 48, backgroundColor: colors.task, justifyContent: 'center', alignItems: 'center', borderRadius: 15 }}
-                                    cornerSmoothing={100}
-                                    preserveSmoothing={true}
-                                >
-                                    <SymbolView name="arrow.right" weight="bold" scale="large" tintColor={colors.textSecondary} />
-                                </SquircleButton>
-                            </Animated.View>
-
-                            {/* PAGE 3 */}
-                            <Animated.View style={[{ display: 'flex', gap: 20, alignItems: 'center', width: '90%', height: 400, justifyContent: 'space-around', position: 'absolute' }, passPage3AnimatedStyle]}>
                                 <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%' }}>
                                     <Image
                                         source={require('@/assets/images/character/6.png')}
@@ -793,7 +744,7 @@ export default function Account() {
                                         resizeMode="contain"
                                     />
                                     <Text style={{ color: colors.text, fontSize: fontSizes['lg'], textAlign: 'center' }}>
-                                        Ton mot de passe a été modifié avec succès.
+                                        Un mail t'a été envoyé pour changer ton mot de passe.
                                     </Text>
                                 </View>
                                 <SquircleButton
@@ -886,7 +837,7 @@ export default function Account() {
                         style={{ display: 'flex', flexDirection: 'column', gap: 16, backgroundColor: colors.card, borderRadius: 20, paddingVertical: 16 }}
 
                     >
-                        <NavItem title="Changer le mot de passe" onPress={() => setShowPasswordModal(true)} transparent />
+                        <NavItem title="Réinitialiser le mot de passe" onPress={() => setShowPasswordModal(true)} transparent />
                         <NavItem title="Changer l'email" onPress={() => setShowModal(true)} transparent />
                         {newEmail.length > 0 &&
 
@@ -902,7 +853,7 @@ export default function Account() {
                                         Un changement d'email est en cours vers
                                     </Text>
                                     <Text
-                                        style={{ color: colors.text+ '90', fontFamily: 'Satoshi-Bold' }}
+                                        style={{ color: colors.text + '90', fontFamily: 'Satoshi-Bold' }}
                                     >
                                         {newEmail}
                                     </Text>
@@ -966,31 +917,39 @@ export default function Account() {
 
 
             </ScrollView>
-            {/* <View
-                style={styles.buttonsContainer}
-            >
-                <PrimaryButton
-                    title="Sauvegarder"
-                    disabled={!hasChanges}
-                    onPress={handleSave}
-                    size="M"
-                />
+            {
+                hasChanges && (
+                    <Animated.View
+                        entering={SlideInDown.springify().duration(800)}
+                        exiting={SlideOutDown.springify().duration(800)}
 
-                <PrimaryButton
-                    title="Annuler"
-                    type="reverse"
-                    onPress={() => {
-                        if (userData) {
-                            setName(userData.name);
-                            setEmail(userData.email);
-                            setHasChanges(false);
-                        }
-                    }}
-                    disabled={!hasChanges}
-                    size="M"
-                />
+                        style={styles.buttonsContainer}
+                    >
+                        <PrimaryButton
+                            title="Sauvegarder"
+                            disabled={!hasChanges}
+                            onPress={handleSave}
+                            size="M"
+                        />
 
-            </View> */}
+                        <PrimaryButton
+                            title="Annuler"
+                            type="reverse"
+                            onPress={() => {
+                                if (userData) {
+                                    setName(userData.name);
+                                    setEmail(userData.email);
+                                    setHasChanges(false);
+                                }
+                            }}
+                            disabled={!hasChanges}
+                            size="M"
+                        />
+
+                    </Animated.View>
+                )
+            }
+
         </View>
     );
 }
@@ -1028,7 +987,7 @@ const styles = StyleSheet.create({
 
     scrollContent: {
         marginTop: 20,
-        paddingBottom: 100,
+        paddingBottom: 300,
         gap: 24,
         paddingHorizontal: 20,
     },
@@ -1037,12 +996,15 @@ const styles = StyleSheet.create({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: "flex-end",
         gap: 12,
         position: 'absolute',
-        bottom: 40,
-        height: 150,
+        bottom: 0,
+        height: 180,
         alignSelf: 'center',
+        paddingBottom: 40,
+        backgroundColor: '#F5F5F5',
+        boxShadow: `0px -20px 40px 10px #F5F5F5`,
     },
 
 });
