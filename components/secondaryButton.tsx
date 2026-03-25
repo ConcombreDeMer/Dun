@@ -19,7 +19,7 @@ export default function SecondaryButton({ onPress, image, title, backgroundColor
 
     return (
         <View>
-            <TouchableOpacity style={[styles.button, { backgroundColor: colors.task || colors.input, borderColor: colors.border }]} onPress={onPress}>
+            <TouchableOpacity style={[styles.button, { backgroundColor: backgroundColor || colors.card, borderColor: colors.border }]} onPress={onPress}>
                 <View style={styles.content}>
                     {image &&
                         <SymbolView
