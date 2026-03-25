@@ -821,7 +821,7 @@ export default function Account() {
                         ABONNEMENT
                     </Text>
                     <SquircleView>
-                        <NavItem title="Gestion de l'abonnement" onPress={() => console.log("Clique sur abonnement")} />
+                        <NavItem title="Gestion de l'abonnement" onPress={() => router.push("/settings/subscription")} />
                     </SquircleView>
                 </View>
 
