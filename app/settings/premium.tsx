@@ -6,7 +6,6 @@ import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import {
     Image,
-    SafeAreaView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -39,7 +38,7 @@ export default function Premium() {
 
 
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <View style={styles.safeArea}>
 
 
             <LinearGradient
@@ -167,13 +166,14 @@ export default function Premium() {
                 }
             /> */}
 
-        </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     safeArea: {
-        backgroundColor: '#FCF3D2',
+        paddingTop: 70,
+        paddingBottom: 40
     },
     scrollContainer: {
         paddingHorizontal: 24,
@@ -199,7 +199,6 @@ const styles = StyleSheet.create({
     },
     header: {
         alignItems: 'center',
-        marginBottom: 10,
     },
     title: {
         fontFamily: 'Satoshi-Black',

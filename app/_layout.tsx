@@ -191,16 +191,6 @@ function RootLayoutContent() {
               animationDuration: duration,
             }}
           />
-          {/* <Stack.Screen
-            name="details"
-            options={{
-              title: "Détails",
-              presentation: "card",
-              animation: "slide_from_left",
-              animationMatchesGesture: true,
-              animationDuration: duration,
-            }}
-          /> */}
           <Stack.Screen
             name="settings"
             options={{
@@ -218,14 +208,6 @@ function RootLayoutContent() {
               animationDuration: duration,
             }}
           />
-          {/* <Stack.Screen
-            name="edit-task"
-            options={{
-              title: "Modifier une tâche",
-              animation: "fade",
-              animationDuration: duration,
-            }}
-          /> */}
           <Stack.Screen
             name="stats"
             options={{
