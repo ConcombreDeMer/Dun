@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
+import { useState } from "react";
 import {
     Image,
     SafeAreaView,
@@ -12,10 +13,13 @@ import {
     View
 } from "react-native";
 import { useFont } from "../../lib/FontContext";
+import { useTheme } from "../../lib/ThemeContext";
 
 export default function Premium() {
     const router = useRouter();
     const { fontSizes } = useFont();
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const { colors } = useTheme();
 
     const renderFeatureItem = (icon: string, textElements: React.ReactNode) => (
         <View style={styles.featureItem}>
@@ -40,7 +44,7 @@ export default function Premium() {
                     height: '120%',
                     zIndex: -1,
                 }}
-            /> 
+            />
 
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                 <SymbolView name="chevron.left" weight="medium" size={20} tintColor="#A09989" />
@@ -74,7 +78,9 @@ export default function Premium() {
                         <Text style={[styles.futureFeaturesText, { fontSize: fontSizes.sm }]}>
                             + des fonctionnalités <Text style={styles.boldText}>futures</Text>
                         </Text>
-                        <TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => setShowDetailsModal(true)}
+                        >
                             <Text style={[styles.learnMoreText, { fontSize: fontSizes.sm }]}>en savoir plus...</Text>
                         </TouchableOpacity>
                     </Squircle>
@@ -91,19 +97,48 @@ export default function Premium() {
                     </Text>
                 </SquircleButton>
             </View>
+
+
+            {/* <PopUpContainer
+                isVisible={showDetailsModal}
+                onClose={() => setShowDetailsModal(false)}
+                children={
+                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                        <View style={{ overflow: 'hidden', height: 400, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+
+                            <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%', paddingHorizontal: 20 }}>
+                                <SymbolView name="exclamationmark.triangle.fill" weight="semibold" size={120} tintColor="#000000" />
+                                <Text style={{ fontFamily: 'Satoshi-Regular', color: colors.text, fontSize: fontSizes['xl'], textAlign: 'center' }}>
+                                    Vous êtes sur le point de résilier votre abonnement à <Text style={{ fontFamily: 'Satoshi-Bold' }}>Dun +</Text>.
+                                </Text>
+
+                                <Text
+                                    style={{ fontFamily: 'Satoshi-Regular', color: colors.textSecondary, fontSize: fontSizes.lg, textAlign: 'center' }}
+                                >
+                                    En cas de confirmation, celui ci prendra fin le <Text style={{ fontFamily: 'Satoshi-Bold' }}> date</Text>, les services premium ne vous seront plus accessibles passé cette date.
+                                </Text>
+
+                            </View>
+
+                            <PrimaryButton
+                                title="Confirmer"
+                                onPress={() => setShowDetailsModal(false)}
+                            />
+                        </View>
+                    </TouchableWithoutFeedback>
+                }
+            /> */}
+
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     safeArea: {
-        flex: 1,
         backgroundColor: '#FCF3D2',
     },
     scrollContainer: {
         paddingHorizontal: 24,
-        // paddingBottom: 40,
-        marginTop: 20,
         height: '100%',
     },
     backButton: {
