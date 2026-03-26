@@ -8,8 +8,9 @@ import SwitchItem from '@/components/switchItem';
 import { router } from 'expo-router';
 import { SquircleButton, SquircleView } from 'expo-squircle-view';
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
-import { Image, Keyboard, Text, TouchableWithoutFeedback, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Image, Keyboard, Platform, Text, TouchableWithoutFeedback, View } from 'react-native';
+import Purchases from 'react-native-purchases';
 import { useFont } from '../../lib/FontContext';
 import { useTheme } from '../../lib/ThemeContext';
 
@@ -19,8 +20,33 @@ export default function Subscription() {
     const { colors } = useTheme();
     const { fontSizes } = useFont();
     const [showCancelModal, setShowCancelModal] = useState(false);
+    const [isSubscribed, setIsSubscribed ]= useState(false);
 
-    const etatAbonnement = "prem" as SubscriptionStatus;
+    useEffect(() => {
+
+        const checkSubscription = async () => {
+            const customerInfo = await Purchases.getCustomerInfo();
+
+            // On vérifie si l'utilisateur possède l'accès 'pro'
+            // (assurez-vous d'utiliser le bon id 'Dun Pro' ou 'pro' selon ce que vous avez mis)
+            if (typeof customerInfo.entitlements.active['Dun Pro'] !== "undefined") {
+                setIsSubscribed(true);
+            } else {
+                setIsSubscribed(false);
+            }
+        }
+
+        checkSubscription();
+    }, []);
+
+
+    const cancelSubscription = () => {
+        // redirect user to the appropriate store to manage their subscription
+        if (Platform.OS === 'ios') {
+            Purchases.showManageSubscriptions();
+        }
+    }
+
 
     return (
 
@@ -71,7 +97,7 @@ export default function Subscription() {
                         ÉTAT
                     </Text>
                     {
-                        etatAbonnement === "None" ? (
+                        !isSubscribed ? (
                             <SquircleView
                                 style={{
                                     backgroundColor: colors.card,
@@ -164,7 +190,7 @@ export default function Subscription() {
 
 
                     {
-                        etatAbonnement !== "None" && (
+                        isSubscribed && (
 
                             <View
                                 style={{ display: 'flex', gap: 8, marginTop: 10 }}
@@ -195,7 +221,7 @@ export default function Subscription() {
                                         title="Date de fin"
                                         rightContent={
                                             <Text
-                                            style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>TEST</Text>
+                                                style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>TEST</Text>
 
                                         }
                                     />
@@ -232,7 +258,7 @@ export default function Subscription() {
                         GESTION
                     </Text>
                     {
-                        etatAbonnement === "None" ? (
+                        !isSubscribed ? (
 
                             <SquircleView>
                                 <NavItem title="Débuter un abonnement" onPress={() => router.push("/settings/premium")} />
@@ -287,7 +313,7 @@ export default function Subscription() {
 
                             <PrimaryButton
                                 title="Confirmer"
-                                onPress={() => setShowCancelModal(false)}
+                                onPress={cancelSubscription}
                             />
                         </View>
                     </TouchableWithoutFeedback>

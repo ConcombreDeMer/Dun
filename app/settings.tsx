@@ -10,6 +10,7 @@ import {
     Text,
     View
 } from "react-native";
+import Purchases from "react-native-purchases";
 import { useFont } from "../lib/FontContext";
 import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
@@ -22,18 +23,33 @@ export default function Settings() {
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
+    const [isSubscribed, setIsSubscribed] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
 
-        const loadUserData = async () => {
+        const loadContent = async () => {
             try {
+                // 1. Charger l'utilisateur
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user && isMounted) {
                     setUser(user);
                 }
+
+                // 2. Vérifier l'abonnement RevenueCat
+                const customerInfo = await Purchases.getCustomerInfo();
+                // ATTENTION: Il faut utiliser le vrai "Identifier" ici, pas le "Display Name".
+                // Si lors de la création vous avez mis "Dun Pro" comme Identifier, gardez-le.
+                // S'il ne marche pas, essayez en minuscules sans espace (ex: dun_pro)
+                if (typeof customerInfo.entitlements.active['Dun Pro'] !== "undefined") {
+                    console.log("Le user est abonné !");
+                    if (isMounted) setIsSubscribed(true);
+                } else {
+                    console.log("Le user n'est pas abonné.");
+                    if (isMounted) setIsSubscribed(false);
+                }
             } catch (error) {
-                console.error("Erreur lors de la récupération des données utilisateur:", error);
+                console.error("Erreur de chargement:", error);
             } finally {
                 if (isMounted) {
                     setIsLoading(false);
@@ -41,12 +57,14 @@ export default function Settings() {
             }
         };
 
-        loadUserData();
+        loadContent();
 
         return () => {
             isMounted = false;
         };
     }, []);
+
+
 
 
     return (
@@ -99,6 +117,22 @@ export default function Settings() {
                         >
                             {user.email}
                         </Text>
+                        {
+                            isSubscribed && (
+                                <Text
+                                    style={{
+                                        color: "#FFBB00",
+                                        fontSize: fontSizes.sm,
+                                        fontWeight: '500',
+                                        marginTop: 4,
+                                    }}
+                                >
+                                    Abonné à Dun Plus
+                                </Text>
+
+                            )
+                        }
+
                     </View>
 
 
@@ -122,92 +156,98 @@ export default function Settings() {
             </ScrollView>
 
 
+            {
+                !isSubscribed && (
 
-            <SquircleButton
-                style={{
-                    position: "absolute",
-                    bottom: 120,
-                    left: 20,
-                    right: 20,
-                    height: 150,
-                    borderRadius: 30,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    borderWidth: 1,
-                    borderColor: "#FFDB7F",
-                    backgroundColor: "#FFE39C",
-                }}
-                onPress={() => router.push("/settings/premium")}
-            >
-
-                <View
-                    style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-start",
-                        position: "absolute",
-                        top: 20,
-                        left: 20,  
-                    }}
-                >
-                    <View
+                    <SquircleButton
                         style={{
-                            display: "flex",
-                            flexDirection: "row",
+                            position: "absolute",
+                            bottom: 120,
+                            left: 20,
+                            right: 20,
+                            height: 150,
+                            borderRadius: 30,
+                            justifyContent: "center",
                             alignItems: "center",
-                            gap: 10,
+                            borderWidth: 1,
+                            borderColor: "#FFDB7F",
+                            backgroundColor: "#FFE39C",
                         }}
+                        onPress={() => router.push("/settings/premium")}
                     >
-                        <Text
+
+                        <View
                             style={{
-                                color: colors.text,
-                                fontSize: fontSizes['6xl'],
-                                fontFamily: 'Satoshi-Black',
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "flex-start",
+                                position: "absolute",
+                                top: 20,
+                                left: 20,
                             }}
                         >
-                            Dun
-                        </Text>
-                        <Text
+                            <View
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    gap: 10,
+                                }}
+                            >
+                                <Text
+                                    style={{
+                                        color: colors.text,
+                                        fontSize: fontSizes['6xl'],
+                                        fontFamily: 'Satoshi-Black',
+                                    }}
+                                >
+                                    Dun
+                                </Text>
+                                <Text
+                                    style={{
+                                        color: "#FFBB00",
+                                        fontSize: fontSizes['7xl'],
+                                        fontFamily: 'Satoshi-Black',
+                                    }}
+                                >
+                                    +
+                                </Text>
+                            </View>
+
+                            <Text
+                                style={{
+                                    color: colors.text,
+                                    fontSize: fontSizes.lg,
+                                    fontFamily: 'Satoshi-Medium',
+                                    opacity: 0.3,
+                                    marginTop: -6,
+                                }}
+                            >
+                                Atteint ton potentiel maximal
+                            </Text>
+
+                        </View>
+
+
+
+                        <Image
+                            source={require("../assets/images/character/16.png")}
                             style={{
-                                color: "#FFBB00",
-                                fontSize: fontSizes['7xl'],
-                                fontFamily: 'Satoshi-Black',
+                                height: '90%',
+                                aspectRatio: 1,
+                                alignSelf: "flex-end",
                             }}
-                        >
-                            +
-                        </Text>
-                    </View>
-
-                    <Text
-                        style={{
-                            color: colors.text,
-                            fontSize: fontSizes.lg,
-                            fontFamily: 'Satoshi-Medium',
-                            opacity: 0.3,
-                            marginTop: -6,
-                        }}
-                    >
-                        Atteint ton potentiel maximal
-                    </Text>
-
-                </View>
-
-
-
-                <Image
-                    source={require("../assets/images/character/16.png")}
-                    style={{
-                        height: '90%',
-                        aspectRatio: 1,
-                        alignSelf: "flex-end",
-                    }}
-                />
+                        />
 
 
 
 
 
-            </SquircleButton>
+                    </SquircleButton>
+                )
+            }
+
+
 
 
 

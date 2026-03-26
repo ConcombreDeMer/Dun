@@ -4,7 +4,8 @@ import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useMemo, useState } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
+import Purchases, { LOG_LEVEL } from "react-native-purchases";
 import Navbar from "../components/navbar";
 import { FontProvider } from "../lib/FontContext";
 import { supabase } from "../lib/supabase";
@@ -47,6 +48,19 @@ function RootLayoutContent() {
 
   const queryClient = useMemo(() => getQueryClient(), []);
 
+  // Initialiser RevenueCat
+  useEffect(() => {
+    if (Platform.OS === 'ios') {
+      Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+      // Remplacez process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY par votre clé si vous utilisez les variables d'environnement
+      if (process.env.EXPO_PUBLIC_REVENUECAT_KEY) {
+        Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_REVENUECAT_KEY });
+      } else {
+        console.warn("Clé API RevenueCat manquante dans les variables d'environnement (.env)");
+      }
+    }
+  }, []);
+
   // Initialiser l'authentification et écouter les changements
   useEffect(() => {
     let authListener: any = null;
@@ -59,16 +73,39 @@ function RootLayoutContent() {
         console.error("Erreur session:", sessionError);
       }
 
-      setSession(sessionData?.session ?? null);
+      const session = sessionData?.session ?? null;
+      setSession(session);
       setIsAuthLoading(false);
+
+      if (session?.user?.id) {
+        try {
+          await Purchases.logIn(session.user.id);
+        } catch (e) {
+          console.error("Erreur RevenueCat initAuth logIn:", e);
+        }
+      }
     };
 
     // Initialiser et s'abonner aux changements
     initAuth();
 
-    const { data } = supabase.auth.onAuthStateChange((event, newSession) => {
+    const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       setSession(newSession ?? null);
       setIsAuthLoading(false);
+
+      if (newSession?.user?.id) {
+        try {
+          await Purchases.logIn(newSession.user.id);
+        } catch (e) {
+          console.error("Erreur RevenueCat logIn:", e);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        try {
+          await Purchases.logOut();
+        } catch (e) {
+          console.error("Erreur RevenueCat logOut:", e);
+        }
+      }
     });
 
     authListener = data?.subscription;
@@ -142,6 +179,7 @@ function RootLayoutContent() {
   const isSettingsSubroute = segments.length > 1 && segments[0] === "settings";
 
   const duration = 200;
+  
 
   return (
 

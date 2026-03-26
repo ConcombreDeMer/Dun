@@ -3,14 +3,17 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+    ActivityIndicator,
+    Alert,
     Image,
     StyleSheet,
     Text,
     TouchableOpacity,
     View
 } from "react-native";
+import Purchases, { PurchasesPackage } from "react-native-purchases";
 import { useFont } from "../../lib/FontContext";
 import { useTheme } from "../../lib/ThemeContext";
 
@@ -19,7 +22,30 @@ export default function Premium() {
     const { fontSizes } = useFont();
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<'annual' | 'monthly'>('annual');
+    const [packages, setPackages] = useState<{ annual?: PurchasesPackage, monthly?: PurchasesPackage }>({});
+    const [isLoading, setIsLoading] = useState(true);
+    const [isPurchasing, setIsPurchasing] = useState(false);
     const { colors } = useTheme();
+
+    useEffect(() => {
+        const fetchOfferings = async () => {
+            try {
+                const offerings = await Purchases.getOfferings();
+                if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
+                    const annual = offerings.current.availablePackages.find(p => p.packageType === 'ANNUAL');
+                    const monthly = offerings.current.availablePackages.find(p => p.packageType === 'MONTHLY');
+                    
+                    setPackages({ annual, monthly });
+                }
+            } catch (e) {
+                console.error("Erreur lors de la récupération des offres", e);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchOfferings();
+    }, []);
 
     const renderFeatureItem = (icon: string, textElements: React.ReactNode) => (
         <View style={styles.featureItem}>
@@ -31,8 +57,29 @@ export default function Premium() {
     );
 
 
-    const buyPremium = () => {
-        console.log('Buy for ', selectedPlan);
+    const buyPremium = async () => {
+        const packageToBuy = selectedPlan === 'annual' ? packages.annual : packages.monthly;
+        if (!packageToBuy) {
+            Alert.alert("Erreur", "Les offres ne sont pas encore chargées.");
+            return;
+        }
+
+        setIsPurchasing(true);
+        try {
+            const { customerInfo } = await Purchases.purchasePackage(packageToBuy);
+            
+            // Remplacez 'pro' par l'identifiant de votre Entitlement dans RevenueCat
+            if (typeof customerInfo.entitlements.active['Dun Pro'] !== "undefined") {
+                Alert.alert("Merci !", "Votre abonnement a été pris en compte.");
+                router.back();
+            }
+        } catch (e: any) {
+            if (!e.userCancelled) {
+                Alert.alert("Erreur d'achat", e.message || "Une erreur est survenue");
+            }
+        } finally {
+            setIsPurchasing(false);
+        }
     };
 
 
@@ -105,8 +152,14 @@ export default function Premium() {
                                 {selectedPlan === 'annual' && <View style={styles.radioInnerCircle} />}
                             </View>
                         </View>
-                        <Text style={[styles.planPrice, { fontSize: fontSizes['2xl'] }]}>12,99 €</Text>
-                        <Text style={[styles.planDiscount, { fontSize: fontSizes.sm }]}>soit 1.33 € / mois (-25%)</Text>
+                        {isLoading ? (
+                            <ActivityIndicator size="small" color="#554E3A" />
+                        ) : (
+                            <>
+                                <Text style={[styles.planPrice, { fontSize: fontSizes['2xl'] }]}>{packages.annual?.product.priceString || "12,99 €"}</Text>
+                                <Text style={[styles.planDiscount, { fontSize: fontSizes.sm }]}>soit 1.33 € / mois (-25%)</Text>
+                            </>
+                        )}
                     </SquircleButton>
 
                     <SquircleButton
@@ -120,7 +173,11 @@ export default function Premium() {
                                 {selectedPlan === 'monthly' && <View style={styles.radioInnerCircle} />}
                             </View>
                         </View>
-                        <Text style={[styles.planPrice, { fontSize: fontSizes['2xl'] }]}>1,99 €</Text>
+                        {isLoading ? (
+                            <ActivityIndicator size="small" color="#554E3A" />
+                        ) : (
+                            <Text style={[styles.planPrice, { fontSize: fontSizes['2xl'] }]}>{packages.monthly?.product.priceString || "1,99 €"}</Text>
+                        )}
                     </SquircleButton>
                 </View>
 
@@ -128,9 +185,13 @@ export default function Premium() {
                     style={styles.buyButton}
                     onPress={buyPremium}
                 >
-                    <Text style={[styles.buyButtonText, { fontSize: fontSizes['2xl'] }]}>
-                        Obtenir Dun <Text style={styles.buyButtonPlus}>+</Text>
-                    </Text>
+                    {isPurchasing ? (
+                        <ActivityIndicator color="#FFF" />
+                    ) : (
+                        <Text style={[styles.buyButtonText, { fontSize: fontSizes['2xl'] }]}>
+                            Obtenir Dun <Text style={styles.buyButtonPlus}>+</Text>
+                        </Text>
+                    )}
                 </SquircleButton>
             </View>
 
