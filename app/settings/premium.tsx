@@ -19,6 +19,7 @@ export default function Premium() {
     const router = useRouter();
     const { fontSizes } = useFont();
     const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [selectedPlan, setSelectedPlan] = useState<'annual' | 'monthly'>('annual');
     const { colors } = useTheme();
 
     const renderFeatureItem = (icon: string, textElements: React.ReactNode) => (
@@ -29,6 +30,13 @@ export default function Premium() {
             </Text>
         </View>
     );
+
+
+    const buyPremium = () => {
+        console.log('Buy for ', selectedPlan);
+    };
+
+
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -86,17 +94,47 @@ export default function Premium() {
                     </Squircle>
                 </View>
 
-                <View style={styles.pricingContainer}>
-                    <Text style={[styles.pricingSubtitle, { fontSize: fontSizes.sm }]}>Pour le prix d'un café par mois</Text>
-                    <Text style={[styles.pricingTitle, { fontSize: fontSizes['2xl'] }]}>2,99€/mois</Text>
+                <View style={styles.plansContainer}>
+                    <SquircleButton
+                        style={[styles.planCard, selectedPlan === 'annual' && styles.planCardActive]}
+                        onPress={() => setSelectedPlan('annual')}
+                        activeOpacity={0.8}
+                    >
+                        <View style={styles.planHeader}>
+                            <Text style={[styles.planTitle, { fontSize: fontSizes.lg }]}>Annuel</Text>
+                            <View style={[styles.radioCircle, selectedPlan === 'annual' && styles.radioCircleActive]}>
+                                {selectedPlan === 'annual' && <View style={styles.radioInnerCircle} />}
+                            </View>
+                        </View>
+                        <Text style={[styles.planPrice, { fontSize: fontSizes['2xl'] }]}>12,99 €</Text>
+                        <Text style={[styles.planDiscount, { fontSize: fontSizes.sm }]}>soit 1.33 € / mois (-25%)</Text>
+                    </SquircleButton>
+
+                    <SquircleButton
+                        style={[styles.planCard, selectedPlan === 'monthly' && styles.planCardActive]}
+                        onPress={() => setSelectedPlan('monthly')}
+                        activeOpacity={0.8}
+                    >
+                        <View style={styles.planHeader}>
+                            <Text style={[styles.planTitle, { fontSize: fontSizes.lg }]}>Mensuel</Text>
+                            <View style={[styles.radioCircle, selectedPlan === 'monthly' && styles.radioCircleActive]}>
+                                {selectedPlan === 'monthly' && <View style={styles.radioInnerCircle} />}
+                            </View>
+                        </View>
+                        <Text style={[styles.planPrice, { fontSize: fontSizes['2xl'] }]}>1,99 €</Text>
+                    </SquircleButton>
                 </View>
 
-                <SquircleButton style={styles.buyButton}>
+                <SquircleButton 
+                    style={styles.buyButton}
+                    onPress={buyPremium}
+                >
                     <Text style={[styles.buyButtonText, { fontSize: fontSizes['2xl'] }]}>
                         Obtenir Dun <Text style={styles.buyButtonPlus}>+</Text>
                     </Text>
                 </SquircleButton>
             </View>
+
 
 
             {/* <PopUpContainer
@@ -173,22 +211,21 @@ const styles = StyleSheet.create({
     },
     characterContainer: {
         alignItems: 'center',
-        height: 200,
-        marginBottom: 20,
         zIndex: 10,
     },
     characterImage: {
-        width: 250,
-        height: 250,
+        width: 200,
+        height: 200,
     },
     featuresCardContainer: {
         alignItems: 'center',
-        marginBottom: 30,
+        marginTop: -20,
+        zIndex: 11,
     },
     featuresCard: {
         backgroundColor: '#ffffff4d',
         borderRadius: 28,
-        paddingVertical: 20,
+        paddingVertical: 16,
         paddingHorizontal: 24,
         width: '100%',
         shadowColor: "#E2CF91",
@@ -202,7 +239,7 @@ const styles = StyleSheet.create({
     featureItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 24,
+        marginBottom: 18,
     },
     featureIcon: {
         marginRight: 16,
@@ -230,7 +267,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 8,
         elevation: 3,
-        zIndex: -1,
         marginTop: 10,
     },
     futureFeaturesText: {
@@ -243,18 +279,60 @@ const styles = StyleSheet.create({
         textDecorationLine: 'underline',
         marginTop: 2,
     },
-    pricingContainer: {
-        alignItems: 'center',
-        marginBottom: 24,
+    plansContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+        gap: 12,
+        marginTop: 20,
     },
-    pricingSubtitle: {
-        fontFamily: 'Satoshi-Regular',
-        color: '#A09989',
+    planCard: {
+        flex: 1,
+        backgroundColor: '#FCF3D2',
+        borderRadius: 24,
+        padding: 16,
+        paddingBottom: 20,
+        borderWidth: 2,
+        borderColor: '#F8F1DB',
+    },
+    planCardActive: {
+        borderColor: '#E2CF91',
+    },
+    planHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    planTitle: {
+        fontFamily: 'Satoshi-Bold',
+        color: '#554E3A',
+    },
+    radioCircle: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: '#D1CAAF',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    radioCircleActive: {
+        backgroundColor: '#E2CF91',
+    },
+    radioInnerCircle: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: '#554E3A',
+    },
+    planPrice: {
+        fontFamily: 'Satoshi-Black',
+        color: '#000',
         marginBottom: 4,
     },
-    pricingTitle: {
-        fontFamily: 'Satoshi-Bold',
-        color: '#655D49',
+    planDiscount: {
+        fontFamily: 'Satoshi-Medium',
+        color: '#8D8775',
     },
     buyButton: {
         backgroundColor: '#272727',
@@ -270,7 +348,7 @@ const styles = StyleSheet.create({
         width: '80%',
         alignSelf: 'center',
         position: 'absolute',
-        bottom: 40,
+        bottom: 0,
     },
     buyButtonText: {
         fontFamily: 'Satoshi-Bold',
