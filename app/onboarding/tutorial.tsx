@@ -78,7 +78,7 @@ export default function Tutorial() {
                 console.log("Nom d'utilisateur mis à jour avec succès.");
             }
 
-            router.push('/');
+            router.push('/home');
         } else {
             setCurrentPage(currentPage + 1);
             animatedOpacity.setValue(0);

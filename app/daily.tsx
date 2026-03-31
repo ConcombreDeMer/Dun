@@ -2,8 +2,9 @@ import PopUpContainer from "@/components/popUpContainer";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
+import { SquircleButton } from "expo-squircle-view";
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, Image, Keyboard, Pressable, ScrollView, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Dimensions, Image, Keyboard, ScrollView, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import CreateModal from '../components/createModal';
 import PrimaryButton from '../components/primaryButton';
@@ -110,6 +111,7 @@ export default function DailyScreen() {
     };
 
     const finishDaily = async () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setLoading(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -130,7 +132,7 @@ export default function DailyScreen() {
             if (router.canGoBack()) {
                 router.back();
             } else {
-                router.replace('/');
+                router.replace('/home');
             }
         }
     };
@@ -173,7 +175,7 @@ export default function DailyScreen() {
     const step3Style = useAnimatedStyle(() => ({ transform: [{ translateX: step3X.value }] }));
 
     const handleRestMode = async () => {
-        setShowReposModal(false);
+        // setShowReposModal(false);
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         setLoading(true);
@@ -193,7 +195,8 @@ export default function DailyScreen() {
             console.error(error);
         } finally {
             setLoading(false);
-            router.replace('/rest');
+            setShowReposModal(false);
+            router.push('/rest');
         }
     }
 
@@ -239,6 +242,7 @@ export default function DailyScreen() {
                     >
 
                         <PrimaryButton title="Repos" type="reverse" onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                             setShowReposModal(true);
                         }} />
                     </View>
@@ -309,12 +313,12 @@ export default function DailyScreen() {
                                 />
                             </View>
                         ))}
-                        <Pressable
-                            style={[styles.plusButton, { backgroundColor: colors.border || '#C4C4C4' }]}
+                        <SquircleButton
+                            style={[styles.plusButton]}
                             onPress={openAddTask}
                         >
                             <Text style={styles.plusButtonText}>+</Text>
-                        </Pressable>
+                        </SquircleButton>
                     </ScrollView>
                 </View>
 
@@ -377,6 +381,7 @@ export default function DailyScreen() {
                                 <PrimaryButton
                                     title="Confirmer"
                                     onPress={() => {
+                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                                         handleRestMode();
                                     }}
                                 />
@@ -402,7 +407,6 @@ export default function DailyScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 60,
     },
     dotsContainer: {
         flexDirection: 'row',
@@ -411,6 +415,7 @@ const styles = StyleSheet.create({
         marginTop: 20,
         marginBottom: 40,
         zIndex: 10,
+        paddingTop: 60,
     },
     dot: {
         width: 8,
@@ -503,6 +508,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginTop: 6,
+        backgroundColor: '#CECECE',
     },
     plusButtonText: {
         color: 'white',

@@ -87,7 +87,7 @@ export default function Register() {
         // Sinon, il doit confirmer son email
         if (authData.user.email_confirmed_at) {
           setLoading(false);
-          router.replace('/');
+          router.replace('/home');
         } else {
           // Email de vérification envoyé - Navigation vers la page de vérification
           setLoading(false);

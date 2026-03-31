@@ -77,8 +77,9 @@ export function useDailyScreen(isAuthLoading: boolean, isAuthenticated: boolean)
             }
         };
 
-        // Vérification initiale 
-        checkDailyFirstOpen();
+        // Nous ne faisons la vérification initiale que si nous ne sommes pas sur la page d'index
+        // car la page d'index s'occupe déjà de ça
+        // checkDailyFirstOpen();
 
         // Vérification quand l'app revient au premier plan
         const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {

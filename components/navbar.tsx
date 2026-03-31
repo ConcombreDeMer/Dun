@@ -38,7 +38,7 @@ export default function Navbar() {
 
         switch (tab) {
             case "home":
-                router.replace("/");
+                router.replace("/home");
                 break;
             case "stats":
                 router.replace("/stats/general");

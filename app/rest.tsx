@@ -236,6 +236,7 @@ export default function RestScreen() {
                                 <PrimaryButton
                                     title="Confirmer"
                                     onPress={async () => {
+                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                                         try {
                                             const { data: { user } } = await supabase.auth.getUser();
                                             if (user) {
@@ -252,8 +253,14 @@ export default function RestScreen() {
                                             console.error(error);
                                         } finally {
                                             restEndDateQuery.refetch();
-                                            setShowCancelModal(false);
-                                            router.replace('/daily');
+                                            // setShowCancelModal(false);
+
+                                            // si le router peut back
+                                            if (router.canGoBack()) {
+                                                router.back();
+                                            } else {
+                                                router.replace('/');
+                                            }
                                         }
                                     }}
                                 />

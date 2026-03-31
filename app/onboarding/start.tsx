@@ -100,7 +100,7 @@ export default function StartScreen() {
                         });
                 }
 
-                router.replace('/');
+                router.replace('/home');
             } else {
                 setError(error?.message || 'Erreur de connexion Google');
             }

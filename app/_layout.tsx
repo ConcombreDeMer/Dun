@@ -164,7 +164,7 @@ function RootLayoutContent() {
           router.replace("/onboarding/tutorial");
         } else if (hasName && isOnboarding && !redirectRef.current) {
           redirectRef.current = true;
-          router.replace("/");
+          router.replace("/home");
         }
       } catch (error) {
         console.error("Erreur redirection:", error);
@@ -181,6 +181,7 @@ function RootLayoutContent() {
   // Vérifier si on est sur l'onboarding pour masquer la navbar
   const isOnboarding = segments[0] === "onboarding";
   const isSettingsSubroute = segments.length > 1 && segments[0] === "settings";
+  const isDailyOrRest = segments[0] === "daily" || segments[0] === "rest";
 
   const duration = 200;
   
@@ -226,7 +227,7 @@ function RootLayoutContent() {
             }}
           />
           <Stack.Screen
-            name="index"
+            name="home"
             options={{
               title: "Accueil",
               animation: "fade",
@@ -273,11 +274,11 @@ function RootLayoutContent() {
               title: "Repos",
               presentation: "fullScreenModal",
               headerShown: false,
-              animation: "fade",
+              animation: "slide_from_bottom",
             }}
           />
         </Stack>
-        {!isOnboarding && !isSettingsSubroute && <Navbar />}
+        {!isOnboarding && !isSettingsSubroute && !isDailyOrRest && <Navbar />}
       </View>
     </QueryClientProvider>
   );
