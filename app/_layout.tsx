@@ -10,6 +10,7 @@ import Navbar from "../components/navbar";
 import { FontProvider } from "../lib/FontContext";
 import { supabase } from "../lib/supabase";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
+import { useDailyScreen } from "../lib/useDailyScreen";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -47,6 +48,9 @@ function RootLayoutContent() {
   });
 
   const queryClient = useMemo(() => getQueryClient(), []);
+
+  // Détection du premier lancement quotidien (seulement si l'utilisateur est bien connecté)
+  useDailyScreen(isAuthLoading, !!session);
 
   // Initialiser RevenueCat
   useEffect(() => {
@@ -252,6 +256,24 @@ function RootLayoutContent() {
               title: "Statistiques",
               animation: "fade",
               animationDuration: duration,
+            }}
+          />
+          <Stack.Screen
+            name="daily"
+            options={{
+              title: "Nouveau Jour",
+              presentation: "fullScreenModal",
+              headerShown: false,
+              animation: "fade",
+            }}
+          />
+          <Stack.Screen
+            name="rest"
+            options={{
+              title: "Repos",
+              presentation: "fullScreenModal",
+              headerShown: false,
+              animation: "fade",
             }}
           />
         </Stack>
