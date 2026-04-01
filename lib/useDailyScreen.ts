@@ -10,6 +10,7 @@ export function useDailyScreen(isAuthLoading: boolean, isAuthenticated: boolean)
         if (isAuthLoading || !isAuthenticated) return;
 
         const checkDailyFirstOpen = async () => {
+            console.log("Vérification du daily...");
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
@@ -18,7 +19,7 @@ export function useDailyScreen(isAuthLoading: boolean, isAuthenticated: boolean)
 
                 const { data: profile, error } = await supabase
                     .from('Profiles')
-                    .select('last_opened, hasDoneDaily, restMode, restEndDate',)
+                    .select('last_opened, hasDoneDaily, restMode, restEndDate, dailyEnabled',)
                     .eq('id', user.id)
                     .single();
 

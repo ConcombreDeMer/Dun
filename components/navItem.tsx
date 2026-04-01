@@ -2,6 +2,7 @@ import { useFont } from '@/lib/FontContext';
 import { getImageSource } from '@/lib/imageHelper';
 import { useTheme } from '@/lib/ThemeContext';
 import { SquircleButton } from 'expo-squircle-view';
+import { SymbolView } from 'expo-symbols';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 interface NavItemProps {
@@ -18,10 +19,11 @@ export default function NavItem({ image, title, onPress, transparent }: NavItemP
         <SquircleButton style={[styles.container, transparent ? { borderWidth: 0 } : { backgroundColor: colors.card, borderColor: colors.border, height: 64 }]} onPress={onPress}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 {image &&
-                    <Image
-                        style={{ width: 26, height: 26, tintColor: colors.text }}
-                        source={getImageSource(image, actualTheme)}
-                    ></Image>
+                    <SymbolView
+                        name={image}
+                        type="palette"
+                        tintColor={colors.text}
+                    />
                 }
                 {title && <Text style={[styles.label, { color: colors.text, fontSize: fontSizes.lg }]}>{title}</Text>}
             </View>

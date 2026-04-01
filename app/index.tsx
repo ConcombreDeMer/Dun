@@ -21,7 +21,7 @@ export default function Index() {
 
                 const { data: profile, error } = await supabase
                     .from('Profiles')
-                    .select('last_opened, hasDoneDaily, restMode, restEndDate')
+                    .select('last_opened, hasDoneDaily, restMode, restEndDate, dailyEnabled',)
                     .eq('id', user.id)
                     .single();
 
@@ -39,6 +39,12 @@ export default function Index() {
                         .from('Profiles')
                         .update({ restMode: false, restEndDate: null })
                         .eq('id', user.id);
+                }
+
+                if(profile.dailyEnabled == false) {
+                    console.log("Daily désactivé, redirection vers home");
+                    router.replace('/home');
+                    return;
                 }
 
                 if (profile.last_opened === null) {

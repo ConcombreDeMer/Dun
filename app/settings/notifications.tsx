@@ -189,7 +189,7 @@ export default function NotificationsSettings() {
                 preserveSmoothing={true} // false matches figma, true has more rounding
             >
                 <SwitchItem
-                    image="notification"
+                    image="bell.fill"
                     title="Préparation de la journée"
                     event={toggleNotifications}
                     currentValue={alertsEnabled}

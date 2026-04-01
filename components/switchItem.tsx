@@ -1,8 +1,8 @@
 import { useFont } from '@/lib/FontContext';
-import { getImageSource } from '@/lib/imageHelper';
 import { useTheme } from '@/lib/ThemeContext';
+import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { Image, StyleSheet, Switch, Text, View } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 
 interface SwitchItemProps {
     image?: any;
@@ -16,6 +16,7 @@ export default function SwitchItem({ image, title, event, currentValue, activeCo
     const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
     const [isEnabled, setIsEnabled] = useState(false);
+    const iconTintColor = colors.text;
 
     const toggleSwitch = (value: boolean) => {
         setIsEnabled(value);
@@ -26,10 +27,11 @@ export default function SwitchItem({ image, title, event, currentValue, activeCo
         <View style={[styles.container]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 {image &&
-                    <Image
-                        style={{ width: 26, height: 26, tintColor: colors.text }}
-                        source={getImageSource(image, actualTheme)}
-                    ></Image>
+                    <SymbolView
+                        name={image}
+                        type="palette"
+                        tintColor={iconTintColor}
+                    />
                 }
                 {title && <Text style={[styles.label, { color: colors.text, fontSize: fontSizes.lg }]}>{title}</Text>}
             </View>
