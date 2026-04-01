@@ -284,12 +284,16 @@ function RootLayoutContent() {
   );
 }
 
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <FontProvider>
-        <RootLayoutContent />
-      </FontProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <FontProvider>
+          <RootLayoutContent />
+        </FontProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

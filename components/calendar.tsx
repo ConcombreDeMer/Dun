@@ -29,6 +29,7 @@ interface CalendarProps {
     days?: any[];
     slider?: boolean;
     initialDate?: Date;
+    onExpandedChange?: (isExpanded: boolean) => void;
 }
 
 // Constantes statiques - créées une seule fois
@@ -231,6 +232,7 @@ export default function CalendarComponent({
     onDateSelect,
     slider = false,
     initialDate,
+    onExpandedChange,
 }: CalendarProps) {
     const { colors, theme } = useTheme();
     const { fontSizes } = useFont();
@@ -349,18 +351,22 @@ export default function CalendarComponent({
                     if (gestureState.dy < -(height * 0.3)) {
                         heightValue.value = withSpring(0);
                         setIsExpanded(false);
+                        onExpandedChange?.(false);
                     } else {
                         // Sinon, on revient à expanded
                         heightValue.value = withSpring(1);
+                        onExpandedChange?.(true);
                     }
                 } else {
                     // Quand on n'est pas expanded, si on drag vers le bas de plus de 30% de la hauteur, on déploie
                     if (gestureState.dy > (height * 0.3)) {
                         heightValue.value = withSpring(1);
                         setIsExpanded(true);
+                        onExpandedChange?.(true);
                     } else {
                         // Sinon, on revient à collapsed
                         heightValue.value = withSpring(0);
+                        onExpandedChange?.(false);
                     }
                 }
             },
@@ -507,8 +513,10 @@ export default function CalendarComponent({
     // Gestion de la rétraction
     const toggleExpanded = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        setIsExpanded(!isExpanded);
-        heightValue.value = withSpring(isExpanded ? 0 : 1);
+        const nextExpanded = !isExpanded;
+        setIsExpanded(nextExpanded);
+        onExpandedChange?.(nextExpanded);
+        heightValue.value = withSpring(nextExpanded ? 0 : 1);
     };
 
     // Animation style pour la hauteur du slider background

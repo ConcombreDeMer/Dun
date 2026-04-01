@@ -35,6 +35,7 @@ export default function Home() {
   const queryClient = useQueryClient();
   const headerScale = useSharedValue(1);
   const store = useStore();
+  const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
 
 
 
@@ -360,6 +361,7 @@ export default function Home() {
               slider={true}
               initialDate={selectedDate}
               onDateSelect={(date) => changeDate(date)}
+              onExpandedChange={setIsCalendarExpanded}
             />
 
             <ProgressBar
@@ -454,6 +456,8 @@ export default function Home() {
                   handleTaskPress={handleTaskPress}
                   selectedTaskId={selectedTaskId}
                   listHeight={listHeight}
+                  mode="normal"
+                  isExtendable={!isCalendarExpanded}
                 />
               )}
               ListEmptyComponent={

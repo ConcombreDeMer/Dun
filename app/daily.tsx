@@ -25,8 +25,29 @@ export default function DailyScreen() {
     const [currentStep, setCurrentStep] = useState(1);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-    const [pastTasks, setPastTasks] = useState<any[]>([]);
-    const [todayTasks, setTodayTasks] = useState<any[]>([]);
+    const todayString = new Date().toISOString().split('T')[0];
+
+    const getPastTasks = async () => {
+        const { data, error } = await supabase
+            .from('Tasks')
+            .select('id, name, description, done, order, date')
+            .lt('date', todayString)
+            .eq('done', false)
+            .order('date', { ascending: false });
+
+        if (error) {
+            console.error('Erreur lors de la récupération des tâches passées:', error);
+            return [];
+        }
+        return data;
+    }
+
+    const pastTasksQuery = useQuery({
+        queryKey: ['tasks', 'past'],
+        queryFn: getPastTasks,
+        gcTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 2,
+    });
 
     const step1X = useSharedValue(0);
     const step2X = useSharedValue(screenWidth);
@@ -45,25 +66,10 @@ export default function DailyScreen() {
                 } else {
                     setUserName(user.user_metadata?.name || 'User');
                 }
-
-                // Tâches
-                const todayString = new Date().toISOString().split('T')[0];
-
-                // Tâches passées non complétées
-                const { data: pastData } = await supabase
-                    .from('Tasks')
-                    .select('id, name, description, done, order, date')
-                    .lt('date', todayString)
-                    .eq('done', false)
-                    .order('date', { ascending: false });
-
-                if (pastData) setPastTasks(pastData);
             }
         };
         fetchData();
     }, []);
-
-    const todayString = new Date().toISOString().split('T')[0];
 
     const getTodayTasks = async () => {
         const { data, error } = await supabase
@@ -87,8 +93,22 @@ export default function DailyScreen() {
     });
 
     const handleTogglePastTask = async (taskId: number, currentDone: boolean) => {
-        setPastTasks(prev => prev.map(t => t.id === taskId ? { ...t, done: !currentDone } : t));
-        await supabase.from('Tasks').update({ done: !currentDone }).eq('id', taskId);
+        const previousTasks = queryClient.getQueryData<any[]>(['tasks', 'past']);
+
+        queryClient.setQueryData(
+            ['tasks', 'past'],
+            previousTasks?.map(task =>
+                task.id === taskId ? { ...task, done: !currentDone } : task
+            ) || []
+        );
+
+        const { error } = await supabase.from('Tasks').update({ done: !currentDone }).eq('id', taskId);
+
+        if (error) {
+            queryClient.setQueryData(['tasks', 'past'], previousTasks || []);
+        } else {
+            queryClient.invalidateQueries({ queryKey: ['tasks', 'past'] });
+        }
     };
 
     const handleToggleTodayTask = async (taskId: number, currentDone: boolean) => {
@@ -254,11 +274,11 @@ export default function DailyScreen() {
                 <View style={styles.contentContainerLeft}>
                     <Text style={[styles.mainTitle, { color: colors.text, marginBottom: 20, textAlign: 'center', width: '100%' }]}>Super !</Text>
                     <Text style={[styles.subtitleLeft, { color: colors.textSecondary }]}>
-                        Commençons par <Text style={{ fontFamily: 'Satoshi-Bold', color: colors.text }}>hier</Text>,{'\n'}tu as laissé <Text style={{ fontFamily: 'Satoshi-Bold', color: colors.text }}>{pastTasks.length > 0 ? "ces tâches" : "aucune tâche"}</Text> en{'\n'}suspens :
+                        Commençons par <Text style={{ fontFamily: 'Satoshi-Bold', color: colors.text }}>hier</Text>,{'\n'}tu as laissé <Text style={{ fontFamily: 'Satoshi-Bold', color: colors.text }}>{(pastTasksQuery.data && pastTasksQuery.data.length > 0) ? "ces tâches" : "aucune tâche"}</Text> en{'\n'}suspens :
                     </Text>
 
                     <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
-                        {pastTasks.map(task => (
+                        {pastTasksQuery.data?.map(task => (
                             <View key={task.id}>
                                 <TaskItem
                                     item={task}
@@ -268,10 +288,12 @@ export default function DailyScreen() {
                                     handleTaskPress={() => { }}
                                     selectedTaskId={null}
                                     listHeight={400}
+                                    isExtendable={false}
+                                    mode="daily"
                                 />
                             </View>
                         ))}
-                        {pastTasks.length === 0 && (
+                        {pastTasksQuery.data?.length === 0 && (
                             <Text style={{ color: colors.textSecondary, marginTop: 20, textAlign: 'center' }}>Rien à signaler, beau travail 💪</Text>
                         )}
                     </ScrollView>
@@ -310,6 +332,8 @@ export default function DailyScreen() {
                                     handleTaskPress={() => { }}
                                     selectedTaskId={null}
                                     listHeight={400}
+                                    isExtendable={false}
+                                    mode="normal"
                                 />
                             </View>
                         ))}

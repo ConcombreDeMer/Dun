@@ -1,11 +1,17 @@
+import { Feather } from '@expo/vector-icons';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
-import { useCallback, useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { FadeIn, default as ReAnimated, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { SquircleButton } from 'expo-squircle-view';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Dimensions, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Swipeable } from 'react-native-gesture-handler';
+import { FadeIn, default as ReAnimated, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { useFont } from "../lib/FontContext";
+import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
 import PopUpTask from "./popUpTask";
 import Squircle from "./Squircle";
+
 interface TaskItemProps {
   item: {
     id: number;
@@ -19,6 +25,8 @@ interface TaskItemProps {
   handleTaskPress: (taskId: number) => void;
   selectedTaskId: number | null;
   listHeight: number;
+  isExtendable?: boolean;
+  mode?: 'normal' | 'daily';
 }
 
 export const TaskItem = ({
@@ -29,6 +37,8 @@ export const TaskItem = ({
   handleTaskPress,
   selectedTaskId,
   listHeight,
+  isExtendable = true,
+  mode = 'normal',
 }: TaskItemProps) => {
   const { colors } = useTheme();
   const { fontSizes } = useFont();
@@ -40,6 +50,229 @@ export const TaskItem = ({
   const isHeightExpandedRef = { current: false };
   const [isOpen, setIsOpen] = useState(false);
 
+  const queryClient = useQueryClient();
+  const swipeableRef = useRef<Swipeable>(null);
+
+  const screenWidth = Dimensions.get('window').width;
+  const translateX = useSharedValue(0);
+  const itemOpacity = useSharedValue(1);
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: async () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Utilisateur non connecté");
+
+      // Récupérer la tâche AVANT la suppression
+      const { data: taskData, error: fetchError } = await supabase
+        .from("Tasks")
+        .select("date, done")
+        .eq("id", item.id)
+        .single();
+      if (fetchError || !taskData) throw new Error(fetchError?.message || "Tâche non trouvée");
+
+      const taskDate = new Date(taskData.date).toDateString();
+      const isDone = taskData.done;
+
+      // Supprimer la tâche
+      const { error: deleteError } = await supabase
+        .from("Tasks")
+        .delete()
+        .eq("id", item.id);
+      if (deleteError) throw new Error(deleteError.message);
+
+      // Mettre à jour la table Days
+      const { data: existingDay, error: fetchDayError } = await supabase
+        .from("Days")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("date", taskDate)
+        .maybeSingle();
+
+      if (existingDay) {
+        const newTotal = Math.max((existingDay.total || 1) - 1, 0);
+        const newDoneCount = isDone
+          ? Math.max((existingDay.done_count || 1) - 1, 0)
+          : (existingDay.done_count || 0);
+
+        if (newTotal === 0) {
+          await supabase.from("Days").delete().eq("id", existingDay.id);
+        } else {
+          await supabase
+            .from("Days")
+            .update({
+              total: newTotal,
+              done_count: newDoneCount,
+              updated_at: new Date().toDateString(),
+            })
+            .eq("id", existingDay.id);
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["days"] });
+    }
+  });
+
+  const postponeTaskMutation = useMutation({
+    mutationFn: async () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Utilisateur non connecté");
+
+      const { data: taskData, error: fetchError } = await supabase
+        .from("Tasks")
+        .select("date, done")
+        .eq("id", item.id)
+        .single();
+
+      if (fetchError || !taskData) throw new Error(fetchError?.message || "Tâche non trouvée");
+
+      const oldDate = new Date(taskData.date);
+      const oldDateString = oldDate.toDateString();
+      const isDone = taskData.done;
+
+      let currentDate = new Date(taskData.date);
+      if (mode === 'daily') {
+        currentDate = new Date();
+      } else {
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      const newDateString = currentDate.toDateString();
+      
+      if (oldDateString === newDateString) return;
+
+      // Update Task date
+      const { error } = await supabase
+        .from("Tasks")
+        .update({ date: newDateString })
+        .eq("id", item.id);
+      if (error) throw new Error(error.message);
+
+      // Retirer la tâche de l'ancien jour
+      const { data: oldDay } = await supabase
+        .from("Days")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("date", oldDateString)
+        .maybeSingle();
+
+      if (oldDay) {
+        const newTotal = Math.max((oldDay.total || 1) - 1, 0);
+        const newDoneCount = isDone
+          ? Math.max((oldDay.done_count || 1) - 1, 0)
+          : (oldDay.done_count || 0);
+
+        if (newTotal === 0) {
+          await supabase.from("Days").delete().eq("id", oldDay.id);
+        } else {
+          await supabase.from("Days").update({
+            total: newTotal,
+            done_count: newDoneCount,
+            updated_at: new Date().toDateString(),
+          }).eq("id", oldDay.id);
+        }
+      }
+
+      // Ajouter la tâche au nouveau jour
+      const { data: newDay } = await supabase
+        .from("Days")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("date", newDateString)
+        .maybeSingle();
+
+      if (!newDay) {
+        await supabase.from("Days").insert([{
+          user_id: user.id,
+          date: newDateString,
+          total: 1,
+          done_count: isDone ? 1 : 0,
+          updated_at: new Date().toDateString(),
+        }]);
+      } else {
+        await supabase.from("Days").update({
+          total: (newDay.total || 0) + 1,
+          done_count: isDone ? (newDay.done_count || 0) + 1 : (newDay.done_count || 0),
+          updated_at: new Date().toDateString(),
+        }).eq("id", newDay.id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["days"] });
+    }
+  });
+
+  const handleSwipeLeft = useCallback(() => {
+    swipeableRef.current?.close();
+    itemOpacity.value = withTiming(0, { duration: 600 });
+    translateX.value = withTiming(-screenWidth, { duration: 1000 }, (finished) => {
+      if (finished) runOnJS(deleteTaskMutation.mutate)();
+    });
+  }, [deleteTaskMutation, translateX, itemOpacity, screenWidth]);
+
+  const handleSwipeRight = useCallback(() => {
+    swipeableRef.current?.close();
+    translateX.value = withTiming(screenWidth, { duration: 1000 }, (finished) => {
+      if (finished) runOnJS(postponeTaskMutation.mutate)();
+    });
+  }, [postponeTaskMutation, translateX, screenWidth]);
+
+  const renderRightActions = useCallback(() => {
+    return (
+      <View style={{ width: 130, height: 64, paddingLeft: 10, justifyContent: 'center' }}>
+        <SquircleButton
+          onPress={handleSwipeLeft}
+          activeOpacity={0.8}
+          style={{
+            backgroundColor: '#f5b7b9',
+            flex: 1,
+            borderRadius: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6
+          }}
+          cornerSmoothing={100} // 0-100
+          preserveSmoothing={true} // false matches figma, true has more roundingez
+        >
+          <Text style={{ fontFamily: 'Satoshi-Regular', color: '#c83232', fontSize: fontSizes.base }}>Supprimer</Text>
+          <Feather name="trash-2" size={18} color="#c83232" />
+        </SquircleButton>
+      </View>
+    );
+  }, [handleSwipeLeft, fontSizes.base]);
+
+  const renderLeftActions = useCallback(() => {
+    const actionWidth = mode === 'daily' ? 170 : 120;
+    const actionText = mode === 'daily' ? "Pour aujourd'hui" : "Reporter";
+
+    return (
+      <View style={{ width: actionWidth, height: 64, paddingRight: 10, justifyContent: 'center' }}>
+        <SquircleButton
+          onPress={handleSwipeRight}
+          activeOpacity={0.8}
+          style={{
+            backgroundColor: '#333333',
+            flex: 1,
+            borderRadius: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6
+          }}
+          cornerSmoothing={100} // 0-100
+          preserveSmoothing={true} // false matches figma, true has more rounding
+        >
+          <Text style={{ fontFamily: 'Satoshi-Regular', color: '#ffffff', fontSize: fontSizes.base }}>{actionText}</Text>
+          <Feather name={mode === 'daily' ? "corner-down-left" : "chevron-right"} size={20} color="#ffffff" />
+        </SquircleButton>
+      </View>
+    );
+  }, [handleSwipeRight, fontSizes.base, mode]);
+
   const animateHeight = (toValue: number) => {
     isHeightExpandedRef.current = toValue === 400;
     height.value = withSpring(toValue);
@@ -49,8 +282,9 @@ export const TaskItem = ({
     return {
       transform: [
         { scale: (isActive ? 1.02 : 1) * pressScale.value },
+        { translateX: translateX.value }
       ],
-      opacity: withSpring(isActive ? 1 : 1),
+      opacity: itemOpacity.value * (isActive ? 1 : 1),
     };
   });
 
@@ -102,6 +336,7 @@ export const TaskItem = ({
   }, [item.id, item.done, handleToggleTask, dotScale, isExpanded]);
 
   const handlePress = useCallback(() => {
+    if (!isExtendable) return;
     console.log("Task pressed:", item.id);
     setIsOpen(prev => !prev);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -109,7 +344,7 @@ export const TaskItem = ({
       animateHeight(isHeightExpandedRef.current ? 64 : 400);
       handleTaskPress(item.id);
     }
-  }, [isActive, item.id, handleTaskPress]);
+  }, [isActive, item.id, handleTaskPress, isExtendable]);
 
   const handlePressIn = useCallback(() => {
     pressScale.value = withSpring(0.98, {
@@ -169,89 +404,102 @@ export const TaskItem = ({
 
   return (
     <ReAnimated.View style={[animatedStyle, shadowStyle]}>
-      <Squircle style={[taskItemStyle, heightAnimatedStyle]}>
-        <Pressable
-          onLongPress={drag}
-          disabled={isActive}
-          delayLongPress={500}
-          style={{
-            width: "100%",
-            height: "100%",
-            flexDirection: "row",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            paddingHorizontal: 12,
-            paddingVertical: 10,
-          }}
-          onPress={handlePress}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-        >
-          <View style={styles.taskContent}>
+      <Swipeable
+        ref={swipeableRef}
+        renderLeftActions={renderLeftActions}
+        renderRightActions={renderRightActions}
+        enabled={!isOpen}
+        leftThreshold={40}
+        rightThreshold={40}
+        friction={2}
+        overshootRight={false}
+        overshootLeft={false}
+        containerStyle={{ overflow: 'visible' }}
+      >
+        <Squircle style={[taskItemStyle, heightAnimatedStyle]}>
+          <Pressable
+            onLongPress={drag}
+            disabled={isActive}
+            delayLongPress={500}
+            style={{
+              width: "100%",
+              height: "100%",
+              flexDirection: "row",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+            }}
+            onPress={handlePress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+          >
+            <View style={styles.taskContent}>
 
-            {
-              !isOpen &&
+              {
+                !isOpen &&
 
-              <ReAnimated.View
-                entering={FadeIn.springify().delay(400)}
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text style={[
-                  item.done ? styles.taskNameDone : styles.taskName,
-                  { color: item.done ? colors.textDone : colors.text, fontSize: fontSizes.lg }
-                ]}>
-                  {item.name}
-                </Text>
+                <ReAnimated.View
+                  entering={FadeIn.springify().delay(400)}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Text style={[
+                    item.done ? styles.taskNameDone : styles.taskName,
+                    { color: item.done ? colors.textDone : colors.text, fontSize: fontSizes.lg }
+                  ]}>
+                    {item.name}
+                  </Text>
 
-                <View style={styles.checkboxContainer}>
-                  <ReAnimated.View style={[styles.checkboxDot, dotAnimatedStyle, { backgroundColor: colors.taskDone }]} />
-                  <TouchableOpacity
-                    style={[
-                      styles.taskCheckbox,
-                      item.done && { backgroundColor: colors.checkboxDone },
-                      !item.done && { backgroundColor: colors.checkbox }
-                    ]}
-                    onPress={handleCheckboxPress}
-                    activeOpacity={0.7}
-                  >
-                    {item.done && <Text style={[styles.checkmark, { color: colors.checkMark }]}>✓</Text>}
-                  </TouchableOpacity>
-                </View>
+                  <View style={styles.checkboxContainer}>
+                    <ReAnimated.View style={[styles.checkboxDot, dotAnimatedStyle, { backgroundColor: colors.taskDone }]} />
+                    <TouchableOpacity
+                      style={[
+                        styles.taskCheckbox,
+                        item.done && { backgroundColor: colors.checkboxDone },
+                        !item.done && { backgroundColor: colors.checkbox }
+                      ]}
+                      onPress={handleCheckboxPress}
+                      activeOpacity={0.7}
+                    >
+                      {item.done && <Text style={[styles.checkmark, { color: colors.checkMark }]}>✓</Text>}
+                    </TouchableOpacity>
+                  </View>
 
-              </ReAnimated.View>
-            }
-
-
-            {
-              isOpen &&
-
-              <PopUpTask
-                onClose={() => handlePress()}
-                id={item.id}
-              />
+                </ReAnimated.View>
+              }
 
 
-              // <Animated.Text
-              //   entering={FadeInUp.springify().delay(300)}
-              //   exiting={FadeOut.springify()}
-              //   style={{ 
-              //     marginTop: 200,
-              //     color: colors.textSecondary,
-              //     fontSize: fontSizes.base,
-              //    }}
-              // >
-              //   {item.description}
-              // </Animated.Text>
-            }
-          </View>
-        </Pressable>
-      </Squircle>
+              {
+                isOpen &&
+
+                <PopUpTask
+                  onClose={() => handlePress()}
+                  id={item.id}
+                />
+
+
+                // <Animated.Text
+                //   entering={FadeInUp.springify().delay(300)}
+                //   exiting={FadeOut.springify()}
+                //   style={{ 
+                //     marginTop: 200,
+                //     color: colors.textSecondary,
+                //     fontSize: fontSizes.base,
+                //    }}
+                // >
+                //   {item.description}
+                // </Animated.Text>
+              }
+            </View>
+          </Pressable>
+        </Squircle>
+      </Swipeable>
     </ReAnimated.View>
   );
 };
