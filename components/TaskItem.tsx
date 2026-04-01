@@ -215,7 +215,7 @@ export const TaskItem = ({
 
   const handleSwipeRight = useCallback(() => {
     swipeableRef.current?.close();
-    translateX.value = withTiming(screenWidth, { duration: 1000 }, (finished) => {
+    translateX.value = withTiming(screenWidth, { duration: 300 }, (finished) => {
       if (finished) runOnJS(postponeTaskMutation.mutate)();
     });
   }, [postponeTaskMutation, translateX, screenWidth]);
