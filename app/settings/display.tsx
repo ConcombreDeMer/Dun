@@ -2,10 +2,8 @@ import Headline from "@/components/headline";
 import SecondaryButton from "@/components/secondaryButton";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { useState } from "react";
 import {
     Alert,
-    Image,
     ScrollView,
     StyleSheet,
     Text,
@@ -13,16 +11,13 @@ import {
     View,
 } from "react-native";
 import { useFont, type FontSize } from "../../lib/FontContext";
-import { getImageSource } from "../../lib/imageHelper";
-import { useTheme } from "../../lib/ThemeContext";
-
-type DisplayDensity = 'compact' | 'comfortable' | 'spacious';
+import { colorThemeOptions, useTheme } from "../../lib/ThemeContext";
 
 export default function Display() {
     const router = useRouter();
-    const { theme, actualTheme, toggleTheme, colors, setTheme } = useTheme();
+    const { theme, colorTheme, colors, setTheme } = useTheme();
     const { fontSize, setFontSize, fontSizes } = useFont();
-    const [density, setDensity] = useState<DisplayDensity>('comfortable');
+    const activeColorTheme = colorThemeOptions.find((option) => option.id === colorTheme) ?? colorThemeOptions[0];
 
     const handleAbout = () => {
         Alert.alert(
@@ -47,7 +42,7 @@ export default function Display() {
                 ]}
                 onPress={() => {
                     if (previewTheme === 'system') {
-                        setTheme('system' as any);
+                        setTheme('system');
                     } else if (previewTheme === 'dark') {
                         setTheme('dark');
                     } else if (previewTheme === 'light') {
@@ -122,37 +117,6 @@ export default function Display() {
         );
     };
 
-    const DensityOption = ({ density: dens, label, icon }: { density: DisplayDensity; label: string; icon: string }) => {
-        const isActive = density === dens;
-
-        return (
-            <TouchableOpacity
-                style={[
-                    styles.densityOption,
-                    { backgroundColor: isActive ? colors.button : colors.card },
-                ]}
-                onPress={() => setDensity(dens)}
-            >
-                <Image
-                    style={{
-                        width: 24,
-                        height: 24,
-                        tintColor: isActive ? colors.buttonText : colors.text,
-                    }}
-                    source={getImageSource(icon, actualTheme)}
-                />
-                <Text
-                    style={[
-                        styles.densityLabel,
-                        { color: isActive ? colors.buttonText : colors.text, fontSize: fontSizes.lg },
-                    ]}
-                >
-                    {label}
-                </Text>
-            </TouchableOpacity>
-        );
-    };
-
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             <View
@@ -179,6 +143,33 @@ export default function Display() {
                         <ThemePreviewBox previewTheme="dark" title="Sombre" />
                         <ThemePreviewBox previewTheme="system" title="Système" />
                     </View>
+                </View>
+
+                <View style={styles.section}>
+                    <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.base }]}>
+                        Coloris actuel
+                    </Text>
+                    <TouchableOpacity
+                        style={[styles.colorRow, { backgroundColor: colors.card, borderColor: colors.border }]}
+                        onPress={() => router.push("/settings/colors")}
+                    >
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.colorRowTitle, { color: colors.text, fontSize: fontSizes.lg }]}>
+                                {activeColorTheme.label}
+                            </Text>
+                            <Text style={[styles.colorRowDescription, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>
+                                {activeColorTheme.description}
+                            </Text>
+                        </View>
+                        <View style={styles.swatchRow}>
+                            {activeColorTheme.preview.map((swatch) => (
+                                <View
+                                    key={swatch}
+                                    style={[styles.swatch, { backgroundColor: swatch }]}
+                                />
+                            ))}
+                        </View>
+                    </TouchableOpacity>
                 </View>
 
                 {/* Font Size Section */}
@@ -271,11 +262,12 @@ const styles = StyleSheet.create({
 
     themeContainer: {
         flexDirection: "row",
+        flexWrap: "wrap",
         gap: 12,
     },
 
     themePreview: {
-        flex: 1,
+        width: "48%",
         borderRadius: 12,
         overflow: "hidden",
         padding: 12,
@@ -296,6 +288,38 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         fontFamily: "Satoshi-Bold",
         marginBottom: 8,
+    },
+
+    swatchRow: {
+        flexDirection: "row",
+        gap: 6,
+        marginBottom: 10,
+    },
+
+    swatch: {
+        width: 16,
+        height: 16,
+        borderRadius: 999,
+    },
+
+    colorRow: {
+        borderRadius: 16,
+        borderWidth: 1,
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 16,
+    },
+
+    colorRowTitle: {
+        fontFamily: "Satoshi-Bold",
+        marginBottom: 4,
+    },
+
+    colorRowDescription: {
+        fontFamily: "Satoshi-Regular",
     },
 
     checkmark: {
