@@ -238,7 +238,16 @@ export default function CalendarComponent({
     const { fontSizes } = useFont();
     // Initialiser la date sélectionnée une seule fois
     const [selectedDate, setSelectedDate] = useState<Date>(() => initialDate || new Date());
-    const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
+    const [currentMonth, setCurrentMonth] = useState<Date>(() => initialDate || new Date());
+
+    // Synchroniser avec la date stockée en local / externe
+    useEffect(() => {
+        if (initialDate && !isSameDay(initialDate, selectedDate)) {
+            setSelectedDate(initialDate);
+            setCurrentMonth(initialDate);
+        }
+    }, [initialDate]);
+
     const [isExpanded, setIsExpanded] = useState(false);
     const sliderRef = useRef<FlatList>(null);
     const panResponderRef = useRef<any>(null);

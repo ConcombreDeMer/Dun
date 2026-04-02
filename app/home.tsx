@@ -6,10 +6,10 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Dimensions, StyleSheet, Text, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import ReAnimated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+import ReAnimated, { runOnJS, runOnUI, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { TaskItem } from "../components/TaskItem";
 import { useTheme } from "../lib/ThemeContext";
 import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "../lib/notificationService";
@@ -18,6 +18,7 @@ import { useStore } from "../store/store";
 
 
 const LottieView = require("lottie-react-native").default;
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -128,29 +129,39 @@ export default function Home() {
   const getTasks = async () => {
     const { data, error } = await supabase
       .from("Tasks")
-      .select("id, name, description, done, order")
-      .eq("date", dateKey)
+      .select("id, name, description, done, order, date")
       .order("order", { ascending: false });
     if (error) {
       console.error('Erreur lors de la récupération des tâches:', error);
       return [];
     }
-    // calcule du progress
-    const progress = data.length === 0 ? 0 : (data.filter(task => task.done).length / data.length) * 100;
-    setProgress(Math.round(progress));
     return data;
   }
 
   const taskQuery = useQuery({
-    queryKey: ['tasks', dateKey],
+    queryKey: ['tasks'],
     queryFn: getTasks,
-    gcTime: 1000 * 60 * 5,
-    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 60 * 30, // 30 minutes de cache
+    staleTime: 1000 * 60 * 15,
   });
+
+  const currentTasks = useMemo(() => {
+    if (!taskQuery.data) return [];
+    // On filtre en local et on s'assure que c'est bien trié
+    // On utilise startsWith pour éviter les problèmes si Supabase retourne un format Date/Time complet
+    return taskQuery.data
+      .filter((task: any) => task.date && task.date.startsWith(dateKey))
+      .sort((a: any, b: any) => b.order - a.order);
+  }, [taskQuery.data, dateKey]);
 
   useEffect(() => {
     setLoading(taskQuery.isLoading);
   }, [taskQuery.isLoading]);
+
+  useEffect(() => {
+    const calculatedProgress = currentTasks.length === 0 ? 0 : (currentTasks.filter((task: any) => task.done).length / currentTasks.length) * 100;
+    setProgress(Math.round(calculatedProgress));
+  }, [currentTasks]);
 
 
 
@@ -210,7 +221,7 @@ export default function Home() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['days'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks', selectedDate.toISOString().split('T')[0]] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
   });
 
@@ -221,11 +232,11 @@ export default function Home() {
 
     try {
       // Optimistic update : mettre à jour le cache immédiatement
-      const previousTasks = queryClient.getQueryData<any[]>(['tasks', dateKey]);
+      const previousTasks = queryClient.getQueryData<any[]>(['tasks']);
 
       queryClient.setQueryData(
-        ['tasks', dateKey],
-        previousTasks?.map(task =>
+        ['tasks'],
+        previousTasks?.map((task: any) =>
           task.id === taskId ? { ...task, done: !currentDone } : task
         ) || []
       );
@@ -240,7 +251,7 @@ export default function Home() {
         console.error("Erreur lors de la mise à jour de la tâche:", error);
         // Rollback si erreur
         queryClient.setQueryData(
-          ['tasks', dateKey],
+          ['tasks'],
           previousTasks || []
         );
         return;
@@ -251,30 +262,36 @@ export default function Home() {
     } catch (error) {
       console.error("Erreur:", error);
     }
-  }, [dateKey, queryClient, doneDayMutation]);
+  }, [queryClient, doneDayMutation]);
 
 
   const handleDragEnd = useCallback(async ({ data }: { data: any[] }) => {
-    // Optimistic update immédiat
-    queryClient.setQueryData(
-      ['tasks', dateKey],
-      data
-    );
+    // Calculer les nouveaux ordres pour correspondre au tri décroissant (le premier élément doit avoir l'ordre le plus élevé)
+    const updatedData = data.map((task, index) => ({
+      ...task,
+      order: data.length - index
+    }));
+
+    // Optimistic update immédiat avec les nouveaux "order"
+    queryClient.setQueryData<any[]>(['tasks'], (oldVars) => {
+      if (!oldVars) return [];
+      const otherTasks = oldVars.filter((t: any) => !t.date || !t.date.startsWith(dateKey));
+      return [...otherTasks, ...updatedData];
+    });
 
     // Mettre à jour les ordres individuellement (évite les problèmes RLS avec upsert)
     try {
-      for (let index = 0; index < data.length; index++) {
-        const task = data[index];
+      for (const task of updatedData) {
         const { error } = await supabase
           .from("Tasks")
-          .update({ order: index + 1 })
+          .update({ order: task.order })
           .eq("id", task.id);
 
         if (error) {
           console.error("Erreur lors de la mise à jour de l'ordre:", error);
           // Rollback si erreur
           queryClient.invalidateQueries({
-            queryKey: ['tasks', dateKey]
+            queryKey: ['tasks']
           });
           break;
         }
@@ -302,11 +319,70 @@ export default function Home() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
-  const changeDate = useCallback(async (newDate: Date) => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const changeDate = useCallback((newDate: Date) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedDate(newDate);
     setStoreDate(newDate);
   }, [setStoreDate, setSelectedDate]);
+
+  const translateX = useSharedValue(0);
+
+  const goToNextDay = useCallback(() => {
+    const nextDate = new Date(selectedDate);
+    nextDate.setDate(nextDate.getDate() + 1);
+    changeDate(nextDate);
+    // On repousse l'animation pour qu'elle s'exécute après le render React
+    setTimeout(() => {
+      runOnUI(() => {
+        'worklet';
+        translateX.value = SCREEN_WIDTH;
+        translateX.value = withSpring(0, { damping: 50, stiffness: 350 });
+      })();
+    }, 0);
+  }, [selectedDate, changeDate, translateX]);
+
+  const goToPreviousDay = useCallback(() => {
+    const prevDate = new Date(selectedDate);
+    prevDate.setDate(prevDate.getDate() - 1);
+    changeDate(prevDate);
+    // On repousse l'animation pour qu'elle s'exécute après le render React
+    setTimeout(() => {
+      runOnUI(() => {
+        'worklet';
+        translateX.value = -SCREEN_WIDTH;
+        translateX.value = withSpring(0, { damping: 50, stiffness: 350 });
+      })();
+    }, 0);
+  }, [selectedDate, changeDate, translateX]);
+
+  const panGesture = Gesture.Pan()
+    .activeOffsetX([-40, 40])
+    .failOffsetY([-40, 40])
+    .onUpdate((e) => {
+      translateX.value = e.translationX;
+    })
+    .onEnd((e) => {
+      const springConfig = { damping: 50, stiffness: 350 };
+      
+      if (e.translationX < -50) {
+        // Swipe gauche -> Jour suivant
+        translateX.value = withTiming(-SCREEN_WIDTH, { duration: 100 }, (isFinished) => {
+          if (isFinished) {
+            runOnJS(goToNextDay)();
+          }
+        });
+      } else if (e.translationX > 50) {
+        // Swipe droite -> Jour précédent
+        translateX.value = withTiming(SCREEN_WIDTH, { duration: 100 }, (isFinished) => {
+          if (isFinished) {
+            runOnJS(goToPreviousDay)();
+          }
+        });
+      } else {
+        // Retour à la position d'origine
+        translateX.value = withSpring(0, springConfig);
+      }
+    });
 
   const headerAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -315,6 +391,12 @@ export default function Home() {
       opacity: withSpring(selectedTaskId !== null ? 0 : 1),
     };
   }, [headerScale, selectedTaskId]);
+
+  const listAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: translateX.value }],
+    };
+  });
 
   useEffect(() => {
     headerScale.value = selectedTaskId !== null ? 0 : 1;
@@ -345,18 +427,18 @@ export default function Home() {
 
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style={theme == "dark" ? "light" : "auto"} />
-      <View
-        style={[styles.container, { backgroundColor: colors.background }]}
-        onLayout={(event) => {
-          const { height } = event.nativeEvent.layout;
-          setListHeight(height);
-        }}
+      <GestureDetector gesture={panGesture}>
+        <View
+          style={[styles.container, { backgroundColor: colors.background, paddingBottom: 0 }]}
+          onLayout={(event) => {
+            const { height } = event.nativeEvent.layout;
+            setListHeight(height);
+          }}
+        >
 
-      >
+          <View style={styles.header}>
 
-        <View style={styles.header}>
-
-          <ReAnimated.View style={headerAnimatedStyle}>
+            <ReAnimated.View style={headerAnimatedStyle}>
             <CalendarComponent
               slider={true}
               initialDate={selectedDate}
@@ -371,64 +453,8 @@ export default function Home() {
 
         </View>
 
-        {/* {
-          userHasSeenTutorial === false && (
-
-            <SquircleView
-              cornerSmoothing={100} // 0-100
-              preserveSmoothing={true} // false matches figma, true has more rounding
-              style={{
-                position: 'relative',
-                alignSelf: 'center',
-                height: 64,
-                width: 300,
-                backgroundColor: "#cfcfcf",
-                borderRadius: 20,
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 20,
-              }}
-            >
-              <Text
-                style={{
-                  color: 'white',
-                  fontSize: 20,
-                  fontFamily: 'Satoshi-Medium',
-                }}
-              >
-                Tutorial Card Test
-              </Text>
-
-              <Pressable
-                style={{
-                  position: 'relative',
-                  backgroundColor: '#7dcf7d',
-                  paddingVertical: 10,
-                  paddingHorizontal: 20,
-                  borderRadius: 30,
-                }}
-                onPress={closeTutorial}
-              >
-                <Text
-                  style={{
-                    color: 'white',
-                    fontFamily: 'Satoshi-Medium',
-                  }}
-                >
-                  OK
-                </Text>
-              </Pressable>
-
-            </SquircleView>
-
-          )
-        } */}
-
-
-        <View
-          style={styles.listContainer}
+        <ReAnimated.View
+          style={[styles.listContainer, listAnimatedStyle]}
         >
           {loading ? (
             <View style={styles.loadingContainer}>
@@ -436,7 +462,7 @@ export default function Home() {
             </View>
           ) : (
             <DraggableFlatList
-              data={taskQuery.data || []}
+              data={currentTasks}
               keyExtractor={(item) => item.id.toString()}
               scrollEnabled={true}
               nestedScrollEnabled={true}
@@ -465,11 +491,10 @@ export default function Home() {
               }
             />
           )}
+        </ReAnimated.View>
+
         </View>
-
-
-
-      </View>
+      </GestureDetector>
       {isTaskOpen && (
         <PopUpTask
           id={selectedTaskId!}
