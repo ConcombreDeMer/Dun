@@ -261,6 +261,30 @@ export const colorThemeOptions: ColorThemeOption[] = [
     },
 ];
 
+const isColorTheme = (value: string): value is ColorTheme => {
+    return colorThemeOptions.some((option) => option.id === value);
+};
+
+const normalizeStoredColorTheme = (value: string | null | undefined): ColorTheme | null => {
+    if (!value) {
+        return null;
+    }
+
+    if (value === 'neutre') {
+        return 'neutral';
+    }
+
+    return isColorTheme(value) ? value : null;
+};
+
+const getDatabaseColorTheme = (value: ColorTheme): string => {
+    if (value === 'neutral') {
+        return 'neutre';
+    }
+
+    return value;
+};
+
 interface ThemeContextType {
     theme: Theme;
     colorTheme: ColorTheme;
@@ -289,6 +313,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const loadTheme = useCallback(async () => {
         try {
             let loadedTheme: Theme | null = null;
+            let loadedColorTheme: ColorTheme | null = null;
 
             // Vérifier si l'utilisateur est connecté
             const { data: { user } } = await supabase.auth.getUser();
@@ -297,7 +322,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
                 // Charger le thème depuis Supabase
                 const { data, error } = await supabase
                     .from('Profiles')
-                    .select('display_theme')
+                    .select('display_theme, display_color')
                     .eq('id', user.id)
                     .single();
                 
@@ -308,6 +333,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
                 if (data && (data.display_theme === 'light' || data.display_theme === 'dark' || data.display_theme === 'system')) {
                     loadedTheme = data.display_theme as Theme;
                 }
+
+                loadedColorTheme = normalizeStoredColorTheme(data?.display_color);
             }
             
             if (!loadedTheme) {
@@ -321,12 +348,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
                 }
             }
 
-            const savedColorTheme = await AsyncStorage.getItem('colorTheme');
-            if (savedColorTheme && colorThemeOptions.some((option) => option.id === savedColorTheme)) {
-                setColorThemeState(savedColorTheme as ColorTheme);
+            if (!loadedColorTheme) {
+                const savedColorTheme = await AsyncStorage.getItem('colorTheme');
+                loadedColorTheme = normalizeStoredColorTheme(savedColorTheme);
             }
 
             setTheme(loadedTheme);
+            setColorThemeState(loadedColorTheme ?? 'neutral');
         } catch (error) {
             console.error('Erreur lors du chargement du thème:', error);
             setTheme('light');
@@ -373,6 +401,19 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         try {
             await AsyncStorage.setItem('colorTheme', newColorTheme);
             setColorThemeState(newColorTheme);
+
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (user) {
+                const { error } = await supabase
+                    .from('Profiles')
+                    .update({ display_color: getDatabaseColorTheme(newColorTheme) })
+                    .eq('id', user.id);
+
+                if (error) {
+                    console.error('Erreur lors de la sauvegarde du coloris dans Supabase:', error);
+                }
+            }
         } catch (error) {
             console.error('Erreur lors de la sauvegarde du coloris:', error);
         }
