@@ -1,7 +1,8 @@
 import Headline from "@/components/headline";
 import SecondaryButton from "@/components/secondaryButton";
 import { useRouter } from "expo-router";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SquircleButton } from "expo-squircle-view";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFont } from "../../lib/FontContext";
 import { colorThemeOptions, darkColors, lightColors, useTheme } from "../../lib/ThemeContext";
 
@@ -31,7 +32,7 @@ export default function ColorSettings() {
                         : { ...darkColors, ...option.dark };
 
                     return (
-                        <TouchableOpacity
+                        <SquircleButton
                             key={option.id}
                             style={[
                                 styles.optionCard,
@@ -100,7 +101,7 @@ export default function ColorSettings() {
                                     </View>
                                 )}
                             </View>
-                        </TouchableOpacity>
+                        </SquircleButton>
                     );
                 })}
             </ScrollView>
@@ -128,8 +129,7 @@ const styles = StyleSheet.create({
     },
 
     optionCard: {
-        borderRadius: 18,
-        overflow: "hidden",
+        borderRadius: 15,
         padding: 14,
     },
 
