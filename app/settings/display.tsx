@@ -160,7 +160,7 @@ export default function Display() {
 
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.base }]}>
-                        Coloris actuel
+                        Coloris
                     </Text>
                     <SquircleButton
                         style={[styles.colorRow, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
