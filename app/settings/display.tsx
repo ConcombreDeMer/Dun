@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     },
 
     optionGroup: {
-        flexDirection: "row",
+        flexDirection: "row-reverse",
         gap: 12,
     },
     languageButton: {
