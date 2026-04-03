@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { View } from 'react-native';
+import { toAppDateKey } from '../lib/date';
 import { useTheme } from '../lib/ThemeContext';
 import { supabase } from '../lib/supabase';
 
@@ -17,7 +18,7 @@ export default function Index() {
                     return;
                 }
 
-                const today = new Date().toISOString().split('T')[0];
+                const today = toAppDateKey(new Date());
 
                 const { data: profile, error } = await supabase
                     .from('Profiles')
@@ -42,7 +43,6 @@ export default function Index() {
                 }
 
                 if(profile.dailyEnabled == false) {
-                    console.log("Daily désactivé, redirection vers home");
                     router.replace('/home');
                     return;
                 }

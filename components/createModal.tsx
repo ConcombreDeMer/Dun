@@ -7,6 +7,7 @@ import { router } from "expo-router";
 import { SquircleView } from "expo-squircle-view";
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, InputAccessoryView, StyleSheet, TextInput, View } from "react-native";
+import { toAppDateKey } from "../lib/date";
 import { useAppTranslation } from "../lib/i18n";
 import SecondaryButton from "./secondaryButton";
 
@@ -26,6 +27,7 @@ export default function CreateModal({ onClose }: CreateModalProps) {
     const { t } = useAppTranslation();
     const queryClient = useQueryClient();
     const selectedDate = useStore((state) => state.selectedDate) || new Date();
+    const selectedDateKey = toAppDateKey(selectedDate);
     
     
 
@@ -40,7 +42,7 @@ export default function CreateModal({ onClose }: CreateModalProps) {
                 .from("Days")
                 .select("*")
                 .eq("user_id", user.id)
-                .eq("date", selectedDate.toDateString())
+                .eq("date", selectedDateKey)
                 .maybeSingle();
 
             if (fetchError) {
@@ -52,10 +54,10 @@ export default function CreateModal({ onClose }: CreateModalProps) {
                 const { error: insertError } = await supabase.from("Days").insert([
                     {
                         user_id: user.id,
-                        date: selectedDate.toDateString(),
+                        date: selectedDateKey,
                         total: 1,
                         done_count: 0,
-                        updated_at: new Date().toDateString(),
+                        updated_at: toAppDateKey(new Date()),
                     },
                 ]);
 
@@ -71,7 +73,7 @@ export default function CreateModal({ onClose }: CreateModalProps) {
                     .from("Days")
                     .update({
                         total: (existingDay.total || 0) + 1,
-                        updated_at: new Date().toDateString(),
+                        updated_at: toAppDateKey(new Date()),
                     })
                     .eq("id", existingDay.id)
 
@@ -101,8 +103,8 @@ export default function CreateModal({ onClose }: CreateModalProps) {
             // Récupérer le nombre de tâches existantes pour cette journée
             const { data: existingTasks, error: fetchError } = await supabase
                 .from("Tasks")
-                .select("*")
-                .eq("date", selectedDate.toDateString())
+                .select("id")
+                .eq("date", selectedDateKey)
                 .eq("user_id", user.id);
 
             if (fetchError) {
@@ -111,21 +113,23 @@ export default function CreateModal({ onClose }: CreateModalProps) {
 
             const newOrder = (existingTasks?.length || 0) + 1;
 
-            const { error } = await supabase.from("Tasks").insert([
+            const { data, error } = await supabase.from("Tasks").insert([
                 {
                     name: taskTitle.trim(),
                     description: "",
                     done: false,
-                    date: selectedDate.toDateString(),
-                    created_at: new Date().toDateString(),
+                    date: selectedDateKey,
+                    created_at: toAppDateKey(new Date()),
                     user_id: user.id,
                     order: newOrder,
                 },
-            ]);
+            ]).select("id").single();
 
             if (error) {
                 throw new Error(error.message);
             }
+
+            return data.id as number;
         },
         onSuccess: () => {
             // Invalide la query et refetch automatiquement
@@ -133,7 +137,7 @@ export default function CreateModal({ onClose }: CreateModalProps) {
             setTaskTitle("");
         },
         onError: (error: any) => {
-            Alert.alert(t("common.alerts.errorTitle"), error.message || t("common.alerts.genericError"));
+            console.error("Erreur lors de la création de la tâche:", error);
         }
     });
 
@@ -164,8 +168,20 @@ const handleCreateTask = async () => {
             return;
         }
 
-        await createTaskMutation.mutateAsync();
-        await dayMutation.mutateAsync();
+        let createdTaskId: number | null = null;
+
+        try {
+            createdTaskId = await createTaskMutation.mutateAsync();
+            await dayMutation.mutateAsync();
+        } catch (error: any) {
+            if (createdTaskId !== null) {
+                await supabase.from("Tasks").delete().eq("id", createdTaskId);
+            }
+
+            Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
+            isCreatingTaskRef.current = false;
+            return;
+        }
 
 
         // Rétablir le focus après un court délai
@@ -185,7 +201,6 @@ const handleCreateTask = async () => {
 
     const openPage = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        console.log("Ouvrir page de création de tâche complète");
         router.push("/create-task");
         onClose?.();
     }

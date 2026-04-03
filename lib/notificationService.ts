@@ -1,7 +1,11 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from 'expo-notifications';
+import { Platform } from "react-native";
 // import { useStore } from "../store/store";
 
 // const store = useStore();
+
+const REMINDER_IDS_STORAGE_KEY = "scheduledReminderIds";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -23,15 +27,42 @@ export async function requestNotificationPermissions() {
   return request.granted;
 }
 
-// export async function setupAndroidChannel() {
-//   if (Platform.OS === 'android') {
-//     await Notifications.setNotificationChannelAsync('daily-reminders', {
-//       name: 'Rappels quotidiens',
-//       importance: Notifications.AndroidImportance.HIGH,
-//       vibrationPattern: [0, 250, 250, 250],
-//     });
-//   }
-// }
+async function ensureNotificationChannel() {
+  if (Platform.OS !== "android") {
+    return;
+  }
+
+  await Notifications.setNotificationChannelAsync("daily-reminders", {
+    name: "Rappels quotidiens",
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+  });
+}
+
+async function getStoredReminderIds() {
+  const rawIds = await AsyncStorage.getItem(REMINDER_IDS_STORAGE_KEY);
+
+  if (!rawIds) {
+    return [] as string[];
+  }
+
+  try {
+    const parsed = JSON.parse(rawIds);
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+async function cancelStoredReminderIds() {
+  const existingIds = await getStoredReminderIds();
+
+  if (existingIds.length > 0) {
+    await Promise.all(existingIds.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => undefined)));
+  }
+
+  await AsyncStorage.removeItem(REMINDER_IDS_STORAGE_KEY);
+}
 
 export async function scheduleDailyReminder(
   hour: number, 
@@ -41,7 +72,9 @@ export async function scheduleDailyReminder(
   insistanceRepetitions: string = '',
   weekendsActive: boolean = true
 ) {
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  await ensureNotificationChannel();
+  await cancelStoredReminderIds();
+  const scheduledIds: string[] = [];
 
   const scheduleNotification = async (triggerHour: number, triggerMinute: number, isMain: boolean) => {
     const content = isMain ? {
@@ -55,7 +88,7 @@ export async function scheduleDailyReminder(
     };
 
     if (weekendsActive) {
-      await Notifications.scheduleNotificationAsync({
+      const notificationId = await Notifications.scheduleNotificationAsync({
         content,
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -64,12 +97,13 @@ export async function scheduleDailyReminder(
           channelId: 'daily-reminders',
         },
       });
+      scheduledIds.push(notificationId);
     } else {
       // Si les week-ends sont désactivés, on programme pour chaque jour de la semaine
       // Expo WeeklyTrigger: 1 = Dimanche, 2 = Lundi, ..., 7 = Samedi
       const weekdays = [2, 3, 4, 5, 6];
       for (const weekday of weekdays) {
-        await Notifications.scheduleNotificationAsync({
+        const notificationId = await Notifications.scheduleNotificationAsync({
           content,
           trigger: {
             type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
@@ -79,6 +113,7 @@ export async function scheduleDailyReminder(
             channelId: 'daily-reminders',
           },
         });
+        scheduledIds.push(notificationId);
       }
     }
   };
@@ -101,6 +136,8 @@ export async function scheduleDailyReminder(
       }
     }
   }
+
+  await AsyncStorage.setItem(REMINDER_IDS_STORAGE_KEY, JSON.stringify(scheduledIds));
 }
 
 // clear badge number on app open
@@ -109,5 +146,5 @@ export async function clearBadgeNumber() {
 }
 
 export async function cancelDailyReminder() {
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  await cancelStoredReminderIds();
 }

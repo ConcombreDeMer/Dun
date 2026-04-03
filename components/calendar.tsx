@@ -250,9 +250,16 @@ export default function CalendarComponent({
 
 
     const getDays = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            return [];
+        }
+
         const { data, error } = await supabase
             .from("Days")
             .select("*")
+            .eq("user_id", user.id)
             .order("date", { ascending: true });
         if (error) {
             console.error('Erreur lors de la récupération des jours:', error);

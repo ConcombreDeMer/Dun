@@ -60,7 +60,6 @@ export default function Register() {
   };
 
   const handleSignUp = async () => {
-    console.log('Tentative d\'inscription avec:', { username, email, password, confirmPassword });
     setLoading(true);
     setError('');
 
@@ -73,7 +72,7 @@ export default function Register() {
           data: {
             name: email.trim().split('@')[0], // Utiliser la partie avant @ comme nom d'utilisateur par défaut
           },
-          emailRedirectTo: 'https://dun-app.com/successMail',
+          emailRedirectTo: 'dun://auth/callback',
         },
       });
 
@@ -133,8 +132,6 @@ export default function Register() {
       // vérifier si l'email est déjà utilisé
       const { data: emailExists, error: fetchError } = await supabase
         .rpc('email_exists', { email_input: email.trim() });
-
-      console.log('Email existe?', emailExists, fetchError);
 
       if (fetchError) {
         console.error('Erreur:', fetchError);

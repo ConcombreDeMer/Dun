@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReAnimated, { Easing, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import Squircle from "../components/Squircle";
 import { TaskItem, TaskItemLayout } from "../components/TaskItem";
+import { toAppDateKey } from "../lib/date";
 import { useAppTranslation } from "../lib/i18n";
 import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "../lib/notificationService";
 import { supabase } from "../lib/supabase";
@@ -35,7 +36,7 @@ const addDays = (date: Date, amount: number) => {
   return nextDate;
 };
 
-const getDateKey = (date: Date) => startOfDay(date).toISOString().split('T')[0];
+const getDateKey = (date: Date) => toAppDateKey(startOfDay(date));
 const getDayOffset = (from: Date, to: Date) => {
   const start = startOfDay(from).getTime();
   const end = startOfDay(to).getTime();
@@ -135,6 +136,7 @@ export default function Home() {
   const overlayProgress = useSharedValue(0);
   const horizontalListRef = useRef<FlatList<number>>(null);
   const lastHapticPageIndexRef = useRef(DAY_PAGER_CENTER_INDEX);
+  const isProgrammaticHorizontalScrollRef = useRef(false);
 
 
 
@@ -145,7 +147,6 @@ export default function Home() {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
-          console.log("Utilisateur connecté : ", user);
           const name = user.user_metadata?.name || user.email?.split('@')[0] || t("settings.root.defaultUserName");
           setUserName(name);
           store.setUser({ id: user.id });
@@ -234,9 +235,16 @@ export default function Home() {
   }, [dateKey, storedDate]);
 
   const getTasks = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return [];
+    }
+
     const { data, error } = await supabase
       .from("Tasks")
       .select("id, name, description, done, order, date")
+      .eq("user_id", user.id)
       .order("order", { ascending: false });
     if (error) {
       console.error('Erreur lors de la récupération des tâches:', error);
@@ -261,9 +269,7 @@ export default function Home() {
 
     taskQuery.data.forEach((task: any) => {
       if (!task.date) return;
-      const taskDateKey = task.date.includes('T')
-        ? task.date.split('T')[0]
-        : getDateKey(new Date(task.date));
+      const taskDateKey = toAppDateKey(task.date);
 
       if (!map.has(taskDateKey)) {
         map.set(taskDateKey, []);
@@ -316,7 +322,7 @@ export default function Home() {
               .from("Days")
               .select("*")
               .eq("user_id", user.id)
-              .eq("date", selectedDate.toDateString())
+              .eq("date", dateKey)
               .maybeSingle();
 
             if (fetchError) {
@@ -333,7 +339,7 @@ export default function Home() {
                 .from("Days")
                 .update({
                   done_count: newDoneCount,
-                  updated_at: new Date().toDateString(),
+                  updated_at: toAppDateKey(new Date()),
                 })
                 .eq("id", existingDay.id);
 
@@ -375,7 +381,8 @@ export default function Home() {
       const { error } = await supabase
         .from("Tasks")
         .update({ done: !currentDone })
-        .eq("id", taskId);
+        .eq("id", taskId)
+        .eq("user_id", store.user.id);
 
       if (error) {
         console.error("Erreur lors de la mise à jour de la tâche:", error);
@@ -392,7 +399,7 @@ export default function Home() {
     } catch (error) {
       console.error("Erreur:", error);
     }
-  }, [queryClient, doneDayMutation]);
+  }, [queryClient, doneDayMutation, store.user.id]);
 
 
   const handleDragEnd = useCallback(async ({ data }: { data: any[] }) => {
@@ -405,7 +412,7 @@ export default function Home() {
     // Optimistic update immédiat avec les nouveaux "order"
     queryClient.setQueryData<any[]>(['tasks'], (oldVars) => {
       if (!oldVars) return [];
-      const otherTasks = oldVars.filter((t: any) => !t.date || !t.date.startsWith(dateKey));
+      const otherTasks = oldVars.filter((t: any) => !t.date || toAppDateKey(t.date) !== dateKey);
       return [...otherTasks, ...updatedData];
     });
 
@@ -415,7 +422,8 @@ export default function Home() {
         const { error } = await supabase
           .from("Tasks")
           .update({ order: task.order })
-          .eq("id", task.id);
+          .eq("id", task.id)
+          .eq("user_id", store.user.id);
 
         if (error) {
           console.error("Erreur lors de la mise à jour de l'ordre:", error);
@@ -429,7 +437,7 @@ export default function Home() {
     } catch (error) {
       console.error("Erreur:", error);
     }
-  }, [dateKey, queryClient]);
+  }, [dateKey, queryClient, store.user.id]);
 
   const handleTaskPress = useCallback((taskId: number, layout?: TaskItemLayout) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -489,11 +497,16 @@ export default function Home() {
 
   useEffect(() => {
     const targetIndex = DAY_PAGER_CENTER_INDEX + getDayOffset(pagerOriginDateRef.current, selectedDate);
+    isProgrammaticHorizontalScrollRef.current = true;
 
     requestAnimationFrame(() => {
       horizontalListRef.current?.scrollToIndex({
         index: targetIndex,
         animated: false,
+      });
+
+      requestAnimationFrame(() => {
+        isProgrammaticHorizontalScrollRef.current = false;
       });
     });
   }, [selectedDate, windowWidth]);
@@ -602,6 +615,10 @@ export default function Home() {
   }, [selectedDate]);
 
   const handleHorizontalScroll = useCallback((event: any) => {
+    if (isProgrammaticHorizontalScrollRef.current) {
+      return;
+    }
+
     const nextIndex = Math.round(event.nativeEvent.contentOffset.x / windowWidth);
 
     if (nextIndex === lastHapticPageIndexRef.current) {

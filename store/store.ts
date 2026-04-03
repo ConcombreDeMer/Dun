@@ -53,6 +53,3 @@ export const useStore = create<StoreState>((set) => ({
     alertsEnabled: false,
   }),
 }));
-
-useStore.subscribe((state) => console.log('Store state updated:', state));
-

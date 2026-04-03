@@ -118,7 +118,6 @@ export default function NotificationsSettings() {
         if (updateError) {
             console.error("Erreur lors de la mise à jour de l'heure de notification:", updateError);
         }
-        console.log("Préférences de notification mises à jour:", { alertHour, alertMinute, alertsEnabled, insistanceEnabled, insistanceDelais, insistanceRepetitions, weekendEnabled });
         // Mettre à jour les notifications sur l'appareil
         if (alertsEnabled) {
             const hasPermission = await requestNotificationPermissions();
@@ -144,7 +143,6 @@ export default function NotificationsSettings() {
         setInitialInsistanceRepetitions(insistanceRepetitions);
         setInitialWeekendEnabled(weekendEnabled);
         setIsModified(false);
-        console.log("Notifications mises à jour sur l'appareil :", { alertHour, alertMinute, alertsEnabled });
     };
 
     const toggleNotifications = async () => {

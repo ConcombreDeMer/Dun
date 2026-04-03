@@ -93,10 +93,12 @@ export default function EmailVerificationScreen() {
         setRetryError('');
         setRetrySuccess('');
         try {
-            // Resend verification email using signUp with the same email
-            const { error } = await supabase.auth.signUp({
+            const { error } = await supabase.auth.resend({
+                type: 'signup',
                 email: email.trim(),
-                password: 'dummy-password', // Dummy password, will be ignored
+                options: {
+                    emailRedirectTo: 'dun://auth/callback',
+                },
             });
 
             if (error) {

@@ -15,6 +15,7 @@ import {
     StyleSheet,
     View
 } from "react-native";
+import { toAppDateKey } from "../lib/date";
 import { taskEmitter } from "../lib/eventEmitter";
 import { useAppTranslation } from "../lib/i18n";
 import { supabase } from "../lib/supabase";
@@ -30,6 +31,7 @@ export default function CreateTask() {
     const { colors, theme } = useTheme();
     const { t } = useAppTranslation();
     const queryClient = useQueryClient();
+    const selectedDateKey = toAppDateKey(selectedDate);
 
     const dayMutation = useMutation({
         mutationFn: async () => {
@@ -42,7 +44,7 @@ export default function CreateTask() {
                 .from("Days")
                 .select("*")
                 .eq("user_id", user.id)
-                .eq("date", selectedDate.toDateString())
+                .eq("date", selectedDateKey)
                 .maybeSingle();
 
             if (fetchError) {
@@ -54,10 +56,10 @@ export default function CreateTask() {
                 const { error: insertError } = await supabase.from("Days").insert([
                     {
                         user_id: user.id,
-                        date: selectedDate.toDateString(),
+                        date: selectedDateKey,
                         total: 1,
                         done_count: 0,
-                        updated_at: new Date().toDateString(),
+                        updated_at: toAppDateKey(new Date()),
                     },
                 ]);
 
@@ -73,7 +75,7 @@ export default function CreateTask() {
                     .from("Days")
                     .update({
                         total: (existingDay.total || 0) + 1,
-                        updated_at: new Date().toDateString(),
+                        updated_at: toAppDateKey(new Date()),
                     })
                     .eq("id", existingDay.id)
 
@@ -103,8 +105,8 @@ export default function CreateTask() {
             // Récupérer le nombre de tâches existantes pour cette journée
             const { data: existingTasks, error: fetchError } = await supabase
                 .from("Tasks")
-                .select("*")
-                .eq("date", selectedDate.toDateString())
+                .select("id")
+                .eq("date", selectedDateKey)
                 .eq("user_id", user.id);
 
             if (fetchError) {
@@ -113,21 +115,23 @@ export default function CreateTask() {
 
             const newOrder = (existingTasks?.length || 0) + 1;
 
-            const { error } = await supabase.from("Tasks").insert([
+            const { data, error } = await supabase.from("Tasks").insert([
                 {
                     name: name.trim(),
                     description: description.trim(),
                     done: false,
-                    date: selectedDate.toDateString(),
-                    created_at: new Date().toDateString(),
+                    date: selectedDateKey,
+                    created_at: toAppDateKey(new Date()),
                     user_id: user.id,
                     order: newOrder,
                 },
-            ]);
+            ]).select("id").single();
 
             if (error) {
                 throw new Error(error.message);
             }
+
+            return data.id as number;
         },
         onSuccess: () => {
             // Invalide la query et refetch automatiquement
@@ -140,7 +144,7 @@ export default function CreateTask() {
             router.back();
         },
         onError: (error: any) => {
-            Alert.alert(t("common.alerts.errorTitle"), error.message || t("common.alerts.genericError"));
+            console.error("Erreur lors de la création de la tâche:", error);
         }
     });
 
@@ -150,8 +154,18 @@ export default function CreateTask() {
             Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.requiredTaskName"));
             return;
         }
-        createTaskMutation.mutate();
-        dayMutation.mutate();
+        let createdTaskId: number | null = null;
+
+        try {
+            createdTaskId = await createTaskMutation.mutateAsync();
+            await dayMutation.mutateAsync();
+        } catch (error: any) {
+            if (createdTaskId !== null) {
+                await supabase.from("Tasks").delete().eq("id", createdTaskId);
+            }
+
+            Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
+        }
     };
 
     const handleCancel = async () => {

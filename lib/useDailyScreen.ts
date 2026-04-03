@@ -1,21 +1,22 @@
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
+import { toAppDateKey } from './date';
 import { supabase } from './supabase';
 
 export function useDailyScreen(isAuthLoading: boolean, isAuthenticated: boolean) {
     const router = useRouter();
+    const pendingTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
     useEffect(() => {
         if (isAuthLoading || !isAuthenticated) return;
 
         const checkDailyFirstOpen = async () => {
-            console.log("Vérification du daily...");
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
 
-                const today = new Date().toISOString().split('T')[0];
+                const today = toAppDateKey(new Date());
 
                 const { data: profile, error } = await supabase
                     .from('Profiles')
@@ -61,15 +62,17 @@ export function useDailyScreen(isAuthLoading: boolean, isAuthenticated: boolean)
                         .update({ last_opened: today, hasDoneDaily: false })
                         .eq('id', user.id);
 
-                    setTimeout(() => {
+                    const timeoutId = setTimeout(() => {
                         router.push('/daily');
                     }, 800);
+                    pendingTimeoutsRef.current.push(timeoutId);
                 } else {
                     // Même jour : on vérifie si l'utilisateur a déjà checké son daily
                     if (!profile.hasDoneDaily) {
-                        setTimeout(() => {
+                        const timeoutId = setTimeout(() => {
                             router.push('/daily');
                         }, 800);
+                        pendingTimeoutsRef.current.push(timeoutId);
                     }
                     // Si hasDoneDaily est true, on ne fait rien (on skip le daily)
                 }
@@ -90,6 +93,8 @@ export function useDailyScreen(isAuthLoading: boolean, isAuthenticated: boolean)
         });
 
         return () => {
+            pendingTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+            pendingTimeoutsRef.current = [];
             subscription.remove();
         };
     }, [isAuthLoading, isAuthenticated, router]);

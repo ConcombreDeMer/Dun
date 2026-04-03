@@ -349,7 +349,6 @@ export default function Account() {
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'USER_UPDATED') {
-                console.log("L'utilisateur a mis à jour son email.");
                 // Recharger les données utilisateur
                 supabase.auth.getUser().then(({ data: { user } }) => {
                     if (user) {
@@ -384,8 +383,6 @@ export default function Account() {
             const { data: emailExists, error: fetchError } = await supabase
                 .rpc('email_exists', { email_input: email.trim() });
 
-            console.log('Email existe?', emailExists, fetchError);
-
             if (fetchError) {
                 console.error('Erreur:', fetchError);
                 alert(t('settings.account.errors.checkingEmail'));
@@ -407,7 +404,6 @@ export default function Account() {
                 console.error("Erreur lors de la mise à jour du nom d'utilisateur : " + error.message);
                 return;
             }
-            console.log("Nom d'utilisateur mis à jour avec succès.");
             setHasChanges(false);
         }
     }, [hasChanges, email, userData, name]);
@@ -425,7 +421,6 @@ export default function Account() {
             console.error("Erreur lors de la mise à jour de l'email : " + error.message);
             return;
         }
-        console.log("Un email de confirmation a été envoyé à votre nouvelle adresse email.");
     }, [email]);
 
     const handleLogout = useCallback(async () => {
@@ -452,7 +447,7 @@ export default function Account() {
             [
                 {
                     text: t("common.actions.cancel"),
-                    onPress: () => console.log("Suppression annulée"),
+                    onPress: () => { },
                     style: "cancel",
                 },
                 {

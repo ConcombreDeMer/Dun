@@ -1,7 +1,7 @@
 import { Session } from "@supabase/supabase-js";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, usePathname, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useMemo, useState } from "react";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -38,9 +38,9 @@ function RootLayoutContent() {
   const isI18nReady = useI18nReady();
   const router = useRouter();
   const segments = useSegments();
+  const pathname = usePathname();
   const [session, setSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const redirectRef = React.useRef(false);
 
   const [fontsLoaded] = useFonts({
     "Satoshi-Regular": require("../assets/fonts/Satoshi-Regular.otf"),
@@ -123,17 +123,17 @@ function RootLayoutContent() {
   useEffect(() => {
     if (isAuthLoading) return;
 
+    const isOnboardingRoute = pathname?.startsWith("/onboarding") ?? false;
+    const isAuthCallbackRoute = pathname?.startsWith("/auth") ?? false;
+
     if (!session) {
-      if (!redirectRef.current) {
-        redirectRef.current = true;
+      if (!isOnboardingRoute && !isAuthCallbackRoute) {
         router.replace("/onboarding/start");
-      }
+      }  
       return;
     }
 
     const checkUserAndRedirect = async () => {
-      if (redirectRef.current) return;
-
       try {
         const { data: profileData, error } = await supabase
           .from("Profiles")
@@ -143,21 +143,17 @@ function RootLayoutContent() {
 
         if (error) {
           console.error("Erreur profil:", error);
-          if (!redirectRef.current) {
-            redirectRef.current = true;
+          if (!isOnboardingRoute) {
             router.replace("/onboarding/tutorial");
-          }
+          }  
           return;
         }
 
         const hasName = profileData?.hasName ?? false;
-        const isOnboarding = segments[0] === "onboarding";
 
-        if (!hasName && !isOnboarding && !redirectRef.current) {
-          redirectRef.current = true;
+        if (!hasName && !isOnboardingRoute) {
           router.replace("/onboarding/tutorial");
-        } else if (hasName && isOnboarding && !redirectRef.current) {
-          redirectRef.current = true;
+        } else if (hasName && isOnboardingRoute) {
           router.replace("/home");
         }
       } catch (error) {
@@ -166,7 +162,7 @@ function RootLayoutContent() {
     };
 
     checkUserAndRedirect();
-  }, [session, isAuthLoading]);
+  }, [isAuthLoading, pathname, router, session, segments]);
 
   if (!fontsLoaded || isLoading || isAuthLoading || !isI18nReady) {
     return null;

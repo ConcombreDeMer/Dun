@@ -9,6 +9,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import CreateModal from '../components/createModal';
 import PrimaryButton from '../components/primaryButton';
 import { TaskItem } from '../components/TaskItem';
+import { toAppDateKey } from '../lib/date';
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from '../lib/i18n';
 import { supabase } from '../lib/supabase';
@@ -27,12 +28,19 @@ export default function DailyScreen() {
     const [currentStep, setCurrentStep] = useState(1);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-    const todayString = new Date().toISOString().split('T')[0];
+    const todayString = toAppDateKey(new Date());
 
     const getPastTasks = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            return [];
+        }
+
         const { data, error } = await supabase
             .from('Tasks')
             .select('id, name, description, done, order, date')
+            .eq('user_id', user.id)
             .lt('date', todayString)
             .eq('done', false)
             .order('date', { ascending: false });
@@ -74,9 +82,16 @@ export default function DailyScreen() {
     }, []);
 
     const getTodayTasks = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            return [];
+        }
+
         const { data, error } = await supabase
             .from('Tasks')
             .select('id, name, description, done, order, date')
+            .eq('user_id', user.id)
             .eq('date', todayString)
             .order("order", { ascending: false });
 

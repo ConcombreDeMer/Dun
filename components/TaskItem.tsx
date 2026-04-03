@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Swipeable } from 'react-native-gesture-handler';
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import { toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import { supabase } from "../lib/supabase";
@@ -77,17 +78,19 @@ export const TaskItem = ({
         .from("Tasks")
         .select("date, done")
         .eq("id", item.id)
+        .eq("user_id", user.id)
         .single();
       if (fetchError || !taskData) throw new Error(fetchError?.message || "Tâche non trouvée");
 
-      const taskDate = new Date(taskData.date).toDateString();
+      const taskDate = toAppDateKey(taskData.date);
       const isDone = taskData.done;
 
       // Supprimer la tâche
       const { error: deleteError } = await supabase
         .from("Tasks")
         .delete()
-        .eq("id", item.id);
+        .eq("id", item.id)
+        .eq("user_id", user.id);
       if (deleteError) throw new Error(deleteError.message);
 
       // Mettre à jour la table Days
@@ -112,7 +115,7 @@ export const TaskItem = ({
             .update({
               total: newTotal,
               done_count: newDoneCount,
-              updated_at: new Date().toDateString(),
+              updated_at: toAppDateKey(new Date()),
             })
             .eq("id", existingDay.id);
         }
@@ -134,12 +137,13 @@ export const TaskItem = ({
         .from("Tasks")
         .select("date, done")
         .eq("id", item.id)
+        .eq("user_id", user.id)
         .single();
 
       if (fetchError || !taskData) throw new Error(fetchError?.message || "Tâche non trouvée");
 
       const oldDate = new Date(taskData.date);
-      const oldDateString = oldDate.toDateString();
+      const oldDateString = toAppDateKey(taskData.date);
       const isDone = taskData.done;
 
       let currentDate = new Date(taskData.date);
@@ -148,7 +152,7 @@ export const TaskItem = ({
       } else {
         currentDate.setDate(currentDate.getDate() + 1);
       }
-      const newDateString = currentDate.toDateString();
+      const newDateString = toAppDateKey(currentDate);
       
       if (oldDateString === newDateString) return;
 
@@ -156,7 +160,8 @@ export const TaskItem = ({
       const { error } = await supabase
         .from("Tasks")
         .update({ date: newDateString })
-        .eq("id", item.id);
+        .eq("id", item.id)
+        .eq("user_id", user.id);
       if (error) throw new Error(error.message);
 
       // Retirer la tâche de l'ancien jour
@@ -179,7 +184,7 @@ export const TaskItem = ({
           await supabase.from("Days").update({
             total: newTotal,
             done_count: newDoneCount,
-            updated_at: new Date().toDateString(),
+            updated_at: toAppDateKey(new Date()),
           }).eq("id", oldDay.id);
         }
       }
@@ -198,13 +203,13 @@ export const TaskItem = ({
           date: newDateString,
           total: 1,
           done_count: isDone ? 1 : 0,
-          updated_at: new Date().toDateString(),
+          updated_at: toAppDateKey(new Date()),
         }]);
       } else {
         await supabase.from("Days").update({
           total: (newDay.total || 0) + 1,
           done_count: isDone ? (newDay.done_count || 0) + 1 : (newDay.done_count || 0),
-          updated_at: new Date().toDateString(),
+          updated_at: toAppDateKey(new Date()),
         }).eq("id", newDay.id);
       }
     },

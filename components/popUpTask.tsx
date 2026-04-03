@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { fromAppDateKey, isSameAppDate, toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import { useTheme } from "../lib/ThemeContext";
@@ -43,10 +44,17 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
     });
 
     async function getTask() {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            throw new Error("Utilisateur non connecté");
+        }
+
         const { data, error } = await supabase
             .from("Tasks")
             .select("*")
             .eq("id", id)
+            .eq("user_id", user.id)
             .single();
 
         if (error) {
@@ -79,7 +87,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                             .from("Days")
                             .select("*")
                             .eq("user_id", user.id)
-                            .eq("date", taskDate.toDateString())
+                            .eq("date", toAppDateKey(taskDate))
                             .maybeSingle();
 
                         if (fetchError) {
@@ -115,7 +123,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                                 .update({
                                     total: newTotal,
                                     done_count: newDoneCount,
-                                    updated_at: new Date().toDateString(),
+                                    updated_at: toAppDateKey(new Date()),
                                 })
                                 .eq("id", existingDay.id);
 
@@ -154,7 +162,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                             .from("Days")
                             .select("*")
                             .eq("user_id", user.id)
-                            .eq("date", taskDate.toDateString())
+                            .eq("date", toAppDateKey(taskDate))
                             .maybeSingle();
 
                         if (fetchError) {
@@ -171,7 +179,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                                 .from("Days")
                                 .update({
                                     done_count: newDoneCount,
-                                    updated_at: new Date().toDateString(),
+                                    updated_at: toAppDateKey(new Date()),
                                 })
                                 .eq("id", existingDay.id);
 
@@ -211,7 +219,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                             .from("Days")
                             .select("*")
                             .eq("user_id", user.id)
-                            .eq("date", initialDate.toDateString())
+                            .eq("date", toAppDateKey(initialDate))
                             .maybeSingle();
 
                         if (fetchOldDayError) {
@@ -243,7 +251,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                                     .update({
                                         total: newTotal,
                                         done_count: newDoneCount,
-                                        updated_at: new Date().toDateString(),
+                                        updated_at: toAppDateKey(new Date()),
                                     })
                                     .eq("id", oldDay.id);
 
@@ -259,7 +267,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                             .from("Days")
                             .select("*")
                             .eq("user_id", user.id)
-                            .eq("date", taskDate.toDateString())
+                            .eq("date", toAppDateKey(taskDate))
                             .maybeSingle();
 
                         if (fetchError) {
@@ -272,10 +280,10 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                             const { error: insertError } = await supabase.from("Days").insert([
                                 {
                                     user_id: user.id,
-                                    date: taskDate.toDateString(),
+                                    date: toAppDateKey(taskDate),
                                     total: 1,
                                     done_count: isDone ? 1 : 0,
-                                    updated_at: new Date().toDateString(),
+                                    updated_at: toAppDateKey(new Date()),
                                 },
                             ]);
 
@@ -292,7 +300,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                                 .update({
                                     total: (existingDay.total || 0) + 1,
                                     done_count: isDone ? (existingDay.done_count || 0) + 1 : (existingDay.done_count || 0),
-                                    updated_at: new Date().toDateString(),
+                                    updated_at: toAppDateKey(new Date()),
                                 })
                                 .eq("id", existingDay.id);
 
@@ -316,11 +324,18 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
 
     const deleteTaskMutation = useMutation({
         mutationFn: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                throw new Error("Utilisateur non connecté");
+            }
+
             // Récupérer la tâche AVANT la suppression pour avoir la date
             const { data: taskData, error: fetchError } = await supabase
                 .from("Tasks")
                 .select("id, date, order")
                 .eq("id", id)
+                .eq("user_id", user.id)
                 .single();
 
             if (fetchError || !taskData) {
@@ -333,7 +348,8 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
             const { error: deleteError } = await supabase
                 .from("Tasks")
                 .delete()
-                .eq("id", id);
+                .eq("id", id)
+                .eq("user_id", user.id);
 
             if (deleteError) {
                 throw new Error(deleteError.message);
@@ -344,6 +360,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                 const { data: allTasks, error: fetchAllError } = await supabase
                     .from("Tasks")
                     .select("id, order")
+                    .eq("user_id", user.id)
                     .eq("date", deletedTaskDate)
                     .order("order", { ascending: true });
 
@@ -359,7 +376,8 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                         const { error: updateError } = await supabase
                             .from("Tasks")
                             .update({ order: newOrder })
-                            .eq("id", task.id);
+                            .eq("id", task.id)
+                            .eq("user_id", user.id);
 
                         if (updateError) {
                             console.error("Erreur lors de la mise à jour de l'order:", updateError);
@@ -380,6 +398,12 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
 
     const updateTaskMutation = useMutation({
         mutationFn: async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                throw new Error("Utilisateur non connecté");
+            }
+
             if (!name.trim()) {
                 return;
             }
@@ -389,11 +413,12 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                 .update({
                     name: name.trim(),
                     description: description.trim(),
-                    date: taskDate.toDateString(),
+                    date: toAppDateKey(taskDate),
                     done: isDone,
                     last_update_date: new Date().toISOString(),
                 })
-                .eq("id", id);
+                .eq("id", id)
+                .eq("user_id", user.id);
             if (error) {
                 throw new Error(error.message);
             }
@@ -413,7 +438,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
         const isModified =
             name !== task.name ||
             description !== (task.description || "") ||
-            taskDate.toDateString() !== (task.date ? new Date(task.date).toDateString() : new Date().toDateString()) ||
+            !isSameAppDate(taskDate, task.date ? task.date : new Date()) ||
             isDone !== task.done;
 
         setHasChanges(isModified);
@@ -437,10 +462,17 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
         const fetchTask = async () => {
             try {
                 setLoading(true);
+                const { data: { user } } = await supabase.auth.getUser();
+
+                if (!user) {
+                    return;
+                }
+
                 const { data, error } = await supabase
                     .from("Tasks")
                     .select("*")
                     .eq("id", id)
+                    .eq("user_id", user.id)
                     .single();
 
                 if (error) {
@@ -453,7 +485,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                 setDescription(data.description || "");
 
 
-                setTaskDate(data.date ? new Date(data.date) : new Date());
+                setTaskDate(data.date ? fromAppDateKey(data.date) : new Date());
                 setIsDone(data.done || false);
                 setLastUpdateDate(data.last_update_date ? new Date(data.last_update_date) : null);
             } catch (error) {
