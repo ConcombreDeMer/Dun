@@ -65,7 +65,18 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    const resolveLanguage = async () => {
+    const getStoredLanguage = async (): Promise<AppLanguage | null> => {
+      const storedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+      return isSupportedLanguage(storedLanguage) ? storedLanguage : null;
+    };
+
+    const bootstrapLanguage = async () => {
+      const storedLanguage = await getStoredLanguage();
+      const fallbackLanguage = storedLanguage ?? getDeviceLanguage();
+      await applyLanguage(fallbackLanguage);
+    };
+
+    const resolveLanguageFromProfile = async () => {
       try {
         const deviceLanguage = getDeviceLanguage();
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -102,17 +113,31 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         await persistUserLanguage(userId, deviceLanguage);
       } catch (error) {
         console.error("Erreur lors du chargement de la langue:", error);
+      }
+    };
+
+    const initializeLanguage = async () => {
+      try {
+        await bootstrapLanguage();
+      } catch (error) {
+        console.error("Erreur lors de l'initialisation locale de la langue:", error);
       } finally {
         if (isMounted) {
           setIsReady(true);
         }
       }
+
+      await resolveLanguageFromProfile();
     };
 
-    resolveLanguage();
+    initializeLanguage();
 
-    const { data } = supabase.auth.onAuthStateChange(async () => {
-      await resolveLanguage();
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "TOKEN_REFRESHED") {
+        return;
+      }
+
+      void resolveLanguageFromProfile();
     });
 
     return () => {

@@ -5,11 +5,11 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useMemo, useState } from "react";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Platform, View } from "react-native";
-import Purchases, { LOG_LEVEL } from "react-native-purchases";
+import { View } from "react-native";
 import Navbar from "../components/navbar";
 import { FontProvider } from "../lib/FontContext";
 import { I18nProvider, useAppTranslation, useI18nReady } from "../lib/i18n";
+import { initializeRevenueCat, syncRevenueCatUser } from "../lib/revenuecat";
 import { supabase } from "../lib/supabase";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 
@@ -56,15 +56,7 @@ function RootLayoutContent() {
 
   // Initialiser RevenueCat
   useEffect(() => {
-    if (Platform.OS === 'ios') {
-      Purchases.setLogLevel(LOG_LEVEL.DEBUG);
-      // Remplacez process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY par votre clé si vous utilisez les variables d'environnement
-      if (process.env.EXPO_PUBLIC_REVENUECAT_KEY) {
-        Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_REVENUECAT_KEY });
-      } else {
-        console.warn("Clé API RevenueCat manquante dans les variables d'environnement (.env)");
-      }
-    }
+    initializeRevenueCat();
   }, []);
 
   // Initialiser l'authentification et écouter les changements
@@ -85,7 +77,7 @@ function RootLayoutContent() {
 
       if (session?.user?.id) {
         try {
-          await Purchases.logIn(session.user.id);
+          await syncRevenueCatUser(session.user.id);
         } catch (e) {
           console.error("Erreur RevenueCat initAuth logIn:", e);
         }
@@ -101,13 +93,13 @@ function RootLayoutContent() {
 
       if (newSession?.user?.id) {
         try {
-          await Purchases.logIn(newSession.user.id);
+          await syncRevenueCatUser(newSession.user.id);
         } catch (e) {
           console.error("Erreur RevenueCat logIn:", e);
         }
       } else if (event === 'SIGNED_OUT') {
         try {
-          await Purchases.logOut();
+          await syncRevenueCatUser(null);
         } catch (e) {
           console.error("Erreur RevenueCat logOut:", e);
         }
