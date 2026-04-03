@@ -15,11 +15,13 @@ import {
 } from "react-native";
 import Purchases, { PurchasesPackage } from "react-native-purchases";
 import { useFont } from "../../lib/FontContext";
+import { useAppTranslation } from "../../lib/i18n";
 import { useTheme } from "../../lib/ThemeContext";
 
 export default function Premium() {
     const router = useRouter();
     const { fontSizes } = useFont();
+    const { t } = useAppTranslation();
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<'annual' | 'monthly'>('annual');
     const [packages, setPackages] = useState<{ annual?: PurchasesPackage, monthly?: PurchasesPackage }>({});
@@ -60,7 +62,7 @@ export default function Premium() {
     const buyPremium = async () => {
         const packageToBuy = selectedPlan === 'annual' ? packages.annual : packages.monthly;
         if (!packageToBuy) {
-            Alert.alert("Erreur", "Les offres ne sont pas encore chargées.");
+            Alert.alert(t("common.alerts.errorTitle"), t("settings.premium.offersNotLoaded"));
             return;
         }
 
@@ -70,12 +72,12 @@ export default function Premium() {
             
             // Remplacez 'pro' par l'identifiant de votre Entitlement dans RevenueCat
             if (typeof customerInfo.entitlements.active['Dun Pro'] !== "undefined") {
-                Alert.alert("Merci !", "Votre abonnement a été pris en compte.");
+                Alert.alert(t("settings.premium.purchaseSuccessTitle"), t("settings.premium.purchaseSuccessMessage"));
                 router.back();
             }
         } catch (e: any) {
             if (!e.userCancelled) {
-                Alert.alert("Erreur d'achat", e.message || "Une erreur est survenue");
+                Alert.alert(t("settings.premium.purchaseErrorTitle"), e.message || t("common.alerts.genericError"));
             }
         } finally {
             setIsPurchasing(false);
@@ -123,19 +125,19 @@ export default function Premium() {
 
                 <View style={styles.featuresCardContainer}>
                     <Squircle style={styles.featuresCard}>
-                        {renderFeatureItem('infinity', <Text>Nombre de tâches par jour <Text style={styles.boldText}>illimité</Text></Text>)}
-                        {renderFeatureItem('chart.line.uptrend.xyaxis', <Text>Accès à des <Text style={styles.boldText}>statistiques poussés</Text> pour un meilleur suivie</Text>)}
-                        {renderFeatureItem('paintbrush', <Text><Text style={styles.boldText}>Personnalise</Text> l'app à ton image{"\n"}(thème, disposition, son, etc...)</Text>)}
+                        {renderFeatureItem('infinity', <Text>{t("settings.premium.featureUnlimited")}</Text>)}
+                        {renderFeatureItem('chart.line.uptrend.xyaxis', <Text>{t("settings.premium.featureAdvancedStats")}</Text>)}
+                        {renderFeatureItem('paintbrush', <Text>{t("settings.premium.featurePersonalize")}</Text>)}
                     </Squircle>
 
                     <Squircle style={styles.futureFeaturesContainer}>
                         <Text style={[styles.futureFeaturesText, { fontSize: fontSizes.sm }]}>
-                            + des fonctionnalités <Text style={styles.boldText}>futures</Text>
+                            {t("settings.premium.futureFeatures")}
                         </Text>
                         <TouchableOpacity
                             onPress={() => setShowDetailsModal(true)}
                         >
-                            <Text style={[styles.learnMoreText, { fontSize: fontSizes.sm }]}>en savoir plus...</Text>
+                            <Text style={[styles.learnMoreText, { fontSize: fontSizes.sm }]}>{t("settings.premium.learnMore")}</Text>
                         </TouchableOpacity>
                     </Squircle>
                 </View>
@@ -147,7 +149,7 @@ export default function Premium() {
                         activeOpacity={0.8}
                     >
                         <View style={styles.planHeader}>
-                            <Text style={[styles.planTitle, { fontSize: fontSizes.lg }]}>Annuel</Text>
+                            <Text style={[styles.planTitle, { fontSize: fontSizes.lg }]}>{t("settings.premium.annual")}</Text>
                             <View style={[styles.radioCircle, selectedPlan === 'annual' && styles.radioCircleActive]}>
                                 {selectedPlan === 'annual' && <View style={styles.radioInnerCircle} />}
                             </View>
@@ -157,7 +159,7 @@ export default function Premium() {
                         ) : (
                             <>
                                 <Text style={[styles.planPrice, { fontSize: fontSizes['2xl'] }]}>{packages.annual?.product.priceString || "12,99 €"}</Text>
-                                <Text style={[styles.planDiscount, { fontSize: fontSizes.sm }]}>soit 1.33 € / mois (-25%)</Text>
+                                <Text style={[styles.planDiscount, { fontSize: fontSizes.sm }]}>{t("settings.premium.annualDiscount")}</Text>
                             </>
                         )}
                     </SquircleButton>
@@ -168,7 +170,7 @@ export default function Premium() {
                         activeOpacity={0.8}
                     >
                         <View style={styles.planHeader}>
-                            <Text style={[styles.planTitle, { fontSize: fontSizes.lg }]}>Mensuel</Text>
+                            <Text style={[styles.planTitle, { fontSize: fontSizes.lg }]}>{t("settings.premium.monthly")}</Text>
                             <View style={[styles.radioCircle, selectedPlan === 'monthly' && styles.radioCircleActive]}>
                                 {selectedPlan === 'monthly' && <View style={styles.radioInnerCircle} />}
                             </View>
@@ -189,7 +191,7 @@ export default function Premium() {
                         <ActivityIndicator color="#FFF" />
                     ) : (
                         <Text style={[styles.buyButtonText, { fontSize: fontSizes['2xl'] }]}>
-                            Obtenir Dun <Text style={styles.buyButtonPlus}>+</Text>
+                            {t("settings.premium.buy")}
                         </Text>
                     )}
                 </SquircleButton>

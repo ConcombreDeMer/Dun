@@ -9,8 +9,8 @@ export type ColorTheme = 'neutral' | 'sage' | 'ocean' | 'sunset' | 'sand';
 
 export interface ColorThemeOption {
     id: ColorTheme;
-    label: string;
-    description: string;
+    labelKey: string;
+    descriptionKey: string;
     preview: string[];
     light: Partial<Colors>;
     dark: Partial<Colors>;
@@ -93,16 +93,16 @@ export const darkColors: Colors = {
 export const colorThemeOptions: ColorThemeOption[] = [
     {
         id: 'neutral',
-        label: 'Neutre',
-        description: 'Le thème d’origine, sobre et équilibré.',
+        labelKey: 'settings.colors.themes.neutral.label',
+        descriptionKey: 'settings.colors.themes.neutral.description',
         preview: ['#EFEFEF', '#FFFFFF', '#B3B3B3'],
         light: {},
         dark: {},
     },
     {
         id: 'sage',
-        label: 'Sauge',
-        description: 'Vert doux, calme et organique.',
+        labelKey: 'settings.colors.themes.sage.label',
+        descriptionKey: 'settings.colors.themes.sage.description',
         preview: ['#E8F0E8', '#F7FBF6', '#7B9B74'],
         light: {
             background: '#E8F0E8',
@@ -141,8 +141,8 @@ export const colorThemeOptions: ColorThemeOption[] = [
     },
     {
         id: 'ocean',
-        label: 'Océan',
-        description: 'Bleu profond, plus net et contrasté.',
+        labelKey: 'settings.colors.themes.ocean.label',
+        descriptionKey: 'settings.colors.themes.ocean.description',
         preview: ['#E7F1F8', '#F8FBFE', '#4E83A8'],
         light: {
             background: '#E7F1F8',
@@ -181,8 +181,8 @@ export const colorThemeOptions: ColorThemeOption[] = [
     },
     {
         id: 'sunset',
-        label: 'Sunset',
-        description: 'Teintes chaudes, plus vibrantes.',
+        labelKey: 'settings.colors.themes.sunset.label',
+        descriptionKey: 'settings.colors.themes.sunset.description',
         preview: ['#F7E9EE', '#FEF8FA', '#C97A6B'],
         light: {
             background: '#F7E9EE',
@@ -221,8 +221,8 @@ export const colorThemeOptions: ColorThemeOption[] = [
     },
     {
         id: 'sand',
-        label: 'Sable',
-        description: 'Beige chaleureux, plus feutré.',
+        labelKey: 'settings.colors.themes.sand.label',
+        descriptionKey: 'settings.colors.themes.sand.description',
         preview: ['#F4ECDD', '#FFFDF7', '#AF9371'],
         light: {
             background: '#F4ECDD',

@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useFont } from "../lib/FontContext";
+import { useAppTranslation } from "../lib/i18n";
 import { useTheme } from "../lib/ThemeContext";
 import PrimaryButton from "./primaryButton";
 
@@ -35,6 +36,7 @@ const isSameDay = (date1: Date, date2: Date): boolean => {
 export default function DateInput({ value, onChange, disabled = false, label, bold = false, showTodayButton = false }: DateInputProps) {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [tempDate, setTempDate] = useState(value);
+    const { t, language } = useAppTranslation();
     const { colors } = useTheme();
     const { fontSizes } = useFont();
 
@@ -81,6 +83,13 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
         };
     });
 
+    const formattedDate = value.toLocaleDateString(language === "en" ? "en-US" : "fr-FR", {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
+
     return (
         <View style={styles.dateContainer}>
             {label &&
@@ -107,12 +116,7 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
                     disabled={disabled}
                 >
                     <Text style={[styles.dateButtonText, { color: colors.text, fontWeight: bold ? '400' : '200', fontSize: fontSizes.lg, fontFamily: 'Satoshi-Medium' }]}>
-                        {value.toLocaleDateString("fr-FR", {
-                            weekday: "short",
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                        })}
+                        {formattedDate}
                     </Text>
                 </TouchableOpacity>
 
@@ -134,7 +138,7 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
                             }
                         ]}
                     >
-                        <Text style={[styles.todayButtonText, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>Retour à aujourd'hui</Text>
+                        <Text style={[styles.todayButtonText, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>{t("calendar.backToToday")}</Text>
                     </Animated.View>
                 </TouchableOpacity>
             }

@@ -6,11 +6,13 @@ import { SquircleButton, SquircleView } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Animated, Easing, InputAccessoryView, Keyboard, Text, TextInput, View } from "react-native";
+import { useAppTranslation } from "../../lib/i18n";
 import { useTheme } from "../../lib/ThemeContext";
 
 
 export default function Tutorial() {
     const { colors } = useTheme();
+    const { t } = useAppTranslation();
     const router = useRouter();
     const simpleInputRef = useRef<TextInput>(null);
     const [disableNext, setDisableNext] = useState(false);
@@ -45,7 +47,7 @@ export default function Tutorial() {
     const handleNext = async () => {
         if (currentPage === 3) {
             if (name.trim() === '') {
-                Alert.alert("Oups !", "Il semble que tu n'aies pas entré de prénom. Dis nous comment tu t'appelles pour continuer !");
+                Alert.alert(t("onboarding.tutorial.alertTitle"), t("onboarding.tutorial.missingName1"));
                 return;
             }
         }
@@ -104,7 +106,7 @@ export default function Tutorial() {
 
     const submitName = () => {
         if (name.trim() === '') {
-            Alert.alert("Oups !", "Il semble que tu n'aies pas entré de prénom. Peux-tu nous dire comment tu t'appelles ?")
+            Alert.alert(t("onboarding.tutorial.alertTitle"), t("onboarding.tutorial.missingName2"))
             return;
         }
         Keyboard.dismiss();
@@ -120,32 +122,32 @@ export default function Tutorial() {
         },
         {
             page: '1',
-            text: "J'vais t'expliquer comment utiliser l'app que tu viens de télécharger !",
+            text: t("onboarding.tutorial.pages.1"),
             image: require('../../assets/images/character/10.png'),
         },
         {
             page: '2',
-            text: "Mais avant toute chose...",
+            text: t("onboarding.tutorial.pages.2"),
             image: require('../../assets/images/character/10.png'),
         },
         {
             page: '3',
-            text: "Comment t'appelles-tu ?",
+            text: t("onboarding.tutorial.pages.3"),
             image: require('../../assets/images/character/11.png'),
         },
         {
             page: '4',
-            text: "Enchanté ",
+            text: t("onboarding.tutorial.pages.4"),
             image: require('../../assets/images/character/2.png'),
         },
         {
             page: '5',
-            text: "Maintenant que les présentations sont faites...",
+            text: t("onboarding.tutorial.pages.5"),
             image: require('../../assets/images/character/12.png'),
         },
         {
             page: '6',
-            text: "Allons voir cette app !",
+            text: t("onboarding.tutorial.pages.6"),
             image: require('../../assets/images/character/13.png'),
         },
     ];
@@ -210,7 +212,7 @@ export default function Tutorial() {
                                     fontFamily: 'Satoshi-Regular',
                                 }}
                             >
-                                Salut !{"\n"}Moi c'est <Text style={{ fontFamily: 'Satoshi-Bold' }}>Dun</Text> !{"\n"}Ravis de te rencontrer !
+                                {t("onboarding.tutorial.greeting")}
                             </Text>
                         )
                     }
@@ -286,7 +288,7 @@ export default function Tutorial() {
                     >
 
                         <TextInput
-                            placeholder="Écris ton prénom ici..."
+                            placeholder={t("onboarding.tutorial.namePlaceholder")}
                             value={name}
                             onChangeText={setName}
                             style={{
@@ -315,7 +317,7 @@ export default function Tutorial() {
                         >
                             <TextInput
                                 ref={simpleInputRef}
-                                placeholder="Écris ton prénom ici..."
+                                placeholder={t("onboarding.tutorial.namePlaceholder")}
                                 value={name}
                                 onChangeText={setName}
                                 enterKeyHint="done"

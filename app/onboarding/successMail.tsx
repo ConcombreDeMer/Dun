@@ -15,11 +15,13 @@ import Animated, {
   FadeOutDown,
   FadeInDown,
 } from 'react-native-reanimated';
+import { useAppTranslation } from '../../lib/i18n';
 
 
 
 export default function SuccessMail() {
   const router = useRouter();
+  const { t } = useAppTranslation();
   const LottieView = require('lottie-react-native').default;
   const { colors, theme } = useTheme();
 
@@ -32,10 +34,10 @@ export default function SuccessMail() {
         style={styles.header}
         entering={FadeInUp.delay(1500).duration(600)}>
         <Text style={[styles.title, { color: colors.text }]}>
-          Félicitations
+          {t('onboarding.successMail.title')}
         </Text>
         <Text style={[styles.subtitle, { color: colors.text }]}>
-          Ton email a bien été vérifié
+          {t('onboarding.successMail.subtitle')}
         </Text>
       </Animated.View>
 
@@ -55,8 +57,8 @@ export default function SuccessMail() {
         entering={FadeInUp.delay(1000).duration(600)}
         style={styles.message}
       >
-        <Text style={{ fontSize: 20, fontWeight:300 }}>Tu peux maintenant</Text>
-        <Text style={{ fontSize: 20, fontWeight:300 }}>te <Text style={{ fontWeight: 700, fontSize:20 }}>connecter</Text></Text>
+        <Text style={{ fontSize: 20, fontWeight:300 }}>{t('onboarding.successMail.line1')}</Text>
+        <Text style={{ fontSize: 20, fontWeight:300 }}>{t('onboarding.successMail.line2')}</Text>
         <Text style={{ fontSize: 20, fontWeight:300 }}>🎉</Text>
       </Animated.View>
 
@@ -69,7 +71,7 @@ export default function SuccessMail() {
           onPress={() => router.push('/onboarding/login')}
         >
           <Text style={[styles.validateButtonText, { color: colors.buttonText }]}>
-            Se connecter
+            {t('onboarding.successMail.action')}
           </Text>
         </TouchableOpacity>
       </Animated.View>

@@ -16,6 +16,7 @@ import {
     View
 } from "react-native";
 import { taskEmitter } from "../lib/eventEmitter";
+import { useAppTranslation } from "../lib/i18n";
 import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
 
@@ -27,6 +28,7 @@ export default function CreateTask() {
     const selectedDate = useStore((state) => state.selectedDate) || new Date();
     const setSelectedDate = useStore((state) => state.setSelectedDate);
     const { colors, theme } = useTheme();
+    const { t } = useAppTranslation();
     const queryClient = useQueryClient();
 
     const dayMutation = useMutation({
@@ -34,7 +36,7 @@ export default function CreateTask() {
             // Récupérer l'utilisateur connecté
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                throw new Error("Utilisateur non connecté");
+                throw new Error(t("common.alerts.nonConnectedUser"));
             }
             const { data: existingDay, error: fetchError } = await supabase
                 .from("Days")
@@ -95,7 +97,7 @@ export default function CreateTask() {
             const { data: { user } } = await supabase.auth.getUser();
 
             if (!user) {
-                throw new Error("Utilisateur non connecté");
+                throw new Error(t("common.alerts.nonConnectedUser"));
             }
 
             // Récupérer le nombre de tâches existantes pour cette journée
@@ -131,21 +133,21 @@ export default function CreateTask() {
             // Invalide la query et refetch automatiquement
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
 
-            Alert.alert("Succès", "Tâche créée avec succès");
+            Alert.alert(t("common.alerts.successTitle"), t("common.alerts.taskCreated"));
             setName("");
             setDescription("");
             taskEmitter.emit("taskAdded");
             router.back();
         },
         onError: (error: any) => {
-            Alert.alert("Erreur", error.message || "Une erreur est survenue");
+            Alert.alert(t("common.alerts.errorTitle"), error.message || t("common.alerts.genericError"));
         }
     });
 
     const handleCreateTask = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         if (!name.trim()) {
-            Alert.alert("Erreur", "Le nom de la tâche est requis");
+            Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.requiredTaskName"));
             return;
         }
         createTaskMutation.mutate();
@@ -169,19 +171,19 @@ export default function CreateTask() {
             <View style={styles.handleContainer}>
                 <View style={[styles.handle, { backgroundColor: colors.textSecondary }]} />
             </View>
-            <Headline title="Créer" subtitle="une tâche" />
+            <Headline title={t("createTask.headline.title")} subtitle={t("createTask.headline.subtitle")} />
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.mainView}>
 
                     <SimpleInput
-                        name="Titre"
+                        name={t("createTask.fields.title")}
                         value={name}
                         onChangeText={setName}
                         bold
                     />
 
                     <SimpleInput
-                        name="Description"
+                        name={t("createTask.fields.description")}
                         value={description}
                         onChangeText={setDescription}
                         multiline
@@ -201,7 +203,7 @@ export default function CreateTask() {
 
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf: "center", width: "100%", position: "absolute", bottom: 23 }}>
                 <PrimaryButton size="XS" image="xmark" onPress={handleCancel} />
-                <PrimaryButton size="M" title="Valider" onPress={handleCreateTask} />
+                <PrimaryButton size="M" title={t("createTask.buttons.confirm")} onPress={handleCreateTask} />
             </View>
 
         </KeyboardAvoidingView>

@@ -25,6 +25,7 @@ import {
 } from "react-native";
 import Animated, { FadeInUp, FadeOutUp, SlideInDown, SlideOutDown, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useFont } from "../../lib/FontContext";
+import { useAppTranslation } from "../../lib/i18n";
 import { deleteUserAccount, supabase } from "../../lib/supabase";
 import { useTheme } from "../../lib/ThemeContext";
 import { useStore } from "../../store/store";
@@ -38,6 +39,7 @@ interface UserData {
 export default function Account() {
     const router = useRouter();
     const { theme, colors } = useTheme();
+    const { t } = useAppTranslation();
     const [isLoading, setIsLoading] = useState(true);
     const [isDeletingAccount, setIsDeletingAccount] = useState(false);
     const { id } = useLocalSearchParams();
@@ -102,7 +104,7 @@ export default function Account() {
 
     const handleNext1 = async () => {
         if (!password) {
-            Alert.alert("Erreur", "Veuillez entrer votre mot de passe.");
+            Alert.alert(t("common.alerts.errorTitle"), t("settings.account.errors.enterPassword"));
             return;
         }
 
@@ -114,7 +116,7 @@ export default function Account() {
         setIsCheckingPassword(false);
 
         if (error) {
-            Alert.alert("Erreur", "Mot de passe incorrect.");
+            Alert.alert(t("common.alerts.errorTitle"), t("settings.account.errors.incorrectPassword"));
             return;
         }
 
@@ -125,18 +127,18 @@ export default function Account() {
 
     const handleNext2 = async () => {
         if (!newEmailInput) {
-            Alert.alert("Erreur", "Veuillez entrer un nouvel email.");
+            Alert.alert(t("common.alerts.errorTitle"), t("settings.account.errors.enterNewEmail"));
             return;
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(newEmailInput)) {
-            Alert.alert("Erreur", "Veuillez entrer un email valide.");
+            Alert.alert(t("common.alerts.errorTitle"), t("settings.account.errors.invalidEmail"));
             return;
         }
 
         if (newEmailInput.trim().toLowerCase() === userData?.email?.toLowerCase()) {
-            Alert.alert("Erreur", "Le nouvel email doit être différent de l'actuel.");
+            Alert.alert(t("common.alerts.errorTitle"), t("settings.account.errors.differentEmail"));
             return;
         }
 
@@ -146,13 +148,13 @@ export default function Account() {
 
         if (fetchError) {
             console.error('Erreur:', fetchError);
-            Alert.alert('Erreur', 'Erreur lors de la vérification de l\'email.');
+            Alert.alert(t('common.alerts.errorTitle'), t('settings.account.errors.checkingEmail'));
             setIsCheckingEmail(false);
             return;
         }
 
         if (emailExists) {
-            Alert.alert('Erreur', 'Cette adresse email est déjà utilisée.');
+            Alert.alert(t('common.alerts.errorTitle'), t('settings.account.errors.emailUsed'));
             setIsCheckingEmail(false);
             return;
         }
@@ -166,7 +168,7 @@ export default function Account() {
 
         if (updateError) {
             console.error("Erreur lors de la mise à jour de l'email : " + updateError.message);
-            Alert.alert("Erreur", "Une erreur est survenue lors du changement d'email.");
+            Alert.alert(t("common.alerts.errorTitle"), t("settings.account.errors.changeEmail"));
             return;
         }
 
@@ -226,7 +228,7 @@ export default function Account() {
         );
         if (resetError) {
             console.error("Erreur lors de l'envoi de l'email de réinitialisation : " + resetError.message);
-            Alert.alert("Erreur", "Une erreur est survenue lors de l'envoi de l'email de réinitialisation.");
+            Alert.alert(t("common.alerts.errorTitle"), t("settings.account.errors.resetPassword"));
             return;
         }
 
@@ -375,7 +377,7 @@ export default function Account() {
         if (email !== userData?.email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
-                alert("Veuillez entrer un email valide.");
+                alert(t("settings.account.errors.invalidEmail"));
                 return;
             }
             // vérifier si l'email est déjà utilisé
@@ -386,12 +388,12 @@ export default function Account() {
 
             if (fetchError) {
                 console.error('Erreur:', fetchError);
-                alert('Erreur lors de la vérification de l\'email.');
+                alert(t('settings.account.errors.checkingEmail'));
                 return;
             }
 
             if (emailExists) {
-                alert('Cette adresse email est déjà utilisée');
+                alert(t('settings.account.errors.emailUsed'));
                 return;
             }
             setShowModal(true);
@@ -445,21 +447,21 @@ export default function Account() {
 
     const handleDeleteAccount = useCallback(async () => {
         Alert.alert(
-            "Supprimer le compte",
-            "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible et supprimera toutes vos données.",
+            t("settings.account.deleteAccount.title"),
+            t("settings.account.deleteAccount.message"),
             [
                 {
-                    text: "Annuler",
+                    text: t("common.actions.cancel"),
                     onPress: () => console.log("Suppression annulée"),
                     style: "cancel",
                 },
                 {
-                    text: "Supprimer",
+                    text: t("common.actions.delete"),
                     onPress: async () => {
                         setIsDeletingAccount(true);
                         try {
                             await deleteUserAccount();
-                            Alert.alert("Succès", "Votre compte a été supprimé avec succès.", [
+                            Alert.alert(t("common.alerts.successTitle"), t("settings.account.deleteAccount.success"), [
                                 {
                                     text: "OK",
                                     onPress: () => {
@@ -471,8 +473,8 @@ export default function Account() {
                         } catch (error) {
                             console.error("Erreur lors de la suppression du compte:", error);
                             Alert.alert(
-                                "Erreur",
-                                "Une erreur est survenue lors de la suppression du compte. Veuillez réessayer."
+                                t("common.alerts.errorTitle"),
+                                t("settings.account.errors.deleteAccount")
                             );
                         } finally {
                             setIsDeletingAccount(false);
@@ -495,9 +497,9 @@ export default function Account() {
             <PopUpContainer
                 isVisible={showModal}
                 onClose={() => setShowModal(false)}
-                children={
-                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <View style={{ overflow: 'hidden', height: 400, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
+            >
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <View style={{ overflow: 'hidden', height: 400, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
 
                             {/* PAGE 1 */}
                             <Animated.View style={[{ display: 'flex', gap: 20, alignItems: 'center', width: '90%', height: 400, justifyContent: 'space-around', position: 'absolute' }, page1AnimatedStyle]}>
@@ -519,7 +521,7 @@ export default function Account() {
                                     <Text
                                         style={{ color: colors.text, fontSize: fontSizes['2xl'], textAlign: 'center' }}
                                     >
-                                        Entre ton mot de passe
+                                        {t("settings.account.changeEmailFlow.enterPassword")}
                                     </Text>
 
                                     <SimpleInput
@@ -586,7 +588,7 @@ export default function Account() {
                                     <Text
                                         style={{ color: colors.text, fontSize: fontSizes['2xl'], textAlign: 'center' }}
                                     >
-                                        Entre ton nouvel email
+                                        {t("settings.account.changeEmailFlow.enterNewEmail")}
                                     </Text>
 
                                     <SimpleInput
@@ -652,16 +654,12 @@ export default function Account() {
                                     <Text
                                         style={{ color: colors.text, fontSize: fontSizes['lg'], textAlign: 'center' }}
                                     >
-                                        Un mail de confirmation a été envoyé à{" "}
-                                        <Text style={{ fontWeight: 'bold' }}>
-                                            ton ancienne et ta nouvelle
-                                        </Text>
-                                        adresse email.
+                                        {t("settings.account.changeEmailFlow.confirmation")}
                                     </Text>
                                     <Text
                                         style={{ color: colors.textSecondary, fontSize: fontSizes.sm, textAlign: 'center' }}
                                     >
-                                        Pense à vérifier tes spams si tu ne le vois pas arriver dans les prochaines minutes
+                                        {t("settings.account.changeEmailFlow.spamHint")}
                                     </Text>
 
                                 </View>
@@ -690,18 +688,17 @@ export default function Account() {
                                 </SquircleButton>
                             </Animated.View>
 
-                        </View>
-                    </TouchableWithoutFeedback>
-                }
-            />
+                    </View>
+                </TouchableWithoutFeedback>
+            </PopUpContainer>
 
             {/* Modal Mot de passe */}
             <PopUpContainer
                 isVisible={showPasswordModal}
                 onClose={() => setShowPasswordModal(false)}
-                children={
-                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <View style={{ overflow: 'hidden', height: 450, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
+            >
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <View style={{ overflow: 'hidden', height: 450, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
 
                             {/* PAGE 1 */}
                             <Animated.View style={[{ display: 'flex', gap: 20, alignItems: 'center', width: '90%', height: '100%', justifyContent: 'space-between', position: 'absolute' }, passPage1AnimatedStyle]}>
@@ -712,25 +709,25 @@ export default function Account() {
                                         resizeMode="contain"
                                     />
                                     <Text style={{ fontFamily: 'Satoshi-Regular', color: colors.text, fontSize: fontSizes['xl'], textAlign: 'center' }}>
-                                        Es tu sûr de vouloir <Text style={{ fontFamily: 'Satoshi-Bold' }}>réinitialiser ton mot de passe</Text> ?
+                                        {t("settings.account.resetPasswordFlow.title")}
                                     </Text>
 
                                     <Text
                                         style={{ fontFamily: 'Satoshi-Regular', color: colors.textSecondary, fontSize: fontSizes.lg, textAlign: 'center' }}
                                     >
-                                        Si tu continues, <Text style={{ fontFamily: 'Satoshi-Bold' }}>un mail de réinitialisation</Text> de mot de passe te sera envoyé.
+                                        {t("settings.account.resetPasswordFlow.description1")}
                                     </Text>
 
                                     <Text
                                         style={{ fontFamily: 'Satoshi-Regular', color: colors.textSecondary, fontSize: fontSizes.lg, textAlign: 'center' }}
                                     >
-                                        Une fois le mot de passe réinitialisé, tu seras <Text style={{ fontFamily: 'Satoshi-Bold' }}>déconnecté de ton compte</Text>  et tu devras te reconnecter avec ton nouveau mot de passe.
+                                        {t("settings.account.resetPasswordFlow.description2")}
                                     </Text>
 
                                 </View>
 
                                 <PrimaryButton
-                                    title="Confirmer"
+                                    title={t("common.actions.confirm")}
                                     onPress={handlePassNext1}
                                 />
                             </Animated.View>
@@ -744,7 +741,7 @@ export default function Account() {
                                         resizeMode="contain"
                                     />
                                     <Text style={{ color: colors.text, fontSize: fontSizes['lg'], textAlign: 'center' }}>
-                                        Un mail t'a été envoyé pour changer ton mot de passe.
+                                        {t("settings.account.resetPasswordFlow.sent")}
                                     </Text>
                                 </View>
                                 <SquircleButton
@@ -757,10 +754,9 @@ export default function Account() {
                                 </SquircleButton>
                             </Animated.View>
 
-                        </View>
-                    </TouchableWithoutFeedback>
-                }
-            />
+                    </View>
+                </TouchableWithoutFeedback>
+            </PopUpContainer>
 
             <View
                 style={{
@@ -776,7 +772,7 @@ export default function Account() {
                     onPress={() => router.back()}
                     image="chevron.left"
                 />
-                <Headline title="Compte" subtitle="Gérer votre compte" />
+                <Headline title={t("settings.account.headline.title")} subtitle={t("settings.account.headline.subtitle")} />
             </View>
 
             <ScrollView
@@ -790,11 +786,11 @@ export default function Account() {
                     <Text
                         style={{ color: colors.textSecondary, fontSize: fontSizes.xl }}
                     >
-                        INFORMATIONS
+                        {t("settings.account.sections.informations")}
                     </Text>
                     <SquircleView>
                         <SettingItem
-                            title="Prénom"
+                            title={t("settings.account.firstName")}
                             // placeholder="Votre nom d'utilisateur"
                             rightContent={
                                 <SimpleInput
@@ -818,10 +814,10 @@ export default function Account() {
                     <Text
                         style={{ color: colors.textSecondary, fontSize: fontSizes.xl }}
                     >
-                        ABONNEMENT
+                        {t("settings.account.sections.subscription")}
                     </Text>
                     <SquircleView>
-                        <NavItem title="Gestion de l'abonnement" onPress={() => router.push("/settings/subscription")} />
+                        <NavItem title={t("settings.account.subscriptionManagement")} onPress={() => router.push("/settings/subscription")} />
                     </SquircleView>
                 </View>
 
@@ -831,14 +827,14 @@ export default function Account() {
                     <Text
                         style={{ color: colors.textSecondary, fontSize: fontSizes.xl }}
                     >
-                        SÉCURITÉ
+                        {t("settings.account.sections.security")}
                     </Text>
                     <SquircleView
                         style={{ display: 'flex', flexDirection: 'column', gap: 16, backgroundColor: colors.card, borderRadius: 20, paddingVertical: 16 }}
 
                     >
-                        <NavItem title="Réinitialiser le mot de passe" onPress={() => setShowPasswordModal(true)} transparent />
-                        <NavItem title="Changer l'email" onPress={() => setShowModal(true)} transparent />
+                        <NavItem title={t("settings.account.resetPassword")} onPress={() => setShowPasswordModal(true)} transparent />
+                        <NavItem title={t("settings.account.changeEmail")} onPress={() => setShowModal(true)} transparent />
                         {newEmail.length > 0 &&
 
                             <Squircle
@@ -850,7 +846,7 @@ export default function Account() {
                                     <Text
                                         style={{ color: colors.text + '50', fontFamily: 'Satoshi-Regular' }}
                                     >
-                                        Un changement d'email est en cours vers
+                                        {t("settings.account.emailChangeInProgress")}
                                     </Text>
                                     <Text
                                         style={{ color: colors.text + '90', fontFamily: 'Satoshi-Bold' }}
@@ -883,11 +879,11 @@ export default function Account() {
                     <Text
                         style={{ color: colors.textSecondary, fontSize: fontSizes.xl }}
                     >
-                        ZONE DE DANGER
+                        {t("settings.account.sections.dangerZone")}
                     </Text>
 
                     <SettingItem
-                        title="Se déconnecter"
+                        title={t("settings.account.logout")}
                         onPress={handleLogout}
                         type="danger"
                         image="iphone.and.arrow.forward.outward"
@@ -898,7 +894,7 @@ export default function Account() {
                     >
 
                         <SettingItem
-                            title="Supprimer les données"
+                            title={t("settings.account.deleteData")}
                             onPress={!isDeletingAccount ? handleDeleteAccount : undefined}
                             type="danger"
                             image="trash"
@@ -906,7 +902,7 @@ export default function Account() {
                         />
 
                         <SettingItem
-                            title="Supprimer le compte"
+                            title={t("settings.account.deleteAccountAction")}
                             onPress={!isDeletingAccount ? handleDeleteAccount : undefined}
                             type="danger"
                             image="trash"
@@ -926,14 +922,14 @@ export default function Account() {
                         style={styles.buttonsContainer}
                     >
                         <PrimaryButton
-                            title="Sauvegarder"
+                            title={t("settings.account.save")}
                             disabled={!hasChanges}
                             onPress={handleSave}
                             size="M"
                         />
 
                         <PrimaryButton
-                            title="Annuler"
+                            title={t("common.actions.cancel")}
                             type="reverse"
                             onPress={() => {
                                 if (userData) {

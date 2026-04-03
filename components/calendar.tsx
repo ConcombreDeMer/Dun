@@ -18,6 +18,7 @@ import Animated, {
     withSpring,
 } from "react-native-reanimated";
 import { useFont } from "../lib/FontContext";
+import { useAppTranslation } from "../lib/i18n";
 import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
 import Squircle from "./Squircle";
@@ -31,24 +32,6 @@ interface CalendarProps {
     initialDate?: Date;
     onExpandedChange?: (isExpanded: boolean) => void;
 }
-
-// Constantes statiques - créées une seule fois
-const MONTHS = [
-    "Janvier",
-    "Février",
-    "Mars",
-    "Avril",
-    "Mai",
-    "Juin",
-    "Juillet",
-    "Août",
-    "Septembre",
-    "Octobre",
-    "Novembre",
-    "Décembre",
-];
-
-const DAYS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 
 // Fonction utilitaire pour créer une date en UTC
 const createUTCDate = (year: number, month: number, day: number): Date => {
@@ -73,10 +56,10 @@ const isSameDay = (date1: Date, date2: Date): boolean => {
 };
 
 // Composant affichage date en mode collapsed - MEMOIZED
-const CollapsedDateDisplay = memo(({ selectedDate, colors, fontSizes }: any) => {
+const CollapsedDateDisplay = memo(({ selectedDate, colors, fontSizes, locale }: any) => {
     const dateStr = useMemo(() => {
-        return selectedDate.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
-    }, [selectedDate]);
+        return selectedDate.toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short" });
+    }, [locale, selectedDate]);
 
     return (
         <Text style={[styles.collapsedText, { color: colors.text, fontSize: fontSizes['4xl'] }]}>
@@ -84,7 +67,7 @@ const CollapsedDateDisplay = memo(({ selectedDate, colors, fontSizes }: any) => 
         </Text>
     );
 }, (prev, next) => {
-    return isSameDay(prev.selectedDate, next.selectedDate) && prev.colors === next.colors && prev.fontSizes === next.fontSizes;
+    return isSameDay(prev.selectedDate, next.selectedDate) && prev.colors === next.colors && prev.fontSizes === next.fontSizes && prev.locale === next.locale;
 });
 CollapsedDateDisplay.displayName = 'CollapsedDateDisplay';
 
@@ -236,6 +219,8 @@ export default function CalendarComponent({
 }: CalendarProps) {
     const { colors, theme } = useTheme();
     const { fontSizes } = useFont();
+    const { t, language } = useAppTranslation();
+    const locale = language === "en" ? "en-US" : "fr-FR";
     // Initialiser la date sélectionnée une seule fois
     const [selectedDate, setSelectedDate] = useState<Date>(() => initialDate || new Date());
     const [currentMonth, setCurrentMonth] = useState<Date>(() => initialDate || new Date());
@@ -413,15 +398,14 @@ export default function CalendarComponent({
         );
     }, [currentMonth]);
 
-    // Obtenir le nom du mois - simple lookup
     const getMonthName = useCallback((date: Date) => {
-        return MONTHS[date.getMonth()];
-    }, []);
+        return date.toLocaleDateString(locale, { month: "long" });
+    }, [locale]);
 
-    // Obtenir le nom du jour de la semaine - simple lookup
     const getDayName = useCallback((index: number) => {
-        return DAYS[index];
-    }, []);
+        const referenceDate = new Date(Date.UTC(2024, 0, 7 + index));
+        return referenceDate.toLocaleDateString(locale, { weekday: "short" });
+    }, [locale]);
 
     // Générer la grille du calendrier - MEMOIZED
     const calendarDays = useMemo(() => {
@@ -436,8 +420,9 @@ export default function CalendarComponent({
         return days;
     }, [currentMonth, getDaysInMonth, getFirstDayOfMonth]);
 
-    // Jours de la semaine - réutiliser directement la constante
-    const dayNames = DAYS;
+    const dayNames = useMemo(() => {
+        return Array.from({ length: 7 }, (_, index) => getDayName(index));
+    }, [getDayName]);
 
     // Générer une liste de jours infinie - MEMOIZED et LIMITED (90 jours seulement)
     const infiniteDays = useMemo(() => {
@@ -755,7 +740,7 @@ export default function CalendarComponent({
                         </View>
                     </>
                 ) : (
-                    <CollapsedDateDisplay selectedDate={selectedDate} colors={colors} fontSizes={fontSizes} />
+                    <CollapsedDateDisplay selectedDate={selectedDate} colors={colors} fontSizes={fontSizes} locale={locale} />
                 )}
             </Squircle>
 
@@ -776,7 +761,7 @@ export default function CalendarComponent({
                         }
                     ]}
                 >
-                    <Text style={[styles.todayButtonText, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>Retour à aujourd'hui</Text>
+                    <Text style={[styles.todayButtonText, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>{t("calendar.backToToday")}</Text>
                 </Animated.View>
             </TouchableOpacity>
 

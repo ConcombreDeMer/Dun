@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { Extrapolate, interpolate, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useFont } from "../../lib/FontContext";
+import { useAppTranslation } from "../../lib/i18n";
 import { supabase } from "../../lib/supabase";
 import { useTheme } from "../../lib/ThemeContext";
 
@@ -33,6 +34,7 @@ type Slide = {
 
 export default function Stats() {
   const { colors } = useTheme();
+  const { t } = useAppTranslation();
   const [previousDays, setPreviousDays] = useState<any[]>([]);
   const [showInfoPopUp, setShowInfoPopUp] = useState(false);
   const [period, setPeriod] = useState<'Par semaine' | 'Par mois' | 'Par année' | 'Global'>('Par semaine');
@@ -368,7 +370,10 @@ export default function Stats() {
   const periodOptions: Array<'Par semaine' | 'Par mois' | 'Par année' | 'Global'> = ['Par semaine', 'Par mois', 'Par année', 'Global'];
 
   const getDisplayedPeriod = (period: string) => {
-    return period;
+    if (period === 'Par semaine') return t('stats.general.period.week');
+    if (period === 'Par mois') return t('stats.general.period.month');
+    if (period === 'Par année') return t('stats.general.period.year');
+    return t('stats.general.period.global');
   };
 
   const handlePeriodSelect = async (selectedPeriod: 'Par semaine' | 'Par mois' | 'Par année' | 'Global') => {
@@ -392,10 +397,10 @@ export default function Stats() {
 
       <PopUpModal
         isVisible={showInfoPopUp}
-        title="À propos des stats"
-        message="L'onglet statistique est en cours de développement et sera aggrémenté de nouvelles fonctionnalités au fil du temps."
+        title={t('stats.general.aboutTitle')}
+        message={t('stats.general.aboutMessage')}
         onCancel={() => setShowInfoPopUp(false)}
-        confirmText="Compris"
+        confirmText={t('common.actions.understood')}
         onConfirm={() => setShowInfoPopUp(false)}
         withNavbar={true}
         symbolName="info.circle"
@@ -538,13 +543,13 @@ export default function Stats() {
         <View style={styles.cardsRow}>
           <StatsCard
             image={require('../../assets/images/stats/done.png')}
-            title="Tâches faites"
+            title={t('stats.general.cards.tasksDone')}
             value={totalDone.toString()}
             loading={loadingState}
           />
           <StatsCard
             image={require('../../assets/images/stats/perfect.png')}
-            title="Jours parfaits"
+            title={t('stats.general.cards.perfectDays')}
             value={perfectDays.toString()}
             loading={loadingState}
           />
@@ -552,13 +557,13 @@ export default function Stats() {
         <View style={styles.cardsRow}>
           <StatsCardCompletion
             image={require('../../assets/images/stats/completion.png')}
-            title="Complétion"
+            title={t('stats.general.cards.completion')}
             value={completion}
             loading={loadingState}
           />
           <StatsCardCharge
             image={require('../../assets/images/stats/charge.png')}
-            title="Charge"
+            title={t('stats.general.cards.charge')}
             value={charge.toString()}
             loading={loadingState}
           />

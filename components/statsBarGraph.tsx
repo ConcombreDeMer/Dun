@@ -1,4 +1,5 @@
 import { useFont } from "@/lib/FontContext";
+import { useAppTranslation } from "@/lib/i18n";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStore } from "@/store/store";
 import { useQueryClient } from "@tanstack/react-query";
@@ -98,7 +99,13 @@ const createBarFromDays = (days: any[], label: string, isToday: boolean, colors:
 };
 
 // Fonction principale pour transformer les données selon la période
-const transformDaysDataByPeriod = (daysData: any[], period: 'Par semaine' | 'Par mois' | 'Par année' | 'Global', colors: any): Slide[] => {
+const transformDaysDataByPeriod = (
+  daysData: any[],
+  period: 'Par semaine' | 'Par mois' | 'Par année' | 'Global',
+  colors: any,
+  locale: string,
+  t: (key: string, options?: Record<string, any>) => string
+): Slide[] => {
   if (!daysData || daysData.length === 0) return [];
 
   const today = new Date();
@@ -136,7 +143,7 @@ const transformDaysDataByPeriod = (daysData: any[], period: 'Par semaine' | 'Par
         const isToday = dayString === todayString;
         const dayData = daysDataMap.get(dayString);
 
-        const dayFormatted = currentDay.toLocaleDateString('fr-FR', { weekday: 'narrow', day: 'numeric' });
+        const dayFormatted = currentDay.toLocaleDateString(locale, { weekday: 'narrow', day: 'numeric' });
 
         bars.push({
           stacks: [
@@ -152,13 +159,13 @@ const transformDaysDataByPeriod = (daysData: any[], period: 'Par semaine' | 'Par
       const lastDay = new Date(weekStart);
       lastDay.setDate(weekStart.getDate() + 6);
 
-      const firstDayStr = firstDay.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-      const lastDayStr = lastDay.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+      const firstDayStr = firstDay.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+      const lastDayStr = lastDay.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
       slides.push({
         id: `week-${i}`,
         bars,
-        periodLabel: `Semaine du ${firstDayStr} au ${lastDayStr}`,
+        periodLabel: t("stats.chart.weekRange", { start: firstDayStr, end: lastDayStr }),
       });
     }
     return slides;
@@ -220,11 +227,11 @@ const transformDaysDataByPeriod = (daysData: any[], period: 'Par semaine' | 'Par
       });
 
       if (bars.length > 0) {
-        const monthStr = currentMonthDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+        const monthStr = currentMonthDate.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
         slides.push({
           id: `month-${currentMonthDate.getFullYear()}-${currentMonthDate.getMonth()}`,
           bars,
-          periodLabel: `Mois de ${monthStr.charAt(0).toUpperCase() + monthStr.slice(1)}`,
+          periodLabel: t("stats.chart.monthOf", { month: monthStr.charAt(0).toUpperCase() + monthStr.slice(1) }),
         });
       }
 
@@ -260,7 +267,7 @@ const transformDaysDataByPeriod = (daysData: any[], period: 'Par semaine' | 'Par
           const isToday = dayString === todayString;
           const dayData = daysDataMap.get(dayString);
 
-          const dayFormatted = currentDay.toLocaleDateString('fr-FR', { weekday: 'narrow', day: 'numeric' });
+          const dayFormatted = currentDay.toLocaleDateString(locale, { weekday: 'narrow', day: 'numeric' });
 
           bars.push({
             stacks: [
@@ -276,13 +283,13 @@ const transformDaysDataByPeriod = (daysData: any[], period: 'Par semaine' | 'Par
         const lastDay = new Date(weekStart);
         lastDay.setDate(weekStart.getDate() + 6);
 
-        const firstDayStr = firstDay.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-        const lastDayStr = lastDay.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+        const firstDayStr = firstDay.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+        const lastDayStr = lastDay.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
         slides.push({
           id: `week-${i}`,
           bars,
-          periodLabel: `Semaine du ${firstDayStr} au ${lastDayStr}`,
+          periodLabel: t("stats.chart.weekRange", { start: firstDayStr, end: lastDayStr }),
         });
       }
 
@@ -333,7 +340,7 @@ const transformDaysDataByPeriod = (daysData: any[], period: 'Par semaine' | 'Par
         if (monthMap.has(month)) {
           const monthDays = monthMap.get(month)!;
           const monthDate = new Date(year, month);
-          const monthName = monthDate.toLocaleDateString('fr-FR', { month: 'narrow' });
+          const monthName = monthDate.toLocaleDateString(locale, { month: 'narrow' });
           const isThisMonth = year === today.getFullYear() && month === today.getMonth();
           
           bars.push(createBarFromDays(monthDays, monthName, isThisMonth, colors));
@@ -359,6 +366,8 @@ export default function StatsBarGraph({ daysData, period, onSlideChange }: Stats
   const { width: screenWidth } = useWindowDimensions();
   const { colors } = useTheme();
   const { fontSizes } = useFont();
+  const { t, language } = useAppTranslation();
+  const locale = language === "en" ? "en-US" : "fr-FR";
   
   // Fonction pour compter les semaines dans le mois
   const countWeeksInMonth = (date: Date): number => {
@@ -411,7 +420,7 @@ export default function StatsBarGraph({ daysData, period, onSlideChange }: Stats
 
 
   const getFormattedLabel = (date: Date) => {
-    const dayOfWeek = date.toLocaleDateString('fr-FR', { weekday: 'narrow' });
+    const dayOfWeek = date.toLocaleDateString(locale, { weekday: 'narrow' });
     const dayOfMonth = date.getDate();
     return `${dayOfWeek}. ${dayOfMonth}`;
   }
@@ -422,13 +431,13 @@ export default function StatsBarGraph({ daysData, period, onSlideChange }: Stats
     
     // Utiliser setImmediate pour exécuter le calcul en arrière-plan
     const timeoutId = setTimeout(() => {
-      const newSlides = transformDaysDataByPeriod(daysData, period, colors);
+      const newSlides = transformDaysDataByPeriod(daysData, period, colors, locale, t);
       setDisplayedSlides(newSlides);
       setIsLoadingSlides(false);
     }, 0);
     
     return () => clearTimeout(timeoutId);
-  }, [daysData, period, colors]);
+  }, [daysData, period, colors, locale, t]);
 
   const handlePressBar = useCallback(async (data: any) => {
     await Haptic.impactAsync(Haptic.ImpactFeedbackStyle.Medium);
@@ -522,7 +531,7 @@ export default function StatsBarGraph({ daysData, period, onSlideChange }: Stats
             color: colors.textSecondary,
             fontFamily: 'Satoshi-Medium'
           }}>
-            Chargement...
+            {t("stats.chart.loading")}
           </Text>
         </View>
       ) : displayedSlides.length === 0 ? (
@@ -538,7 +547,7 @@ export default function StatsBarGraph({ daysData, period, onSlideChange }: Stats
             fontFamily: 'Satoshi-Medium',
             textAlign: 'center'
           }}>
-            Aucune donnée disponible
+            {t("stats.chart.empty")}
           </Text>
         </View>
       ) : (

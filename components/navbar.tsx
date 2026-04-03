@@ -3,11 +3,13 @@ import * as Haptics from "expo-haptics";
 import { useRouter, useSegments } from "expo-router";
 import React, { useCallback, useMemo, useRef } from "react";
 import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
+import { useAppTranslation } from "../lib/i18n";
 import { useTheme } from "../lib/ThemeContext";
 import CreateModal from "./createModal";
 
 export default function Navbar() {
     const { colors } = useTheme();
+    const { t } = useAppTranslation();
     const router = useRouter();
     const segments = useSegments();
     const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
@@ -18,10 +20,10 @@ export default function Navbar() {
 
     // Memoized tabs array
     const tabs = useMemo(() => [
-        { name: "home", label: "Accueil", icon: "home" },
-        { name: "stats", label: "Stats", icon: "stats-chart" },
-        { name: "settings", label: "Paramètres", icon: "settings" },
-    ], []);
+        { name: "home", label: t("navigation.home"), icon: "home" },
+        { name: "stats", label: t("navigation.stats"), icon: "stats-chart" },
+        { name: "settings", label: t("navigation.settings"), icon: "settings" },
+    ], [t]);
 
     // Déterminer l'onglet actif basé sur le chemin actuel
     const getActiveTab = useCallback(() => {

@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { SquircleView } from "expo-squircle-view";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useAppTranslation } from "../../lib/i18n";
 import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "../../lib/notificationService";
 import { supabase } from "../../lib/supabase";
 import { useStore } from "../../store/store";
@@ -16,6 +17,7 @@ export default function NotificationsSettings() {
 
     const store = useStore();
     const router = useRouter();
+    const { t } = useAppTranslation();
     const [isLoading, setIsLoading] = useState(true);
 
 
@@ -96,7 +98,7 @@ export default function NotificationsSettings() {
             const minuteNum = parseInt(alertMinute);
 
             if (isNaN(hourNum) || isNaN(minuteNum) || hourNum < 0 || hourNum > 23 || minuteNum < 0 || minuteNum > 59) {
-                alert("Veuillez entrer une heure valide (HH:MM).");
+                alert(t("common.alerts.invalidTime"));
                 return;
             }
         }
@@ -173,7 +175,7 @@ export default function NotificationsSettings() {
                     onPress={() => router.back()}
                     image="chevron.left"
                 />
-                <Headline title="Notifications" subtitle="Gères tes alertes" />
+                <Headline title={t("settings.notifications.headline.title")} subtitle={t("settings.notifications.headline.subtitle")} />
             </View>
 
             <SquircleView
@@ -190,7 +192,7 @@ export default function NotificationsSettings() {
             >
                 <SwitchItem
                     image="bell.fill"
-                    title="Préparation de la journée"
+                    title={t("settings.notifications.setup")}
                     event={toggleNotifications}
                     currentValue={alertsEnabled}
                 />
@@ -217,7 +219,7 @@ export default function NotificationsSettings() {
                         <Text
                             style={{ color: "#333", fontSize: 16, fontFamily: 'Satoshi-Regular' }}
                         >
-                            Heure
+                            {t("settings.notifications.time")}
                         </Text>
 
                         <View
@@ -272,7 +274,7 @@ export default function NotificationsSettings() {
                 preserveSmoothing={true}
             >
                 <SwitchItem
-                    title="Insistance"
+                    title={t("settings.notifications.insistence")}
                     event={setInsistanceEnabled}
                     currentValue={insistanceEnabled}
                 />
@@ -299,7 +301,7 @@ export default function NotificationsSettings() {
                             marginBottom: 8,
                         }}>
                             <Text style={{ color: "#333", fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
-                                Délais
+                                {t("settings.notifications.delay")}
                             </Text>
 
                             <SimpleInput
@@ -320,7 +322,7 @@ export default function NotificationsSettings() {
                             justifyContent: 'space-between',
                         }}>
                             <Text style={{ color: "#333", fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
-                                Répétitions
+                                {t("settings.notifications.repetitions")}
                             </Text>
 
                             <SimpleInput
@@ -345,7 +347,7 @@ export default function NotificationsSettings() {
                     fontFamily: 'Satoshi-Regular',
                     paddingHorizontal: 5
                 }}>
-                    Dans le cas où vous n'avez pas réagis à un rappel, Dun peut insister pour vous aider à maintenir votre régularité.
+                    {t("settings.notifications.description")}
                 </Text>
 
             </SquircleView>
@@ -363,14 +365,14 @@ export default function NotificationsSettings() {
                 preserveSmoothing={true}
             >
                 <SwitchItem
-                    title="Week-ends"
+                    title={t("settings.notifications.weekends")}
                     event={setWeekendEnabled}
                     currentValue={weekendEnabled}
                 />
             </SquircleView>
 
             <PrimaryButton
-                title="Enregistrer"
+                title={t("common.actions.save")}
                 onPress={save}
                 style={{ width: '90%', alignSelf: 'center', marginTop: 30 }}
                 disabled={!isModified}

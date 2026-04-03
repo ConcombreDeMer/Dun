@@ -1,8 +1,10 @@
 import { Stack } from 'expo-router';
+import { useAppTranslation } from '../../lib/i18n';
 import { useTheme } from '../../lib/ThemeContext';
 
 export default function OnboardingLayout() {
   const { colors } = useTheme();
+  const { t } = useAppTranslation();
 
   return (
     <Stack
@@ -22,38 +24,38 @@ export default function OnboardingLayout() {
       <Stack.Screen
         name="start"
         options={{
-          title: 'Démarrage',
+          title: t('onboarding.start.title'),
         }}
       />
       <Stack.Screen
         name="login"
         options={{
-          title: 'Connexion',
+          title: t('onboarding.login.title'),
         }}
       />
       <Stack.Screen
         name="register"
         options={{
-          title: 'Inscription',
+          title: t('onboarding.register.title'),
         }}
       />
       <Stack.Screen
         name="successMail"
         options={{
-          title: 'Success Email',
+          title: t('onboarding.successMail.title'),
         }}
       />
       <Stack.Screen
         name="emailVerif"
         options={{
-          title: 'Vérification Email',
+          title: t('onboarding.emailVerification.title'),
         }}
       />
 
       <Stack.Screen
         name="tutorial"
         options={{
-          title: 'Tutoriel',
+          title: t('onboarding.tutorial.title'),
         }}
       />
 

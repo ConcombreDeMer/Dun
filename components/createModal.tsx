@@ -7,6 +7,7 @@ import { router } from "expo-router";
 import { SquircleView } from "expo-squircle-view";
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, InputAccessoryView, StyleSheet, TextInput, View } from "react-native";
+import { useAppTranslation } from "../lib/i18n";
 import SecondaryButton from "./secondaryButton";
 
 const INPUT_ACCESSORY_ID = "createTaskAccessory";
@@ -22,6 +23,7 @@ export default function CreateModal({ onClose }: CreateModalProps) {
     const isIntentionalBlurRef = useRef(false);
     const isCreatingTaskRef = useRef(false);
     const { fontSizes } = React.useContext(FontContext)!;
+    const { t } = useAppTranslation();
     const queryClient = useQueryClient();
     const selectedDate = useStore((state) => state.selectedDate) || new Date();
     
@@ -32,7 +34,7 @@ export default function CreateModal({ onClose }: CreateModalProps) {
             // Récupérer l'utilisateur connecté
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                throw new Error("Utilisateur non connecté");
+                throw new Error(t("common.alerts.nonConnectedUser"));
             }
             const { data: existingDay, error: fetchError } = await supabase
                 .from("Days")
@@ -93,7 +95,7 @@ export default function CreateModal({ onClose }: CreateModalProps) {
             const { data: { user } } = await supabase.auth.getUser();
 
             if (!user) {
-                throw new Error("Utilisateur non connecté");
+                throw new Error(t("common.alerts.nonConnectedUser"));
             }
 
             // Récupérer le nombre de tâches existantes pour cette journée
@@ -131,7 +133,7 @@ export default function CreateModal({ onClose }: CreateModalProps) {
             setTaskTitle("");
         },
         onError: (error: any) => {
-            Alert.alert("Erreur", error.message || "Une erreur est survenue");
+            Alert.alert(t("common.alerts.errorTitle"), error.message || t("common.alerts.genericError"));
         }
     });
 
@@ -157,7 +159,7 @@ const handleCreateTask = async () => {
         isCreatingTaskRef.current = true;
 
         if (!taskTitle.trim()) {
-            Alert.alert("Erreur", "Le nom de la tâche est requis");
+            Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.requiredTaskName"));
             isCreatingTaskRef.current = false;
             return;
         }
@@ -223,7 +225,7 @@ const handleCreateTask = async () => {
                                 ref={inputRef}
                                 nativeID={`input-${INPUT_ACCESSORY_ID}`}
                                 inputAccessoryViewID={INPUT_ACCESSORY_ID}
-                                placeholder="Titre de la tâche"
+                                placeholder={t("createModal.titlePlaceholder")}
                                 value={taskTitle}
                                 onChangeText={setTaskTitle}
                                 onBlur={handleBlur}

@@ -1,10 +1,17 @@
 import { useTheme } from '@/lib/ThemeContext';
+import { useAppTranslation } from '@/lib/i18n';
 import { useRouter } from 'expo-router';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function CompletionExplain() {
     const router = useRouter();
     const { colors } = useTheme();
+    const { t } = useAppTranslation();
+    const bullets = t('stats.completionExplain.bullets', { returnObjects: true }) as string[];
+    const levels = t('stats.completionExplain.levels', { returnObjects: true }) as { range: string; description: string }[];
+    const meanings = t('stats.completionExplain.meanings', { returnObjects: true }) as { emoji: string; title: string; description: string }[];
+    const exampleLines = t('stats.completionExplain.exampleLines', { returnObjects: true }) as string[];
+    const tips = t('stats.completionExplain.tips', { returnObjects: true }) as { title: string; description: string }[];
 
     const dynamicStyles = {
         container: {
@@ -41,181 +48,78 @@ export default function CompletionExplain() {
                         source={require('../../assets/images/stats/completion.png')}
                         style={styles.headerImage}
                     />
-                    <Text style={[styles.title, dynamicStyles.text]}>Qu'est ce que le taux de complétude ?</Text>
+                    <Text style={[styles.title, dynamicStyles.text]}>{t('stats.completionExplain.title')}</Text>
                 </View>
             </View>
 
             {/* Definition Card */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>Définition</Text>
-                <Text style={[styles.description, dynamicStyles.textSecondary]}>
-                    Le <Text style={[styles.bold, dynamicStyles.text]}>taux de complétude</Text> est le <Text style={[styles.bold, dynamicStyles.text]}>pourcentage moyen de tâches que vous complétez</Text> sur une période donnée. C'est un indicateur de votre capacité à atteindre vos objectifs.
-                </Text>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.completionExplain.definitionTitle')}</Text>
+                <Text style={[styles.description, dynamicStyles.textSecondary]}>{t('stats.completionExplain.definition')}</Text>
             </View>
 
             {/* How it's calculated */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>Comment est-il calculé ?</Text>
-
-                <View style={styles.bulletPoint}>
-                    <View style={[styles.bulletDot, dynamicStyles.bullet]} />
-                    <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>
-                        Pour chaque jour, on divise les tâches complétées par le nombre total de tâches
-                    </Text>
-                </View>
-
-                <View style={styles.bulletPoint}>
-                    <View style={[styles.bulletDot, dynamicStyles.bullet]} />
-                    <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>
-                        Formule : <Text style={[styles.bold, dynamicStyles.text]}>(tâches complétées / total des tâches) × 100</Text>
-                    </Text>
-                </View>
-
-                <View style={styles.bulletPoint}>
-                    <View style={[styles.bulletDot, dynamicStyles.bullet]} />
-                    <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>
-                        Une <Text style={[styles.bold, dynamicStyles.text]}>moyenne sur 7 jours</Text> est ensuite calculée
-                    </Text>
-                </View>
-
-                <View style={styles.bulletPoint}>
-                    <View style={[styles.bulletDot, dynamicStyles.bullet]} />
-                    <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>
-                        Le résultat est exprimé en <Text style={[styles.bold, dynamicStyles.text]}>pourcentage</Text>
-                    </Text>
-                </View>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.completionExplain.howTitle')}</Text>
+                {bullets.map((bullet) => (
+                    <View style={styles.bulletPoint} key={bullet}>
+                        <View style={[styles.bulletDot, dynamicStyles.bullet]} />
+                        <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>{bullet}</Text>
+                    </View>
+                ))}
             </View>
 
             {/* Interpretation Levels */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>Interprétation des Résultats</Text>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.completionExplain.interpretationTitle')}</Text>
 
-                <View style={styles.levelBox}>
-                    <View style={[styles.levelDot, { backgroundColor: '#FF4C4C' }]} />
-                    <View style={styles.levelContent}>
-                        <Text style={[styles.levelTitle, dynamicStyles.text]}>0% - 40%</Text>
-                        <Text style={[styles.levelDescription, dynamicStyles.textSecondary]}>
-                            Très faible : Vos objectifs sont trop ambitieux ou vous manquez de motivation
-                        </Text>
+                {levels.map((level, index) => (
+                    <View style={styles.levelBox} key={level.range}>
+                        <View style={[styles.levelDot, { backgroundColor: ['#FF4C4C', '#ffcd6fff', '#74ca77ff', '#00CC00'][index] }]} />
+                        <View style={styles.levelContent}>
+                            <Text style={[styles.levelTitle, dynamicStyles.text]}>{level.range}</Text>
+                            <Text style={[styles.levelDescription, dynamicStyles.textSecondary]}>{level.description}</Text>
+                        </View>
                     </View>
-                </View>
-
-                <View style={styles.levelBox}>
-                    <View style={[styles.levelDot, { backgroundColor: '#ffcd6fff' }]} />
-                    <View style={styles.levelContent}>
-                        <Text style={[styles.levelTitle, dynamicStyles.text]}>40% - 70%</Text>
-                        <Text style={[styles.levelDescription, dynamicStyles.textSecondary]}>
-                            En construction : Vous progressez mais il y a encore de la marge
-                        </Text>
-                    </View>
-                </View>
-
-                <View style={styles.levelBox}>
-                    <View style={[styles.levelDot, { backgroundColor: '#74ca77ff' }]} />
-                    <View style={styles.levelContent}>
-                        <Text style={[styles.levelTitle, dynamicStyles.text]}>70% - 90%</Text>
-                        <Text style={[styles.levelDescription, dynamicStyles.textSecondary]}>
-                            Très bon : Vous maîtrisez bien vos objectifs
-                        </Text>
-                    </View>
-                </View>
-
-                <View style={styles.levelBox}>
-                    <View style={[styles.levelDot, { backgroundColor: '#00CC00' }]} />
-                    <View style={styles.levelContent}>
-                        <Text style={[styles.levelTitle, dynamicStyles.text]}>90% - 100%</Text>
-                        <Text style={[styles.levelDescription, dynamicStyles.textSecondary]}>
-                            Excellent : Vous avez atteint vos objectifs quasi systématiquement
-                        </Text>
-                    </View>
-                </View>
+                ))}
             </View>
 
             {/* What it means */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>Ce que cela signifie</Text>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.completionExplain.meaningTitle')}</Text>
 
-                <View style={styles.meaningBox}>
-                    <Text style={[styles.meaningNumber, dynamicStyles.text]}>✅</Text>
-                    <View style={styles.meaningContent}>
-                        <Text style={[styles.meaningTitle, dynamicStyles.text]}>Taux Élevé (90%+)</Text>
-                        <Text style={[styles.meaningDescription, dynamicStyles.textSecondary]}>
-                            Vous êtes consistant et fiable. Vos objectifs sont bien calibrés pour votre capacité réelle.
-                        </Text>
+                {meanings.map((meaning) => (
+                    <View style={styles.meaningBox} key={meaning.title}>
+                        <Text style={[styles.meaningNumber, dynamicStyles.text]}>{meaning.emoji}</Text>
+                        <View style={styles.meaningContent}>
+                            <Text style={[styles.meaningTitle, dynamicStyles.text]}>{meaning.title}</Text>
+                            <Text style={[styles.meaningDescription, dynamicStyles.textSecondary]}>{meaning.description}</Text>
+                        </View>
                     </View>
-                </View>
-
-                <View style={styles.meaningBox}>
-                    <Text style={[styles.meaningNumber, dynamicStyles.text]}>⚠️</Text>
-                    <View style={styles.meaningContent}>
-                        <Text style={[styles.meaningTitle, dynamicStyles.text]}>Taux Moyen (50-80%)</Text>
-                        <Text style={[styles.meaningDescription, dynamicStyles.textSecondary]}>
-                            Vous avez des jours avec et des jours sans. Analysez les obstacles récurrents.
-                        </Text>
-                    </View>
-                </View>
-
-                <View style={styles.meaningBox}>
-                    <Text style={[styles.meaningNumber, dynamicStyles.text]}>🔴</Text>
-                    <View style={styles.meaningContent}>
-                        <Text style={[styles.meaningTitle, dynamicStyles.text]}>Taux Faible (&lt;50%)</Text>
-                        <Text style={[styles.meaningDescription, dynamicStyles.textSecondary]}>
-                            Vos objectifs sont probablement trop nombreux ou trop complexes. Commencez plus petit.
-                        </Text>
-                    </View>
-                </View>
+                ))}
             </View>
 
             {/* Example */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>Exemple</Text>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.completionExplain.exampleTitle')}</Text>
                 
-                <Text style={[styles.exampleSubtitle, dynamicStyles.text]}>Calcul sur 7 jours :</Text>
+                <Text style={[styles.exampleSubtitle, dynamicStyles.text]}>{t('stats.completionExplain.exampleSubtitle')}</Text>
                 <View style={styles.exampleBox}>
-                    <Text style={[styles.exampleLabel, dynamicStyles.textSecondary]}>Lundi : 4 / 5 tâches = 80%</Text>
-                    <Text style={[styles.exampleLabel, dynamicStyles.textSecondary]}>Mardi : 3 / 3 tâches = 100%</Text>
-                    <Text style={[styles.exampleLabel, dynamicStyles.textSecondary]}>Mercredi : 2 / 4 tâches = 50%</Text>
-                    <Text style={[styles.exampleLabel, dynamicStyles.textSecondary]}>Jeudi : 5 / 5 tâches = 100%</Text>
-                    <Text style={[styles.exampleLabel, dynamicStyles.textSecondary]}>Vendredi : 3 / 4 tâches = 75%</Text>
-                    <Text style={[styles.exampleLabel, dynamicStyles.textSecondary]}>Samedi : 2 / 3 tâches = 67%</Text>
-                    <Text style={[styles.exampleLabel, dynamicStyles.textSecondary]}>Dimanche : 1 / 2 tâches = 50%</Text>
-                    <Text style={[styles.exampleResult, dynamicStyles.text]}>
-                        → Complétude moyenne = 82%
-                    </Text>
+                    {exampleLines.map((line, index) => (
+                        <Text key={line} style={index === exampleLines.length - 1 ? [styles.exampleResult, dynamicStyles.text] : [styles.exampleLabel, dynamicStyles.textSecondary]}>{line}</Text>
+                    ))}
                 </View>
             </View>
 
             {/* Tips */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>💡 Conseils pour Progresser</Text>
-
-                <View style={styles.tipBox}>
-                    <Text style={[styles.tipTitle, dynamicStyles.text]}>Commencez petit</Text>
-                    <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>
-                        Il vaut mieux compléter 3 petits objectifs que d'en proposer 10 et en échouer 7. Augmentez progressivement.
-                    </Text>
-                </View>
-
-                <View style={styles.tipBox}>
-                    <Text style={[styles.tipTitle, dynamicStyles.text]}>Soyez réaliste</Text>
-                    <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>
-                        Vos objectifs doivent être atteignables selon votre emploi du temps et votre énergie disponible.
-                    </Text>
-                </View>
-
-                <View style={styles.tipBox}>
-                    <Text style={[styles.tipTitle, dynamicStyles.text]}>Identifiez les blocages</Text>
-                    <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>
-                        Si votre taux chute, regardez quelles tâches vous échouez systématiquement et ajustez-les.
-                    </Text>
-                </View>
-
-                <View style={styles.tipBox}>
-                    <Text style={[styles.tipTitle, dynamicStyles.text]}>Célébrez les succès</Text>
-                    <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>
-                        Chaque tâche complétée compte. Un taux de 70% est déjà une bonne performance !
-                    </Text>
-                </View>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.completionExplain.tipsTitle')}</Text>
+                {tips.map((tip) => (
+                    <View style={styles.tipBox} key={tip.title}>
+                        <Text style={[styles.tipTitle, dynamicStyles.text]}>{tip.title}</Text>
+                        <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>{tip.description}</Text>
+                    </View>
+                ))}
             </View>
 
             {/* Footer */}

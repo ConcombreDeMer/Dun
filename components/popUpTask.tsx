@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useFont } from "../lib/FontContext";
+import { useAppTranslation } from "../lib/i18n";
 import { useTheme } from "../lib/ThemeContext";
 import AnimatedCheckbox from "./checkboxAnimated";
 import DateInput from "./dateInput";
@@ -19,6 +20,7 @@ const LottieView = require("lottie-react-native").default;
 export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: number }) {
     const { colors } = useTheme();
     const { fontSizes } = useFont();
+    const { t } = useAppTranslation();
     const router = useRouter();
     const { width, height } = useWindowDimensions();
     const [task, setTask] = useState<any>(null);
@@ -323,7 +325,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                 .single();
 
             if (fetchError || !taskData) {
-                throw new Error(fetchError?.message || "Tâche non trouvée");
+                throw new Error(fetchError?.message || t("task.popup.notFound"));
             }
 
             const deletedTaskDate = taskData.date;
@@ -373,7 +375,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
             onClose();
         },
         onError: (error: any) => {
-            Alert.alert("Erreur", error.message || "Impossible de supprimer la tâche");
+            Alert.alert(t("common.alerts.errorTitle"), error.message || t("common.alerts.genericError"));
         }
     });
 
@@ -500,16 +502,16 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
 
     const handleDeleteTask = async () => {
         Alert.alert(
-            "Supprimer la tâche",
-            "Êtes-vous sûr de vouloir supprimer cette tâche ?",
+            t("common.alerts.deleteTaskTitle"),
+            t("common.alerts.deleteTaskMessage"),
             [
                 {
-                    text: "Annuler",
+                    text: t("common.actions.cancel"),
                     onPress: () => { },
                     style: "cancel",
                 },
                 {
-                    text: "Supprimer",
+                    text: t("common.actions.delete"),
                     onPress: () => {
                         deleteTaskMutation.mutate();
                         deleteDayMutation.mutate();
@@ -549,14 +551,14 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
         // Si la différence est inférieure à 10 minutes
 
         if (diffSeconds == 0) {
-            return `à l'instant`;
+            return t("task.popup.now");
         }
 
         if (diffMinutes < 10) {
             if (diffSeconds < 60) {
-                return `il y a ${diffSeconds} secondes`;
+                return t("task.popup.secondsAgo", { count: diffSeconds });
             } else {
-                return `il y a ${diffMinutes} minutes`;
+                return t("task.popup.minutesAgo", { count: diffMinutes });
             }
         }
 
@@ -568,7 +570,14 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
         const minutes = date.getMinutes().toString().padStart(2, "0");
         const secondes = date.getSeconds().toString().padStart(2, "0");
 
-        return `${day}/${month}/${year} à ${hours}:${minutes}:${secondes}`;
+        return t("task.popup.fullDate", {
+            day,
+            month,
+            year,
+            hours,
+            minutes,
+            seconds: secondes,
+        });
     };
 
 
@@ -588,7 +597,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                 {!loading && !name.trim() && (
                     <View
                         style={[styles.nameAlert, { backgroundColor: colors.danger }]}>
-                        <Text style={{ color: colors.text, fontSize: fontSizes.base }}>Le nom de la tâche est requis</Text>
+                        <Text style={{ color: colors.text, fontSize: fontSizes.base }}>{t("task.popup.nameRequired")}</Text>
                     </View>
                 )}
 
@@ -635,7 +644,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                                     <SimpleInput
                                         value={description}
                                         onChangeText={setDescription}
-                                        placeholder="Insérer une description"
+                                        placeholder={t("task.popup.insertDescription")}
                                         multiline
                                         style={{ overflow: "hidden", textAlignVertical: "top", height: '95%', boxShadow: `inset 0px -25px 29px -10px ${colors.card}` }}
                                         transparent
@@ -644,7 +653,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
 
                                 </View>
                                 <Text style={[{ color: colors.textSecondary, fontSize: fontSizes.xs, alignSelf: "center" }]}>
-                                    Dernière mise à jour : {formatLastUpdateDate(taskQuery.data ? new Date(taskQuery.data.last_update_date) : last_update_date)}
+                                    {t("task.popup.lastUpdated", { date: formatLastUpdateDate(taskQuery.data ? new Date(taskQuery.data.last_update_date) : last_update_date) })}
                                 </Text>
 
                                 <View style={styles.bottom}>

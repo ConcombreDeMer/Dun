@@ -4,10 +4,12 @@ import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFont } from "../../lib/FontContext";
+import { useAppTranslation } from "../../lib/i18n";
 import { colorThemeOptions, darkColors, lightColors, useTheme } from "../../lib/ThemeContext";
 
 export default function ColorSettings() {
     const router = useRouter();
+    const { t } = useAppTranslation();
     const { colorTheme, actualTheme, colors, setColorTheme } = useTheme();
     const { fontSizes } = useFont();
 
@@ -18,7 +20,10 @@ export default function ColorSettings() {
                     onPress={() => router.back()}
                     image="chevron.left"
                 />
-                <Headline title="Couleur" subtitle="Choisir un coloris global" />
+                <Headline
+                    title={t("settings.colors.headline.title")}
+                    subtitle={t("settings.colors.headline.subtitle")}
+                />
             </View>
 
             <ScrollView
@@ -88,10 +93,10 @@ export default function ColorSettings() {
                             <View style={styles.optionBottom}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={[styles.optionTitle, { color: previewColors.text, fontSize: fontSizes.lg }]}>
-                                        {option.label}
+                                        {t(option.labelKey)}
                                     </Text>
                                     <Text style={[styles.optionDescription, { color: previewColors.textSecondary, fontSize: fontSizes.sm }]}>
-                                        {option.description}
+                                        {t(option.descriptionKey)}
                                     </Text>
                                 </View>
 

@@ -18,12 +18,14 @@ import Animated, {
     FadeOutDown,
     ZoomIn
 } from 'react-native-reanimated';
+import { useAppTranslation } from '../../lib/i18n';
 import { useTheme } from '../../lib/ThemeContext';
 import { supabase } from '../../lib/supabase';
 
 export default function EmailVerificationScreen() {
     const router = useRouter();
     const { colors, actualTheme } = useTheme();
+    const { t } = useAppTranslation();
     const { email } = useLocalSearchParams<{ email: string }>();
 
     const [loading, setLoading] = useState(false);
@@ -106,18 +108,18 @@ export default function EmailVerificationScreen() {
                 if (waitTimeMatch) {
                     const waitSeconds = parseInt(waitTimeMatch[1], 10);
                     setRetryWaitTime(waitSeconds);
-                    setRetryError('Email non envoyé, veuillez attendre');
+                    setRetryError(t('onboarding.emailVerification.resendWait'));
                 } else {
-                    setRetryError('Une erreur s\'est produite lors de l\'envoi de l\'email');
+                    setRetryError(t('onboarding.emailVerification.resendError'));
                 }
             } else {
                 await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
                 setTimeLeft(3600); // Réinitialiser le compte à rebours
-                setRetrySuccess('Email renvoyé avec succès!');
+                setRetrySuccess(t('onboarding.emailVerification.resent'));
             }
         } catch (err) {
             console.error('Erreur:', err);
-            setRetryError('Une erreur s\'est produite');
+            setRetryError(t('onboarding.emailVerification.genericError'));
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
         } finally {
             setLoading(false);
@@ -144,14 +146,14 @@ export default function EmailVerificationScreen() {
                         entering={FadeInUp.springify().delay(200)}
                         style={[styles.successTitle, { color: colors.text }]}
                     >
-                        Email vérifié ! 🎉
+                        {t('onboarding.emailVerification.successTitle')}
                     </Animated.Text>
 
                     <Animated.Text
                         entering={FadeInUp.springify().delay(400)}
                         style={[styles.successSubtitle, { color: colors.textSecondary }]}
                     >
-                        Redirection en cours...
+                        {t('onboarding.emailVerification.successSubtitle')}
                     </Animated.Text>
                 </View>
             </SafeAreaView>
@@ -170,10 +172,10 @@ export default function EmailVerificationScreen() {
                     style={styles.header}
                     entering={FadeInUp.delay(200).duration(600)}>
                     <Text style={[styles.title, { color: colors.text }]}>
-                        Vérification
+                        {t('onboarding.emailVerification.title')}
                     </Text>
                     <Text style={[styles.subtitle, { color: colors.text }]}>
-                        de ton email
+                        {t('onboarding.emailVerification.subtitle')}
                     </Text>
                 </Animated.View>
 
@@ -190,7 +192,7 @@ export default function EmailVerificationScreen() {
                                 color: colors.actionButton, fontWeight: '300',
                             }]}
                         >
-                            <Text>Un email de vérification a été envoyé à</Text>
+                            <Text>{t('onboarding.emailVerification.sentTo')}</Text>
                         </Animated.Text>
 
                         <Animated.Text
@@ -210,9 +212,7 @@ export default function EmailVerificationScreen() {
                         style={styles.instructionsContainer}
                     >
                         <Text style={[styles.instructions, { color: colors.textSecondary }]}>
-                            • Ouvres tes email{'\n'}
-                            • Cliques sur le lien de vérification{'\n'}
-                            • Reviens ici pour continuer
+                            {t('onboarding.emailVerification.instructions')}
                         </Text>
                     </Animated.View>
 
@@ -222,7 +222,7 @@ export default function EmailVerificationScreen() {
                         style={[styles.timerContainer, { backgroundColor: colors.task, borderColor: colors.border }]}
                     >
                         <Text style={[styles.timerLabel, { color: colors.textSecondary }]}>
-                            Expiration du lien dans:
+                            {t('onboarding.emailVerification.expiresIn')}
                         </Text>
                         <Text style={[styles.timer, { color: colors.actionButton }]}>
                             {formatTime(timeLeft)}
@@ -243,7 +243,7 @@ export default function EmailVerificationScreen() {
                         onPress={checkEmailVerification}
                     >
                         <Text style={[styles.primaryButtonText, { color: colors.buttonText }]}>
-                            J'ai vérifié mon email
+                            {t('onboarding.emailVerification.checked')}
                         </Text>
                     </TouchableOpacity>
 
@@ -288,13 +288,13 @@ export default function EmailVerificationScreen() {
                                 color: loading || retryWaitTime > 0 ? colors.textSecondary : colors.text
                             }
                         ]}>
-                            Renvoyer l'email
+                            {t('onboarding.emailVerification.resend')}
                         </Text>
                     </TouchableOpacity>
 
                     {/* Footer Info */}
                     <Text style={[styles.footerInfo, { color: colors.textSecondary }]}>
-                        N'oublie pas de consulter tes spams / indésirables
+                        {t('onboarding.emailVerification.spam')}
                     </Text>
                 </Animated.View>
             </SafeAreaView>

@@ -10,6 +10,7 @@ import CreateModal from '../components/createModal';
 import PrimaryButton from '../components/primaryButton';
 import { TaskItem } from '../components/TaskItem';
 import { useFont } from "../lib/FontContext";
+import { useAppTranslation } from '../lib/i18n';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../lib/ThemeContext';
 
@@ -19,6 +20,7 @@ export default function DailyScreen() {
     const { colors } = useTheme();
     const router = useRouter();
     const { fontSizes } = useFont();
+    const { t } = useAppTranslation();
     const queryClient = useQueryClient();
     const [loading, setLoading] = useState(false);
     const [userName, setUserName] = useState('');
@@ -64,7 +66,7 @@ export default function DailyScreen() {
                 if (profile && profile.name) {
                     setUserName(profile.name);
                 } else {
-                    setUserName(user.user_metadata?.name || 'User');
+                    setUserName(user.user_metadata?.name || t("daily.fallbackUser"));
                 }
             }
         };
@@ -242,17 +244,17 @@ export default function DailyScreen() {
             <Animated.View style={[styles.screen, step1Style]}>
                 <View style={styles.contentContainer}>
                     <View style={styles.textCenter}>
-                        <Text style={[styles.mainTitle, { color: colors.text }]}>Good morning</Text>
+                        <Text style={[styles.mainTitle, { color: colors.text }]}>{t("daily.morning")}</Text>
                         <Text style={[styles.name, { color: colors.textSecondary }]}>{userName}</Text>
                     </View>
 
                     <Image source={require('../assets/images/character/2.png')} style={styles.heroImage} resizeMode="contain" />
 
-                    <Text style={[styles.question, { color: colors.textSecondary }]}>Prêt à <Text style={{ fontFamily: 'Satoshi-Bold', color: colors.textSecondary }}>préparer</Text> ta journée ?</Text>
+                    <Text style={[styles.question, { color: colors.textSecondary }]}>{t("daily.readyQuestion")}</Text>
                 </View>
 
                 <View style={styles.buttonsContainer}>
-                    <PrimaryButton title="J'suis prêt !" onPress={goToStep2} />
+                    <PrimaryButton title={t("daily.ready")} onPress={goToStep2} />
                     <View style={{ height: 12 }} />
                     <View
                         style={{
@@ -261,7 +263,7 @@ export default function DailyScreen() {
                         }}
                     >
 
-                        <PrimaryButton title="Repos" type="reverse" onPress={() => {
+                        <PrimaryButton title={t("daily.rest")} type="reverse" onPress={() => {
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                             setShowReposModal(true);
                         }} />
@@ -272,9 +274,13 @@ export default function DailyScreen() {
             {/* STEP 2 */}
             <Animated.View style={[styles.screen, step2Style]}>
                 <View style={styles.contentContainerLeft}>
-                    <Text style={[styles.mainTitle, { color: colors.text, marginBottom: 20, textAlign: 'center', width: '100%' }]}>Super !</Text>
+                    <Text style={[styles.mainTitle, { color: colors.text, marginBottom: 20, textAlign: 'center', width: '100%' }]}>{t("daily.great")}</Text>
                     <Text style={[styles.subtitleLeft, { color: colors.textSecondary }]}>
-                        Commençons par <Text style={{ fontFamily: 'Satoshi-Bold', color: colors.text }}>hier</Text>,{'\n'}tu as laissé <Text style={{ fontFamily: 'Satoshi-Bold', color: colors.text }}>{(pastTasksQuery.data && pastTasksQuery.data.length > 0) ? "ces tâches" : "aucune tâche"}</Text> en{'\n'}suspens :
+                        {t("daily.yesterdayIntro", {
+                            tasksLabel: (pastTasksQuery.data && pastTasksQuery.data.length > 0)
+                                ? t("daily.suspendedTasks")
+                                : t("daily.noSuspendedTasks")
+                        })}
                     </Text>
 
                     <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
@@ -294,13 +300,13 @@ export default function DailyScreen() {
                             </View>
                         ))}
                         {pastTasksQuery.data?.length === 0 && (
-                            <Text style={{ color: colors.textSecondary, marginTop: 20, textAlign: 'center' }}>Rien à signaler, beau travail 💪</Text>
+                            <Text style={{ color: colors.textSecondary, marginTop: 20, textAlign: 'center' }}>{t("daily.nothingToReport")}</Text>
                         )}
                     </ScrollView>
                 </View>
 
                 <View style={styles.buttonsContainer}>
-                    <PrimaryButton title="On est bon !" onPress={goToStep3} />
+                    <PrimaryButton title={t("daily.goodToGo")} onPress={goToStep3} />
                     <View style={{ height: 12 }} />
                     <View
                         style={{
@@ -308,7 +314,7 @@ export default function DailyScreen() {
                             alignSelf: 'center',
                         }}
                     >
-                        <PrimaryButton title="Retour" type="reverse" onPress={goBackToStep1} />
+                        <PrimaryButton title={t("common.actions.back")} type="reverse" onPress={goBackToStep1} />
                     </View>
                 </View>
             </Animated.View>
@@ -316,9 +322,9 @@ export default function DailyScreen() {
             {/* STEP 3 */}
             <Animated.View style={[styles.screen, step3Style]}>
                 <View style={styles.contentContainerLeft}>
-                    <Text style={[styles.mainTitle, { color: colors.text, marginBottom: 20, textAlign: 'center', width: '100%' }]}>C'est noté !</Text>
+                    <Text style={[styles.mainTitle, { color: colors.text, marginBottom: 20, textAlign: 'center', width: '100%' }]}>{t("daily.noted")}</Text>
                     <Text style={[styles.subtitleLeft, { color: colors.textSecondary }]}>
-                        Tu as donc <Text style={{ fontFamily: 'Satoshi-Bold', color: colors.text }}>{todayTasksQuery.data ? todayTasksQuery.data.length : 0} tâches</Text>{'\n'}à compléter aujourd'hui :
+                        {t("daily.todayTasksIntro", { count: todayTasksQuery.data ? todayTasksQuery.data.length : 0 })}
                     </Text>
 
                     <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
@@ -347,7 +353,7 @@ export default function DailyScreen() {
                 </View>
 
                 <View style={styles.buttonsContainer}>
-                    <PrimaryButton title="Let's go" onPress={finishDaily} />
+                    <PrimaryButton title={t("daily.letsGo")} onPress={finishDaily} />
                     <View style={{ height: 12 }} />
                     <View
                         style={{
@@ -355,7 +361,7 @@ export default function DailyScreen() {
                             alignSelf: 'center',
                         }}
                     >
-                        <PrimaryButton title="Retour" type="reverse" onPress={goBackToStep2} />
+                        <PrimaryButton title={t("common.actions.back")} type="reverse" onPress={goBackToStep2} />
                     </View>
                 </View>
             </Animated.View>
@@ -369,60 +375,55 @@ export default function DailyScreen() {
             <PopUpContainer
                 isVisible={showReposModal}
                 onClose={() => setShowReposModal(false)}
-                children={
-                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <View style={{ overflow: 'hidden', height: 420, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            >
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <View style={{ overflow: 'hidden', height: 420, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
 
-                            <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%' }}>
-                                <Image
-                                    source={require('@/assets/images/character/19.png')}
-                                    style={{ width: 120, height: 120 }}
-                                    resizeMode="contain"
-                                />
-                                <Text style={{ fontFamily: 'Satoshi-Regular', color: colors.text, fontSize: fontSizes['3xl'], textAlign: 'center' }}>
-                                    Aujourd'hui c'est <Text style={{ fontFamily: 'Satoshi-Bold' }}>repos</Text> !
-                                </Text>
+                        <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%' }}>
+                            <Image
+                                source={require('@/assets/images/character/19.png')}
+                                style={{ width: 120, height: 120 }}
+                                resizeMode="contain"
+                            />
+                            <Text style={{ fontFamily: 'Satoshi-Regular', color: colors.text, fontSize: fontSizes['3xl'], textAlign: 'center' }}>
+                                {t("settings.root.restModalTitle")}
+                            </Text>
 
-                                <Text
-                                    style={{ fontFamily: 'Satoshi-Regular', color: colors.textSecondary, fontSize: fontSizes.lg, textAlign: 'center' }}
-                                >
-                                    Cette journée ne sera pas
-                                    répertoriée dans les statistiques
-                                    et tes tâches en suspens sont
-                                    reportées à ta prochaine journée active
-                                </Text>
+                            <Text
+                                style={{ fontFamily: 'Satoshi-Regular', color: colors.textSecondary, fontSize: fontSizes.lg, textAlign: 'center' }}
+                            >
+                                {t("settings.root.restModalDescription")}
+                            </Text>
 
-                            </View>
+                        </View>
 
+                        <View
+                            style={{
+                                width: '80%',
+                                alignSelf: 'center',
+                                gap: 8,
+                            }}
+                        >
+
+                            <PrimaryButton
+                                title={t("common.actions.confirm")}
+                                onPress={() => {
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                    handleRestMode();
+                                }}
+                            />
                             <View
                                 style={{
                                     width: '80%',
                                     alignSelf: 'center',
-                                    gap: 8,
                                 }}
                             >
-
-                                <PrimaryButton
-                                    title="Confirmer"
-                                    onPress={() => {
-                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                                        handleRestMode();
-                                    }}
-                                />
-                                <View
-                                    style={{
-                                        width: '80%',
-                                        alignSelf: 'center',
-                                    }}
-                                >
-                                    <PrimaryButton title="Annuler" type="reverse" onPress={() => setShowReposModal(false)} />
-                                </View>
+                                <PrimaryButton title={t("common.actions.cancel")} type="reverse" onPress={() => setShowReposModal(false)} />
                             </View>
-
                         </View>
-                    </TouchableWithoutFeedback>
-                }
-            />
+                    </View>
+                </TouchableWithoutFeedback>
+            </PopUpContainer>
 
         </View>
     );

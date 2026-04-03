@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import PrimaryButton from "../../components/primaryButton";
+import { useAppTranslation } from "../../lib/i18n";
 import { supabase } from "../../lib/supabase";
 import { useTheme } from "../../lib/ThemeContext";
 
@@ -10,6 +11,7 @@ import { useTheme } from "../../lib/ThemeContext";
 export default function ChangeEmail() {
 
     const { colors } = useTheme();
+    const { t } = useAppTranslation();
     const [isLoading, setIsLoading] = useState(true);
     const [userData, setUserData] = useState<{ name: string; email: string }>({ name: '', email: '' });
     const [newEmail, setNewEmail] = useState<string>('');
@@ -93,11 +95,11 @@ export default function ChangeEmail() {
     const cancelEmailChange = async () => {
         try {
             await supabase.rpc("cancel_email_change");
-            alert("Le changement d'email a été annulé.");
+            alert(t("settings.changeEmail.cancelSuccess"));
             fetchUserData();
         } catch (error) {
             console.error("Erreur lors de l'annulation du changement d'email :", error);
-            alert("Une erreur est survenue lors de l'annulation du changement d'email.");
+            alert(t("settings.changeEmail.cancelError"));
         }
         router.back();
     }
@@ -133,12 +135,12 @@ export default function ChangeEmail() {
 
             {/* Title */}
             <Text style={[styles.title, { color: colors.text }]}>
-                Un changement d'email
+                {t("settings.changeEmail.title")}
             </Text>
 
             {/* Subtitle */}
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                est en cours sur votre compte
+                {t("settings.changeEmail.subtitle")}
             </Text>
 
             {/* Email Display Box */}
@@ -146,7 +148,7 @@ export default function ChangeEmail() {
                 {/* Old Email */}
                 <View style={styles.emailSection}>
                     <Text style={[styles.emailLabel, { color: colors.textSecondary }]}>
-                        Ancienne adresse mail
+                        {t("settings.changeEmail.oldEmail")}
                     </Text>
                     <Text style={[styles.emailText, { color: colors.text }]}>
                         {userData.email}
@@ -161,7 +163,7 @@ export default function ChangeEmail() {
                 {/* New Email */}
                 <View style={styles.emailSection}>
                     <Text style={[styles.emailLabel, { color: colors.textSecondary }]}>
-                        Nouvelle adresse mail
+                        {t("settings.changeEmail.newEmail")}
                     </Text>
                     <Text style={[styles.emailText, { color: colors.text }]}>
                         {newEmail}
@@ -171,9 +173,7 @@ export default function ChangeEmail() {
 
             {/* Confirmation Message */}
             <Text style={[styles.confirmationText, { color: colors.textSecondary }]}>
-                Afin de valider ce changement,{'\n'}
-                2 emails de confirmation ont été envoyés{'\n'}
-                à l'ancien et au nouvel email.
+                {t("settings.changeEmail.confirmation")}
             </Text>
 
             {/* Awaiting Confirmation Button */}
@@ -182,19 +182,19 @@ export default function ChangeEmail() {
                 disabled
             >
                 <Text style={styles.awaitingButtonText}>
-                    En attente de confirmation
+                    {t("settings.changeEmail.awaiting")}
                 </Text>
             </TouchableOpacity>
 
             {/* Cancel Link */}
             <View style={styles.cancelContainer}>
                 <Text style={[styles.cancelText, { color: colors.textSecondary }]}>
-                    Si vous n'êtes pas à l'origine de ce changement,
+                    {t("settings.changeEmail.cancelPrefix")}
                 </Text>
                 <Text
                     onPress={cancelEmailChange}
                     style={[styles.cancelLink, { color: colors.text }]}>
-                    annulez le ici
+                    {t("settings.changeEmail.cancelLink")}
                 </Text>
             </View>
 
@@ -203,7 +203,7 @@ export default function ChangeEmail() {
                 isExpired &&
 
                 <Text style={[styles.confirmationText, { color: colors.danger }]}>
-                    Le délai de confirmation a expiré.
+                    {t("settings.changeEmail.expired")}
                 </Text>
 
 
@@ -213,8 +213,7 @@ export default function ChangeEmail() {
             {
                 !isExpired &&
                 < Text style={[styles.timerText, { color: colors.textSecondary }]}>
-                    Les emails de confirmation expirent dans{'\n'}
-                    {timeRemaining.minutes} minutes et {timeRemaining.seconds.toString().padStart(2, '0')} secondes
+                    {t("settings.changeEmail.timer", { minutes: timeRemaining.minutes, seconds: timeRemaining.seconds.toString().padStart(2, '0') })}
                 </Text>
             }
 
@@ -222,7 +221,7 @@ export default function ChangeEmail() {
 
             {/* Resend Button */}
             <PrimaryButton
-                title="Renvoyer"
+                title={t("common.actions.resend")}
                 onPress={handleResend}
                 disabled={isResending}
                 image='pencil'

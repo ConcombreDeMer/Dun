@@ -3,6 +3,7 @@ import { SquircleView } from 'expo-squircle-view';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, DimensionValue, KeyboardType, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { useFont } from '../lib/FontContext';
+import { useAppTranslation } from '../lib/i18n';
 import { useTheme } from '../lib/ThemeContext';
 
 type FontSizeKey = 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl';
@@ -63,6 +64,7 @@ export default function SimpleInput({
     const skeletonOpacity = useRef(new Animated.Value(0.3)).current;
     const { colors } = useTheme();
     const { fontSizes } = useFont();
+    const { t } = useAppTranslation();
 
     useEffect(() => {
         if (isLoading) {
@@ -108,7 +110,7 @@ export default function SimpleInput({
 
             <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 {name && <Text style={[styles.label, labelStyle, { color: colors.text, fontSize: fontSizes['2xl'] }]}>{name}</Text>}
-                {facultatif && <Text style={{ color: colors.textSecondary, fontSize: fontSizes.sm, fontStyle: "italic" }}>(facultatif)</Text>}
+                {facultatif && <Text style={{ color: colors.textSecondary, fontSize: fontSizes.sm, fontStyle: "italic" }}>({t("common.labels.optional")})</Text>}
             </View>
 
             {

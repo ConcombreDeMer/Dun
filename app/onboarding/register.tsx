@@ -19,6 +19,7 @@ import Animated, {
   FadeOut,
   FadeOutDown
 } from 'react-native-reanimated';
+import { useAppTranslation } from '../../lib/i18n';
 import { useTheme } from '../../lib/ThemeContext';
 import { supabase } from '../../lib/supabase';
 
@@ -28,6 +29,7 @@ export default function Register() {
   const LottieView = require("lottie-react-native").default;
   const router = useRouter();
   const { colors, actualTheme } = useTheme();
+  const { t } = useAppTranslation();
   const [showForm, setShowForm] = useState(false);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -97,12 +99,12 @@ export default function Register() {
           });
         }
       } else {
-        setError('Erreur lors de la création du compte. Veuillez réessayer.');
+        setError(t('onboarding.register.errors.createAccount'));
         setLoading(false);
       }
     } catch (err: any) {
       console.error('Exception lors de l\'inscription:', err);
-      setError(err.message || 'Erreur lors de l\'inscription. Veuillez réessayer.');
+      setError(err.message || t('onboarding.register.errors.signupException'));
       setLoading(false);
     }
   };
@@ -121,11 +123,11 @@ export default function Register() {
 
     if (page === 1) {
       if (!email.trim()) {
-        setErrorMessage('Veuillez entrer votre email');
+        setErrorMessage(t('onboarding.register.errors.enterEmail'));
         return;
       }
       if (!isValidEmail(email.trim())) {
-        setErrorMessage('Veuillez entrer une adresse email valide');
+        setErrorMessage(t('onboarding.register.errors.invalidEmail'));
         return;
       }
       // vérifier si l'email est déjà utilisé
@@ -136,34 +138,34 @@ export default function Register() {
 
       if (fetchError) {
         console.error('Erreur:', fetchError);
-        setErrorMessage('Erreur lors de la vérification de l\'email.');
+        setErrorMessage(t('onboarding.register.errors.checkingEmail'));
         return;
       }
 
       if (emailExists) {
-        setErrorMessage('Cette adresse email est déjà utilisée');
+        setErrorMessage(t('onboarding.register.errors.emailUsed'));
         return;
       }
     }
 
     if (page === 2) {
       if (!password.trim()) {
-        setErrorMessage('Veuillez entrer un mot de passe');
+        setErrorMessage(t('onboarding.register.errors.enterPassword'));
         return;
       }
       if (password.length < 6) {
-        setErrorMessage('Le mot de passe doit contenir au moins 6 caractères');
+        setErrorMessage(t('onboarding.register.errors.shortPassword'));
         return;
       }
     }
 
     if (page === 3) {
       if (!confirmPassword.trim()) {
-        setErrorMessage('Veuillez confirmer votre mot de passe');
+        setErrorMessage(t('onboarding.register.errors.confirmPassword'));
         return;
       }
       if (password !== confirmPassword) {
-        setErrorMessage('Les mots de passe ne correspondent pas');
+        setErrorMessage(t('onboarding.register.errors.passwordMismatch'));
         return;
       }
     }
@@ -305,7 +307,7 @@ export default function Register() {
               entering={inputAnimationTitle}
               exiting={FadeOutDown.springify()}
             >
-              <Text style={styles.label}>Quelle est ton adresse <Text style={{ fontWeight: 'bold' }}>e-mail</Text> ?</Text>
+              <Text style={styles.label}>{t('onboarding.register.emailQuestion')}</Text>
             </Animated.View>
 
             <Animated.View
@@ -314,7 +316,7 @@ export default function Register() {
               style={styles.inputContainer}
             >
               <SimpleInput
-                placeholder="..."
+                placeholder={t('onboarding.tutorial.namePlaceholder')}
                 placeholderTextColor={colors.textSecondary}
                 value={email}
                 onChangeText={setEmail}
@@ -358,7 +360,7 @@ export default function Register() {
               entering={inputAnimationTitle}
               exiting={FadeOutDown.springify()}
             >
-              <Text style={styles.label}>Crée un <Text style={{ fontWeight: 'bold' }}>mot de passe</Text></Text>
+              <Text style={styles.label}>{t('onboarding.register.passwordQuestion')}</Text>
             </Animated.View>
 
             <Animated.View
@@ -367,7 +369,7 @@ export default function Register() {
               style={styles.inputContainer}
             >
               <SimpleInput
-                placeholder="..."
+                placeholder={t('onboarding.tutorial.namePlaceholder')}
                 placeholderTextColor={colors.textSecondary}
                 value={password}
                 onChangeText={setPassword}
@@ -394,7 +396,7 @@ export default function Register() {
                 style={styles.inputContainer}
               >
                 <SimpleInput
-                  placeholder="Confirme ton mot de passe"
+                  placeholder={t('onboarding.register.confirmPasswordPlaceholder')}
                   placeholderTextColor={colors.textSecondary}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -431,12 +433,12 @@ export default function Register() {
             <Text
               style={{ marginTop: 20, fontSize: 24, fontWeight: '500', color: colors.text }}
             >
-              C'est tout ce qu'il nous faut 🙌
+              {t('onboarding.register.readyTitle')}
             </Text>
             <Text
               style={{ marginTop: 20, fontSize: 20, fontWeight: '300', color: colors.text }}
             >
-              Ton profil est prêt à être créer.
+              {t('onboarding.register.readySubtitle')}
             </Text>
             {error && (
               <Animated.Text
@@ -468,7 +470,7 @@ export default function Register() {
 
           {page < 4 && (
             <PrimaryButton
-              title="Valider"
+              title={t('onboarding.register.next')}
               onPress={handleAnimatePress}
               size='M'
             />
@@ -490,7 +492,7 @@ export default function Register() {
             // </TouchableOpacity>
 
             <PrimaryButton
-              title={loading ? "Chargement..." : "Créer le profil"}
+              title={loading ? t('common.status.loading') : t('onboarding.register.createProfile')}
               onPress={handleSignUp}
               size='M'
               disabled={loading}

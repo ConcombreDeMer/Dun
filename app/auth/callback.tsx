@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/ThemeContext';
+import { useAppTranslation } from '@/lib/i18n';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
@@ -7,6 +8,7 @@ import { ActivityIndicator, Text, View } from 'react-native';
 export default function AuthCallbackScreen() {
     const router = useRouter();
     const { colors } = useTheme();
+    const { t } = useAppTranslation();
     const params = useLocalSearchParams();
 
     useEffect(() => {
@@ -51,7 +53,7 @@ export default function AuthCallbackScreen() {
     return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
             <ActivityIndicator size="large" color={colors.actionButton} />
-            <Text style={{ marginTop: 20, color: colors.text }}>Vérification de votre compte...</Text>
+            <Text style={{ marginTop: 20, color: colors.text }}>{t('auth.callback.checking')}</Text>
         </View>
     );
 }

@@ -7,6 +7,7 @@ import { Dimensions, Pressable, StyleSheet, Text, TouchableOpacity, View } from 
 import { Swipeable } from 'react-native-gesture-handler';
 import { FadeIn, default as ReAnimated, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { useFont } from "../lib/FontContext";
+import { useAppTranslation } from "../lib/i18n";
 import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
 import PopUpTask from "./popUpTask";
@@ -42,6 +43,7 @@ export const TaskItem = ({
 }: TaskItemProps) => {
   const { colors } = useTheme();
   const { fontSizes } = useFont();
+  const { t } = useAppTranslation();
   const [isDisplayNone, setIsDisplayNone] = useState(false);
   const dotScale = useSharedValue(item.done ? 100 : 1);
   const isExpanded = useSharedValue(item.done);
@@ -238,7 +240,7 @@ export const TaskItem = ({
           cornerSmoothing={100} // 0-100
           preserveSmoothing={true} // false matches figma, true has more roundingez
         >
-          <Text style={{ fontFamily: 'Satoshi-Regular', color: '#c83232', fontSize: fontSizes.base }}>Supprimer</Text>
+          <Text style={{ fontFamily: 'Satoshi-Regular', color: '#c83232', fontSize: fontSizes.base }}>{t("task.deleteLabel")}</Text>
           <Feather name="trash-2" size={18} color="#c83232" />
         </SquircleButton>
       </View>

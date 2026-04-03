@@ -1,10 +1,17 @@
 import { useTheme } from '@/lib/ThemeContext';
+import { useAppTranslation } from '@/lib/i18n';
 import { useRouter } from 'expo-router';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function StreakExplain() {
     const router = useRouter();
     const { colors } = useTheme();
+    const { t } = useAppTranslation();
+    const bullets = t('stats.streakExplain.bullets', { returnObjects: true }) as string[];
+    const conditions = t('stats.streakExplain.conditions', { returnObjects: true }) as { title: string; description: string }[];
+    const exampleSuccess = t('stats.streakExplain.exampleSuccess', { returnObjects: true }) as string[];
+    const exampleFail = t('stats.streakExplain.exampleFail', { returnObjects: true }) as string[];
+    const tips = t('stats.streakExplain.tips', { returnObjects: true }) as { title: string; description: string }[];
 
     const dynamicStyles = {
         container: {
@@ -41,132 +48,66 @@ export default function StreakExplain() {
                         source={require('../../assets/images/stats/streak/high.png')}
                         style={styles.headerImage}
                     />
-                    <Text style={[styles.title, dynamicStyles.text]}>Qu'est-ce qu'un Streak ?</Text>
+                    <Text style={[styles.title, dynamicStyles.text]}>{t('stats.streakExplain.title')}</Text>
                 </View>
             </View>
 
             {/* Definition Card */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>Définition</Text>
-                <Text style={[styles.description, dynamicStyles.textSecondary]}>
-                    Un <Text style={[styles.bold, dynamicStyles.text]}>streak</Text> est une série consécutive de jours où vous avez complété <Text style={[styles.bold, dynamicStyles.text]}>100% de vos tâches</Text>. C'est une mesure de votre consistance et de votre engagement.
-                </Text>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.streakExplain.definitionTitle')}</Text>
+                <Text style={[styles.description, dynamicStyles.textSecondary]}>{t('stats.streakExplain.definition')}</Text>
             </View>
 
             {/* How it works */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>Comment ça fonctionne ?</Text>
-
-                <View style={styles.bulletPoint}>
-                    <View style={[styles.bulletDot, dynamicStyles.bullet]} />
-                    <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>
-                        Chaque jour compte pour votre streak
-                    </Text>
-                </View>
-
-                <View style={styles.bulletPoint}>
-                    <View style={[styles.bulletDot, dynamicStyles.bullet]} />
-                    <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>
-                        Vous devez compléter <Text style={[styles.bold, dynamicStyles.text]}>TOUTES vos tâches</Text> pour maintenir le streak
-                    </Text>
-                </View>
-
-                <View style={styles.bulletPoint}>
-                    <View style={[styles.bulletDot, dynamicStyles.bullet]} />
-                    <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>
-                        Si vous manquez une seule tâche, le streak s'interrompt
-                    </Text>
-                </View>
-
-                <View style={styles.bulletPoint}>
-                    <View style={[styles.bulletDot, dynamicStyles.bullet]} />
-                    <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>
-                        Le streak se compte à partir de <Text style={[styles.bold, dynamicStyles.text]}>jours passés</Text>, pas aujourd'hui
-                    </Text>
-                </View>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.streakExplain.howTitle')}</Text>
+                {bullets.map((bullet) => (
+                    <View style={styles.bulletPoint} key={bullet}>
+                        <View style={[styles.bulletDot, dynamicStyles.bullet]} />
+                        <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>{bullet}</Text>
+                    </View>
+                ))}
             </View>
 
             {/* Conditions */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>Conditions pour avoir un Streak</Text>
-
-                <View style={styles.conditionBox}>
-                    <Text style={[styles.conditionNumber, dynamicStyles.text]}>1</Text>
-                    <View style={styles.conditionContent}>
-                        <Text style={[styles.conditionTitle, dynamicStyles.text]}>Complétude à 100%</Text>
-                        <Text style={[styles.conditionDescription, dynamicStyles.textSecondary]}>
-                            Vous devez compléter tous vos objectifs du jour. Une seule tâche incomplète cassera la chaîne.
-                        </Text>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.streakExplain.conditionsTitle')}</Text>
+                {conditions.map((condition, index) => (
+                    <View style={styles.conditionBox} key={condition.title}>
+                        <Text style={[styles.conditionNumber, dynamicStyles.text]}>{index + 1}</Text>
+                        <View style={styles.conditionContent}>
+                            <Text style={[styles.conditionTitle, dynamicStyles.text]}>{condition.title}</Text>
+                            <Text style={[styles.conditionDescription, dynamicStyles.textSecondary]}>{condition.description}</Text>
+                        </View>
                     </View>
-                </View>
-
-                <View style={styles.conditionBox}>
-                    <Text style={[styles.conditionNumber, dynamicStyles.text]}>2</Text>
-                    <View style={styles.conditionContent}>
-                        <Text style={[styles.conditionTitle, dynamicStyles.text]}>Consécutivité</Text>
-                        <Text style={[styles.conditionDescription, dynamicStyles.textSecondary]}>
-                            Les jours doivent être consécutifs. Un jour manqué interrompt immédiatement votre streak.
-                        </Text>
-                    </View>
-                </View>
-
-                <View style={styles.conditionBox}>
-                    <Text style={[styles.conditionNumber, dynamicStyles.text]}>3</Text>
-                    <View style={styles.conditionContent}>
-                        <Text style={[styles.conditionTitle, dynamicStyles.text]}>Compter les jours passés</Text>
-                        <Text style={[styles.conditionDescription, dynamicStyles.textSecondary]}>
-                            Seuls les jours précédents aujourd'hui sont comptabilisés. Le jour courant n'est pas inclus dans le calcul.
-                        </Text>
-                    </View>
-                </View>
+                ))}
             </View>
 
             {/* Example */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>Exemple</Text>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.streakExplain.exampleTitle')}</Text>
                 <View style={styles.exampleBox}>
-                    <Text style={[styles.exampleLabel, dynamicStyles.text]}>✓ Jour 1 - Toutes tâches complètes</Text>
-                    <Text style={[styles.exampleLabel, dynamicStyles.text]}>✓ Jour 2 - Toutes tâches complètes</Text>
-                    <Text style={[styles.exampleLabel, dynamicStyles.text]}>✓ Jour 3 - Toutes tâches complètes</Text>
-                    <Text style={[styles.exampleResult, dynamicStyles.text]}>
-                        → Streak de 3 jours
-                    </Text>
+                    {exampleSuccess.map((line) => (
+                        <Text key={line} style={[styles.exampleLabel, dynamicStyles.text]}>{line}</Text>
+                    ))}
                 </View>
 
                 <View style={styles.exampleBox}>
-                    <Text style={[styles.exampleLabel, dynamicStyles.text]}>✓ Jour 1 - Toutes tâches complètes</Text>
-                    <Text style={[styles.exampleLabel, dynamicStyles.text]}>✓ Jour 2 - Toutes tâches complètes</Text>
-                    <Text style={[styles.exampleLabelFail, dynamicStyles.textSecondary]}>✗ Jour 3 - Une tâche manquée</Text>
-                    <Text style={[styles.exampleResult, dynamicStyles.text]}>
-                        → Streak cassé, recommence à 0
-                    </Text>
+                    {exampleFail.map((line, index) => (
+                        <Text key={line} style={index === 2 ? [styles.exampleLabelFail, dynamicStyles.textSecondary] : [styles.exampleLabel, dynamicStyles.text]}>{line}</Text>
+                    ))}
                 </View>
             </View>
 
             {/* Tips */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>💡 Conseils</Text>
-
-                <View style={styles.tipBox}>
-                    <Text style={[styles.tipTitle, dynamicStyles.text]}>Restez constant</Text>
-                    <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>
-                        Un streak est une belle manière de mesurer votre engagement. Essayez de maintenir vos streaks le plus longtemps possible !
-                    </Text>
-                </View>
-
-                <View style={styles.tipBox}>
-                    <Text style={[styles.tipTitle, dynamicStyles.text]}>Planifiez vos tâches</Text>
-                    <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>
-                        Assurez-vous que vos objectifs quotidiens sont réalistes pour pouvoir les compléter tous les jours.
-                    </Text>
-                </View>
-
-                <View style={styles.tipBox}>
-                    <Text style={[styles.tipTitle, dynamicStyles.text]}>Célébrez vos progrès</Text>
-                    <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>
-                        Chaque jour complété est une victoire ! Prolongez votre streak et voyez jusqu'où vous pouvez aller.
-                    </Text>
-                </View>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.streakExplain.tipsTitle')}</Text>
+                {tips.map((tip) => (
+                    <View style={styles.tipBox} key={tip.title}>
+                        <Text style={[styles.tipTitle, dynamicStyles.text]}>{tip.title}</Text>
+                        <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>{tip.description}</Text>
+                    </View>
+                ))}
             </View>
 
             {/* Footer */}

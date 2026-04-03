@@ -8,11 +8,13 @@ import Animated, {
     FadeInUp,
     FadeOutDown,
 } from 'react-native-reanimated';
+import { useAppTranslation } from '../../lib/i18n';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../lib/ThemeContext';
 
 export default function ReVerifEmail() {
     const { colors } = useTheme();
+    const { t } = useAppTranslation();
     const router = useRouter();
     const { email } = useLocalSearchParams() as { email?: string };
     const [error, setError] = useState<string | null>(null);
@@ -59,9 +61,9 @@ export default function ReVerifEmail() {
                 if (waitTimeMatch) {
                     const waitSeconds = parseInt(waitTimeMatch[1], 10);
                     setRetryWaitTime(waitSeconds);
-                    setError('Email non envoyé, veuillez attendre');
+                    setError(t('onboarding.reverifyEmail.resendWait'));
                 } else {
-                    setError('Une erreur s\'est produite lors de l\'envoi de l\'email');
+                    setError(t('onboarding.reverifyEmail.resendError'));
                 }
                 return;
             } else {
@@ -85,10 +87,10 @@ export default function ReVerifEmail() {
                 style={styles.header}
                 entering={FadeInUp.delay(300).duration(600)}>
                 <Text style={[styles.title, { color: colors.text }]}>
-                    Vérification
+                    {t('onboarding.reverifyEmail.title')}
                 </Text>
                 <Text style={[styles.subtitle, { color: colors.text }]}>
-                    De ton email
+                    {t('onboarding.reverifyEmail.subtitle')}
                 </Text>
             </Animated.View>
 
@@ -97,10 +99,10 @@ export default function ReVerifEmail() {
                 style={styles.message}
             >
                 <Text style={[styles.messageText, { color: colors.text }]}>
-                    Ton email
+                    {t('onboarding.reverifyEmail.line1')}
                 </Text>
                 <Text style={[styles.messageText, { color: colors.text, fontWeight: 700 }]}>{email}</Text>
-                <Text style={[styles.messageText, { color: colors.text, }]}>n'a pas encore été vérifié</Text>
+                <Text style={[styles.messageText, { color: colors.text, }]}>{t('onboarding.reverifyEmail.line2')}</Text>
                 <Text style={[styles.messageText, { color: colors.text, fontSize: 30 }]} >😕</Text>
             </Animated.View>
 
@@ -133,7 +135,7 @@ export default function ReVerifEmail() {
                     disabled={retryWaitTime > 0}
                 >
                     <Text style={[styles.buttonText, { color: colors.buttonText }]}>
-                        Réessayer la vérification
+                        {t('onboarding.reverifyEmail.retry')}
                     </Text>
                 </TouchableOpacity>
 
@@ -142,7 +144,7 @@ export default function ReVerifEmail() {
                     onPress={handleLogout}
                 >
                     <Text style={[styles.buttonSecondaryText, { color: colors.text }]}>
-                        Se déconnecter
+                        {t('onboarding.reverifyEmail.logout')}
                     </Text>
                 </TouchableOpacity>
             </Animated.View>

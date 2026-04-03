@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import Purchases from "react-native-purchases";
 import { useFont } from "../lib/FontContext";
+import { useAppTranslation } from "../lib/i18n";
 import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
 
@@ -26,6 +27,7 @@ export default function Settings() {
     const router = useRouter();
     const { theme, toggleTheme, colors } = useTheme();
     const { fontSizes } = useFont();
+    const { t } = useAppTranslation();
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
@@ -187,7 +189,7 @@ export default function Settings() {
                                     marginBottom: 4,
                                 }}
                             >
-                                {user.user_metadata.name || "Utilisateur"}
+                                {user.user_metadata.name || t("settings.root.defaultUserName")}
                             </Text>
 
                             <Text
@@ -210,7 +212,7 @@ export default function Settings() {
                                             marginTop: 4,
                                         }}
                                     >
-                                        Abonné à Dun Plus
+                                        {t("settings.root.subscribed")}
                                     </Text>
 
                                 )
@@ -231,9 +233,9 @@ export default function Settings() {
                     showsVerticalScrollIndicator={false}
                 >
 
-                    <NavItem image="person.fill" title="Compte" onPress={() => router.push(`/settings/account?id=${user.id}`)} />
-                    <NavItem image="bell.fill" title="Notifications" onPress={() => router.push("/settings/notifications")} />
-                    <NavItem image="display" title="Affichage" onPress={() => router.push("/settings/display")} />
+                    <NavItem image="person.fill" title={t("settings.root.account")} onPress={() => router.push(`/settings/account?id=${user.id}`)} />
+                    <NavItem image="bell.fill" title={t("settings.root.notifications")} onPress={() => router.push("/settings/notifications")} />
+                    <NavItem image="display" title={t("settings.root.display")} onPress={() => router.push("/settings/display")} />
                     <Squircle
                         style={{
                             width: '100%',
@@ -248,14 +250,14 @@ export default function Settings() {
                     >
                         <SwitchItem
                             image="list.clipboard.fill"
-                            title="Daily"
+                            title={t("settings.root.daily")}
                             event={toggleDaily}
                             currentValue={dailyEnabled}
                         />
 
                     </Squircle>
 
-                    <NavItem image="powersleep" title="Repos" onPress={() => {
+                    <NavItem image="powersleep" title={t("settings.root.rest")} onPress={() => {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                         setShowReposModal(true);
                     }} />
@@ -331,7 +333,7 @@ export default function Settings() {
                                         marginTop: -6,
                                     }}
                                 >
-                                    Atteint ton potentiel maximal
+                                    {t("settings.root.premiumTagline")}
                                 </Text>
 
                             </View>
@@ -360,60 +362,55 @@ export default function Settings() {
             <PopUpContainer
                 isVisible={showReposModal}
                 onClose={() => setShowReposModal(false)}
-                children={
-                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <View style={{ overflow: 'hidden', height: 420, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            >
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <View style={{ overflow: 'hidden', height: 420, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
 
-                            <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%' }}>
-                                <Image
-                                    source={require('@/assets/images/character/19.png')}
-                                    style={{ width: 120, height: 120 }}
-                                    resizeMode="contain"
-                                />
-                                <Text style={{ fontFamily: 'Satoshi-Regular', color: colors.text, fontSize: fontSizes['3xl'], textAlign: 'center' }}>
-                                    Aujourd'hui c'est <Text style={{ fontFamily: 'Satoshi-Bold' }}>repos</Text> !
-                                </Text>
+                        <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%' }}>
+                            <Image
+                                source={require('@/assets/images/character/19.png')}
+                                style={{ width: 120, height: 120 }}
+                                resizeMode="contain"
+                            />
+                            <Text style={{ fontFamily: 'Satoshi-Regular', color: colors.text, fontSize: fontSizes['3xl'], textAlign: 'center' }}>
+                                {t("settings.root.restModalTitle")}
+                            </Text>
 
-                                <Text
-                                    style={{ fontFamily: 'Satoshi-Regular', color: colors.textSecondary, fontSize: fontSizes.lg, textAlign: 'center' }}
-                                >
-                                    Cette journée ne sera pas
-                                    répertoriée dans les statistiques
-                                    et tes tâches en suspens sont
-                                    reportées à ta prochaine journée active
-                                </Text>
+                            <Text
+                                style={{ fontFamily: 'Satoshi-Regular', color: colors.textSecondary, fontSize: fontSizes.lg, textAlign: 'center' }}
+                            >
+                                {t("settings.root.restModalDescription")}
+                            </Text>
 
-                            </View>
+                        </View>
 
+                        <View
+                            style={{
+                                width: '80%',
+                                alignSelf: 'center',
+                                gap: 8,
+                            }}
+                        >
+
+                            <PrimaryButton
+                                title={t("common.actions.confirm")}
+                                onPress={() => {
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                    handleRestMode();
+                                }}
+                            />
                             <View
                                 style={{
                                     width: '80%',
                                     alignSelf: 'center',
-                                    gap: 8,
                                 }}
                             >
-
-                                <PrimaryButton
-                                    title="Confirmer"
-                                    onPress={() => {
-                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                                        handleRestMode();
-                                    }}
-                                />
-                                <View
-                                    style={{
-                                        width: '80%',
-                                        alignSelf: 'center',
-                                    }}
-                                >
-                                    <PrimaryButton title="Annuler" type="reverse" onPress={() => setShowReposModal(false)} />
-                                </View>
+                                <PrimaryButton title={t("common.actions.cancel")} type="reverse" onPress={() => setShowReposModal(false)} />
                             </View>
-
                         </View>
-                    </TouchableWithoutFeedback>
-                }
-            />
+                    </View>
+                </TouchableWithoutFeedback>
+            </PopUpContainer>
 
 
 

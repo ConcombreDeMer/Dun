@@ -1,4 +1,5 @@
 import { useFont } from "@/lib/FontContext";
+import { useAppTranslation } from "@/lib/i18n";
 import { useTheme } from "@/lib/ThemeContext";
 import { Image, StyleSheet, Text, View } from "react-native";
 
@@ -10,6 +11,42 @@ export default function StatsStatut({ value }: StatsStatutProps) {
 
     const { colors } = useTheme();
     const { fontSizes } = useFont();
+    const { t } = useAppTranslation();
+
+    const getStatusKey = () => {
+        switch (value) {
+            case 'Fantôme':
+                return 'ghost';
+            case 'Robot':
+                return 'robot';
+            case 'Acharné':
+                return 'relentless';
+            case 'Ambitieux':
+                return 'ambitious';
+            case 'Procrastinateur':
+                return 'procrastinator';
+            case 'Productif':
+                return 'productive';
+            case 'En devenir':
+                return 'becoming';
+            case 'Équilibré':
+                return 'balanced';
+            case 'En progression':
+                return 'improving';
+            case 'Potentiel':
+                return 'potential';
+            case 'En construction':
+                return 'building';
+            case 'Hésitant':
+                return 'hesitant';
+            case 'Flâneur':
+                return 'wanderer';
+            default:
+                return 'unknown';
+        }
+    };
+
+    const statusKey = getStatusKey();
 
     const getImageSource = () => {
         const imageMap: { [key: string]: any } = {
@@ -30,39 +67,6 @@ export default function StatsStatut({ value }: StatsStatutProps) {
         return imageMap[value] || require('../assets/images/stats/status/fantome.png');
     };
 
-    const getDescription = () => {
-        switch (value) {
-            case 'Fantôme':
-                return "Commence à créer des tâches et établis une routine !";
-            case 'Robot':
-                return "Bah c'est juste flippant là !";
-            case 'Acharné':
-                return "Tu travailles dur rien ne t'arrêtes ! Attention au surmenage tout de même.";
-            case 'Ambitieux':
-                return "Tu veux bien faire, prends ton temps pour y arriver !";
-            case 'Procrastinateur':
-                return "C'est le moment de passer à l'action !";
-            case 'Productif':
-                return "Excellent ! T'es au sweet spot !";
-            case 'En devenir':
-                return "Continue tu fais ça bien ! Maintiens le cap !";
-            case 'Équilibré':
-                return "Bien équilibré entre charge et complétion !";
-            case 'En progression':
-                return "Tu avances dans la bonne direction !";
-            case 'Potentiel':
-                return "T'en as dans le ventre !";
-            case 'En construction':
-                return "Tu poses les bases, c'est un bon départ !";
-            case 'Hésitant':
-                return "Ne t'arrete pas dans ta montée !";
-            case 'Flâneur':
-                return "Relève-toi et engage-toi davantage !";
-            default:
-                return "Avec quelques corrections t'auras tout bon !";
-        }
-    }
-
     return (
         <View
             style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -70,8 +74,8 @@ export default function StatsStatut({ value }: StatsStatutProps) {
 
             <Image source={getImageSource()} style={styles.image} />
             <View style={styles.textContainer}>
-                <Text style={[styles.title, { color: colors.text, fontSize: fontSizes['3xl'] }]}>{value}</Text>
-                {/* <Text style={[styles.description, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>{getDescription()}</Text> */}
+                <Text style={[styles.title, { color: colors.text, fontSize: fontSizes['3xl'] }]}>{t(`stats.status.${statusKey}.title`)}</Text>
+                {/* <Text style={[styles.description, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>{t(`stats.status.${statusKey}.description`)}</Text> */}
             </View>
 
         </View>

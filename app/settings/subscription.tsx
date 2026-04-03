@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react';
 import { Image, Keyboard, Platform, Text, TouchableWithoutFeedback, View } from 'react-native';
 import Purchases from 'react-native-purchases';
 import { useFont } from '../../lib/FontContext';
+import { useAppTranslation } from '../../lib/i18n';
 import { useTheme } from '../../lib/ThemeContext';
 
 type SubscriptionStatus = "None" | "prem" | "other";
@@ -19,6 +20,7 @@ type SubscriptionStatus = "None" | "prem" | "other";
 export default function Subscription() {
     const { colors } = useTheme();
     const { fontSizes } = useFont();
+    const { t } = useAppTranslation();
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [isSubscribed, setIsSubscribed ]= useState(false);
 
@@ -85,7 +87,7 @@ export default function Subscription() {
                         onPress={() => router.back()}
                         image="chevron.left"
                     />
-                    <Headline title="Gestion" subtitle="de l'abonnement" />
+                    <Headline title={t("settings.subscription.headline.title")} subtitle={t("settings.subscription.headline.subtitle")} />
                 </View>
 
                 <View
@@ -94,7 +96,7 @@ export default function Subscription() {
                     <Text
                         style={{ color: colors.textSecondary, fontSize: fontSizes.xl }}
                     >
-                        ÉTAT
+                        {t("settings.subscription.status")}
                     </Text>
                     {
                         !isSubscribed ? (
@@ -115,7 +117,7 @@ export default function Subscription() {
                                     <Text
                                         style={{ color: colors.text, fontSize: fontSizes.lg, padding: 20, fontFamily: 'Satoshi-Regular' }}
                                     >
-                                        Aucun abonnement actif.
+                                        {t("settings.subscription.none")}
                                     </Text>
                                 </View>
 
@@ -198,7 +200,7 @@ export default function Subscription() {
                                 <Text
                                     style={{ color: colors.textSecondary, fontSize: fontSizes.xl }}
                                 >
-                                    INFORMATIONS
+                                    {t("settings.subscription.informations")}
                                 </Text>
 
 
@@ -211,14 +213,14 @@ export default function Subscription() {
                                     }}
                                 >
                                     <SettingItem
-                                        title="Date de début"
+                                        title={t("settings.subscription.startDate")}
                                         rightContent={
                                             <Text
                                                 style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>TEST</Text>
                                         }
                                     />
                                     <SettingItem
-                                        title="Date de fin"
+                                        title={t("settings.subscription.endDate")}
                                         rightContent={
                                             <Text
                                                 style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>TEST</Text>
@@ -226,14 +228,14 @@ export default function Subscription() {
                                         }
                                     />
                                     <SettingItem
-                                        title="Périodicité"
+                                        title={t("settings.subscription.periodicity")}
                                         rightContent={
                                             <Text style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>TEST</Text>
 
                                         }
                                     />
                                     <SettingItem
-                                        title="Prix"
+                                        title={t("settings.subscription.price")}
                                         rightContent={
                                             <Text style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>TEST</Text>
 
@@ -255,13 +257,13 @@ export default function Subscription() {
                     <Text
                         style={{ color: colors.textSecondary, fontSize: fontSizes.xl }}
                     >
-                        GESTION
+                        {t("settings.subscription.management")}
                     </Text>
                     {
                         !isSubscribed ? (
 
                             <SquircleView>
-                                <NavItem title="Débuter un abonnement" onPress={() => router.push("/settings/premium")} />
+                                <NavItem title={t("settings.subscription.startSubscription")} onPress={() => router.push("/settings/premium")} />
                             </SquircleView>
 
                         ) : (
@@ -274,13 +276,13 @@ export default function Subscription() {
                                     style={{ paddingHorizontal: 23, alignSelf: 'center', width: '100%' }}
                                 >
                                     <SwitchItem
-                                        title="Renouvellement automatique"
+                                        title={t("settings.subscription.autoRenewal")}
                                     // event={setWeekendEnabled}
                                     // currentValue={weekendEnabled}
                                     />
 
                                 </View>
-                                <NavItem title="Annuler l'abonnement" onPress={() => setShowCancelModal(true)} transparent />
+                                <NavItem title={t("settings.subscription.cancelSubscription")} onPress={() => setShowCancelModal(true)} transparent />
 
                             </SquircleView>
                         )
@@ -293,32 +295,31 @@ export default function Subscription() {
             <PopUpContainer
                 isVisible={showCancelModal}
                 onClose={() => setShowCancelModal(false)}
-                children={
-                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <View style={{ overflow: 'hidden', height: 400, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            >
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <View style={{ overflow: 'hidden', height: 400, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
 
-                            <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%', paddingHorizontal: 20 }}>
-                                <SymbolView name="exclamationmark.triangle.fill" weight="semibold" size={120} tintColor="#000000" />
-                                <Text style={{ fontFamily: 'Satoshi-Regular', color: colors.text, fontSize: fontSizes['xl'], textAlign: 'center' }}>
-                                    Vous êtes sur le point de résilier votre abonnement à <Text style={{ fontFamily: 'Satoshi-Bold' }}>Dun +</Text>.
-                                </Text>
+                        <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%', paddingHorizontal: 20 }}>
+                            <SymbolView name="exclamationmark.triangle.fill" weight="semibold" size={120} tintColor="#000000" />
+                            <Text style={{ fontFamily: 'Satoshi-Regular', color: colors.text, fontSize: fontSizes['xl'], textAlign: 'center' }}>
+                                {t("settings.subscription.cancelModalTitle")}
+                            </Text>
 
-                                <Text
-                                    style={{ fontFamily: 'Satoshi-Regular', color: colors.textSecondary, fontSize: fontSizes.lg, textAlign: 'center' }}
-                                >
-                                    En cas de confirmation, celui ci prendra fin le <Text style={{ fontFamily: 'Satoshi-Bold' }}> date</Text>, les services premium ne vous seront plus accessibles passé cette date.
-                                </Text>
+                            <Text
+                                style={{ fontFamily: 'Satoshi-Regular', color: colors.textSecondary, fontSize: fontSizes.lg, textAlign: 'center' }}
+                            >
+                                {t("settings.subscription.cancelModalDescription")}
+                            </Text>
 
-                            </View>
-
-                            <PrimaryButton
-                                title="Confirmer"
-                                onPress={cancelSubscription}
-                            />
                         </View>
-                    </TouchableWithoutFeedback>
-                }
-            />
+
+                        <PrimaryButton
+                            title={t("common.actions.confirm")}
+                            onPress={cancelSubscription}
+                        />
+                    </View>
+                </TouchableWithoutFeedback>
+            </PopUpContainer>
         </View>
 
     )

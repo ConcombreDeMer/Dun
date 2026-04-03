@@ -11,18 +11,20 @@ import {
     View,
 } from "react-native";
 import { useFont, type FontSize } from "../../lib/FontContext";
+import { AppLanguage, useAppTranslation } from "../../lib/i18n";
 import { colorThemeOptions, useTheme } from "../../lib/ThemeContext";
 
 export default function Display() {
     const router = useRouter();
+    const { t, language, setLanguage, supportedLanguages } = useAppTranslation();
     const { theme, colorTheme, colors, setTheme } = useTheme();
     const { fontSize, setFontSize, fontSizes } = useFont();
     const activeColorTheme = colorThemeOptions.find((option) => option.id === colorTheme) ?? colorThemeOptions[0];
 
     const handleAbout = () => {
         Alert.alert(
-            "À propos",
-            "Dun - Gestionnaire de tâches\nVersion 1.0.0\n\nUne application simple et élégante pour gérer vos tâches quotidiennes.\n\n© 2025 Dun. Tous droits réservés."
+            t("settings.display.about.title"),
+            t("settings.display.about.message")
         );
     };
 
@@ -130,6 +132,36 @@ export default function Display() {
         );
     };
 
+    const LanguageOption = ({ value }: { value: AppLanguage }) => {
+        const isActive = language === value;
+
+        return (
+            <SquircleButton
+                style={[
+                    styles.languageButton,
+                    {
+                        backgroundColor: isActive ? colors.button : colors.card,
+                        borderColor: isActive ? colors.button : colors.border,
+                        borderWidth: 1,
+                    },
+                ]}
+                onPress={() => setLanguage(value)}
+            >
+                <Text
+                    style={[
+                        styles.languageLabel,
+                        {
+                            color: isActive ? colors.buttonText : colors.text,
+                            fontSize: fontSizes.base,
+                        },
+                    ]}
+                >
+                    {t(`settings.display.languages.${value}`)}
+                </Text>
+            </SquircleButton>
+        );
+    };
+
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             <View
@@ -139,7 +171,10 @@ export default function Display() {
                     onPress={() => router.back()}
                     image="chevron.left"
                 />
-                <Headline title="Affichage" subtitle="Personnaliser votre interface" />
+                <Headline
+                    title={t("settings.display.headline.title")}
+                    subtitle={t("settings.display.headline.subtitle")}
+                />
             </View>
 
             <ScrollView
@@ -149,18 +184,18 @@ export default function Display() {
                 {/* Theme Section */}
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.base }]}>
-                        Thème
+                        {t("settings.display.sections.theme")}
                     </Text>
                     <View style={styles.themeContainer}>
-                        <ThemePreviewBox previewTheme="light" title="Clair" />
-                        <ThemePreviewBox previewTheme="dark" title="Sombre" />
-                        <ThemePreviewBox previewTheme="system" title="Système" />
+                        <ThemePreviewBox previewTheme="light" title={t("settings.display.themeOptions.light")} />
+                        <ThemePreviewBox previewTheme="dark" title={t("settings.display.themeOptions.dark")} />
+                        <ThemePreviewBox previewTheme="system" title={t("settings.display.themeOptions.system")} />
                     </View>
                 </View>
 
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.base }]}>
-                        Coloris
+                        {t("settings.display.sections.colorTheme")}
                     </Text>
                     <SquircleButton
                         style={[styles.colorRow, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
@@ -168,10 +203,10 @@ export default function Display() {
                     >
                         <View style={{ flex: 1 }}>
                             <Text style={[styles.colorRowTitle, { color: colors.text, fontSize: fontSizes.lg }]}>
-                                {activeColorTheme.label}
+                                {t(activeColorTheme.labelKey)}
                             </Text>
                             <Text style={[styles.colorRowDescription, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>
-                                {activeColorTheme.description}
+                                {t(activeColorTheme.descriptionKey)}
                             </Text>
                         </View>
                         <View style={styles.swatchRow}>
@@ -188,12 +223,26 @@ export default function Display() {
                 {/* Font Size Section */}
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.base }]}>
-                        Taille du texte
+                        {t("settings.display.sections.fontSize")}
                     </Text>
                     <View style={styles.optionGroup}>
                         <FontSizeOption size="small" label="Aa" />
                         <FontSizeOption size="medium" label="Aa" />
                         <FontSizeOption size="large" label="Aa" />
+                    </View>
+                </View>
+
+                <View style={styles.section}>
+                    <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.base }]}>
+                        {t("settings.display.sections.language")}
+                    </Text>
+                    <Text style={[styles.sectionDescription, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>
+                        {t("settings.display.languageDescription")}
+                    </Text>
+                    <View style={styles.optionGroup}>
+                        {supportedLanguages.map((value) => (
+                            <LanguageOption key={value} value={value} />
+                        ))}
                     </View>
                 </View>
 
@@ -225,7 +274,7 @@ export default function Display() {
                             tintColor={colors.text}
                         />
                         <Text style={[styles.aboutText, { color: colors.text, fontSize: fontSizes.lg }]}>
-                            À propos
+                            {t("settings.display.about.title")}
                         </Text>
                     </View>
                     <SymbolView
@@ -258,6 +307,9 @@ const styles = StyleSheet.create({
 
     section: {
         gap: 12,
+    },
+    sectionDescription: {
+        fontFamily: "Satoshi-Regular",
     },
 
     sectionTitle: {
@@ -354,6 +406,17 @@ const styles = StyleSheet.create({
     optionGroup: {
         flexDirection: "row",
         gap: 12,
+    },
+    languageButton: {
+        flex: 1,
+        minHeight: 52,
+        borderRadius: 15,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 16,
+    },
+    languageLabel: {
+        fontFamily: "Satoshi-Medium",
     },
 
     optionButton: {

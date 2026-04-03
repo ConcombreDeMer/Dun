@@ -19,6 +19,7 @@ import Animated, {
     FadeOut,
     FadeOutDown
 } from 'react-native-reanimated';
+import { useAppTranslation } from '../../lib/i18n';
 import { useTheme } from '../../lib/ThemeContext';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../store/store';
@@ -26,6 +27,7 @@ import { useStore } from '../../store/store';
 export default function LoginScreen() {
     const router = useRouter();
     const { colors, theme } = useTheme();
+    const { t } = useAppTranslation();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -43,11 +45,11 @@ export default function LoginScreen() {
 
         // Validation simple
         if (!email.trim()) {
-            setError('Veuillez entrer votre email');
+            setError(t('onboarding.login.errors.enterEmail'));
             return;
         }
         if (!password.trim()) {
-            setError('Veuillez entrer votre mot de passe');
+            setError(t('onboarding.login.errors.enterPassword'));
             return;
         }
 
@@ -96,7 +98,7 @@ export default function LoginScreen() {
                 }
 
                 if (profileData.error) {
-                    setError('Erreur avec le profil utilisateur');
+                    setError(t('onboarding.login.errors.profile'));
                     setLoading(false);
                     return;
                 }
@@ -104,7 +106,7 @@ export default function LoginScreen() {
                 router.replace(profileData.data.hasName ? '/' : '/onboarding/tutorial');
             }
         } catch (err: any) {
-            setError(err.message || 'Erreur de connexion');
+            setError(err.message || t('onboarding.login.errors.generic'));
             setLoading(false);
         }
     };
@@ -143,7 +145,7 @@ export default function LoginScreen() {
                     entering={FadeInUp.springify().delay(500).duration(1500)}
                     exiting={FadeOutDown.springify()}
                 >
-                    <Text style={[styles.title, { color: colors.text }]}>Bienvenue</Text>
+                    <Text style={[styles.title, { color: colors.text }]}>{t('onboarding.login.title')}</Text>
                 </Animated.View>
 
                 <Animated.View
@@ -152,7 +154,7 @@ export default function LoginScreen() {
                     style={styles.inputContainer}
                 >
                     <SimpleInput
-                        placeholder="Email"
+                        placeholder={t('onboarding.login.emailPlaceholder')}
                         placeholderTextColor={colors.textSecondary}
                         value={email}
                         onChangeText={setEmail}
@@ -171,7 +173,7 @@ export default function LoginScreen() {
                     style={styles.inputContainer}
                 >
                     <SimpleInput
-                        placeholder="Mot de passe"
+                        placeholder={t('onboarding.login.passwordPlaceholder')}
                         placeholderTextColor={colors.textSecondary}
                         value={password}
                         onChangeText={setPassword}
@@ -218,7 +220,7 @@ export default function LoginScreen() {
                             fontFamily: 'Satoshi-Regular',
                             color: colors.background,
                         }}>
-                            {loading ? 'Connexion...' : 'Se connecter'}
+                            {loading ? t('onboarding.login.loading') : t('onboarding.login.action')}
                         </Text>
                     </SquircleButton>
                 </Animated.View>

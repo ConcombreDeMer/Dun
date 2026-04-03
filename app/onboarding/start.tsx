@@ -19,6 +19,7 @@ import Animated, {
     useSharedValue,
     withSpring
 } from 'react-native-reanimated';
+import { useAppTranslation } from '../../lib/i18n';
 import { useTheme } from '../../lib/ThemeContext';
 import { supabase } from '../../lib/supabase';
 
@@ -26,6 +27,7 @@ import { supabase } from '../../lib/supabase';
 export default function StartScreen() {
     const router = useRouter();
     const { colors, theme } = useTheme();
+    const { t } = useAppTranslation();
     const styles = createStyles(colors);
     const LottieView = require("lottie-react-native").default;
     const screenWidth = React.useState(Dimensions.get('window').width)[0];
@@ -102,7 +104,7 @@ export default function StartScreen() {
 
                 router.replace('/home');
             } else {
-                setError(error?.message || 'Erreur de connexion Google');
+                setError(error?.message || t('onboarding.start.googleError'));
             }
         }
     };
@@ -146,7 +148,7 @@ export default function StartScreen() {
                     entering={FadeInUp.springify().delay(3000).duration(1000)}
                     exiting={FadeOutDown.springify().delay(100).duration(500)}
                 >
-                    Prend le contrôle de tes journées
+                    {t('onboarding.start.tagline')}
                 </Animated.Text>
             </View>
 
@@ -237,7 +239,7 @@ export default function StartScreen() {
                                 color: colors.text,
                             }}
                         >
-                            Continuer avec un email
+                            {t('onboarding.start.continueEmail')}
                         </Animated.Text>
                     </SquircleButton>
 
@@ -260,7 +262,7 @@ export default function StartScreen() {
                                 color: "white",
                             }}
                         >
-                            Continuer avec Apple
+                            {t('onboarding.start.continueApple')}
                         </Animated.Text>
                     </SquircleButton>
 
@@ -285,7 +287,7 @@ export default function StartScreen() {
                                 color: colors.text,
                             }}
                         >
-                            Continuer avec Google
+                            {t('onboarding.start.continueGoogle')}
                         </Animated.Text>
                     </SquircleButton>
                 </Animated.View>
@@ -356,7 +358,7 @@ export default function StartScreen() {
                                     color: "white",
                                 }}
                             >
-                                Créer un compte
+                                {t('onboarding.start.createAccount')}
                             </Animated.Text>
                         </SquircleButton>
 
@@ -374,7 +376,7 @@ export default function StartScreen() {
                                     color: colors.text,
                                 }}
                             >
-                                Se connecter
+                                {t('onboarding.start.login')}
                             </Animated.Text>
                         </SquircleButton>
 

@@ -11,6 +11,7 @@ import DraggableFlatList from "react-native-draggable-flatlist";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import ReAnimated, { runOnJS, runOnUI, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { TaskItem } from "../components/TaskItem";
+import { useAppTranslation } from "../lib/i18n";
 import { useTheme } from "../lib/ThemeContext";
 import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "../lib/notificationService";
 import { supabase } from "../lib/supabase";
@@ -27,6 +28,7 @@ export default function Home() {
   const [userName, setUserName] = useState<string>('');
   const [userHasSeenTutorial, setUserHasSeenTutorial] = useState<boolean>(false);
   const router = useRouter();
+  const { t } = useAppTranslation();
   const { colors, theme } = useTheme();
   const setStoreDate = useStore((state) => state.setSelectedDate);
   const [progress, setProgress] = useState(0);
@@ -48,7 +50,7 @@ export default function Home() {
 
         if (user) {
           console.log("Utilisateur connecté : ", user);
-          const name = user.user_metadata?.name || user.email?.split('@')[0] || 'Utilisateur';
+          const name = user.user_metadata?.name || user.email?.split('@')[0] || t("settings.root.defaultUserName");
           setUserName(name);
           store.setUser({ id: user.id });
 
@@ -487,7 +489,7 @@ export default function Home() {
                 />
               )}
               ListEmptyComponent={
-                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Aucune tâche pour cette date</Text>
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t("home.emptyState")}</Text>
               }
             />
           )}

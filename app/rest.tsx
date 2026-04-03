@@ -9,6 +9,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import DateInput from '../components/dateInput';
 import PrimaryButton from '../components/primaryButton';
 import { useFont } from '../lib/FontContext';
+import { useAppTranslation } from '../lib/i18n';
 import { useTheme } from '../lib/ThemeContext';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -16,12 +17,11 @@ const { width: screenWidth } = Dimensions.get('window');
 export default function RestScreen() {
     const { colors } = useTheme();
     const { fontSizes } = useFont();
+    const { t, language } = useAppTranslation();
     const router = useRouter();
     const [showCancelModal, setShowCancelModal] = React.useState(false);
     const [restEndDate, setRestEndDate] = React.useState<Date | null>(null);
     const [selectedDate, setSelectedDate] = React.useState(new Date());
-    const formattedDate = restEndDate ? restEndDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '';
-
     const fetchRestEndDate = async () => {
         try {
             const { data, error } = await supabase
@@ -34,7 +34,7 @@ export default function RestScreen() {
             setSelectedDate(fetchedDate ? fetchedDate : new Date());
 
             // On retourne la date formatée pour useQuery
-            return fetchedDate ? fetchedDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '';
+            return fetchedDate ? fetchedDate.toLocaleDateString(language === "en" ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'long' }) : '';
         }
         catch (error) {
             console.error('Erreur lors de la récupération de la date:', error);
@@ -85,8 +85,8 @@ export default function RestScreen() {
 
                     {/* Header Titles */}
                     <View style={styles.header}>
-                        <Text style={[styles.title, { color: colors.text }]}>Prends soin</Text>
-                        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>de toi</Text>
+                        <Text style={[styles.title, { color: colors.text }]}>{t("rest.title1")}</Text>
+                        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t("rest.subtitle1")}</Text>
                     </View>
 
                     {/* Illustration */}
@@ -101,27 +101,25 @@ export default function RestScreen() {
                     {/* Description paragraphs */}
                     <View style={styles.textContainer}>
                         <Text style={[styles.description, { color: colors.textSecondary }]}>
-                            Il est <Text style={[styles.boldText, { color: colors.textSecondary }]}>important</Text> de prendre du{'\n'}
-                            temps pour soi et faire des{'\n'}
-                            <Text style={[styles.boldText, { color: colors.textSecondary }]}>pauses</Text> de temps en temps
+                            {t("rest.description")}
                         </Text>
                     </View>
 
                     {/* Bottom section with buttons */}
                     <View style={styles.bottomContainer}>
                         <Text style={[styles.untilText, { color: colors.textSecondary }]}>
-                            En pause jusqu'au {restEndDateQuery.data}
+                            {t("rest.until", { date: restEndDateQuery.data })}
                         </Text>
 
                         <View style={styles.buttonsWrapper}>
                             <PrimaryButton
-                                title="Débloquer"
+                                title={t("common.actions.unlock")}
                                 onPress={handleUnlock}
                             />
                             <View style={{ height: 12 }} />
                             <View style={{ width: '90%', alignSelf: 'center' }}>
                                 <PrimaryButton
-                                    title="Étendre la pause"
+                                    title={t("common.actions.extend")}
                                     type="reverse"
                                     onPress={goToStep2}
                                 />
@@ -138,14 +136,14 @@ export default function RestScreen() {
 
                     {/* Header Titles */}
                     <View style={styles.header}>
-                        <Text style={[styles.title, { color: colors.text }]}>Donnes toi</Text>
-                        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>le temps nécessaire</Text>
+                        <Text style={[styles.title, { color: colors.text }]}>{t("rest.extendTitle")}</Text>
+                        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t("rest.extendSubtitle")}</Text>
                     </View>
 
                     {/* Input Field */}
                     <View style={{ width: '100%', alignItems: 'flex-start', paddingHorizontal: 20 }}>
                         <Text style={{ fontFamily: 'Satoshi-Medium', fontSize: 18, color: colors.text, marginBottom: 8 }}>
-                            Date de fin de pause :
+                            {t("rest.endDate")}
                         </Text>
                         <View style={{ width: '100%', height: 60 }}>
                             <DateInput
@@ -159,7 +157,7 @@ export default function RestScreen() {
                     <View style={styles.bottomContainer}>
                         <View style={styles.buttonsWrapper}>
                             <PrimaryButton
-                                title="Valider"
+                                title={t("common.actions.validate")}
                                 onPress={async () => {
                                     try {
                                         const { data: { user } } = await supabase.auth.getUser();
@@ -184,7 +182,7 @@ export default function RestScreen() {
                             <View style={{ height: 12 }} />
                             <View style={{ width: '90%', alignSelf: 'center' }}>
                                 <PrimaryButton
-                                    title="Annuler"
+                                    title={t("common.actions.cancel")}
                                     type="reverse"
                                     onPress={async () => {
                                         goBackToStep1();
@@ -200,84 +198,76 @@ export default function RestScreen() {
             <PopUpContainer
                 isVisible={showCancelModal}
                 onClose={() => setShowCancelModal(false)}
-                children={
-                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <View style={{ overflow: 'hidden', height: 420, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            >
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <View style={{ overflow: 'hidden', height: 420, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
 
-                            <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%' }}>
-                                <Image
-                                    source={require('@/assets/images/character/18.png')}
-                                    style={{ width: 120, height: 120 }}
-                                    resizeMode="contain"
-                                />
-                                <Text style={{ fontFamily: 'Satoshi-Regular', color: colors.text, fontSize: fontSizes['3xl'], textAlign: 'center' }}>
-                                    Repos <Text style={{ fontFamily: 'Satoshi-Bold' }}>terminé</Text> ?
-                                </Text>
+                        <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%' }}>
+                            <Image
+                                source={require('@/assets/images/character/18.png')}
+                                style={{ width: 120, height: 120 }}
+                                resizeMode="contain"
+                            />
+                            <Text style={{ fontFamily: 'Satoshi-Regular', color: colors.text, fontSize: fontSizes['3xl'], textAlign: 'center' }}>
+                                {t("rest.cancelModalTitle")}
+                            </Text>
 
-                                <Text
-                                    style={{ fontFamily: 'Satoshi-Regular', color: colors.textSecondary, fontSize: fontSizes.lg, textAlign: 'center' }}
-                                >
-                                    Tu souhaite annulé ta journée de repos.
-                                    Sois conscient que prendre une journée
-                                    pour soit est normal voire nécessaire.
-                                    Si tu te sens fatigué, reste en pause !
-                                </Text>
+                            <Text
+                                style={{ fontFamily: 'Satoshi-Regular', color: colors.textSecondary, fontSize: fontSizes.lg, textAlign: 'center' }}
+                            >
+                                {t("rest.cancelModalDescription")}
+                            </Text>
 
-                            </View>
+                        </View>
 
+                        <View
+                            style={{
+                                width: '80%',
+                                alignSelf: 'center',
+                                gap: 8,
+                            }}
+                        >
+
+                            <PrimaryButton
+                                title={t("common.actions.confirm")}
+                                onPress={async () => {
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                    try {
+                                        const { data: { user } } = await supabase.auth.getUser();
+                                        if (user) {
+                                            const { error } = await supabase
+                                                .from('Profiles')
+                                                .update({ restEndDate: null, restMode: false })
+                                                .eq('id', user.id);
+
+                                            if (error) {
+                                                console.error("Erreur lors de l'annulation du mode repos:", error);
+                                            }
+                                        }
+                                    } catch (error) {
+                                        console.error(error);
+                                    } finally {
+                                        restEndDateQuery.refetch();
+                                        if (router.canGoBack()) {
+                                            router.back();
+                                        } else {
+                                            router.replace('/');
+                                        }
+                                    }
+                                }}
+                            />
                             <View
                                 style={{
                                     width: '80%',
                                     alignSelf: 'center',
-                                    gap: 8,
                                 }}
                             >
-
-                                <PrimaryButton
-                                    title="Confirmer"
-                                    onPress={async () => {
-                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                                        try {
-                                            const { data: { user } } = await supabase.auth.getUser();
-                                            if (user) {
-                                                const { error } = await supabase
-                                                    .from('Profiles')
-                                                    .update({ restEndDate: null, restMode: false })
-                                                    .eq('id', user.id);
-
-                                                if (error) {
-                                                    console.error("Erreur lors de l'annulation du mode repos:", error);
-                                                }
-                                            }
-                                        } catch (error) {
-                                            console.error(error);
-                                        } finally {
-                                            restEndDateQuery.refetch();
-                                            // setShowCancelModal(false);
-
-                                            // si le router peut back
-                                            if (router.canGoBack()) {
-                                                router.back();
-                                            } else {
-                                                router.replace('/');
-                                            }
-                                        }
-                                    }}
-                                />
-                                <View
-                                    style={{
-                                        width: '80%',
-                                        alignSelf: 'center',
-                                    }}
-                                >
-                                    <PrimaryButton title="Annuler" type="reverse" onPress={() => setShowCancelModal(false)} />
-                                </View>
+                                <PrimaryButton title={t("common.actions.cancel")} type="reverse" onPress={() => setShowCancelModal(false)} />
                             </View>
-
                         </View>
-                    </TouchableWithoutFeedback>
-                }
-            />
+                    </View>
+                </TouchableWithoutFeedback>
+            </PopUpContainer>
         </View>
     );
 }

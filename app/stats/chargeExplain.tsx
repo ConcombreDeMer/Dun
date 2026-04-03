@@ -1,10 +1,17 @@
 import { useTheme } from '@/lib/ThemeContext';
+import { useAppTranslation } from '@/lib/i18n';
 import { useRouter } from 'expo-router';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function ChargeExplain() {
     const router = useRouter();
     const { colors } = useTheme();
+    const { t } = useAppTranslation();
+    const bullets = t('stats.chargeExplain.bullets', { returnObjects: true }) as string[];
+    const levels = t('stats.chargeExplain.levels', { returnObjects: true }) as { title: string; description: string }[];
+    const interpretations = t('stats.chargeExplain.interpretations', { returnObjects: true }) as { emoji: string; title: string; description: string }[];
+    const exampleLines = t('stats.chargeExplain.exampleLines', { returnObjects: true }) as string[];
+    const tips = t('stats.chargeExplain.tips', { returnObjects: true }) as { title: string; description: string }[];
 
     const dynamicStyles = {
         container: {
@@ -41,154 +48,78 @@ export default function ChargeExplain() {
                         source={require('../../assets/images/stats/charge.png')}
                         style={styles.headerImage}
                     />
-                    <Text style={[styles.title, dynamicStyles.text]}>Qu'est-ce que la Charge ?</Text>
+                    <Text style={[styles.title, dynamicStyles.text]}>{t('stats.chargeExplain.title')}</Text>
                 </View>
             </View>
 
             {/* Definition Card */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>Définition</Text>
-                <Text style={[styles.description, dynamicStyles.textSecondary]}>
-                    La <Text style={[styles.bold, dynamicStyles.text]}>charge</Text> est une mesure quantitative de votre <Text style={[styles.bold, dynamicStyles.text]}>volume de travail quotidien moyen</Text>. Elle représente la complexité et l'ampleur de vos objectifs sur une période donnée.
-                </Text>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.chargeExplain.definitionTitle')}</Text>
+                <Text style={[styles.description, dynamicStyles.textSecondary]}>{t('stats.chargeExplain.definition')}</Text>
             </View>
 
             {/* How it's calculated */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>Comment est-elle calculée ?</Text>
-
-                <View style={styles.bulletPoint}>
-                    <View style={[styles.bulletDot, dynamicStyles.bullet]} />
-                    <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>
-                        Chaque tâche contribue à votre charge quotidienne
-                    </Text>
-                </View>
-
-                <View style={styles.bulletPoint}>
-                    <View style={[styles.bulletDot, dynamicStyles.bullet]} />
-                    <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>
-                        Un calcul de <Text style={[styles.bold, dynamicStyles.text]}>moyenne sur 7 jours</Text> est effectué
-                    </Text>
-                </View>
-
-                <View style={styles.bulletPoint}>
-                    <View style={[styles.bulletDot, dynamicStyles.bullet]} />
-                    <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>
-                        Seuls les <Text style={[styles.bold, dynamicStyles.text]}>jours passés</Text> sont pris en compte (pas le jour courant)
-                    </Text>
-                </View>
-
-                <View style={styles.bulletPoint}>
-                    <View style={[styles.bulletDot, dynamicStyles.bullet]} />
-                    <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>
-                        La charge est exprimée en <Text style={[styles.bold, dynamicStyles.text]}>nombre moyen de tâches</Text>
-                    </Text>
-                </View>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.chargeExplain.howTitle')}</Text>
+                {bullets.map((bullet) => (
+                    <View style={styles.bulletPoint} key={bullet}>
+                        <View style={[styles.bulletDot, dynamicStyles.bullet]} />
+                        <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>{bullet}</Text>
+                    </View>
+                ))}
             </View>
 
             {/* Charge Levels */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>Niveaux de Charge</Text>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.chargeExplain.levelsTitle')}</Text>
 
-                <View style={styles.chargeBox}>
-                    <View style={[styles.chargeDot, { backgroundColor: '#FF4C4C' }]} />
-                    <View style={styles.chargeContent}>
-                        <Text style={[styles.chargeLevel, dynamicStyles.text]}>Charge Faible</Text>
-                        <Text style={[styles.chargeDescription, dynamicStyles.textSecondary]}>
-                            Moins de 2 tâches en moyenne
-                        </Text>
+                {levels.map((level, index) => (
+                    <View style={styles.chargeBox} key={level.title}>
+                        <View style={[styles.chargeDot, { backgroundColor: ['#FF4C4C', '#ffcd6fff', '#74ca77ff'][index] }]} />
+                        <View style={styles.chargeContent}>
+                            <Text style={[styles.chargeLevel, dynamicStyles.text]}>{level.title}</Text>
+                            <Text style={[styles.chargeDescription, dynamicStyles.textSecondary]}>{level.description}</Text>
+                        </View>
                     </View>
-                </View>
-
-                <View style={styles.chargeBox}>
-                    <View style={[styles.chargeDot, { backgroundColor: '#ffcd6fff' }]} />
-                    <View style={styles.chargeContent}>
-                        <Text style={[styles.chargeLevel, dynamicStyles.text]}>Charge Modérée</Text>
-                        <Text style={[styles.chargeDescription, dynamicStyles.textSecondary]}>
-                            Entre 2 et 4 tâches en moyenne
-                        </Text>
-                    </View>
-                </View>
-
-                <View style={styles.chargeBox}>
-                    <View style={[styles.chargeDot, { backgroundColor: '#74ca77ff' }]} />
-                    <View style={styles.chargeContent}>
-                        <Text style={[styles.chargeLevel, dynamicStyles.text]}>Charge Saine</Text>
-                        <Text style={[styles.chargeDescription, dynamicStyles.textSecondary]}>
-                            Plus de 4 tâches et jusqu'à 7
-                        </Text>
-                    </View>
-                </View>
+                ))}
             </View>
 
             {/* Interpretation */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>Interprétation</Text>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.chargeExplain.interpretationTitle')}</Text>
 
-                <View style={styles.interpretBox}>
-                    <Text style={[styles.interpretNumber, dynamicStyles.text]}>📊</Text>
-                    <View style={styles.interpretContent}>
-                        <Text style={[styles.interpretTitle, dynamicStyles.text]}>Comprendre votre charge</Text>
-                        <Text style={[styles.interpretDescription, dynamicStyles.textSecondary]}>
-                            La charge vous aide à évaluer si votre charge de travail est équilibrée. Une charge trop faible peut indiquer un manque de motivation, tandis qu'une charge très élevée peut mener au surmenage.
-                        </Text>
+                {interpretations.map((item) => (
+                    <View style={styles.interpretBox} key={item.title}>
+                        <Text style={[styles.interpretNumber, dynamicStyles.text]}>{item.emoji}</Text>
+                        <View style={styles.interpretContent}>
+                            <Text style={[styles.interpretTitle, dynamicStyles.text]}>{item.title}</Text>
+                            <Text style={[styles.interpretDescription, dynamicStyles.textSecondary]}>{item.description}</Text>
+                        </View>
                     </View>
-                </View>
-
-                <View style={styles.interpretBox}>
-                    <Text style={[styles.interpretNumber, dynamicStyles.text]}>⚖️</Text>
-                    <View style={styles.interpretContent}>
-                        <Text style={[styles.interpretTitle, dynamicStyles.text]}>Chercher l'équilibre</Text>
-                        <Text style={[styles.interpretDescription, dynamicStyles.textSecondary]}>
-                            L'idéal est de maintenir une charge modérée à saine pour rester productif sans vous épuiser.
-                        </Text>
-                    </View>
-                </View>
+                ))}
             </View>
 
             {/* Example */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>Exemple</Text>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.chargeExplain.exampleTitle')}</Text>
                 
-                <Text style={[styles.exampleSubtitle, dynamicStyles.text]}>7 derniers jours :</Text>
+                <Text style={[styles.exampleSubtitle, dynamicStyles.text]}>{t('stats.chargeExplain.exampleSubtitle')}</Text>
                 <View style={styles.exampleBox}>
-                    <Text style={[styles.exampleLabel, dynamicStyles.textSecondary]}>Lundi : 2 tâches</Text>
-                    <Text style={[styles.exampleLabel, dynamicStyles.textSecondary]}>Mardi : 3 tâches</Text>
-                    <Text style={[styles.exampleLabel, dynamicStyles.textSecondary]}>Mercredi : 2 tâches</Text>
-                    <Text style={[styles.exampleLabel, dynamicStyles.textSecondary]}>Jeudi : 4 tâches</Text>
-                    <Text style={[styles.exampleLabel, dynamicStyles.textSecondary]}>Vendredi : 3 tâches</Text>
-                    <Text style={[styles.exampleLabel, dynamicStyles.textSecondary]}>Samedi : 5 tâches</Text>
-                    <Text style={[styles.exampleLabel, dynamicStyles.textSecondary]}>Dimanche : 2 tâches</Text>
-                    <Text style={[styles.exampleResult, dynamicStyles.text]}>
-                        → Charge moyenne = 3.1 tâches
-                    </Text>
+                    {exampleLines.map((line, index) => (
+                        <Text key={line} style={index === exampleLines.length - 1 ? [styles.exampleResult, dynamicStyles.text] : [styles.exampleLabel, dynamicStyles.textSecondary]}>{line}</Text>
+                    ))}
                 </View>
             </View>
 
             {/* Tips */}
             <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>💡 Conseils</Text>
-
-                <View style={styles.tipBox}>
-                    <Text style={[styles.tipTitle, dynamicStyles.text]}>Ajustez vos objectifs</Text>
-                    <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>
-                        Si votre charge est trop basse, augmentez légèrement vos objectifs. Si elle est trop haute, réduisez-les progressivement.
-                    </Text>
-                </View>
-
-                <View style={styles.tipBox}>
-                    <Text style={[styles.tipTitle, dynamicStyles.text]}>Observez les tendances</Text>
-                    <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>
-                        Suivez votre charge au fil du temps pour identifier les patterns et adapter votre stratégie.
-                    </Text>
-                </View>
-
-                <View style={styles.tipBox}>
-                    <Text style={[styles.tipTitle, dynamicStyles.text]}>Restez cohérent</Text>
-                    <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>
-                        Une charge stable et réaliste est plus efficace qu'une alternance entre surcharge et sous-charge.
-                    </Text>
-                </View>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.chargeExplain.tipsTitle')}</Text>
+                {tips.map((tip) => (
+                    <View style={styles.tipBox} key={tip.title}>
+                        <Text style={[styles.tipTitle, dynamicStyles.text]}>{tip.title}</Text>
+                        <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>{tip.description}</Text>
+                    </View>
+                ))}
             </View>
 
             {/* Footer */}

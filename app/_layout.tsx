@@ -4,10 +4,12 @@ import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useMemo, useState } from "react";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Platform, View } from "react-native";
 import Purchases, { LOG_LEVEL } from "react-native-purchases";
 import Navbar from "../components/navbar";
 import { FontProvider } from "../lib/FontContext";
+import { I18nProvider, useAppTranslation, useI18nReady } from "../lib/i18n";
 import { supabase } from "../lib/supabase";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 
@@ -32,6 +34,8 @@ const getQueryClient = () => {
 
 function RootLayoutContent() {
   const { colors, isLoading } = useTheme();
+  const { t } = useAppTranslation();
+  const isI18nReady = useI18nReady();
   const router = useRouter();
   const segments = useSegments();
   const [session, setSession] = useState<Session | null>(null);
@@ -118,10 +122,10 @@ function RootLayoutContent() {
   }, []);
 
   useEffect(() => {
-    if (fontsLoaded && !isLoading && !isAuthLoading) {
+    if (fontsLoaded && !isLoading && !isAuthLoading && isI18nReady) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, isLoading, isAuthLoading]);
+  }, [fontsLoaded, isLoading, isAuthLoading, isI18nReady]);
 
   // Redirection basée sur l'authentification
   useEffect(() => {
@@ -172,7 +176,7 @@ function RootLayoutContent() {
     checkUserAndRedirect();
   }, [session, isAuthLoading]);
 
-  if (!fontsLoaded || isLoading || isAuthLoading) {
+  if (!fontsLoaded || isLoading || isAuthLoading || !isI18nReady) {
     return null;
   }
 
@@ -227,7 +231,7 @@ function RootLayoutContent() {
           <Stack.Screen
             name="home"
             options={{
-              title: "Accueil",
+              title: t("navigation.home"),
               animation: "fade",
               animationDuration: duration,
             }}
@@ -235,7 +239,7 @@ function RootLayoutContent() {
           <Stack.Screen
             name="settings"
             options={{
-              title: "Paramètres",
+              title: t("navigation.settings"),
               animation: "fade",
               animationDuration: duration,
             }}
@@ -243,7 +247,7 @@ function RootLayoutContent() {
           <Stack.Screen
             name="create-task"
             options={{
-              title: "Créer une tâche",
+              title: t("navigation.createTask"),
               presentation: "modal",
               animation: "slide_from_bottom",
               animationDuration: duration,
@@ -252,7 +256,7 @@ function RootLayoutContent() {
           <Stack.Screen
             name="stats"
             options={{
-              title: "Statistiques",
+              title: t("navigation.stats"),
               animation: "fade",
               animationDuration: duration,
             }}
@@ -260,7 +264,7 @@ function RootLayoutContent() {
           <Stack.Screen
             name="daily"
             options={{
-              title: "Nouveau Jour",
+              title: t("navigation.daily"),
               presentation: "fullScreenModal",
               headerShown: false,
               animation: "fade",
@@ -269,7 +273,7 @@ function RootLayoutContent() {
           <Stack.Screen
             name="rest"
             options={{
-              title: "Repos",
+              title: t("navigation.rest"),
               presentation: "fullScreenModal",
               headerShown: false,
               animation: "slide_from_bottom",
@@ -281,16 +285,15 @@ function RootLayoutContent() {
     </QueryClientProvider>
   );
 }
-
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <FontProvider>
-          <RootLayoutContent />
-        </FontProvider>
+        <I18nProvider>
+          <FontProvider>
+            <RootLayoutContent />
+          </FontProvider>
+        </I18nProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );
