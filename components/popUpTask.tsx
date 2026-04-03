@@ -1,11 +1,10 @@
 import { supabase } from "@/lib/supabase";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { Alert, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Keyboard, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { fromAppDateKey, isSameAppDate, toAppDateKey } from "../lib/date";
+import { fromAppDateKey, toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import { useTheme } from "../lib/ThemeContext";
@@ -15,30 +14,44 @@ import PrimaryButton from "./primaryButton";
 import SecondaryButton from "./secondaryButton";
 import SimpleInput from "./textInput";
 
-const LottieView = require("lottie-react-native").default;
+type TaskDraft = {
+    name: string;
+    description: string;
+    taskDate: Date;
+    isDone: boolean;
+};
+
+type ActiveField = "name" | "description" | null;
 
 export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: number }) {
     const { colors } = useTheme();
     const { fontSizes } = useFont();
     const { t } = useAppTranslation();
-    const router = useRouter();
-    const { width, height } = useWindowDimensions();
     const [task, setTask] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [taskDate, setTaskDate] = useState<Date>(new Date());
     const [last_update_date, setLastUpdateDate] = useState<Date | null>(null);
     const [hasChanges, setHasChanges] = useState(false);
     const [isDone, setIsDone] = useState(false);
+    const [activeField, setActiveField] = useState<ActiveField>(null);
+    const [inputLock, setInputLock] = useState(false);
     const queryClient = useQueryClient();
-    const initialDate = task && task.date ? new Date(task.date) : new Date();
-
-
+    const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+    const hydratedTaskIdRef = useRef<number | null>(null);
+    const lastSavedTextSnapshotRef = useRef("");
+    const latestDraftRef = useRef<TaskDraft>({
+        name: "",
+        description: "",
+        taskDate: new Date(),
+        isDone: false,
+    });
 
     const taskQuery = useQuery({
         queryKey: ['tasks', id],
         queryFn: getTask,
+        enabled: !!id,
         gcTime: 1000 * 60 * 5,
         staleTime: 1000 * 60 * 2,
     });
@@ -66,78 +79,61 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
 
 
 
-    // Ref pour gérer les mutations en queue (éviter les race conditions)
-    const mutationQueueRef = useRef<Promise<void>>(Promise.resolve());
-
     const deleteDayMutation = useMutation({
-        mutationFn: async () => {
-            // Queue les mutations pour les exécuter séquentiellement
-            return new Promise<void>((resolve, reject) => {
-                mutationQueueRef.current = mutationQueueRef.current.then(async () => {
-                    try {
-                        // Récupérer l'utilisateur connecté
-                        const { data: { user } } = await supabase.auth.getUser();
+        mutationFn: async ({ date, done }: { date: Date; done: boolean }) => {
+            const { data: { user } } = await supabase.auth.getUser();
 
-                        if (!user) {
-                            throw new Error("Utilisateur non connecté");
-                        }
+            if (!user) {
+                throw new Error("Utilisateur non connecté");
+            }
 
-                        // Mettre à jour le jour associé à la tâche supprimée
-                        const { data: existingDay, error: fetchError } = await supabase
-                            .from("Days")
-                            .select("*")
-                            .eq("user_id", user.id)
-                            .eq("date", toAppDateKey(taskDate))
-                            .maybeSingle();
+            const { data: existingDay, error: fetchError } = await supabase
+                .from("Days")
+                .select("*")
+                .eq("user_id", user.id)
+                .eq("date", toAppDateKey(date))
+                .maybeSingle();
 
-                        if (fetchError) {
-                            console.error("Erreur lors de la récupération du jour:", fetchError);
-                            throw new Error(fetchError.message);
-                        }
+            if (fetchError) {
+                console.error("Erreur lors de la récupération du jour:", fetchError);
+                throw new Error(fetchError.message);
+            }
 
-                        if (existingDay) {
-                            const newTotal = Math.max((existingDay.total || 1) - 1, 0);
-                            const newDoneCount = isDone
-                                ? Math.max((existingDay.done_count || 1) - 1, 0)
-                                : (existingDay.done_count || 0);
+            if (!existingDay) {
+                return;
+            }
 
-                            // si newTotal est 0, supprimer le jour
-                            if (newTotal === 0) {
-                                const { error: deleteError } = await supabase
-                                    .from("Days")
-                                    .delete()
-                                    .eq("id", existingDay.id);
+            const newTotal = Math.max((existingDay.total || 1) - 1, 0);
+            const newDoneCount = done
+                ? Math.max((existingDay.done_count || 1) - 1, 0)
+                : (existingDay.done_count || 0);
 
-                                if (deleteError) {
-                                    console.error("Erreur lors de la suppression du jour:", deleteError);
-                                    throw new Error(deleteError.message);
-                                }
-                                resolve();
-                                return;
-                            }
+            if (newTotal === 0) {
+                const { error: deleteError } = await supabase
+                    .from("Days")
+                    .delete()
+                    .eq("id", existingDay.id);
 
-                            // Sinon, mettre à jour le total
+                if (deleteError) {
+                    console.error("Erreur lors de la suppression du jour:", deleteError);
+                    throw new Error(deleteError.message);
+                }
+                return;
+            }
 
-                            const { error: updateError } = await supabase
-                                .from("Days")
-                                .update({
-                                    total: newTotal,
-                                    done_count: newDoneCount,
-                                    updated_at: toAppDateKey(new Date()),
-                                })
-                                .eq("id", existingDay.id);
+            const { error: updateError } = await supabase
+                .from("Days")
+                .update({
+                    total: newTotal,
+                    done_count: newDoneCount,
+                    updated_at: toAppDateKey(new Date()),
+                })
+                .eq("id", existingDay.id);
 
-                            if (updateError) {
-                                console.error("Erreur lors de la mise à jour du jour:", updateError);
-                                throw new Error(updateError.message);
-                            }
-                        }
-                        resolve();
-                    } catch (error) {
-                        reject(error);
-                    }
-                });
-            });
+            if (updateError) {
+                console.error("Erreur lors de la mise à jour du jour:", updateError);
+                throw new Error(updateError.message);
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['days'] });
@@ -145,55 +141,45 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
     });
 
     const doneDayMutation = useMutation({
-        mutationFn: async () => {
-            // Queue les mutations pour les exécuter séquentiellement
-            return new Promise<void>((resolve, reject) => {
-                mutationQueueRef.current = mutationQueueRef.current.then(async () => {
-                    try {
-                        // Récupérer l'utilisateur connecté
-                        const { data: { user } } = await supabase.auth.getUser();
+        mutationFn: async ({ date, nextDone }: { date: Date; nextDone: boolean }) => {
+            const { data: { user } } = await supabase.auth.getUser();
 
-                        if (!user) {
-                            throw new Error("Utilisateur non connecté");
-                        }
+            if (!user) {
+                throw new Error("Utilisateur non connecté");
+            }
 
-                        // Mettre à jour le jour associé à la tâche modifiée
-                        const { data: existingDay, error: fetchError } = await supabase
-                            .from("Days")
-                            .select("*")
-                            .eq("user_id", user.id)
-                            .eq("date", toAppDateKey(taskDate))
-                            .maybeSingle();
+            const { data: existingDay, error: fetchError } = await supabase
+                .from("Days")
+                .select("*")
+                .eq("user_id", user.id)
+                .eq("date", toAppDateKey(date))
+                .maybeSingle();
 
-                        if (fetchError) {
-                            console.error("Erreur lors de la récupération du jour:", fetchError);
-                            throw new Error(fetchError.message);
-                        }
+            if (fetchError) {
+                console.error("Erreur lors de la récupération du jour:", fetchError);
+                throw new Error(fetchError.message);
+            }
 
-                        if (existingDay) {
-                            const newDoneCount = isDone
-                                ? Math.max((existingDay.done_count || 1) - 1, 0)
-                                : (existingDay.done_count || 0) + 1;
+            if (!existingDay) {
+                return;
+            }
 
-                            const { error: updateError } = await supabase
-                                .from("Days")
-                                .update({
-                                    done_count: newDoneCount,
-                                    updated_at: toAppDateKey(new Date()),
-                                })
-                                .eq("id", existingDay.id);
+            const newDoneCount = nextDone
+                ? (existingDay.done_count || 0) + 1
+                : Math.max((existingDay.done_count || 1) - 1, 0);
 
-                            if (updateError) {
-                                console.error("Erreur lors de la mise à jour du jour:", updateError);
-                                throw new Error(updateError.message);
-                            }
-                        }
-                        resolve();
-                    } catch (error) {
-                        reject(error);
-                    }
-                });
-            });
+            const { error: updateError } = await supabase
+                .from("Days")
+                .update({
+                    done_count: newDoneCount,
+                    updated_at: toAppDateKey(new Date()),
+                })
+                .eq("id", existingDay.id);
+
+            if (updateError) {
+                console.error("Erreur lors de la mise à jour du jour:", updateError);
+                throw new Error(updateError.message);
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['days'] });
@@ -202,119 +188,110 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
 
 
     const changeDayMutation = useMutation({
-        mutationFn: async () => {
-            // Queue les mutations pour les exécuter séquentiellement
-            return new Promise<void>((resolve, reject) => {
-                mutationQueueRef.current = mutationQueueRef.current.then(async () => {
-                    try {
-                        // Récupérer l'utilisateur connecté
-                        const { data: { user } } = await supabase.auth.getUser();
+        mutationFn: async ({ previousDate, nextDate, done }: { previousDate: Date; nextDate: Date; done: boolean }) => {
+            const { data: { user } } = await supabase.auth.getUser();
 
-                        if (!user) {
-                            throw new Error("Utilisateur non connecté");
-                        }
+            if (!user) {
+                throw new Error("Utilisateur non connecté");
+            }
 
-                        // Retirer la tâche de l'ancien jour
-                        const { data: oldDay, error: fetchOldDayError } = await supabase
+            const previousDayKey = toAppDateKey(previousDate);
+            const nextDayKey = toAppDateKey(nextDate);
+
+            if (previousDayKey !== nextDayKey) {
+                const { data: oldDay, error: fetchOldDayError } = await supabase
+                    .from("Days")
+                    .select("*")
+                    .eq("user_id", user.id)
+                    .eq("date", previousDayKey)
+                    .maybeSingle();
+
+                if (fetchOldDayError) {
+                    console.error("Erreur lors de la récupération de l'ancien jour:", fetchOldDayError);
+                    throw new Error(fetchOldDayError.message);
+                }
+
+                if (oldDay) {
+                    const newTotal = Math.max((oldDay.total || 1) - 1, 0);
+                    const newDoneCount = done
+                        ? Math.max((oldDay.done_count || 1) - 1, 0)
+                        : (oldDay.done_count || 0);
+
+                    if (newTotal === 0) {
+                        const { error: deleteError } = await supabase
                             .from("Days")
-                            .select("*")
-                            .eq("user_id", user.id)
-                            .eq("date", toAppDateKey(initialDate))
-                            .maybeSingle();
+                            .delete()
+                            .eq("id", oldDay.id);
 
-                        if (fetchOldDayError) {
-                            console.error("Erreur lors de la récupération de l'ancien jour:", fetchOldDayError);
-                            throw new Error(fetchOldDayError.message);
+                        if (deleteError) {
+                            console.error("Erreur lors de la suppression de l'ancien jour:", deleteError);
+                            throw new Error(deleteError.message);
                         }
-
-                        if (oldDay) {
-                            const newTotal = Math.max((oldDay.total || 1) - 1, 0);
-                            const newDoneCount = isDone
-                                ? Math.max((oldDay.done_count || 1) - 1, 0)
-                                : (oldDay.done_count || 0);
-
-                            // si newTotal est 0, supprimer le jour
-                            if (newTotal === 0) {
-                                const { error: deleteError } = await supabase
-                                    .from("Days")
-                                    .delete()
-                                    .eq("id", oldDay.id);
-
-                                if (deleteError) {
-                                    console.error("Erreur lors de la suppression de l'ancien jour:", deleteError);
-                                    throw new Error(deleteError.message);
-                                }
-                            } else {
-                                // Sinon, mettre à jour le total
-                                const { error: updateError } = await supabase
-                                    .from("Days")
-                                    .update({
-                                        total: newTotal,
-                                        done_count: newDoneCount,
-                                        updated_at: toAppDateKey(new Date()),
-                                    })
-                                    .eq("id", oldDay.id);
-
-                                if (updateError) {
-                                    console.error("Erreur lors de la mise à jour de l'ancien jour:", updateError);
-                                    throw new Error(updateError.message);
-                                }
-                            }
-                        }
-
-                        // Mettre à jour le jour associé à la tâche modifiée
-                        const { data: existingDay, error: fetchError } = await supabase
+                    } else {
+                        const { error: updateError } = await supabase
                             .from("Days")
-                            .select("*")
-                            .eq("user_id", user.id)
-                            .eq("date", toAppDateKey(taskDate))
-                            .maybeSingle();
+                            .update({
+                                total: newTotal,
+                                done_count: newDoneCount,
+                                updated_at: toAppDateKey(new Date()),
+                            })
+                            .eq("id", oldDay.id);
 
-                        if (fetchError) {
-                            console.error("Erreur lors de la récupération du jour:", fetchError);
-                            throw new Error(fetchError.message);
+                        if (updateError) {
+                            console.error("Erreur lors de la mise à jour de l'ancien jour:", updateError);
+                            throw new Error(updateError.message);
                         }
-
-                        // Si le jour n'existe pas, le créer
-                        if (!existingDay) {
-                            const { error: insertError } = await supabase.from("Days").insert([
-                                {
-                                    user_id: user.id,
-                                    date: toAppDateKey(taskDate),
-                                    total: 1,
-                                    done_count: isDone ? 1 : 0,
-                                    updated_at: toAppDateKey(new Date()),
-                                },
-                            ]);
-
-                            if (insertError) {
-                                console.error("Erreur lors de l'insertion du jour:", insertError);
-                                throw new Error(insertError.message);
-                            }
-                        }
-
-                        // Si le jour existe déjà, incréementer "total" et mettre à jour "updated_at"
-                        else {
-                            const { error: updateError } = await supabase
-                                .from("Days")
-                                .update({
-                                    total: (existingDay.total || 0) + 1,
-                                    done_count: isDone ? (existingDay.done_count || 0) + 1 : (existingDay.done_count || 0),
-                                    updated_at: toAppDateKey(new Date()),
-                                })
-                                .eq("id", existingDay.id);
-
-                            if (updateError) {
-                                console.error("Erreur lors de la mise à jour du jour:", updateError);
-                                throw new Error(updateError.message);
-                            }
-                        }
-                        resolve();
-                    } catch (error) {
-                        reject(error);
                     }
-                });
-            });
+                }
+            }
+
+            const { data: existingDay, error: fetchError } = await supabase
+                .from("Days")
+                .select("*")
+                .eq("user_id", user.id)
+                .eq("date", nextDayKey)
+                .maybeSingle();
+
+            if (fetchError) {
+                console.error("Erreur lors de la récupération du jour:", fetchError);
+                throw new Error(fetchError.message);
+            }
+
+            if (!existingDay) {
+                const { error: insertError } = await supabase.from("Days").insert([
+                    {
+                        user_id: user.id,
+                        date: nextDayKey,
+                        total: 1,
+                        done_count: done ? 1 : 0,
+                        updated_at: toAppDateKey(new Date()),
+                    },
+                ]);
+
+                if (insertError) {
+                    console.error("Erreur lors de l'insertion du jour:", insertError);
+                    throw new Error(insertError.message);
+                }
+                return;
+            }
+
+            const shouldIncrement = previousDayKey !== nextDayKey ? 1 : 0;
+
+            const { error: updateError } = await supabase
+                .from("Days")
+                .update({
+                    total: (existingDay.total || 0) + shouldIncrement,
+                    done_count: done
+                        ? (existingDay.done_count || 0) + shouldIncrement
+                        : (existingDay.done_count || 0),
+                    updated_at: toAppDateKey(new Date()),
+                })
+                .eq("id", existingDay.id);
+
+            if (updateError) {
+                console.error("Erreur lors de la mise à jour du jour:", updateError);
+                throw new Error(updateError.message);
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['days'] });
@@ -397,119 +374,216 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
     });
 
     const updateTaskMutation = useMutation({
-        mutationFn: async () => {
+        mutationFn: async (draft: TaskDraft) => {
             const { data: { user } } = await supabase.auth.getUser();
 
             if (!user) {
                 throw new Error("Utilisateur non connecté");
             }
 
-            if (!name.trim()) {
-                return;
+            const trimmedName = draft.name.trim();
+            if (!trimmedName) {
+                throw new Error(t("task.popup.nameRequired"));
             }
 
+            const savedAt = new Date().toISOString();
             const { error } = await supabase
                 .from("Tasks")
                 .update({
-                    name: name.trim(),
-                    description: description.trim(),
-                    date: toAppDateKey(taskDate),
-                    done: isDone,
-                    last_update_date: new Date().toISOString(),
+                    name: trimmedName,
+                    description: draft.description.trim(),
+                    date: toAppDateKey(draft.taskDate),
+                    done: draft.isDone,
+                    last_update_date: savedAt,
                 })
                 .eq("id", id)
                 .eq("user_id", user.id);
             if (error) {
                 throw new Error(error.message);
             }
+
+            return {
+                draft: {
+                    ...draft,
+                    name: trimmedName,
+                    description: draft.description.trim(),
+                },
+                savedAt,
+            };
         },
-        onSuccess: () => {
+        onSuccess: ({ draft, savedAt }) => {
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
-            setHasChanges(false);
+            setTask((current: any) => current ? {
+                ...current,
+                name: draft.name,
+                description: draft.description,
+                date: toAppDateKey(draft.taskDate),
+                done: draft.isDone,
+                last_update_date: savedAt,
+            } : current);
+            setLastUpdateDate(new Date(savedAt));
+            const savedTextSnapshot = JSON.stringify({
+                name: draft.name,
+                description: draft.description,
+            });
+            lastSavedTextSnapshotRef.current = savedTextSnapshot;
+            setHasChanges(savedTextSnapshot !== JSON.stringify({
+                name: latestDraftRef.current.name.trim(),
+                description: latestDraftRef.current.description.trim(),
+            }));
         },
         onError: (error: any) => {
             console.error("Erreur lors de la sauvegarde:", error);
         }
     });
 
-    useEffect(() => {
-        if (!task) return;
+    const enqueueTaskSave = useCallback(async (draft: TaskDraft) => {
+        const nextDraft = {
+            ...draft,
+            name: draft.name.trim(),
+            description: draft.description.trim(),
+        };
 
-        const isModified =
-            name !== task.name ||
-            description !== (task.description || "") ||
-            !isSameAppDate(taskDate, task.date ? task.date : new Date()) ||
-            isDone !== task.done;
-
-        setHasChanges(isModified);
-    }, [name, description, taskDate, task, isDone]);
-
-    // Sauvegarde automatique avec debounce
-    useEffect(() => {
-        if (!hasChanges || !name.trim()) {
+        if (!nextDraft.name) {
             return;
         }
 
-        const timer = setTimeout(() => {
-            updateTaskMutation.mutate();
-        }, 500);
+        saveQueueRef.current = saveQueueRef.current
+            .catch(() => undefined)
+            .then(async () => {
+                const nextTextSnapshot = JSON.stringify({
+                    name: nextDraft.name,
+                    description: nextDraft.description,
+                });
 
-        return () => clearTimeout(timer);
-    }, [hasChanges]);
+                if (nextTextSnapshot === lastSavedTextSnapshotRef.current) {
+                    return;
+                }
 
+                await updateTaskMutation.mutateAsync(nextDraft);
+            });
+
+        return saveQueueRef.current;
+    }, [updateTaskMutation]);
 
     useEffect(() => {
-        const fetchTask = async () => {
-            try {
-                setLoading(true);
-                const { data: { user } } = await supabase.auth.getUser();
-
-                if (!user) {
-                    return;
-                }
-
-                const { data, error } = await supabase
-                    .from("Tasks")
-                    .select("*")
-                    .eq("id", id)
-                    .eq("user_id", user.id)
-                    .single();
-
-                if (error) {
-                    console.error("Erreur lors de la récupération de la tâche:", error);
-                    return;
-                }
-
-                setTask(data);
-                setName(data.name);
-                setDescription(data.description || "");
-
-
-                setTaskDate(data.date ? fromAppDateKey(data.date) : new Date());
-                setIsDone(data.done || false);
-                setLastUpdateDate(data.last_update_date ? new Date(data.last_update_date) : null);
-            } catch (error) {
-                console.error("Erreur:", error);
-            } finally {
-                // setTimeout(() => {
-                setLoading(false);
-                // }, 5000);
-            }
-        };
-
-        const handleEditTask = () => {
-            fetchTask();
-        };
-
-        if (id) {
-            fetchTask();
+        if (!taskQuery.data) {
+            return;
         }
 
-        return () => {
-            setTask(null);
-            setLoading(false);
+        if (hydratedTaskIdRef.current === taskQuery.data.id) {
+            return;
+        }
+
+        const hydratedDraft = {
+            name: taskQuery.data.name || "",
+            description: taskQuery.data.description || "",
+            taskDate: taskQuery.data.date ? fromAppDateKey(taskQuery.data.date) : new Date(),
+            isDone: taskQuery.data.done || false,
         };
-    }, [id]);
+
+        hydratedTaskIdRef.current = taskQuery.data.id;
+        setTask(taskQuery.data);
+        setName(hydratedDraft.name);
+        setDescription(hydratedDraft.description);
+        setTaskDate(hydratedDraft.taskDate);
+        setIsDone(hydratedDraft.isDone);
+        setLastUpdateDate(taskQuery.data.last_update_date ? new Date(taskQuery.data.last_update_date) : null);
+        latestDraftRef.current = hydratedDraft;
+        lastSavedTextSnapshotRef.current = JSON.stringify({
+            name: hydratedDraft.name.trim(),
+            description: hydratedDraft.description.trim(),
+        });
+        setHasChanges(false);
+    }, [taskQuery.data]);
+
+    useEffect(() => {
+        latestDraftRef.current = { name, description, taskDate, isDone };
+    }, [name, description, taskDate, isDone]);
+
+    useEffect(() => {
+        if (!task) {
+            return;
+        }
+
+        const currentTextSnapshot = JSON.stringify({
+            name: name.trim(),
+            description: description.trim(),
+        });
+
+        const changed = currentTextSnapshot !== lastSavedTextSnapshotRef.current;
+        setHasChanges(changed);
+
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+
+        if (!changed || !name.trim()) {
+            return;
+        }
+
+        saveTimeoutRef.current = setTimeout(() => {
+            void enqueueTaskSave({
+                ...latestDraftRef.current,
+            });
+        }, 900);
+
+        return () => {
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+            }
+        };
+    }, [task, name, description, enqueueTaskSave]);
+
+    useEffect(() => {
+        const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
+            setActiveField(null);
+            setInputLock(false);
+        });
+
+        return () => {
+            hideSubscription.remove();
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    const flushPendingSave = async () => {
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+            saveTimeoutRef.current = null;
+        }
+
+        if (!task) {
+            return;
+        }
+
+        if (!latestDraftRef.current.name.trim()) {
+            throw new Error(t("task.popup.nameRequired"));
+        }
+
+        await enqueueTaskSave(latestDraftRef.current);
+    };
+
+    const handleClose = async () => {
+        try {
+            await flushPendingSave();
+            onClose();
+        } catch (error: any) {
+            Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
+        }
+    };
+
+    const loading = taskQuery.isLoading && !task;
+    const isTaskReady = !!task;
+    const isBusy = updateTaskMutation.isPending
+        || deleteTaskMutation.isPending
+        || deleteDayMutation.isPending
+        || changeDayMutation.isPending
+        || doneDayMutation.isPending;
+    const isNameEditable = !inputLock && activeField !== "description";
+    const isDescriptionEditable = !inputLock && activeField !== "name";
 
     // if (loading) {
     //     return (
@@ -543,9 +617,16 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                 },
                 {
                     text: t("common.actions.delete"),
-                    onPress: () => {
-                        deleteTaskMutation.mutate();
-                        deleteDayMutation.mutate();
+                    onPress: async () => {
+                        const currentDate = task?.date ? fromAppDateKey(task.date) : taskDate;
+                        const currentDone = task?.done ?? isDone;
+
+                        try {
+                            await deleteTaskMutation.mutateAsync();
+                            await deleteDayMutation.mutateAsync({ date: currentDate, done: currentDone });
+                        } catch (error) {
+                            console.error("Erreur lors de la suppression:", error);
+                        }
                     },
                     style: "destructive",
                 },
@@ -554,21 +635,61 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
     };
 
     const handleDateChange = async (date: Date) => {
+        const previousDate = task?.date ? fromAppDateKey(task.date) : taskDate;
+        const nextDraft = {
+            ...latestDraftRef.current,
+            taskDate: date,
+        };
+
         setTaskDate(date);
+        latestDraftRef.current = nextDraft;
+
         try {
-            await Promise.all([
-                updateTaskMutation.mutateAsync(),
-                changeDayMutation.mutateAsync()
-            ]);
-        } finally {
-            onClose();
+            await flushPendingSave();
+            await updateTaskMutation.mutateAsync(nextDraft);
+
+            if (toAppDateKey(previousDate) !== toAppDateKey(date)) {
+                await changeDayMutation.mutateAsync({
+                    previousDate,
+                    nextDate: date,
+                    done: nextDraft.isDone,
+                });
+            }
+        } catch (error: any) {
+            setTaskDate(previousDate);
+            latestDraftRef.current = {
+                ...latestDraftRef.current,
+                taskDate: previousDate,
+            };
+            Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
         }
     };
 
     const handleToggleTask = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        setIsDone(!isDone);
-        doneDayMutation.mutate();
+
+        const previousDone = isDone;
+        const nextDone = !isDone;
+        const nextDraft = {
+            ...latestDraftRef.current,
+            isDone: nextDone,
+        };
+
+        setIsDone(nextDone);
+        latestDraftRef.current = nextDraft;
+
+        try {
+            await flushPendingSave();
+            await updateTaskMutation.mutateAsync(nextDraft);
+            await doneDayMutation.mutateAsync({ date: nextDraft.taskDate, nextDone });
+        } catch (error: any) {
+            setIsDone(previousDone);
+            latestDraftRef.current = {
+                ...latestDraftRef.current,
+                isDone: previousDone,
+            };
+            Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
+        }
     };
 
     const formatLastUpdateDate = (date: Date | null): string => {
@@ -581,7 +702,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
 
         // Si la différence est inférieure à 10 minutes
 
-        if (diffSeconds == 0) {
+        if (diffSeconds === 0) {
             return t("task.popup.now");
         }
 
@@ -623,7 +744,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
             <Animated.View
             >
 
-                {!loading && !name.trim() && (
+                {isTaskReady && !loading && !name.trim() && (
                     <View
                         style={[styles.nameAlert, { backgroundColor: colors.danger }]}>
                         <Text style={{ color: colors.text, fontSize: fontSizes.base }}>{t("task.popup.nameRequired")}</Text>
@@ -639,10 +760,12 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                     <View
                         style={styles.header}
                     >
-                        <SecondaryButton
-                            onPress={onClose}
-                            image="xmark"
-                        />
+                        {!loading && (
+                            <SecondaryButton
+                                onPress={handleClose}
+                                image="xmark"
+                            />
+                        )}
                     </View>
 
 
@@ -651,55 +774,103 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                         exiting={FadeOut.springify().duration(500)}
                         style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}
                     >
-                        <View style={styles.scrollContent}>
-                            <SimpleInput
-                                value={taskQuery.data ? taskQuery.data.name : name}
-                                onChangeText={setName}
-                                bold
-                                transparent
-                                style={{ height: '5%' }}
-                                scale="large"
-                                fontSize="4xl"
-                            />
+                        {!isTaskReady || loading ? (
+                            <View style={styles.loadingContainer}>
+                                <ActivityIndicator size="large" color={colors.text} />
+                            </View>
+                        ) : (
+                            <>
+                                <ScrollView
+                                    style={styles.scrollContent}
+                                    contentContainerStyle={styles.scrollContentInner}
+                                    keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+                                    keyboardShouldPersistTaps="handled"
+                                    showsVerticalScrollIndicator={false}
+                                    alwaysBounceVertical
+                                    bounces
+                                    scrollEventThrottle={16}
+                                    onScrollBeginDrag={() => {
+                                        if (activeField) {
+                                            setInputLock(true);
+                                        }
+                                    }}
+                                    onScrollEndDrag={() => {
+                                        if (!Keyboard.isVisible()) {
+                                            setInputLock(false);
+                                        }
+                                    }}
+                                >
+                                    <SimpleInput
+                                        value={name}
+                                        onChangeText={setName}
+                                        editable={isNameEditable}
+                                        onFocus={() => {
+                                            setInputLock(false);
+                                            setActiveField("name");
+                                        }}
+                                        onBlur={() => {
+                                            if (!Keyboard.isVisible()) {
+                                                setActiveField(null);
+                                                setInputLock(false);
+                                            }
+                                        }}
+                                        bold
+                                        transparent
+                                        style={{ height: '5%' }}
+                                        scale="large"
+                                        fontSize="4xl"
+                                    />
 
-                            <SimpleInput
-                                value={description}
-                                onChangeText={setDescription}
-                                placeholder={t("task.popup.insertDescription")}
-                                multiline
-                                style={{ overflow: "hidden", textAlignVertical: "top", height: '95%', boxShadow: `inset 0px -25px 29px -10px ${colors.card}` }}
-                                transparent
-                            />
+                                    <SimpleInput
+                                        value={description}
+                                        onChangeText={setDescription}
+                                        editable={isDescriptionEditable}
+                                        onFocus={() => {
+                                            setInputLock(false);
+                                            setActiveField("description");
+                                        }}
+                                        onBlur={() => {
+                                            if (!Keyboard.isVisible()) {
+                                                setActiveField(null);
+                                                setInputLock(false);
+                                            }
+                                        }}
+                                        placeholder={t("task.popup.insertDescription")}
+                                        multiline
+                                        style={{ overflow: "hidden", textAlignVertical: "top", height: '95%', boxShadow: `inset 0px -25px 29px -10px ${colors.card}` }}
+                                        transparent
+                                    />
+                                </ScrollView>
+                                <Text style={[{ color: colors.textSecondary, fontSize: fontSizes.xs, alignSelf: "center" }]}>
+                                    {hasChanges || updateTaskMutation.isPending
+                                        ? t("task.popup.lastUpdated", { date: "..." })
+                                        : t("task.popup.lastUpdated", { date: formatLastUpdateDate(last_update_date) })}
+                                </Text>
 
+                                <View style={styles.bottom}>
+                                    <PrimaryButton
+                                        size="XS"
+                                        width={48}
+                                        type="danger"
+                                        image="trash.fill"
+                                        onPress={handleDeleteTask}
+                                    />
 
-                        </View>
-                        <Text style={[{ color: colors.textSecondary, fontSize: fontSizes.xs, alignSelf: "center" }]}>
-                            {t("task.popup.lastUpdated", { date: formatLastUpdateDate(taskQuery.data ? new Date(taskQuery.data.last_update_date) : last_update_date) })}
-                        </Text>
+                                    <DateInput
+                                        value={taskDate}
+                                        onChange={handleDateChange}
+                                        disabled={isBusy}
+                                        bold
+                                    />
 
-                        <View style={styles.bottom}>
-                            <PrimaryButton
-                                size="XS"
-                                width={48}
-                                type="danger"
-                                image="trash.fill"
-                                onPress={handleDeleteTask}
-                            />
-
-                            <DateInput
-                                value={taskDate}
-                                onChange={handleDateChange}
-                                disabled={updateTaskMutation.isPending || deleteTaskMutation.isPending}
-                                bold
-                            />
-
-                            <AnimatedCheckbox
-                                checked={isDone}
-                                onChange={handleToggleTask}
-                                size={48}
-                            />
-                        </View>
-
+                                    <AnimatedCheckbox
+                                        checked={isDone}
+                                        onChange={handleToggleTask}
+                                        size={48}
+                                    />
+                                </View>
+                            </>
+                        )}
                     </Animated.View>
 
                 </View>
@@ -750,6 +921,12 @@ const styles = StyleSheet.create({
         // backgroundColor: "#a1232338",
     },
 
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+
 
     card: {
         // borderRadius: 30,
@@ -772,13 +949,14 @@ const styles = StyleSheet.create({
     },
 
     scrollContent: {
+        width: "100%",
+        height: "85%",
+    },
+
+    scrollContentInner: {
+        flexGrow: 1,
         display: "flex",
         flexDirection: "column",
-        height: "85%",
-        // paddingHorizontal: 10,
-        // paddingTop: 10,
-        overflow: "hidden",
-
     },
 
     lottieAnimation: {

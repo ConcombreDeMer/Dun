@@ -32,6 +32,9 @@ interface SimpleInputProps {
     returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send';
     maxLength?: number;
     inputWidth?: DimensionValue;
+    editable?: boolean;
+    onFocus?: () => void;
+    onBlur?: () => void;
 }
 
 export default function SimpleInput({
@@ -57,10 +60,11 @@ export default function SimpleInput({
     returnKeyType = undefined,
     maxLength,
     inputWidth = '100%',
+    editable = true,
+    onFocus,
+    onBlur,
 }: SimpleInputProps) {
-    const [text, setText] = useState(value);
     const [showPassword, setShowPassword] = useState(false);
-    const [isEditable, setIsEditable] = useState(true);
     const skeletonOpacity = useRef(new Animated.Value(0.3)).current;
     const { colors } = useTheme();
     const { fontSizes } = useFont();
@@ -86,15 +90,7 @@ export default function SimpleInput({
     }, [isLoading, skeletonOpacity]);
 
 
-    const disableEditing = () => setIsEditable(false);
-    const enableEditing = () => setIsEditable(true);
-
-    React.useEffect(() => {
-        setText(value);
-    }, [value]);
-
     const handleChange = (input: string) => {
-        setText(input);
         if (onChangeText) {
             onChangeText(input);
         }
@@ -148,19 +144,18 @@ export default function SimpleInput({
                         style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }, transparent && { backgroundColor: 'transparent', borderWidth: 0 }, { fontSize: fontSize ? fontSizes[fontSize] : fontSizes.lg, backgroundColor: transparent ? 'transparent' : colors.task, color: colors.text }]}
                         placeholder={placeholder}
                         placeholderTextColor={colors.inputPlaceholder}
-                        value={text}
+                        value={value}
                         onChangeText={handleChange}
                         multiline={multiline}
                         secureTextEntry={password && !showPassword}
-                        onTouchMove={disableEditing}
-                        onTouchEnd={enableEditing}
-                        onTouchCancel={enableEditing}
-                        editable={isEditable}
                         autoCorrect={false}
                         keyboardType={type}
                         autoCapitalize={cap}
                         returnKeyType={returnKeyType}
                         maxLength={maxLength}
+                        editable={editable}
+                        onFocus={onFocus}
+                        onBlur={onBlur}
                     />
 
                     {password && (
