@@ -5,10 +5,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Dimensions, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
-import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
-import ReAnimated, { Easing, interpolate, runOnJS, runOnUI, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import ReAnimated, { Easing, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import Squircle from "../components/Squircle";
 import { TaskItem, TaskItemLayout } from "../components/TaskItem";
 import { useAppTranslation } from "../lib/i18n";
@@ -19,13 +19,107 @@ import { useStore } from "../store/store";
 
 
 const LottieView = require("lottie-react-native").default;
-const SCREEN_WIDTH = Dimensions.get('window').width;
+const DAY_PAGER_SIZE = 20001;
+const DAY_PAGER_CENTER_INDEX = Math.floor(DAY_PAGER_SIZE / 2);
+const DAY_PAGER_INDEXES = Array.from({ length: DAY_PAGER_SIZE }, (_, index) => index);
+
+const startOfDay = (date: Date) => {
+  const normalized = new Date(date);
+  normalized.setHours(0, 0, 0, 0);
+  return normalized;
+};
+
+const addDays = (date: Date, amount: number) => {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + amount);
+  return nextDate;
+};
+
+const getDateKey = (date: Date) => startOfDay(date).toISOString().split('T')[0];
+const getDayOffset = (from: Date, to: Date) => {
+  const start = startOfDay(from).getTime();
+  const end = startOfDay(to).getTime();
+  return Math.round((end - start) / (1000 * 60 * 60 * 24));
+};
+
+type DayTasksPageProps = {
+  colors: ReturnType<typeof useTheme>["colors"];
+  dayIndex: number;
+  dayWidth: number;
+  isCalendarExpanded: boolean;
+  loading: boolean;
+  selectedTaskId: number | null;
+  tasks: any[];
+  onDragEnd?: ({ data }: { data: any[] }) => void;
+  onPlaceholderIndexChange?: () => void;
+  onTaskPress: (taskId: number, layout?: TaskItemLayout) => void;
+  onToggleTask: (taskId: number, currentDone: boolean) => void;
+  t: ReturnType<typeof useAppTranslation>["t"];
+};
+
+const DayTasksPage = ({
+  colors,
+  dayIndex,
+  dayWidth,
+  isCalendarExpanded,
+  loading,
+  onDragEnd,
+  onPlaceholderIndexChange,
+  onTaskPress,
+  onToggleTask,
+  selectedTaskId,
+  tasks,
+  t,
+}: DayTasksPageProps) => {
+  return (
+    <View style={[styles.dayPage, { width: dayWidth }]}>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.text} />
+        </View>
+      ) : (
+        <DraggableFlatList
+          data={tasks}
+          keyExtractor={(item) => `${dayIndex}-${item.id}`}
+          scrollEnabled={selectedTaskId === null}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={false}
+          persistentScrollbar
+          removeClippedSubviews={false}
+          contentContainerStyle={styles.flatListContent}
+          activationDistance={20}
+          onDragEnd={onDragEnd}
+          onPlaceholderIndexChange={onPlaceholderIndexChange}
+          renderItem={({ item, drag, isActive }) => (
+            <TaskItem
+              item={item}
+              drag={drag}
+              isActive={isActive}
+              handleToggleTask={onToggleTask}
+              handleTaskPress={onTaskPress}
+              selectedTaskId={selectedTaskId}
+              listHeight={0}
+              mode="normal"
+              isExtendable={!isCalendarExpanded}
+            />
+          )}
+          ListEmptyComponent={
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+              {t("home.emptyState")}
+            </Text>
+          }
+        />
+      )}
+    </View>
+  );
+};
 
 export default function Home() {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [loading, setLoading] = useState(true);
   const storedDate = useStore((state) => state.selectedDate);
-  const [selectedDate, setSelectedDate] = useState<Date>(storedDate || new Date());
+  const pagerOriginDateRef = useRef(startOfDay(storedDate || new Date()));
+  const [selectedDate, setSelectedDate] = useState<Date>(pagerOriginDateRef.current);
   const [userName, setUserName] = useState<string>('');
   const [userHasSeenTutorial, setUserHasSeenTutorial] = useState<boolean>(false);
   const { t } = useAppTranslation();
@@ -39,6 +133,8 @@ export default function Home() {
   const store = useStore();
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
   const overlayProgress = useSharedValue(0);
+  const horizontalListRef = useRef<FlatList<number>>(null);
+  const lastHapticPageIndexRef = useRef(DAY_PAGER_CENTER_INDEX);
 
 
 
@@ -122,11 +218,20 @@ export default function Home() {
     checkUserConnection();
   }, []);
 
+  const dateKey = useMemo(() => getDateKey(selectedDate), [selectedDate]);
 
-  const dateKey = useMemo(
-    () => selectedDate.toISOString().split('T')[0],
-    [selectedDate]
-  );
+  useEffect(() => {
+    if (!storedDate) {
+      return;
+    }
+
+    const normalizedStoredDate = startOfDay(storedDate);
+    if (getDateKey(normalizedStoredDate) === dateKey) {
+      return;
+    }
+
+    setSelectedDate(normalizedStoredDate);
+  }, [dateKey, storedDate]);
 
   const getTasks = async () => {
     const { data, error } = await supabase
@@ -147,14 +252,37 @@ export default function Home() {
     staleTime: 1000 * 60 * 15,
   });
 
-  const currentTasks = useMemo(() => {
-    if (!taskQuery.data) return [];
-    // On filtre en local et on s'assure que c'est bien trié
-    // On utilise startsWith pour éviter les problèmes si Supabase retourne un format Date/Time complet
-    return taskQuery.data
-      .filter((task: any) => task.date && task.date.startsWith(dateKey))
-      .sort((a: any, b: any) => b.order - a.order);
-  }, [taskQuery.data, dateKey]);
+  const tasksByDate = useMemo(() => {
+    const map = new Map<string, any[]>();
+
+    if (!taskQuery.data) {
+      return map;
+    }
+
+    taskQuery.data.forEach((task: any) => {
+      if (!task.date) return;
+      const taskDateKey = task.date.includes('T')
+        ? task.date.split('T')[0]
+        : getDateKey(new Date(task.date));
+
+      if (!map.has(taskDateKey)) {
+        map.set(taskDateKey, []);
+      }
+
+      map.get(taskDateKey)!.push(task);
+    });
+
+    map.forEach((tasks) => {
+      tasks.sort((a: any, b: any) => b.order - a.order);
+    });
+
+    return map;
+  }, [taskQuery.data]);
+
+  const currentTasks = useMemo(
+    () => tasksByDate.get(dateKey) ?? [],
+    [tasksByDate, dateKey]
+  );
 
   useEffect(() => {
     setLoading(taskQuery.isLoading);
@@ -349,70 +477,26 @@ export default function Home() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
-  const changeDate = useCallback((newDate: Date) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedDate(newDate);
-    setStoreDate(newDate);
+  const changeDate = useCallback((newDate: Date, withHaptic = true) => {
+    if (withHaptic) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
+    const normalizedDate = startOfDay(newDate);
+    setSelectedDate(normalizedDate);
+    setStoreDate(normalizedDate);
   }, [setStoreDate, setSelectedDate]);
 
-  const translateX = useSharedValue(0);
+  useEffect(() => {
+    const targetIndex = DAY_PAGER_CENTER_INDEX + getDayOffset(pagerOriginDateRef.current, selectedDate);
 
-  const goToNextDay = useCallback(() => {
-    const nextDate = new Date(selectedDate);
-    nextDate.setDate(nextDate.getDate() + 1);
-    changeDate(nextDate);
-    // On repousse l'animation pour qu'elle s'exécute après le render React
-    setTimeout(() => {
-      runOnUI(() => {
-        'worklet';
-        translateX.value = SCREEN_WIDTH;
-        translateX.value = withSpring(0, { damping: 50, stiffness: 350 });
-      })();
-    }, 0);
-  }, [selectedDate, changeDate, translateX]);
-
-  const goToPreviousDay = useCallback(() => {
-    const prevDate = new Date(selectedDate);
-    prevDate.setDate(prevDate.getDate() - 1);
-    changeDate(prevDate);
-    // On repousse l'animation pour qu'elle s'exécute après le render React
-    setTimeout(() => {
-      runOnUI(() => {
-        'worklet';
-        translateX.value = -SCREEN_WIDTH;
-        translateX.value = withSpring(0, { damping: 50, stiffness: 350 });
-      })();
-    }, 0);
-  }, [selectedDate, changeDate, translateX]);
-
-  const panGesture = Gesture.Pan()
-    .activeOffsetX([-40, 40])
-    .failOffsetY([-40, 40])
-    .onUpdate((e) => {
-      translateX.value = e.translationX;
-    })
-    .onEnd((e) => {
-      const springConfig = { damping: 50, stiffness: 350 };
-
-      if (e.translationX < -50) {
-        // Swipe gauche -> Jour suivant
-        translateX.value = withTiming(-SCREEN_WIDTH, { duration: 100 }, (isFinished) => {
-          if (isFinished) {
-            runOnJS(goToNextDay)();
-          }
-        });
-      } else if (e.translationX > 50) {
-        // Swipe droite -> Jour précédent
-        translateX.value = withTiming(SCREEN_WIDTH, { duration: 100 }, (isFinished) => {
-          if (isFinished) {
-            runOnJS(goToPreviousDay)();
-          }
-        });
-      } else {
-        // Retour à la position d'origine
-        translateX.value = withSpring(0, springConfig);
-      }
+    requestAnimationFrame(() => {
+      horizontalListRef.current?.scrollToIndex({
+        index: targetIndex,
+        animated: false,
+      });
     });
+  }, [selectedDate, windowWidth]);
 
   const headerAnimatedStyle = useAnimatedStyle(() => {
     const isTaskSelected = selectedTaskId !== null;
@@ -441,7 +525,6 @@ export default function Home() {
 
   const listAnimatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ translateX: translateX.value }],
       opacity: withTiming(selectedTaskId !== null ? 0.35 : 1, {
         duration: selectedTaskId !== null ? 220 : 280,
         easing: Easing.out(Easing.quad),
@@ -503,100 +586,154 @@ export default function Home() {
     }
   }, []);
 
+  const handleHorizontalMomentumEnd = useCallback((event: any) => {
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / windowWidth);
+    const targetDate = addDays(pagerOriginDateRef.current, nextIndex - DAY_PAGER_CENTER_INDEX);
+    lastHapticPageIndexRef.current = nextIndex;
+
+    if (getDateKey(targetDate) !== dateKey) {
+      changeDate(targetDate, false);
+    }
+  }, [changeDate, dateKey, windowWidth]);
+
+  const handleHorizontalScrollBeginDrag = useCallback(() => {
+    const currentIndex = DAY_PAGER_CENTER_INDEX + getDayOffset(pagerOriginDateRef.current, selectedDate);
+    lastHapticPageIndexRef.current = currentIndex;
+  }, [selectedDate]);
+
+  const handleHorizontalScroll = useCallback((event: any) => {
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / windowWidth);
+
+    if (nextIndex === lastHapticPageIndexRef.current) {
+      return;
+    }
+
+    lastHapticPageIndexRef.current = nextIndex;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [windowWidth]);
+
+  const renderDayPage = useCallback(({ item: dayIndex }: { item: number }) => {
+    const pageDate = addDays(pagerOriginDateRef.current, dayIndex - DAY_PAGER_CENTER_INDEX);
+    const pageDateKey = getDateKey(pageDate);
+    const pageTasks = tasksByDate.get(pageDateKey) ?? [];
+    const isSelectedPage = pageDateKey === dateKey;
+
+    return (
+      <DayTasksPage
+        colors={colors}
+        dayIndex={dayIndex}
+        dayWidth={windowWidth}
+        isCalendarExpanded={isCalendarExpanded}
+        loading={loading}
+        onDragEnd={isSelectedPage ? handleDragEnd : undefined}
+        onPlaceholderIndexChange={isSelectedPage ? handlePlaceholderIndexChange : undefined}
+        onTaskPress={handleTaskPress}
+        onToggleTask={handleToggleTask}
+        selectedTaskId={selectedTaskId}
+        tasks={pageTasks}
+        t={t}
+      />
+    );
+  }, [
+    colors.text,
+    colors,
+    dateKey,
+    handleDragEnd,
+    handlePlaceholderIndexChange,
+    handleTaskPress,
+    handleToggleTask,
+    isCalendarExpanded,
+    loading,
+    selectedTaskId,
+    t,
+    tasksByDate,
+    windowWidth,
+  ]);
+
   return (
 
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style={theme == "dark" ? "light" : "auto"} />
-      <GestureDetector gesture={panGesture}>
-        <View
-          style={[styles.container, { backgroundColor: colors.background, paddingBottom: 0 }]}
-        >
+      <View
+        style={[styles.container, { backgroundColor: colors.background, paddingBottom: 0 }]}
+      >
 
-          <View style={styles.header}>
-
-            <ReAnimated.View
-              pointerEvents={selectedTaskId !== null ? "none" : "auto"}
-              style={headerAnimatedStyle}
-            >
-              <CalendarComponent
-                slider={true}
-                initialDate={selectedDate}
-                onDateSelect={(date) => changeDate(date)}
-                onExpandedChange={setIsCalendarExpanded}
-              />
-
-              <ProgressBar
-                progress={progress}
-              />
-            </ReAnimated.View>
-
-          </View>
+        <View style={styles.header}>
 
           <ReAnimated.View
-            style={[styles.listContainer, listAnimatedStyle]}
+            pointerEvents={selectedTaskId !== null ? "none" : "auto"}
+            style={headerAnimatedStyle}
           >
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.text} />
-              </View>
-            ) : (
-              <DraggableFlatList
-                data={currentTasks}
-                keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={selectedTaskId === null}
-                nestedScrollEnabled={true}
-                showsVerticalScrollIndicator={false}
-                persistentScrollbar={true}
-                removeClippedSubviews={false}
-                contentContainerStyle={styles.flatListContent}
-                activationDistance={20}
-                onDragEnd={handleDragEnd}
-                onPlaceholderIndexChange={handlePlaceholderIndexChange}
-                renderItem={({ item, drag, isActive }) => (
-                  <TaskItem
-                    item={item}
-                    drag={drag}
-                    isActive={isActive}
-                    handleToggleTask={handleToggleTask}
-                    handleTaskPress={handleTaskPress}
-                    selectedTaskId={selectedTaskId}
-                    listHeight={0}
-                    mode="normal"
-                    isExtendable={!isCalendarExpanded}
-                  />
-                )}
-                ListEmptyComponent={
-                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t("home.emptyState")}</Text>
-                }
-              />
-            )}
+            <CalendarComponent
+              slider={true}
+              initialDate={selectedDate}
+              onDateSelect={(date) => changeDate(date)}
+              onExpandedChange={setIsCalendarExpanded}
+            />
+
+            <ProgressBar
+              progress={progress}
+            />
           </ReAnimated.View>
 
-          {selectedTask && selectedTaskLayout ? (
-            <ReAnimated.View pointerEvents="box-none" style={styles.overlayRoot}>
-              <Squircle
-                style={[
-                  styles.overlayCard,
-                  { backgroundColor: colors.task, borderRadius: 10 },
-                  overlayAnimatedStyle,
-                ]}
-                cornerSmoothing={100}
-                preserveSmoothing={true}
-              >
-                <View style={styles.overlayContent}>
-                  {shouldRenderOverlayContent ? (
-                    <PopUpTask
-                      id={selectedTask.id}
-                      onClose={() => handleTaskPress(selectedTask.id)}
-                    />
-                  ) : null}
-                </View>
-              </Squircle>
-            </ReAnimated.View>
-          ) : null}
-
         </View>
-      </GestureDetector>
+
+        <ReAnimated.View
+          style={[styles.listContainer, listAnimatedStyle]}
+        >
+          <FlatList
+            ref={horizontalListRef}
+            data={DAY_PAGER_INDEXES}
+            keyExtractor={(item) => item.toString()}
+            renderItem={renderDayPage}
+            horizontal
+            pagingEnabled
+            directionalLockEnabled
+            initialNumToRender={3}
+            initialScrollIndex={DAY_PAGER_CENTER_INDEX}
+            getItemLayout={(_, index) => ({
+              length: windowWidth,
+              offset: windowWidth * index,
+              index,
+            })}
+            showsHorizontalScrollIndicator={false}
+            onScrollBeginDrag={handleHorizontalScrollBeginDrag}
+            onScroll={handleHorizontalScroll}
+            onMomentumScrollEnd={handleHorizontalMomentumEnd}
+            onScrollToIndexFailed={() => {}}
+            scrollEnabled={selectedTaskId === null}
+            windowSize={5}
+            maxToRenderPerBatch={3}
+            updateCellsBatchingPeriod={50}
+            removeClippedSubviews
+            scrollEventThrottle={16}
+          />
+        </ReAnimated.View>
+
+        {selectedTask && selectedTaskLayout ? (
+          <ReAnimated.View pointerEvents="box-none" style={styles.overlayRoot}>
+            <Squircle
+              style={[
+                styles.overlayCard,
+                { backgroundColor: colors.task, borderRadius: 10 },
+                overlayAnimatedStyle,
+              ]}
+              cornerSmoothing={100}
+              preserveSmoothing={true}
+            >
+              <View style={styles.overlayContent}>
+                {shouldRenderOverlayContent ? (
+                  <PopUpTask
+                    id={selectedTask.id}
+                    onClose={() => handleTaskPress(selectedTask.id)}
+                  />
+                ) : null}
+              </View>
+            </Squircle>
+          </ReAnimated.View>
+        ) : null}
+
+      </View>
     </GestureHandlerRootView>
   );
 }
@@ -616,6 +753,10 @@ const styles = StyleSheet.create({
   listContainer: {
     flex: 1,
     height: "100%",
+  },
+
+  dayPage: {
+    flex: 1,
   },
 
   overlayRoot: {
