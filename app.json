@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.dunapp.Dun",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CADisableMinimumFrameDurationOnPhone": true
       }
     },
     "android": {

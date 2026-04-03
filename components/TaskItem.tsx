@@ -2,16 +2,22 @@ import { Feather } from '@expo/vector-icons';
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { SquircleButton } from 'expo-squircle-view';
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Swipeable } from 'react-native-gesture-handler';
-import { FadeIn, default as ReAnimated, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
-import PopUpTask from "./popUpTask";
 import Squircle from "./Squircle";
+
+export interface TaskItemLayout {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 interface TaskItemProps {
   item: {
@@ -23,7 +29,7 @@ interface TaskItemProps {
   drag: () => void;
   isActive: boolean;
   handleToggleTask: (taskId: number, currentDone: boolean) => void;
-  handleTaskPress: (taskId: number) => void;
+  handleTaskPress: (taskId: number, layout?: TaskItemLayout) => void;
   selectedTaskId: number | null;
   listHeight: number;
   isExtendable?: boolean;
@@ -44,20 +50,21 @@ export const TaskItem = ({
   const { colors } = useTheme();
   const { fontSizes } = useFont();
   const { t } = useAppTranslation();
-  const [isDisplayNone, setIsDisplayNone] = useState(false);
-  const dotScale = useSharedValue(item.done ? 100 : 1);
-  const isExpanded = useSharedValue(item.done);
-  const height = useSharedValue(64);
+  const dotScale = useSharedValue(item.done ? 1 : 0);
+  const rowOpacity = useSharedValue(1);
+  const rowScale = useSharedValue(1);
+  const rowTranslateY = useSharedValue(0);
   const pressScale = useSharedValue(1);
-  const isHeightExpandedRef = { current: false };
-  const [isOpen, setIsOpen] = useState(false);
 
   const queryClient = useQueryClient();
   const swipeableRef = useRef<Swipeable>(null);
+  const rowRef = useRef<View>(null);
 
   const screenWidth = Dimensions.get('window').width;
   const translateX = useSharedValue(0);
   const itemOpacity = useSharedValue(1);
+  const isSelected = selectedTaskId === item.id;
+  const isHidden = selectedTaskId !== null && !isSelected;
 
   const deleteTaskMutation = useMutation({
     mutationFn: async () => {
@@ -275,92 +282,64 @@ export const TaskItem = ({
     );
   }, [handleSwipeRight, fontSizes.base, mode]);
 
-  const animateHeight = (toValue: number) => {
-    isHeightExpandedRef.current = toValue === 400;
-    height.value = withSpring(toValue);
-  };
-
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        { scale: (isActive ? 1.02 : 1) * pressScale.value },
+        { scale: (isActive ? 1.02 : 1) * pressScale.value * rowScale.value },
+        { translateY: rowTranslateY.value },
         { translateX: translateX.value }
       ],
-      opacity: itemOpacity.value * (isActive ? 1 : 1),
+      opacity: itemOpacity.value * rowOpacity.value,
     };
   });
 
-  const heightAnimatedStyle = useAnimatedStyle(() => {
-    const isHidden = selectedTaskId !== null && selectedTaskId !== item.id;
-    return {
-      height: withSpring(height.value, {
-        stiffness: 250,      // Plus élevé = animation plus rapide
-        damping: 14,         // Augmenté pour réduire le bounce
-        mass: 1,
-        overshootClamping: false,  // Autorise le bounce
-        energyThreshold: 6e-9,
-        velocity: 5,
-      }),
-      marginBottom: withSpring(isHidden ? 0 : 10),
-      // borderWidth: withSpring(isHidden ? 0 : 0.5),
-      opacity: withSpring(isHidden ? 0 : 1),
-      display: isDisplayNone ? 'none' : 'flex',
-
-    } as any;
-  }, [height, selectedTaskId, item.id, isDisplayNone]);
-
   const shadowStyle = useAnimatedStyle(() => {
     return {
-      shadowOpacity: withSpring(isActive ? 0.3 : 0),
-      elevation: withSpring(isActive ? 5 : 0),
+      shadowOpacity: withTiming(isActive ? 0.2 : 0, { duration: 140 }),
+      elevation: withTiming(isActive ? 4 : 0, { duration: 140 }),
     };
   });
 
   const dotAnimatedStyle = useAnimatedStyle(() => {
     return {
-      width: withSpring(20 * dotScale.value),
-      height: withSpring(20 * dotScale.value),
-      borderRadius: withSpring(20 * dotScale.value),
+      transform: [{ scale: dotScale.value }],
+      opacity: Math.min(dotScale.value, 1),
     };
   });
 
   const handleCheckboxPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (isExpanded.value) {
-      dotScale.value = withSpring(1);
-      isExpanded.value = false;
-    } else {
-      dotScale.value = withSpring(100);
-      isExpanded.value = true;
-    }
-
+    dotScale.value = withSpring(item.done ? 0 : 1, {
+      damping: 18,
+      stiffness: 220,
+      mass: 0.7,
+      overshootClamping: true,
+    });
     handleToggleTask(item.id, item.done);
-  }, [item.id, item.done, handleToggleTask, dotScale, isExpanded]);
+  }, [item.id, item.done, handleToggleTask, dotScale]);
 
   const handlePress = useCallback(() => {
     if (!isExtendable) return;
-    console.log("Task pressed:", item.id);
-    setIsOpen(prev => !prev);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (!isActive) {
-      animateHeight(isHeightExpandedRef.current ? 64 : 400);
-      handleTaskPress(item.id);
-    }
-  }, [isActive, item.id, handleTaskPress, isExtendable]);
+    rowRef.current?.measureInWindow((x, y, width, height) => {
+      handleTaskPress(item.id, { x, y, width, height });
+    });
+  }, [handleTaskPress, item.id, isExtendable]);
 
   const handlePressIn = useCallback(() => {
     pressScale.value = withSpring(0.98, {
-      damping: 15,
-      mass: 1,
-      stiffness: 300,
+      damping: 20,
+      mass: 0.8,
+      stiffness: 280,
+      overshootClamping: true,
     });
   }, [pressScale]);
 
   const handlePressOut = useCallback(() => {
     pressScale.value = withSpring(1, {
-      damping: 15,
-      mass: 1,
-      stiffness: 300,
+      damping: 20,
+      mass: 0.8,
+      stiffness: 280,
+      overshootClamping: true,
     });
   }, [pressScale]);
 
@@ -368,141 +347,83 @@ export const TaskItem = ({
     [styles.taskItem, { backgroundColor: colors.task }];
 
   useEffect(() => {
-    if (item.done) {
-      dotScale.value = 100;
-      isExpanded.value = true;
-    } else {
-      dotScale.value = 1;
-      isExpanded.value = false;
-    }
-  }, [item.done, dotScale, isExpanded]);
+    dotScale.value = withSpring(item.done ? 1 : 0, {
+      damping: 18,
+      stiffness: 220,
+      mass: 0.7,
+      overshootClamping: true,
+    });
+  }, [item.done, dotScale]);
 
   useEffect(() => {
-    const isHidden = selectedTaskId !== null && selectedTaskId !== item.id;
-    if (isHidden) {
-      // Appliquer display:none après 500ms
-      const timeout = setTimeout(() => {
-        setIsDisplayNone(true);
-      }, 300);
-      return () => clearTimeout(timeout);
-    } else {
-      // Retirer display:none immédiatement pour la réapparition
-      setIsDisplayNone(false);
-    }
-  }, [selectedTaskId, item.id]);
-
-  useEffect(() => {
-    if (selectedTaskId === item.id) {
-      // Cette tâche est sélectionnée, l'agrandir avec la hauteur de la liste
-      animateHeight(listHeight * 0.8);
-    } else if (selectedTaskId !== null) {
-      // Une autre tâche est sélectionnée, la faire disparaître
-      animateHeight(0);
-    } else {
-      // Aucune tâche sélectionnée, retour à la taille normale
-      animateHeight(64);
-    }
-  }, [selectedTaskId, item.id, listHeight]);
+    rowOpacity.value = withTiming(selectedTaskId === null ? 1 : isSelected ? 0 : 0, {
+      duration: 220,
+      easing: Easing.out(Easing.quad),
+    });
+    rowScale.value = withTiming(selectedTaskId === null ? 1 : isHidden ? 0.98 : 1, {
+      duration: 260,
+      easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+    });
+    rowTranslateY.value = withTiming(selectedTaskId === null ? 0 : isHidden ? 8 : 0, {
+      duration: 260,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [isHidden, isSelected, listHeight, rowOpacity, rowScale, rowTranslateY, selectedTaskId]);
 
   return (
-    <ReAnimated.View style={[animatedStyle, shadowStyle]}>
+    <Animated.View ref={rowRef} style={[animatedStyle, shadowStyle]}>
       <Swipeable
         ref={swipeableRef}
         renderLeftActions={renderLeftActions}
         renderRightActions={renderRightActions}
-        enabled={!isOpen}
+        enabled={selectedTaskId === null}
         leftThreshold={40}
         rightThreshold={40}
-        friction={2}
+        friction={1.05}
         overshootRight={false}
         overshootLeft={false}
         containerStyle={{ overflow: 'visible' }}
       >
-        <Squircle style={[taskItemStyle, heightAnimatedStyle]}>
+        <Squircle style={taskItemStyle}>
           <Pressable
             onLongPress={drag}
-            disabled={isActive}
+            disabled={isActive || selectedTaskId !== null}
             delayLongPress={500}
             style={{
               width: "100%",
               height: "100%",
-              flexDirection: "row",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              paddingHorizontal: 12,
-              paddingVertical: 10,
             }}
             onPress={handlePress}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
           >
             <View style={styles.taskContent}>
+              <Text style={[
+                item.done ? styles.taskNameDone : styles.taskName,
+                { color: item.done ? colors.textDone : colors.text, fontSize: fontSizes.lg }
+              ]}>
+                {item.name}
+              </Text>
 
-              {
-                !isOpen &&
-
-                <ReAnimated.View
-                  entering={FadeIn.springify().delay(400)}
-                  style={{
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
+              <View style={styles.checkboxContainer}>
+                <Animated.View style={[styles.checkboxDot, dotAnimatedStyle, { backgroundColor: colors.taskDone }]} />
+                <TouchableOpacity
+                  style={[
+                    styles.taskCheckbox,
+                    item.done && { backgroundColor: colors.checkboxDone },
+                    !item.done && { backgroundColor: colors.checkbox }
+                  ]}
+                  onPress={handleCheckboxPress}
+                  activeOpacity={0.7}
                 >
-                  <Text style={[
-                    item.done ? styles.taskNameDone : styles.taskName,
-                    { color: item.done ? colors.textDone : colors.text, fontSize: fontSizes.lg }
-                  ]}>
-                    {item.name}
-                  </Text>
-
-                  <View style={styles.checkboxContainer}>
-                    <ReAnimated.View style={[styles.checkboxDot, dotAnimatedStyle, { backgroundColor: colors.taskDone }]} />
-                    <TouchableOpacity
-                      style={[
-                        styles.taskCheckbox,
-                        item.done && { backgroundColor: colors.checkboxDone },
-                        !item.done && { backgroundColor: colors.checkbox }
-                      ]}
-                      onPress={handleCheckboxPress}
-                      activeOpacity={0.7}
-                    >
-                      {item.done && <Text style={[styles.checkmark, { color: colors.checkMark }]}>✓</Text>}
-                    </TouchableOpacity>
-                  </View>
-
-                </ReAnimated.View>
-              }
-
-
-              {
-                isOpen &&
-
-                <PopUpTask
-                  onClose={() => handlePress()}
-                  id={item.id}
-                />
-
-
-                // <Animated.Text
-                //   entering={FadeInUp.springify().delay(300)}
-                //   exiting={FadeOut.springify()}
-                //   style={{ 
-                //     marginTop: 200,
-                //     color: colors.textSecondary,
-                //     fontSize: fontSizes.base,
-                //    }}
-                // >
-                //   {item.description}
-                // </Animated.Text>
-              }
+                  {item.done && <Text style={[styles.checkmark, { color: colors.checkMark }]}>✓</Text>}
+                </TouchableOpacity>
+              </View>
             </View>
           </Pressable>
         </Squircle>
       </Swipeable>
-    </ReAnimated.View>
+    </Animated.View>
   );
 };
 
@@ -540,10 +461,11 @@ const styles = StyleSheet.create({
 
   taskContent: {
     flex: 1,
-    display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
 
   taskName: {
@@ -577,9 +499,9 @@ const styles = StyleSheet.create({
 
   checkboxDot: {
     position: 'absolute',
-    width: 10,
-    height: 10,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     zIndex: 0,
   },
 

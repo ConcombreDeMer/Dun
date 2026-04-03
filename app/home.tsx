@@ -3,18 +3,18 @@ import PopUpTask from "@/components/popUpTask";
 import ProgressBar from "@/components/progressBar";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Dimensions, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Dimensions, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
-import ReAnimated, { runOnJS, runOnUI, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
-import { TaskItem } from "../components/TaskItem";
+import ReAnimated, { Easing, interpolate, runOnJS, runOnUI, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import Squircle from "../components/Squircle";
+import { TaskItem, TaskItemLayout } from "../components/TaskItem";
 import { useAppTranslation } from "../lib/i18n";
-import { useTheme } from "../lib/ThemeContext";
 import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "../lib/notificationService";
 import { supabase } from "../lib/supabase";
+import { useTheme } from "../lib/ThemeContext";
 import { useStore } from "../store/store";
 
 
@@ -22,23 +22,23 @@ const LottieView = require("lottie-react-native").default;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 export default function Home() {
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [loading, setLoading] = useState(true);
   const storedDate = useStore((state) => state.selectedDate);
   const [selectedDate, setSelectedDate] = useState<Date>(storedDate || new Date());
   const [userName, setUserName] = useState<string>('');
   const [userHasSeenTutorial, setUserHasSeenTutorial] = useState<boolean>(false);
-  const router = useRouter();
   const { t } = useAppTranslation();
   const { colors, theme } = useTheme();
   const setStoreDate = useStore((state) => state.setSelectedDate);
   const [progress, setProgress] = useState(0);
-  const [isTaskOpen, setIsTaskOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
-  const [listHeight, setListHeight] = useState(0);
+  const [selectedTaskLayout, setSelectedTaskLayout] = useState<TaskItemLayout | null>(null);
+  const [shouldRenderOverlayContent, setShouldRenderOverlayContent] = useState(false);
   const queryClient = useQueryClient();
-  const headerScale = useSharedValue(1);
   const store = useStore();
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
+  const overlayProgress = useSharedValue(0);
 
 
 
@@ -303,19 +303,47 @@ export default function Home() {
     }
   }, [dateKey, queryClient]);
 
-  const handleTaskPress = useCallback((taskId: number) => {
-    setSelectedTaskId(prevId => prevId === taskId ? null : taskId);
-  }, []);
+  const handleTaskPress = useCallback((taskId: number, layout?: TaskItemLayout) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-  // useEffect(() => {
-  //   if(selectedTaskId !== null) {
-  //     setIsTaskOpen(true);
-  //   }
-  // }, [selectedTaskId]);
+    if (selectedTaskId === taskId) {
+      setShouldRenderOverlayContent(false);
+      overlayProgress.value = withTiming(0, {
+        duration: 260,
+        easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+      }, (finished) => {
+        if (finished) {
+          runOnJS(setSelectedTaskId)(null);
+          runOnJS(setSelectedTaskLayout)(null);
+        }
+      });
+      return;
+    }
 
-  function closeTaskPopup() {
-    setIsTaskOpen(false);
-  }
+    if (!layout) return;
+
+    setShouldRenderOverlayContent(false);
+    setSelectedTaskLayout(layout);
+    setSelectedTaskId(taskId);
+    overlayProgress.value = 0;
+
+    requestAnimationFrame(() => {
+      overlayProgress.value = withTiming(1, {
+        duration: 560,
+        easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+      });
+    });
+  }, [overlayProgress, selectedTaskId]);
+
+  useEffect(() => {
+    if (selectedTaskId === null || selectedTaskLayout === null) return;
+
+    const timeout = setTimeout(() => {
+      setShouldRenderOverlayContent(true);
+    }, 280);
+
+    return () => clearTimeout(timeout);
+  }, [selectedTaskId, selectedTaskLayout]);
 
   const handlePlaceholderIndexChange = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -365,7 +393,7 @@ export default function Home() {
     })
     .onEnd((e) => {
       const springConfig = { damping: 50, stiffness: 350 };
-      
+
       if (e.translationX < -50) {
         // Swipe gauche -> Jour suivant
         translateX.value = withTiming(-SCREEN_WIDTH, { duration: 100 }, (isFinished) => {
@@ -387,22 +415,72 @@ export default function Home() {
     });
 
   const headerAnimatedStyle = useAnimatedStyle(() => {
+    const isTaskSelected = selectedTaskId !== null;
+
     return {
-      transform: [{ scale: withSpring(headerScale.value) }],
-      marginTop: withSpring(selectedTaskId !== null ? -200 : 0),
-      opacity: withSpring(selectedTaskId !== null ? 0 : 1),
+      opacity: withTiming(isTaskSelected ? 0 : 1, {
+        duration: isTaskSelected ? 260 : 320,
+        easing: Easing.out(Easing.quad),
+      }),
+      transform: [
+        {
+          translateY: withTiming(isTaskSelected ? -140 : 0, {
+            duration: isTaskSelected ? 520 : 360,
+            easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+          }),
+        },
+        {
+          scale: withTiming(isTaskSelected ? 0.97 : 1, {
+            duration: isTaskSelected ? 420 : 320,
+            easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+          }),
+        },
+      ],
     };
-  }, [headerScale, selectedTaskId]);
+  }, [selectedTaskId]);
 
   const listAnimatedStyle = useAnimatedStyle(() => {
     return {
       transform: [{ translateX: translateX.value }],
+      opacity: withTiming(selectedTaskId !== null ? 0.35 : 1, {
+        duration: selectedTaskId !== null ? 220 : 280,
+        easing: Easing.out(Easing.quad),
+      }),
     };
-  });
+  }, [selectedTaskId]);
 
-  useEffect(() => {
-    headerScale.value = selectedTaskId !== null ? 0 : 1;
-  }, [selectedTaskId, headerScale]);
+  const selectedTask = useMemo(
+    () => currentTasks.find((task: any) => task.id === selectedTaskId) ?? null,
+    [currentTasks, selectedTaskId]
+  );
+
+  const overlayAnimatedStyle = useAnimatedStyle(() => {
+    if (!selectedTaskLayout) {
+      return {
+        opacity: 0,
+      };
+    }
+
+    const finalLeft = 16;
+    const finalTop = 70;
+    const finalWidth = windowWidth - 32;
+    const finalHeight = Math.max(320, windowHeight - finalTop - 110);
+
+    return {
+      position: 'absolute',
+      left: interpolate(overlayProgress.value, [0, 1], [selectedTaskLayout.x, finalLeft]),
+      top: interpolate(overlayProgress.value, [0, 1], [selectedTaskLayout.y, finalTop]),
+      width: interpolate(overlayProgress.value, [0, 1], [selectedTaskLayout.width, finalWidth]),
+      height: interpolate(overlayProgress.value, [0, 1], [selectedTaskLayout.height, finalHeight]),
+      borderRadius: interpolate(overlayProgress.value, [0, 1], [20, 30]),
+      opacity: overlayProgress.value,
+      transform: [
+        {
+          translateY: interpolate(overlayProgress.value, [0, 1], [0, 0]),
+        },
+      ],
+    };
+  }, [selectedTaskLayout, windowHeight, windowWidth]);
 
   const closeTutorial = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -432,77 +510,93 @@ export default function Home() {
       <GestureDetector gesture={panGesture}>
         <View
           style={[styles.container, { backgroundColor: colors.background, paddingBottom: 0 }]}
-          onLayout={(event) => {
-            const { height } = event.nativeEvent.layout;
-            setListHeight(height);
-          }}
         >
 
           <View style={styles.header}>
 
-            <ReAnimated.View style={headerAnimatedStyle}>
-            <CalendarComponent
-              slider={true}
-              initialDate={selectedDate}
-              onDateSelect={(date) => changeDate(date)}
-              onExpandedChange={setIsCalendarExpanded}
-            />
+            <ReAnimated.View
+              pointerEvents={selectedTaskId !== null ? "none" : "auto"}
+              style={headerAnimatedStyle}
+            >
+              <CalendarComponent
+                slider={true}
+                initialDate={selectedDate}
+                onDateSelect={(date) => changeDate(date)}
+                onExpandedChange={setIsCalendarExpanded}
+              />
 
-            <ProgressBar
-              progress={progress}
-            />
+              <ProgressBar
+                progress={progress}
+              />
+            </ReAnimated.View>
+
+          </View>
+
+          <ReAnimated.View
+            style={[styles.listContainer, listAnimatedStyle]}
+          >
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.text} />
+              </View>
+            ) : (
+              <DraggableFlatList
+                data={currentTasks}
+                keyExtractor={(item) => item.id.toString()}
+                scrollEnabled={selectedTaskId === null}
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={false}
+                persistentScrollbar={true}
+                removeClippedSubviews={false}
+                contentContainerStyle={styles.flatListContent}
+                activationDistance={20}
+                onDragEnd={handleDragEnd}
+                onPlaceholderIndexChange={handlePlaceholderIndexChange}
+                renderItem={({ item, drag, isActive }) => (
+                  <TaskItem
+                    item={item}
+                    drag={drag}
+                    isActive={isActive}
+                    handleToggleTask={handleToggleTask}
+                    handleTaskPress={handleTaskPress}
+                    selectedTaskId={selectedTaskId}
+                    listHeight={0}
+                    mode="normal"
+                    isExtendable={!isCalendarExpanded}
+                  />
+                )}
+                ListEmptyComponent={
+                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t("home.emptyState")}</Text>
+                }
+              />
+            )}
           </ReAnimated.View>
 
-        </View>
-
-        <ReAnimated.View
-          style={[styles.listContainer, listAnimatedStyle]}
-        >
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.text} />
-            </View>
-          ) : (
-            <DraggableFlatList
-              data={currentTasks}
-              keyExtractor={(item) => item.id.toString()}
-              scrollEnabled={true}
-              nestedScrollEnabled={true}
-              showsVerticalScrollIndicator={false}
-              persistentScrollbar={true}
-              removeClippedSubviews={false}
-              contentContainerStyle={styles.flatListContent}
-              activationDistance={20}
-              onDragEnd={handleDragEnd}
-              onPlaceholderIndexChange={handlePlaceholderIndexChange}
-              renderItem={({ item, drag, isActive }) => (
-                <TaskItem
-                  item={item}
-                  drag={drag}
-                  isActive={isActive}
-                  handleToggleTask={handleToggleTask}
-                  handleTaskPress={handleTaskPress}
-                  selectedTaskId={selectedTaskId}
-                  listHeight={listHeight}
-                  mode="normal"
-                  isExtendable={!isCalendarExpanded}
-                />
-              )}
-              ListEmptyComponent={
-                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t("home.emptyState")}</Text>
-              }
-            />
-          )}
-        </ReAnimated.View>
+          {selectedTask && selectedTaskLayout ? (
+            <ReAnimated.View pointerEvents="box-none" style={styles.overlayRoot}>
+              <Squircle
+                style={[
+                  styles.overlayCard,
+                  { backgroundColor: colors.task, borderRadius: 10 },
+                  overlayAnimatedStyle,
+                ]}
+                cornerSmoothing={100}
+                preserveSmoothing={true}
+              >
+                <View style={styles.overlayContent}>
+                  {shouldRenderOverlayContent ? (
+                    <PopUpTask
+                      id={selectedTask.id}
+                      onClose={() => handleTaskPress(selectedTask.id)}
+                    />
+                  ) : null}
+                </View>
+              </Squircle>
+            </ReAnimated.View>
+          ) : null}
 
         </View>
       </GestureDetector>
-      {isTaskOpen && (
-        <PopUpTask
-          id={selectedTaskId!}
-          onClose={closeTaskPopup}
-        />
-      )}
     </GestureHandlerRootView>
   );
 }
@@ -522,6 +616,21 @@ const styles = StyleSheet.create({
   listContainer: {
     flex: 1,
     height: "100%",
+  },
+
+  overlayRoot: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20,
+    pointerEvents: 'box-none',
+  },
+
+  overlayCard: {
+    overflow: 'hidden',
+    boxShadow: '0px 10px 30px rgba(0, 0, 0, 0.12)',
+  },
+
+  overlayContent: {
+    flex: 1,
   },
 
   title: {
@@ -561,6 +670,7 @@ const styles = StyleSheet.create({
   flatListContent: {
     paddingBottom: 120,
     paddingHorizontal: 20,
+    gap: 8,
   },
 
   emptyText: {

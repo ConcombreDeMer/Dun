@@ -10,7 +10,6 @@ import { useAppTranslation } from "../lib/i18n";
 import { useTheme } from "../lib/ThemeContext";
 import AnimatedCheckbox from "./checkboxAnimated";
 import DateInput from "./dateInput";
-import Loading from "./loading";
 import PrimaryButton from "./primaryButton";
 import SecondaryButton from "./secondaryButton";
 import SimpleInput from "./textInput";
@@ -584,14 +583,12 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
 
     return (
         <Animated.View
-            entering={FadeIn.springify().duration(500).delay(300)}
+            entering={FadeIn.springify().duration(500)}
             exiting={FadeOut.springify().duration(500)}
             style={styles.container}
         >
 
             <Animated.View
-            // entering={SlideInDown.springify().duration(900)}
-            // exiting={SlideOutDown.springify().duration(900)}
             >
 
                 {!loading && !name.trim() && (
@@ -616,76 +613,62 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                         />
                     </View>
 
-                    {
-                        loading && (
-                            <Loading />
-                        )
 
-                    }
+                    <Animated.View
+                        entering={FadeIn.springify().duration(500)}
+                        exiting={FadeOut.springify().duration(500)}
+                        style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}
+                    >
+                        <View style={styles.scrollContent}>
+                            <SimpleInput
+                                value={taskQuery.data ? taskQuery.data.name : name}
+                                onChangeText={setName}
+                                bold
+                                transparent
+                                style={{ height: '5%' }}
+                                scale="large"
+                                fontSize="4xl"
+                            />
 
-                    {
-                        !loading && (
-                            <Animated.View
-                                entering={FadeIn.springify().duration(500)}
-                                exiting={FadeOut.springify().duration(500)}
-                                style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}
-                            >
-                                <View style={styles.scrollContent}>
-                                    <SimpleInput
-                                        value={taskQuery.data ? taskQuery.data.name : name}
-                                        onChangeText={setName}
-                                        bold
-                                        transparent
-                                        style={{ height: '5%' }}
-                                        scale="large"
-                                        fontSize="4xl"
-                                    />
-
-                                    <SimpleInput
-                                        value={description}
-                                        onChangeText={setDescription}
-                                        placeholder={t("task.popup.insertDescription")}
-                                        multiline
-                                        style={{ overflow: "hidden", textAlignVertical: "top", height: '95%', boxShadow: `inset 0px -25px 29px -10px ${colors.card}` }}
-                                        transparent
-                                    />
+                            <SimpleInput
+                                value={description}
+                                onChangeText={setDescription}
+                                placeholder={t("task.popup.insertDescription")}
+                                multiline
+                                style={{ overflow: "hidden", textAlignVertical: "top", height: '95%', boxShadow: `inset 0px -25px 29px -10px ${colors.card}` }}
+                                transparent
+                            />
 
 
-                                </View>
-                                <Text style={[{ color: colors.textSecondary, fontSize: fontSizes.xs, alignSelf: "center" }]}>
-                                    {t("task.popup.lastUpdated", { date: formatLastUpdateDate(taskQuery.data ? new Date(taskQuery.data.last_update_date) : last_update_date) })}
-                                </Text>
+                        </View>
+                        <Text style={[{ color: colors.textSecondary, fontSize: fontSizes.xs, alignSelf: "center" }]}>
+                            {t("task.popup.lastUpdated", { date: formatLastUpdateDate(taskQuery.data ? new Date(taskQuery.data.last_update_date) : last_update_date) })}
+                        </Text>
 
-                                <View style={styles.bottom}>
-                                    <PrimaryButton
-                                        size="XS"
-                                        width={48}
-                                        type="danger"
-                                        image="trash.fill"
-                                        onPress={handleDeleteTask}
-                                    />
+                        <View style={styles.bottom}>
+                            <PrimaryButton
+                                size="XS"
+                                width={48}
+                                type="danger"
+                                image="trash.fill"
+                                onPress={handleDeleteTask}
+                            />
 
-                                    <DateInput
-                                        value={taskDate}
-                                        onChange={handleDateChange}
-                                        disabled={updateTaskMutation.isPending || deleteTaskMutation.isPending}
-                                        bold
-                                    />
+                            <DateInput
+                                value={taskDate}
+                                onChange={handleDateChange}
+                                disabled={updateTaskMutation.isPending || deleteTaskMutation.isPending}
+                                bold
+                            />
 
-                                    <AnimatedCheckbox
-                                        checked={isDone}
-                                        onChange={handleToggleTask}
-                                        size={48}
-                                    />
-                                </View>
+                            <AnimatedCheckbox
+                                checked={isDone}
+                                onChange={handleToggleTask}
+                                size={48}
+                            />
+                        </View>
 
-                            </Animated.View>
-
-
-
-                        )
-
-                    }
+                    </Animated.View>
 
                 </View>
             </Animated.View>
@@ -701,6 +684,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 2,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
     },
 
     blur: {
@@ -712,14 +697,6 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
     },
-
-    // modal: {
-    //     width: 300,
-    //     padding: 20,
-    //     borderRadius: 10,
-    //     borderWidth: 1,
-    //     backgroundColor: '#F1F1F1',
-    // },
 
     nameAlert: {
         position: "absolute",
@@ -739,13 +716,11 @@ const styles = StyleSheet.create({
         alignSelf: "flex-end",
         width: "100%",
         // backgroundColor: "#a1232338",
-        // paddingHorizontal: 20,
-        paddingVertical: 20,
     },
 
 
     card: {
-        borderRadius: 30,
+        // borderRadius: 30,
         // width: "90%",
         // height: "80%",
         alignSelf: "center",
