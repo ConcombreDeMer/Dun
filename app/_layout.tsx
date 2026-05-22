@@ -217,7 +217,7 @@ function RootLayoutContent() {
             }}
           />
           <Stack.Screen
-            name="auth"
+            name="auth/callback"
             options={{
               headerShown: false,
             }}
