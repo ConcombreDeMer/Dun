@@ -33,6 +33,14 @@ export default function CreateTask() {
     const queryClient = useQueryClient();
     const selectedDateKey = toAppDateKey(selectedDate);
 
+    const leaveCreateTask = () => {
+        if (router.canGoBack()) {
+            router.back();
+        } else {
+            router.replace("/home");
+        }
+    };
+
     const dayMutation = useMutation({
         mutationFn: async () => {
             // Récupérer l'utilisateur connecté
@@ -141,7 +149,7 @@ export default function CreateTask() {
             setName("");
             setDescription("");
             taskEmitter.emit("taskAdded");
-            router.back();
+            leaveCreateTask();
         },
         onError: (error: any) => {
             console.error("Erreur lors de la création de la tâche:", error);
@@ -170,7 +178,7 @@ export default function CreateTask() {
 
     const handleCancel = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        router.back();
+        leaveCreateTask();
     }
 
     const handleDateChange = (date: Date) => {

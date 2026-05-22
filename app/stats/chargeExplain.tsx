@@ -45,7 +45,7 @@ export default function ChargeExplain() {
                 
                 <View style={styles.headerContent}>
                     <Image
-                        source={require('../../assets/images/stats/charge.png')}
+                        source={require('@/assets/images/stats/charge.png')}
                         style={styles.headerImage}
                     />
                     <Text style={[styles.title, dynamicStyles.text]}>{t('stats.chargeExplain.title')}</Text>

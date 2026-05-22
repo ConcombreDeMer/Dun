@@ -10,9 +10,9 @@ import {
     Text,
     View,
 } from "react-native";
-import { useFont, type FontSize } from "../../lib/FontContext";
-import { AppLanguage, useAppTranslation } from "../../lib/i18n";
-import { colorThemeOptions, useTheme } from "../../lib/ThemeContext";
+import { useFont, type FontSize } from "@/lib/FontContext";
+import { AppLanguage, useAppTranslation } from "@/lib/i18n";
+import { colorThemeOptions, useTheme } from "@/lib/ThemeContext";
 
 export default function Display() {
     const router = useRouter();

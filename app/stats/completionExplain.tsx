@@ -45,7 +45,7 @@ export default function CompletionExplain() {
                 
                 <View style={styles.headerContent}>
                     <Image
-                        source={require('../../assets/images/stats/completion.png')}
+                        source={require('@/assets/images/stats/completion.png')}
                         style={styles.headerImage}
                     />
                     <Text style={[styles.title, dynamicStyles.text]}>{t('stats.completionExplain.title')}</Text>

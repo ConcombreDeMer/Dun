@@ -7,10 +7,10 @@ import { useRouter } from "expo-router";
 import { SquircleView } from "expo-squircle-view";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { useAppTranslation } from "../../lib/i18n";
-import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "../../lib/notificationService";
-import { supabase } from "../../lib/supabase";
-import { useStore } from "../../store/store";
+import { useAppTranslation } from "@/lib/i18n";
+import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "@/lib/notificationService";
+import { supabase } from "@/lib/supabase";
+import { useStore } from "@/store/store";
 
 
 export default function NotificationsSettings() {

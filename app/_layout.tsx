@@ -1,12 +1,10 @@
 import { Session } from "@supabase/supabase-js";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
-import { Stack, usePathname, useRouter, useSegments } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useMemo, useState } from "react";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View } from "react-native";
-import Navbar from "../components/navbar";
 import { FontProvider } from "../lib/FontContext";
 import { I18nProvider, useAppTranslation, useI18nReady } from "../lib/i18n";
 import { initializeRevenueCat, syncRevenueCatUser } from "../lib/revenuecat";
@@ -37,7 +35,6 @@ function RootLayoutContent() {
   const { t } = useAppTranslation();
   const isI18nReady = useI18nReady();
   const router = useRouter();
-  const segments = useSegments();
   const pathname = usePathname();
   const [session, setSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -162,19 +159,11 @@ function RootLayoutContent() {
     };
 
     checkUserAndRedirect();
-  }, [isAuthLoading, pathname, router, session, segments]);
+  }, [isAuthLoading, pathname, router, session]);
 
   if (!fontsLoaded || isLoading || isAuthLoading || !isI18nReady) {
     return null;
   }
-
-  // Vérifier si on est sur l'onboarding pour masquer la navbar
-  const isOnboarding = segments[0] === "onboarding";
-  const isSettingsSubroute = segments.length > 1 && segments[0] === "settings";
-  const isDailyOrRest = segments[0] === "daily" || segments[0] === "rest";
-
-  const duration = 200;
-  
 
   return (
 
@@ -195,7 +184,6 @@ function RootLayoutContent() {
       >
 
       </View> */}
-      <View style={{ flex: 1 }}>
         <Stack
           screenOptions={{
             headerStyle: {
@@ -211,25 +199,42 @@ function RootLayoutContent() {
           }}
         >
           <Stack.Screen
+            name="index"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="(tabs)"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
             name="onboarding"
             options={{
               headerShown: false,
             }}
           />
           <Stack.Screen
-            name="home"
+            name="auth"
             options={{
-              title: t("navigation.home"),
-              animation: "fade",
-              animationDuration: duration,
+              headerShown: false,
             }}
           />
           <Stack.Screen
             name="settings"
             options={{
-              title: t("navigation.settings"),
-              animation: "fade",
-              animationDuration: duration,
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="stats"
+            options={{
+              headerShown: false,
+              presentation: "modal",
+              animation: "slide_from_bottom",
+              animationDuration: 200,
             }}
           />
           <Stack.Screen
@@ -238,15 +243,7 @@ function RootLayoutContent() {
               title: t("navigation.createTask"),
               presentation: "modal",
               animation: "slide_from_bottom",
-              animationDuration: duration,
-            }}
-          />
-          <Stack.Screen
-            name="stats"
-            options={{
-              title: t("navigation.stats"),
-              animation: "fade",
-              animationDuration: duration,
+              animationDuration: 200,
             }}
           />
           <Stack.Screen
@@ -268,8 +265,6 @@ function RootLayoutContent() {
             }}
           />
         </Stack>
-        {!isOnboarding && !isSettingsSubroute && !isDailyOrRest && <Navbar />}
-      </View>
     </QueryClientProvider>
   );
 }

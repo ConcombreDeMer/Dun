@@ -14,9 +14,9 @@ import {
     View
 } from "react-native";
 import Purchases, { PurchasesPackage } from "react-native-purchases";
-import { useFont } from "../../lib/FontContext";
-import { useAppTranslation } from "../../lib/i18n";
-import { useTheme } from "../../lib/ThemeContext";
+import { useFont } from "@/lib/FontContext";
+import { useAppTranslation } from "@/lib/i18n";
+import { useTheme } from "@/lib/ThemeContext";
 
 export default function Premium() {
     const router = useRouter();
@@ -117,7 +117,7 @@ export default function Premium() {
 
                 <View style={styles.characterContainer}>
                     <Image
-                        source={require('../../assets/images/character/16.png')}
+                        source={require('@/assets/images/character/16.png')}
                         style={styles.characterImage}
                         resizeMode="contain"
                     />

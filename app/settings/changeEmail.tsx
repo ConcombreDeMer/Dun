@@ -2,10 +2,10 @@ import SecondaryButton from "@/components/secondaryButton";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import PrimaryButton from "../../components/primaryButton";
-import { useAppTranslation } from "../../lib/i18n";
-import { supabase } from "../../lib/supabase";
-import { useTheme } from "../../lib/ThemeContext";
+import PrimaryButton from "@/components/primaryButton";
+import { useAppTranslation } from "@/lib/i18n";
+import { supabase } from "@/lib/supabase";
+import { useTheme } from "@/lib/ThemeContext";
 
 
 export default function ChangeEmail() {

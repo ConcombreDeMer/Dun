@@ -11,10 +11,10 @@ import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { Extrapolate, interpolate, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { useFont } from "../../lib/FontContext";
-import { useAppTranslation } from "../../lib/i18n";
-import { supabase } from "../../lib/supabase";
-import { useTheme } from "../../lib/ThemeContext";
+import { useFont } from "@/lib/FontContext";
+import { useAppTranslation } from "@/lib/i18n";
+import { supabase } from "@/lib/supabase";
+import { useTheme } from "@/lib/ThemeContext";
 
 interface StatsData {
   completion: string;
@@ -542,13 +542,13 @@ export default function Stats() {
         >
         <View style={styles.cardsRow}>
           <StatsCard
-            image={require('../../assets/images/stats/done.png')}
+            image={require('@/assets/images/stats/done.png')}
             title={t('stats.general.cards.tasksDone')}
             value={totalDone.toString()}
             loading={loadingState}
           />
           <StatsCard
-            image={require('../../assets/images/stats/perfect.png')}
+            image={require('@/assets/images/stats/perfect.png')}
             title={t('stats.general.cards.perfectDays')}
             value={perfectDays.toString()}
             loading={loadingState}
@@ -556,13 +556,13 @@ export default function Stats() {
         </View>
         <View style={styles.cardsRow}>
           <StatsCardCompletion
-            image={require('../../assets/images/stats/completion.png')}
+            image={require('@/assets/images/stats/completion.png')}
             title={t('stats.general.cards.completion')}
             value={completion}
             loading={loadingState}
           />
           <StatsCardCharge
-            image={require('../../assets/images/stats/charge.png')}
+            image={require('@/assets/images/stats/charge.png')}
             title={t('stats.general.cards.charge')}
             value={charge.toString()}
             loading={loadingState}

@@ -45,7 +45,7 @@ export default function StreakExplain() {
                 
                 <View style={styles.headerContent}>
                     <Image
-                        source={require('../../assets/images/stats/streak/high.png')}
+                        source={require('@/assets/images/stats/streak/high.png')}
                         style={styles.headerImage}
                     />
                     <Text style={[styles.title, dynamicStyles.text]}>{t('stats.streakExplain.title')}</Text>

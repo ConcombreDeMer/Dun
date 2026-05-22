@@ -11,9 +11,9 @@ import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from 'react';
 import { Image, Keyboard, Platform, Text, TouchableWithoutFeedback, View } from 'react-native';
 import Purchases from 'react-native-purchases';
-import { useFont } from '../../lib/FontContext';
-import { useAppTranslation } from '../../lib/i18n';
-import { useTheme } from '../../lib/ThemeContext';
+import { useFont } from '@/lib/FontContext';
+import { useAppTranslation } from '@/lib/i18n';
+import { useTheme } from '@/lib/ThemeContext';
 
 type SubscriptionStatus = "None" | "prem" | "other";
 
@@ -174,7 +174,7 @@ export default function Subscription() {
 
 
                                 <Image
-                                    source={require("../../assets/images/character/16.png")}
+                                    source={require("@/assets/images/character/16.png")}
                                     style={{
                                         position: "relative",
                                         height: 120,

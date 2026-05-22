@@ -3,9 +3,9 @@ import SecondaryButton from "@/components/secondaryButton";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { useFont } from "../../lib/FontContext";
-import { useAppTranslation } from "../../lib/i18n";
-import { colorThemeOptions, darkColors, lightColors, useTheme } from "../../lib/ThemeContext";
+import { useFont } from "@/lib/FontContext";
+import { useAppTranslation } from "@/lib/i18n";
+import { colorThemeOptions, darkColors, lightColors, useTheme } from "@/lib/ThemeContext";
 
 export default function ColorSettings() {
     const router = useRouter();

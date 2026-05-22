@@ -447,7 +447,7 @@ export default function StatsBarGraph({ daysData, period, onSlideChange }: Stats
 
     queryClient.invalidateQueries({ queryKey: ['days'] });
 
-    router.replace('/home');
+    router.navigate('/home');
   }, [setSelectedDate, queryClient]);
 
   const renderWeekChart = useCallback(({ item }: { item: Slide }) => {

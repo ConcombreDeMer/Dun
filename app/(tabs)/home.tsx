@@ -1,22 +1,24 @@
+import CreateModal from "@/components/createModal";
 import CalendarComponent from "@/components/calendar";
 import PopUpTask from "@/components/popUpTask";
 import ProgressBar from "@/components/progressBar";
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReAnimated, { Easing, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
-import Squircle from "../components/Squircle";
-import { TaskItem, TaskItemLayout } from "../components/TaskItem";
-import { toAppDateKey } from "../lib/date";
-import { useAppTranslation } from "../lib/i18n";
-import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "../lib/notificationService";
-import { supabase } from "../lib/supabase";
-import { useTheme } from "../lib/ThemeContext";
-import { useStore } from "../store/store";
+import Squircle from "@/components/Squircle";
+import { TaskItem, TaskItemLayout } from "@/components/TaskItem";
+import { toAppDateKey } from "@/lib/date";
+import { useAppTranslation } from "@/lib/i18n";
+import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "@/lib/notificationService";
+import { supabase } from "@/lib/supabase";
+import { useTheme } from "@/lib/ThemeContext";
+import { useStore } from "@/store/store";
 
 
 const LottieView = require("lottie-react-native").default;
@@ -133,10 +135,16 @@ export default function Home() {
   const queryClient = useQueryClient();
   const store = useStore();
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const overlayProgress = useSharedValue(0);
   const horizontalListRef = useRef<FlatList<number>>(null);
   const lastHapticPageIndexRef = useRef(DAY_PAGER_CENTER_INDEX);
   const isProgrammaticHorizontalScrollRef = useRef(false);
+
+  const openAddTask = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsCreateModalOpen((isOpen) => !isOpen);
+  };
 
 
 
@@ -750,6 +758,28 @@ export default function Home() {
           </ReAnimated.View>
         ) : null}
 
+        <TouchableOpacity
+          style={[
+            styles.addButton,
+            {
+              backgroundColor: colors.actionButton,
+              borderColor: colors.border,
+            },
+          ]}
+          onPress={openAddTask}
+          activeOpacity={0.75}
+        >
+          <Ionicons
+            name={isCreateModalOpen ? "add" : "add-outline"}
+            size={30}
+            color="#FFFFFF"
+          />
+        </TouchableOpacity>
+
+        {isCreateModalOpen ? (
+          <CreateModal onClose={() => setIsCreateModalOpen(false)} />
+        ) : null}
+
       </View>
     </GestureHandlerRootView>
   );
@@ -849,17 +879,17 @@ const styles = StyleSheet.create({
   },
 
   addButton: {
-    height: 70,
-    width: 70,
+    height: 58,
+    width: 58,
     borderRadius: 100,
-    color: 'white',
-    fontSize: 30,
-    lineHeight: 65,
     position: 'absolute',
-    bottom: 30,
-    right: 30,
+    bottom: 24,
+    right: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    zIndex: 30,
+    boxShadow: '0px 10px 25px rgba(0, 0, 0, 0.18)',
   },
 
 });

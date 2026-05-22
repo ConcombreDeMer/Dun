@@ -17,10 +17,10 @@ import {
     View
 } from "react-native";
 import Purchases from "react-native-purchases";
-import { useFont } from "../lib/FontContext";
-import { useAppTranslation } from "../lib/i18n";
-import { supabase } from "../lib/supabase";
-import { useTheme } from "../lib/ThemeContext";
+import { useFont } from "@/lib/FontContext";
+import { useAppTranslation } from "@/lib/i18n";
+import { supabase } from "@/lib/supabase";
+import { useTheme } from "@/lib/ThemeContext";
 
 
 export default function Settings() {
@@ -341,7 +341,7 @@ export default function Settings() {
 
 
                             <Image
-                                source={require("../assets/images/character/16.png")}
+                                source={require("@/assets/images/character/16.png")}
                                 style={{
                                     height: '90%',
                                     aspectRatio: 1,

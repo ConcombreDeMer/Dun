@@ -24,11 +24,11 @@ import {
     View,
 } from "react-native";
 import Animated, { FadeInUp, FadeOutUp, SlideInDown, SlideOutDown, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
-import { useFont } from "../../lib/FontContext";
-import { useAppTranslation } from "../../lib/i18n";
-import { deleteUserAccount, supabase } from "../../lib/supabase";
-import { useTheme } from "../../lib/ThemeContext";
-import { useStore } from "../../store/store";
+import { useFont } from "@/lib/FontContext";
+import { useAppTranslation } from "@/lib/i18n";
+import { deleteUserAccount, supabase } from "@/lib/supabase";
+import { useTheme } from "@/lib/ThemeContext";
+import { useStore } from "@/store/store";
 
 
 interface UserData {

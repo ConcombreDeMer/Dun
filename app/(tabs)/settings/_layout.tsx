@@ -1,7 +1,7 @@
 import { useTheme } from "@/lib/ThemeContext";
 import { Stack } from "expo-router";
 
-export default function StatsStackLayout() {
+export default function SettingsLayout() {
   const { colors } = useTheme();
 
   return (
@@ -19,24 +19,7 @@ export default function StatsStackLayout() {
         headerShown: false,
       }}
     >
-      <Stack.Screen
-        name="streakExplain"
-        options={{
-          title: "Streak Explanation",
-        }}
-      />
-      <Stack.Screen
-        name="chargeExplain"
-        options={{
-          title: "Charge Explanation",
-        }}
-      />
-      <Stack.Screen
-        name="completionExplain"
-        options={{
-          title: "Completion Explanation",
-        }}
-      />
+      <Stack.Screen name="index" />
     </Stack>
   );
 }
