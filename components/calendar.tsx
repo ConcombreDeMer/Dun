@@ -26,7 +26,7 @@ import TaskIndicator from "./taskIndicator";
 
 const SLIDER_COLLAPSED_HEIGHT = 96;
 const CALENDAR_CONTENT_MARGIN_TOP = 12;
-const CALENDAR_HEADER_HEIGHT = 38;
+const CALENDAR_HEADER_HEIGHT = 50;
 const CALENDAR_WEEKDAYS_HEIGHT = 22;
 const CALENDAR_DAY_ROW_HEIGHT = 35;
 const CALENDAR_DAY_ROW_GAP = 2;
@@ -60,6 +60,17 @@ const isSameDay = (date1: Date, date2: Date): boolean => {
         date1.getMonth() === date2.getMonth() &&
         date1.getFullYear() === date2.getFullYear()
     );
+};
+
+const isSameMonth = (date1: Date, date2: Date): boolean => {
+    return (
+        date1.getMonth() === date2.getMonth() &&
+        date1.getFullYear() === date2.getFullYear()
+    );
+};
+
+const getMonthStart = (date: Date): Date => {
+    return new Date(date.getFullYear(), date.getMonth());
 };
 
 // Composant affichage date en mode collapsed - MEMOIZED
@@ -465,11 +476,15 @@ export default function CalendarComponent({
     }, [weeksInMonth]);
 
     const expandedContentHeight = calendarHeight + CALENDAR_CONTENT_MARGIN_TOP;
+    const animatedCalendarHeight = useSharedValue(calendarHeight);
+    const animatedExpandedContentHeight = useSharedValue(expandedContentHeight);
 
     // Mettre à jour la ref de calendarHeight
     useEffect(() => {
         calendarHeightRef.current = expandedContentHeight;
-    }, [expandedContentHeight]);
+        animatedCalendarHeight.value = withSpring(calendarHeight);
+        animatedExpandedContentHeight.value = withSpring(expandedContentHeight);
+    }, [animatedCalendarHeight, animatedExpandedContentHeight, calendarHeight, expandedContentHeight]);
 
     // Trouver l'index du jour sélectionné - MEMOIZED
     const getSelectedDateIndex = useCallback(() => {
@@ -510,8 +525,13 @@ export default function CalendarComponent({
 
     // Gestion de la sélection de date
     const handleDateSelect = useCallback((date: Date) => {
-        setSelectedDate(new Date(date));
-        onDateSelect?.(new Date(date));
+        const nextDate = new Date(date);
+        setSelectedDate(nextDate);
+        setCurrentMonth((previousMonth) => {
+            return isSameMonth(nextDate, previousMonth) ? previousMonth : getMonthStart(nextDate);
+        });
+
+        onDateSelect?.(nextDate);
     }, [onDateSelect]);
 
     // Gestion de la rétraction
@@ -525,19 +545,19 @@ export default function CalendarComponent({
 
     // Animation style pour la hauteur du slider background
     const animatedSliderStyle = useAnimatedStyle(() => {
-        const height = SLIDER_COLLAPSED_HEIGHT + heightValue.value * expandedContentHeight;
+        const height = SLIDER_COLLAPSED_HEIGHT + heightValue.value * animatedExpandedContentHeight.value;
         return {
             minHeight: height,
         };
-    }, [expandedContentHeight]);
+    });
 
     // Animation style pour le contenu du calendrier
     const animatedContentStyle = useAnimatedStyle(() => {
         return {
             opacity: heightValue.value,
-            height: heightValue.value * calendarHeight,
+            height: heightValue.value * animatedCalendarHeight.value,
         };
-    }, [calendarHeight]);
+    });
 
     // Animation de rotation du chevron
     const animatedChevronStyle = useAnimatedStyle(() => {
