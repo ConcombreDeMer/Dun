@@ -24,6 +24,13 @@ import { useTheme } from "../lib/ThemeContext";
 import Squircle from "./Squircle";
 import TaskIndicator from "./taskIndicator";
 
+const SLIDER_COLLAPSED_HEIGHT = 96;
+const CALENDAR_CONTENT_MARGIN_TOP = 12;
+const CALENDAR_HEADER_HEIGHT = 38;
+const CALENDAR_WEEKDAYS_HEIGHT = 22;
+const CALENDAR_DAY_ROW_HEIGHT = 35;
+const CALENDAR_DAY_ROW_GAP = 2;
+const CALENDAR_GRID_BOTTOM_PADDING = 6;
 
 interface CalendarProps {
     onDateSelect?: (date: Date) => void;
@@ -445,28 +452,24 @@ export default function CalendarComponent({
         return days;
     }, []);
 
-    // Calculer le nombre de semaines du mois actuel - MEMOIZED
+    // Calculer le nombre de lignes nécessaires pour afficher tout le mois.
     const weeksInMonth = useMemo(() => {
         const daysInMonth = getDaysInMonth(currentMonth);
         const firstDayOfMonth = getFirstDayOfMonth(currentMonth);
-        let weekCount = 1;
-
-        for (let i = 1; i <= daysInMonth; i++) {
-            if ((firstDayOfMonth + i - 1) % 7 === 0 && i < daysInMonth) {
-                weekCount++;
-            }
-        }
-
-        return weekCount;
+        return Math.ceil((firstDayOfMonth + daysInMonth) / 7);
     }, [currentMonth, getDaysInMonth, getFirstDayOfMonth]);
 
-    // Hauteur: header(~26px) + weekDays(~20px) + grid(numberOfWeeks * 40px + spacing)
-    const calendarHeight = 26 + 40 + (weeksInMonth * 40);
+    const calendarHeight = useMemo(() => {
+        const gridHeight = weeksInMonth * CALENDAR_DAY_ROW_HEIGHT + (weeksInMonth - 1) * CALENDAR_DAY_ROW_GAP + CALENDAR_GRID_BOTTOM_PADDING;
+        return CALENDAR_HEADER_HEIGHT + CALENDAR_WEEKDAYS_HEIGHT + gridHeight;
+    }, [weeksInMonth]);
+
+    const expandedContentHeight = calendarHeight + CALENDAR_CONTENT_MARGIN_TOP;
 
     // Mettre à jour la ref de calendarHeight
     useEffect(() => {
-        calendarHeightRef.current = calendarHeight;
-    }, [calendarHeight]);
+        calendarHeightRef.current = expandedContentHeight;
+    }, [expandedContentHeight]);
 
     // Trouver l'index du jour sélectionné - MEMOIZED
     const getSelectedDateIndex = useCallback(() => {
@@ -517,17 +520,16 @@ export default function CalendarComponent({
         const nextExpanded = !isExpanded;
         setIsExpanded(nextExpanded);
         onExpandedChange?.(nextExpanded);
-        heightValue.value = withSpring(nextExpanded ? 0 : 1);
+        heightValue.value = withSpring(nextExpanded ? 1 : 0);
     };
 
     // Animation style pour la hauteur du slider background
     const animatedSliderStyle = useAnimatedStyle(() => {
-        // La hauteur varie de 96px (initial) à 96 + calendarHeight (expanded)
-        const height = 96 + heightValue.value * calendarHeight;
+        const height = SLIDER_COLLAPSED_HEIGHT + heightValue.value * expandedContentHeight;
         return {
             minHeight: height,
         };
-    });
+    }, [expandedContentHeight]);
 
     // Animation style pour le contenu du calendrier
     const animatedContentStyle = useAnimatedStyle(() => {
@@ -535,7 +537,7 @@ export default function CalendarComponent({
             opacity: heightValue.value,
             height: heightValue.value * calendarHeight,
         };
-    });
+    }, [calendarHeight]);
 
     // Animation de rotation du chevron
     const animatedChevronStyle = useAnimatedStyle(() => {
@@ -690,51 +692,53 @@ export default function CalendarComponent({
 
                         {/* Contenu du calendrier - grossit vers le bas */}
                         <Squircle style={[animatedContentStyle, styles.calendarContentInside]}>
-                            {/* En-tête du calendrier */}
-                            <View style={[styles.header, { borderBottomColor: "rgba(255, 255, 255, 0.2)" }]}>
-                                <TouchableOpacity onPress={previousMonth} style={styles.navButton}>
-                                    <Text style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: fontSizes.xl }}>←</Text>
-                                </TouchableOpacity>
+                            <View>
+                                {/* En-tête du calendrier */}
+                                <View style={[styles.header, { borderBottomColor: "rgba(255, 255, 255, 0.2)" }]}>
+                                    <TouchableOpacity onPress={previousMonth} style={styles.navButton}>
+                                        <Text style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: fontSizes.xl }}>←</Text>
+                                    </TouchableOpacity>
 
-                                <Text
-                                    style={[
-                                        styles.monthYear,
-                                        {
-                                            color: "white",
-                                            fontSize: fontSizes.base,
-                                        },
-                                    ]}
-                                >
-                                    {getMonthName(currentMonth)} {currentMonth.getFullYear()}
-                                </Text>
+                                    <Text
+                                        style={[
+                                            styles.monthYear,
+                                            {
+                                                color: "white",
+                                                fontSize: fontSizes.base,
+                                            },
+                                        ]}
+                                    >
+                                        {getMonthName(currentMonth)} {currentMonth.getFullYear()}
+                                    </Text>
 
-                                <TouchableOpacity onPress={nextMonth} style={styles.navButton}>
-                                    <Text style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: fontSizes.xl }}>→</Text>
-                                </TouchableOpacity>
-                            </View>
+                                    <TouchableOpacity onPress={nextMonth} style={styles.navButton}>
+                                        <Text style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: fontSizes.xl }}>→</Text>
+                                    </TouchableOpacity>
+                                </View>
 
-                            {/* Jours de la semaine */}
-                            <View style={styles.weekDaysContainer}>
-                                {dayNames.map((day) => (
-                                    <View key={day} style={styles.weekDayCell}>
-                                        <Text
-                                            style={[
-                                                styles.weekDayText,
-                                                {
-                                                    color: "rgba(255, 255, 255, 0.6)",
-                                                    fontSize: fontSizes.sm,
-                                                },
-                                            ]}
-                                        >
-                                            {day}
-                                        </Text>
-                                    </View>
-                                ))}
-                            </View>
+                                {/* Jours de la semaine */}
+                                <View style={styles.weekDaysContainer}>
+                                    {dayNames.map((day) => (
+                                        <View key={day} style={styles.weekDayCell}>
+                                            <Text
+                                                style={[
+                                                    styles.weekDayText,
+                                                    {
+                                                        color: "rgba(255, 255, 255, 0.6)",
+                                                        fontSize: fontSizes.sm,
+                                                    },
+                                                ]}
+                                            >
+                                                {day}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                </View>
 
-                            {/* Grille des jours */}
-                            <View style={styles.calendarGrid}>
-                                {dayGridItems}
+                                {/* Grille des jours */}
+                                <View style={styles.calendarGrid}>
+                                    {dayGridItems}
+                                </View>
                             </View>
                         </Squircle>
 
@@ -800,7 +804,7 @@ const styles = StyleSheet.create({
         height: 80,
     },
     calendarContentInside: {
-        marginTop: 12,
+        marginTop: CALENDAR_CONTENT_MARGIN_TOP,
         backgroundColor: "#353535ff",
         borderRadius: 25,
         overflow: "hidden",
@@ -887,6 +891,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     header: {
+        height: CALENDAR_HEADER_HEIGHT,
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
@@ -903,6 +908,7 @@ const styles = StyleSheet.create({
         fontFamily: "Satoshi-Bold",
     },
     weekDaysContainer: {
+        height: CALENDAR_WEEKDAYS_HEIGHT,
         flexDirection: "row",
         paddingHorizontal: 8,
     },
@@ -919,6 +925,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         flexWrap: "wrap",
         paddingHorizontal: 8,
+        paddingBottom: CALENDAR_GRID_BOTTOM_PADDING,
     },
     day: {
         width: "14.28%",
@@ -927,11 +934,12 @@ const styles = StyleSheet.create({
         alignItems: "center",
         borderRadius: 6,
         position: "relative",
-        marginBottom: 2,
+        marginBottom: CALENDAR_DAY_ROW_GAP,
     },
     emptyDay: {
         width: "14.28%",
         aspectRatio: 1,
+        marginBottom: CALENDAR_DAY_ROW_GAP,
     },
     dayText: {
         fontWeight: "500",
