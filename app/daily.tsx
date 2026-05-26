@@ -300,7 +300,11 @@ export default function DailyScreen() {
 
                     <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
                         {pastTasksQuery.data?.map(task => (
-                            <View key={task.id}>
+                            <View key={task.id}
+                                style={{
+                                    marginBottom: 8,
+                                }}
+                            >
                                 <TaskItem
                                     item={task}
                                     drag={() => { }}
@@ -344,7 +348,11 @@ export default function DailyScreen() {
 
                     <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
                         {todayTasksQuery.data?.map(task => (
-                            <View key={task.id}>
+                            <View key={task.id}
+                                style={{
+                                    marginBottom: 8,
+                                }}
+                            >
                                 <TaskItem
                                     item={task}
                                     drag={() => { }}
@@ -516,6 +524,9 @@ const styles = StyleSheet.create({
     listContainer: {
         width: '100%',
         paddingHorizontal: 24,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
     },
     fakeTask: {
         width: '100%',

@@ -4,6 +4,10 @@ import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 export default function TabsLayout() {
   const { colors } = useTheme();
 
+  const handlePress = () => {
+    console.log("Tab pressed!");
+  }
+
   return (
     <NativeTabs
       backgroundColor={colors.background}
