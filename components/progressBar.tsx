@@ -1,71 +1,82 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import React, { memo, useEffect } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, {
+    Easing,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
+} from 'react-native-reanimated';
 import { useFont } from '../lib/FontContext';
 import { useTheme } from '../lib/ThemeContext';
 
-export default function ProgressBar({ progress }: {
+type ProgressBarProps = {
     progress: number;
-}) {
+};
+
+function ProgressBar({ progress }: ProgressBarProps) {
     const { colors } = useTheme();
     const { fontSizes } = useFont();
-    const animatedWidth = useRef(new Animated.Value(progress)).current;
+    const clampedProgress = Math.max(0, Math.min(100, Math.round(progress)));
+    const animatedProgress = useSharedValue(clampedProgress);
 
     useEffect(() => {
-        Animated.timing(animatedWidth, {
-            toValue: progress,
-            duration: 400,
-            useNativeDriver: false,
-        }).start();
-    }, [progress]);
+        animatedProgress.value = withTiming(clampedProgress, {
+            duration: 220,
+            easing: Easing.out(Easing.quad),
+        });
+    }, [animatedProgress, clampedProgress]);
 
-    const widthInterpolation = useMemo(() =>
-        animatedWidth.interpolate({
-            inputRange: [0, 100],
-            outputRange: ['0%', '100%'],
-        }),
-        [animatedWidth]
-    );
-
+    const fillStyle = useAnimatedStyle(() => {
+        return {
+            width: `${animatedProgress.value}%`,
+        };
+    });
 
     return (
-        <View style={styles.progressBarContainer}>
-            <View style={[styles.container, { backgroundColor: colors.task, borderColor: colors.border, borderWidth: 0.5 }]}>
+        <View style={styles.root}>
+            <View style={[styles.track, { backgroundColor: colors.task, borderColor: colors.border }]}>
                 <Animated.View
-                    style={[styles.filler, { width: widthInterpolation, backgroundColor: colors.text }]}
+                    style={[
+                        styles.fill,
+                        { backgroundColor: colors.text },
+                        fillStyle,
+                    ]}
                 />
             </View>
             <Text style={[styles.label, { color: colors.text, fontSize: fontSizes.lg }]}>
-                {Math.round(progress)}%
+                {clampedProgress}%
             </Text>
         </View>
     );
 }
 
-const styles = StyleSheet.create({
+export default memo(ProgressBar);
 
-    progressBarContainer: {
-        display: 'flex',
+const styles = StyleSheet.create({
+    root: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        gap: 16,
         width: '100%',
         marginTop: 10,
         marginBottom: 10,
         paddingHorizontal: 20,
     },
-    container: {
-        height: 20,
-        width: '85%',
-        borderRadius: 10,
+    track: {
+        flex: 1,
+        height: 18,
+        borderRadius: 9,
+        borderWidth: 0.5,
         overflow: 'hidden',
     },
-    filler: {
+    fill: {
         height: '100%',
-        borderRadius: 10,
+        borderRadius: 9,
     },
     label: {
+        width: 48,
         fontWeight: '300',
-        width: '15%',
         textAlign: 'right',
+        fontVariant: ['tabular-nums'],
     },
 });

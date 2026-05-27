@@ -131,7 +131,6 @@ export default function Home() {
   const { t } = useAppTranslation();
   const { colors, theme } = useTheme();
   const setStoreDate = useStore((state) => state.setSelectedDate);
-  const [progress, setProgress] = useState(0);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
   const [selectedTaskLayout, setSelectedTaskLayout] = useState<TaskItemLayout | null>(null);
   const [shouldRenderOverlayContent, setShouldRenderOverlayContent] = useState(false);
@@ -302,9 +301,16 @@ export default function Home() {
     setLoading(taskQuery.isLoading);
   }, [taskQuery.isLoading]);
 
-  useEffect(() => {
-    const calculatedProgress = currentTasks.length === 0 ? 0 : (currentTasks.filter((task: any) => task.done).length / currentTasks.length) * 100;
-    setProgress(Math.round(calculatedProgress));
+  const progress = useMemo(() => {
+    if (currentTasks.length === 0) {
+      return 0;
+    }
+
+    const doneCount = currentTasks.reduce((count: number, task: any) => {
+      return task.done ? count + 1 : count;
+    }, 0);
+
+    return Math.round((doneCount / currentTasks.length) * 100);
   }, [currentTasks]);
 
   const handleToggleTask = useCallback(async (taskId: number, currentDone: boolean) => {
