@@ -1,20 +1,19 @@
 import { supabase } from "@/lib/supabase";
+import { Feather } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Keyboard, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { ActivityIndicator, Alert, Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import Animated, { FadeIn, FadeOut, interpolateColor, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { fromAppDateKey, toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import { deleteTask, updateTaskDraft } from "../lib/tasks";
 import { useTheme } from "../lib/ThemeContext";
 import { useToggleTaskDone } from "../lib/useToggleTaskDone";
-import AnimatedCheckbox from "./checkboxAnimated";
-import DateInput from "./dateInput";
-import PrimaryButton from "./primaryButton";
-import SecondaryButton from "./secondaryButton";
-import SimpleInput from "./textInput";
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 type TaskDraft = {
     name: string;
@@ -26,9 +25,9 @@ type TaskDraft = {
 type ActiveField = "name" | "description" | null;
 
 export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: number }) {
-    const { colors } = useTheme();
+    const { actualTheme, colors } = useTheme();
     const { fontSizes } = useFont();
-    const { t } = useAppTranslation();
+    const { t, language } = useAppTranslation();
     const [task, setTask] = useState<any>(null);
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
@@ -38,6 +37,9 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
     const [isDone, setIsDone] = useState(false);
     const [activeField, setActiveField] = useState<ActiveField>(null);
     const [inputLock, setInputLock] = useState(false);
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [tempDate, setTempDate] = useState(new Date());
+    const doneProgress = useSharedValue(0);
     const queryClient = useQueryClient();
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -215,6 +217,15 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
     }, [name, description, taskDate, isDone]);
 
     useEffect(() => {
+        doneProgress.value = withSpring(isDone ? 1 : 0, {
+            damping: 18,
+            stiffness: 220,
+            mass: 0.7,
+            overshootClamping: true,
+        });
+    }, [doneProgress, isDone]);
+
+    useEffect(() => {
         if (!task) {
             return;
         }
@@ -294,6 +305,36 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
         || deleteTaskMutation.isPending;
     const isNameEditable = !inputLock && activeField !== "description";
     const isDescriptionEditable = !inputLock && activeField !== "name";
+    const checkboxDoneBackground = actualTheme === "dark" ? "#314539" : "#E3F4E9";
+    const checkboxDoneBorder = actualTheme === "dark" ? "#5A9B73" : "#74BE8C";
+    const checkboxDoneIcon = actualTheme === "dark" ? "#89BE9B" : "#4E9C68";
+
+    const doneButtonAnimatedStyle = useAnimatedStyle(() => ({
+        backgroundColor: interpolateColor(
+            doneProgress.value,
+            [0, 1],
+            [colors.checkbox, checkboxDoneBackground]
+        ),
+        borderColor: interpolateColor(
+            doneProgress.value,
+            [0, 1],
+            [colors.border, checkboxDoneBorder]
+        ),
+        transform: [
+            {
+                scale: 0.96 + doneProgress.value * 0.04,
+            },
+        ],
+    }));
+
+    const doneCheckAnimatedStyle = useAnimatedStyle(() => ({
+        opacity: doneProgress.value,
+        transform: [
+            {
+                scale: 0.6 + doneProgress.value * 0.4,
+            },
+        ],
+    }));
 
     // if (loading) {
     //     return (
@@ -363,12 +404,40 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
         }
     };
 
+    const openDatePicker = () => {
+        if (isBusy) {
+            return;
+        }
+
+        setTempDate(taskDate);
+        setShowDatePicker(true);
+    };
+
+    const handlePickerChange = (_event: any, date?: Date) => {
+        if (Platform.OS === "android") {
+            setShowDatePicker(false);
+            if (date) {
+                void handleDateChange(date);
+            }
+            return;
+        }
+
+        if (date) {
+            setTempDate(date);
+        }
+    };
+
+    const closeDatePicker = () => {
+        setShowDatePicker(false);
+        void handleDateChange(tempDate);
+    };
+
     const handleToggleTask = async () => {
         if (!task?.id || isTogglePending(task.id)) {
             return;
         }
 
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
         const nextDone = !isDone;
         const nextDraft = {
@@ -422,6 +491,13 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
         });
     };
 
+    const formattedTaskDate = taskDate.toLocaleDateString(language === "en" ? "en-US" : "fr-FR", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    });
+
 
 
     return (
@@ -431,8 +507,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
             style={styles.container}
         >
 
-            <Animated.View
-            >
+            <Animated.View style={styles.surface}>
 
                 {isTaskReady && !loading && !name.trim() && (
                     <View
@@ -442,27 +517,11 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                 )}
 
 
-                <View
-                    style={[styles.card, { backgroundColor: "transparent" }]}
-                >
-
-
-                    <View
-                        style={styles.header}
-                    >
-                        {!loading && (
-                            <SecondaryButton
-                                onPress={handleClose}
-                                image="xmark"
-                            />
-                        )}
-                    </View>
-
-
+                <View style={styles.card}>
                     <Animated.View
                         entering={FadeIn.springify().duration(500)}
                         exiting={FadeOut.springify().duration(500)}
-                        style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}
+                        style={styles.cardContent}
                     >
                         {!isTaskReady || loading ? (
                             <View style={styles.loadingContainer}>
@@ -470,6 +529,52 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                             </View>
                         ) : (
                             <>
+                                <View style={styles.header}>
+                                    <View style={styles.titleColumn}>
+                                        <TextInput
+                                            value={name}
+                                            onChangeText={setName}
+                                            editable={isNameEditable}
+                                            onFocus={() => {
+                                                setInputLock(false);
+                                                setActiveField("name");
+                                            }}
+                                            onBlur={() => {
+                                                if (!Keyboard.isVisible()) {
+                                                    setActiveField(null);
+                                                    setInputLock(false);
+                                                }
+                                            }}
+                                            placeholder={t("task.popup.nameRequired")}
+                                            placeholderTextColor={colors.inputPlaceholder}
+                                            multiline
+                                            maxLength={160}
+                                            style={[
+                                                styles.titleInput,
+                                                {
+                                                    color: colors.text,
+                                                    fontSize: Math.min(fontSizes["2xl"], 24),
+                                                },
+                                            ]}
+                                        />
+                                    </View>
+
+                                    <Pressable
+                                        onPress={handleClose}
+                                        hitSlop={12}
+                                        style={({ pressed }) => [
+                                            styles.closeButton,
+                                            {
+                                                backgroundColor: colors.background,
+                                                borderColor: colors.border,
+                                                opacity: pressed ? 0.65 : 1,
+                                            },
+                                        ]}
+                                    >
+                                        <Feather name="x" size={18} color={colors.textSecondary} />
+                                    </Pressable>
+                                </View>
+
                                 <ScrollView
                                     style={styles.scrollContent}
                                     contentContainerStyle={styles.scrollContentInner}
@@ -490,28 +595,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                                         }
                                     }}
                                 >
-                                    <SimpleInput
-                                        value={name}
-                                        onChangeText={setName}
-                                        editable={isNameEditable}
-                                        onFocus={() => {
-                                            setInputLock(false);
-                                            setActiveField("name");
-                                        }}
-                                        onBlur={() => {
-                                            if (!Keyboard.isVisible()) {
-                                                setActiveField(null);
-                                                setInputLock(false);
-                                            }
-                                        }}
-                                        bold
-                                        transparent
-                                        style={{ height: '5%' }}
-                                        scale="large"
-                                        fontSize="4xl"
-                                    />
-
-                                    <SimpleInput
+                                    <TextInput
                                         value={description}
                                         onChangeText={setDescription}
                                         editable={isDescriptionEditable}
@@ -526,40 +610,126 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                                             }
                                         }}
                                         placeholder={t("task.popup.insertDescription")}
+                                        placeholderTextColor={colors.inputPlaceholder}
                                         multiline
-                                        style={{ overflow: "hidden", textAlignVertical: "top", height: '95%', boxShadow: `inset 0px -25px 29px -10px ${colors.card}` }}
-                                        transparent
+                                        style={[
+                                            styles.descriptionInput,
+                                            {
+                                                color: colors.text,
+                                                fontSize: fontSizes.base,
+                                            },
+                                        ]}
                                     />
                                 </ScrollView>
-                                <Text style={[{ color: colors.textSecondary, fontSize: fontSizes.xs, alignSelf: "center" }]}>
-                                    {hasChanges || updateTaskMutation.isPending
-                                        ? t("task.popup.lastUpdated", { date: "..." })
-                                        : t("task.popup.lastUpdated", { date: formatLastUpdateDate(last_update_date) })}
-                                </Text>
 
-                                <View style={styles.bottom}>
-                                    <PrimaryButton
-                                        size="XS"
-                                        width={48}
-                                        type="danger"
-                                        image="trash.fill"
-                                        onPress={handleDeleteTask}
-                                    />
+                                <View style={styles.footer}>
+                                    <Text
+                                        numberOfLines={1}
+                                        style={[styles.lastUpdatedText, { color: colors.textSecondary, fontSize: fontSizes.xs }]}
+                                    >
+                                        {hasChanges || updateTaskMutation.isPending
+                                            ? t("task.popup.lastUpdated", { date: "..." })
+                                            : t("task.popup.lastUpdated", { date: formatLastUpdateDate(last_update_date) })}
+                                    </Text>
 
-                                    <DateInput
-                                        value={taskDate}
-                                        onChange={handleDateChange}
-                                        disabled={isBusy}
-                                        bold
-                                    />
+                                    <View style={styles.bottom}>
+                                        <Pressable
+                                            onPress={handleDeleteTask}
+                                            disabled={isBusy}
+                                            hitSlop={8}
+                                            style={({ pressed }) => [
+                                                styles.iconAction,
+                                                styles.dangerAction,
+                                                {
+                                                    backgroundColor: actualTheme === "dark" ? "#3B2528" : "#FCE7E8",
+                                                    borderColor: actualTheme === "dark" ? "#5A3034" : "#F6C6C9",
+                                                    opacity: pressed || isBusy ? 0.6 : 1,
+                                                },
+                                            ]}
+                                        >
+                                            <Feather name="trash-2" size={19} color={actualTheme === "dark" ? "#FF9BA1" : "#B4232A"} />
+                                        </Pressable>
 
-                                    <AnimatedCheckbox
-                                        checked={isDone}
-                                        onChange={handleToggleTask}
-                                        disabled={task?.id ? isTogglePending(task.id) : false}
-                                        size={48}
-                                    />
+                                        <Pressable
+                                            onPress={openDatePicker}
+                                            disabled={isBusy}
+                                            style={({ pressed }) => [
+                                                styles.dateAction,
+                                                {
+                                                    backgroundColor: colors.background,
+                                                    borderColor: colors.border,
+                                                    opacity: pressed || isBusy ? 0.7 : 1,
+                                                },
+                                            ]}
+                                        >
+                                            <Feather name="calendar" size={17} color={colors.textSecondary} />
+                                            <Text
+                                                numberOfLines={1}
+                                                style={[styles.dateActionText, { color: colors.text, fontSize: fontSizes.sm }]}
+                                            >
+                                                {formattedTaskDate}
+                                            </Text>
+                                        </Pressable>
+
+                                        <AnimatedTouchableOpacity
+                                            onPress={handleToggleTask}
+                                            disabled={task?.id ? isTogglePending(task.id) : false}
+                                            hitSlop={8}
+                                            activeOpacity={0.85}
+                                            style={[
+                                                styles.iconAction,
+                                                styles.doneAction,
+                                                doneButtonAnimatedStyle,
+                                                (task?.id && isTogglePending(task.id)) ? styles.disabledAction : null,
+                                            ]}
+                                        >
+                                            <Animated.View style={doneCheckAnimatedStyle}>
+                                                <Feather name="check" size={21} color={checkboxDoneIcon} strokeWidth={3.2} />
+                                            </Animated.View>
+                                        </AnimatedTouchableOpacity>
+                                    </View>
                                 </View>
+
+                                {showDatePicker && Platform.OS === "ios" && (
+                                    <Modal
+                                        transparent
+                                        visible={showDatePicker}
+                                        animationType="fade"
+                                        onRequestClose={closeDatePicker}
+                                    >
+                                        <Pressable
+                                            style={styles.datePickerOverlay}
+                                            onPress={closeDatePicker}
+                                        >
+                                            <Pressable
+                                                style={[styles.datePickerSheet, { backgroundColor: colors.card }]}
+                                                onPress={(event) => event.stopPropagation()}
+                                            >
+                                                <DateTimePicker
+                                                    value={tempDate}
+                                                    mode="date"
+                                                    display="spinner"
+                                                    onChange={handlePickerChange}
+                                                />
+                                                <Pressable
+                                                    onPress={closeDatePicker}
+                                                    style={[styles.datePickerDone, { backgroundColor: colors.actionButton }]}
+                                                >
+                                                    <Feather name="check" size={20} color={colors.buttonText} />
+                                                </Pressable>
+                                            </Pressable>
+                                        </Pressable>
+                                    </Modal>
+                                )}
+
+                                {showDatePicker && Platform.OS === "android" && (
+                                    <DateTimePicker
+                                        value={tempDate}
+                                        mode="date"
+                                        display="default"
+                                        onChange={handlePickerChange}
+                                    />
+                                )}
                             </>
                         )}
                     </Animated.View>
@@ -578,38 +748,23 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 2,
-        paddingVertical: 8,
+        paddingBottom: 14,
         paddingHorizontal: 14,
     },
 
-    blur: {
-        width: '100%',
-        height: '100%',
-        justifyContent: 'center',
-        alignItems: 'center',
-        position: 'absolute',
-        top: 0,
-        left: 0,
+    surface: {
+        width: "100%",
+        height: "100%",
     },
 
     nameAlert: {
         position: "absolute",
-        top: 0,
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 20,
+        top: 4,
+        paddingHorizontal: 12,
+        paddingVertical: 7,
+        borderRadius: 18,
         alignSelf: "center",
-    },
-
-
-    bottom: {
-        flexDirection: "row",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        alignSelf: "flex-end",
-        width: "100%",
-        // backgroundColor: "#a1232338",
+        zIndex: 20,
     },
 
     loadingContainer: {
@@ -618,41 +773,152 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
 
-
     card: {
-        // borderRadius: 30,
-        // width: "90%",
-        // height: "80%",
-        alignSelf: "center",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
+        width: "100%",
+        height: "100%",
+    },
+
+    cardContent: {
+        flex: 1,
+        paddingTop: 22,
+        paddingHorizontal: 16,
+        paddingBottom: 0,
     },
 
     header: {
-        position: "absolute",
-        top: 10,
-        right: 0,
-        zIndex: 10,
+        minHeight: 54,
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 12,
+        marginBottom: 12,
     },
-    title: {
-        fontFamily: 'Satoshi-Black',
+
+    titleColumn: {
+        flex: 1,
+        minWidth: 0,
+    },
+
+    titleInput: {
+        width: "100%",
+        minHeight: 42,
+        maxHeight: 96,
+        paddingTop: 0,
+        paddingBottom: 4,
+        paddingHorizontal: 0,
+        textAlignVertical: "top",
+        fontFamily: "Satoshi-Bold",
+        lineHeight: 29,
+    },
+
+    closeButton: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        borderWidth: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: 1,
     },
 
     scrollContent: {
         width: "100%",
-        height: "85%",
+        flex: 1,
     },
 
     scrollContentInner: {
         flexGrow: 1,
-        display: "flex",
-        flexDirection: "column",
+        paddingBottom: 16,
     },
 
-    lottieAnimation: {
-        width: 150,
-        height: 150,
+    descriptionInput: {
+        minHeight: 280,
+        paddingHorizontal: 0,
+        paddingTop: 0,
+        paddingBottom: 24,
+        textAlignVertical: "top",
+        fontFamily: "Satoshi-Regular",
+        lineHeight: 22,
+    },
+
+    footer: {
+        paddingTop: 10,
+        paddingBottom: 0,
+        gap: 8,
+    },
+
+    lastUpdatedText: {
+        alignSelf: "center",
+        fontFamily: "Satoshi-Regular",
+    },
+
+    bottom: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        width: "100%",
+    },
+
+    iconAction: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        borderWidth: 1,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+    dangerAction: {
+        backgroundColor: "#FCE7E8",
+        borderColor: "#F6C6C9",
+    },
+
+    doneAction: {
+        borderWidth: 1.5,
+    },
+
+    disabledAction: {
+        opacity: 0.55,
+    },
+
+    dateAction: {
+        flex: 1,
+        height: 48,
+        borderRadius: 24,
+        borderWidth: 1,
+        paddingHorizontal: 14,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        minWidth: 0,
+    },
+
+    dateActionText: {
+        flexShrink: 1,
+        fontFamily: "Satoshi-Medium",
+        textTransform: "capitalize",
+    },
+
+    datePickerOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.28)",
+        justifyContent: "flex-end",
+        paddingHorizontal: 14,
+        paddingBottom: 22,
+    },
+
+    datePickerSheet: {
+        borderRadius: 28,
+        paddingHorizontal: 12,
+        paddingTop: 8,
+        paddingBottom: 12,
+    },
+
+    datePickerDone: {
+        height: 48,
+        borderRadius: 24,
+        alignItems: "center",
+        justifyContent: "center",
     },
 
 });
