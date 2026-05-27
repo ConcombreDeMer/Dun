@@ -7,6 +7,7 @@ import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { fromAppDateKey, toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
+import { deleteTask, updateTaskDraft } from "../lib/tasks";
 import { useTheme } from "../lib/ThemeContext";
 import AnimatedCheckbox from "./checkboxAnimated";
 import DateInput from "./dateInput";
@@ -78,294 +79,14 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
     }
 
 
-
-    const deleteDayMutation = useMutation({
-        mutationFn: async ({ date, done }: { date: Date; done: boolean }) => {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) {
-                throw new Error("Utilisateur non connecté");
-            }
-
-            const { data: existingDay, error: fetchError } = await supabase
-                .from("Days")
-                .select("*")
-                .eq("user_id", user.id)
-                .eq("date", toAppDateKey(date))
-                .maybeSingle();
-
-            if (fetchError) {
-                console.error("Erreur lors de la récupération du jour:", fetchError);
-                throw new Error(fetchError.message);
-            }
-
-            if (!existingDay) {
-                return;
-            }
-
-            const newTotal = Math.max((existingDay.total || 1) - 1, 0);
-            const newDoneCount = done
-                ? Math.max((existingDay.done_count || 1) - 1, 0)
-                : (existingDay.done_count || 0);
-
-            if (newTotal === 0) {
-                const { error: deleteError } = await supabase
-                    .from("Days")
-                    .delete()
-                    .eq("id", existingDay.id);
-
-                if (deleteError) {
-                    console.error("Erreur lors de la suppression du jour:", deleteError);
-                    throw new Error(deleteError.message);
-                }
-                return;
-            }
-
-            const { error: updateError } = await supabase
-                .from("Days")
-                .update({
-                    total: newTotal,
-                    done_count: newDoneCount,
-                    updated_at: toAppDateKey(new Date()),
-                })
-                .eq("id", existingDay.id);
-
-            if (updateError) {
-                console.error("Erreur lors de la mise à jour du jour:", updateError);
-                throw new Error(updateError.message);
-            }
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['days'] });
-        },
-    });
-
-    const doneDayMutation = useMutation({
-        mutationFn: async ({ date, nextDone }: { date: Date; nextDone: boolean }) => {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) {
-                throw new Error("Utilisateur non connecté");
-            }
-
-            const { data: existingDay, error: fetchError } = await supabase
-                .from("Days")
-                .select("*")
-                .eq("user_id", user.id)
-                .eq("date", toAppDateKey(date))
-                .maybeSingle();
-
-            if (fetchError) {
-                console.error("Erreur lors de la récupération du jour:", fetchError);
-                throw new Error(fetchError.message);
-            }
-
-            if (!existingDay) {
-                return;
-            }
-
-            const newDoneCount = nextDone
-                ? (existingDay.done_count || 0) + 1
-                : Math.max((existingDay.done_count || 1) - 1, 0);
-
-            const { error: updateError } = await supabase
-                .from("Days")
-                .update({
-                    done_count: newDoneCount,
-                    updated_at: toAppDateKey(new Date()),
-                })
-                .eq("id", existingDay.id);
-
-            if (updateError) {
-                console.error("Erreur lors de la mise à jour du jour:", updateError);
-                throw new Error(updateError.message);
-            }
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['days'] });
-        },
-    });
-
-
-    const changeDayMutation = useMutation({
-        mutationFn: async ({ previousDate, nextDate, done }: { previousDate: Date; nextDate: Date; done: boolean }) => {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) {
-                throw new Error("Utilisateur non connecté");
-            }
-
-            const previousDayKey = toAppDateKey(previousDate);
-            const nextDayKey = toAppDateKey(nextDate);
-
-            if (previousDayKey !== nextDayKey) {
-                const { data: oldDay, error: fetchOldDayError } = await supabase
-                    .from("Days")
-                    .select("*")
-                    .eq("user_id", user.id)
-                    .eq("date", previousDayKey)
-                    .maybeSingle();
-
-                if (fetchOldDayError) {
-                    console.error("Erreur lors de la récupération de l'ancien jour:", fetchOldDayError);
-                    throw new Error(fetchOldDayError.message);
-                }
-
-                if (oldDay) {
-                    const newTotal = Math.max((oldDay.total || 1) - 1, 0);
-                    const newDoneCount = done
-                        ? Math.max((oldDay.done_count || 1) - 1, 0)
-                        : (oldDay.done_count || 0);
-
-                    if (newTotal === 0) {
-                        const { error: deleteError } = await supabase
-                            .from("Days")
-                            .delete()
-                            .eq("id", oldDay.id);
-
-                        if (deleteError) {
-                            console.error("Erreur lors de la suppression de l'ancien jour:", deleteError);
-                            throw new Error(deleteError.message);
-                        }
-                    } else {
-                        const { error: updateError } = await supabase
-                            .from("Days")
-                            .update({
-                                total: newTotal,
-                                done_count: newDoneCount,
-                                updated_at: toAppDateKey(new Date()),
-                            })
-                            .eq("id", oldDay.id);
-
-                        if (updateError) {
-                            console.error("Erreur lors de la mise à jour de l'ancien jour:", updateError);
-                            throw new Error(updateError.message);
-                        }
-                    }
-                }
-            }
-
-            const { data: existingDay, error: fetchError } = await supabase
-                .from("Days")
-                .select("*")
-                .eq("user_id", user.id)
-                .eq("date", nextDayKey)
-                .maybeSingle();
-
-            if (fetchError) {
-                console.error("Erreur lors de la récupération du jour:", fetchError);
-                throw new Error(fetchError.message);
-            }
-
-            if (!existingDay) {
-                const { error: insertError } = await supabase.from("Days").insert([
-                    {
-                        user_id: user.id,
-                        date: nextDayKey,
-                        total: 1,
-                        done_count: done ? 1 : 0,
-                        updated_at: toAppDateKey(new Date()),
-                    },
-                ]);
-
-                if (insertError) {
-                    console.error("Erreur lors de l'insertion du jour:", insertError);
-                    throw new Error(insertError.message);
-                }
-                return;
-            }
-
-            const shouldIncrement = previousDayKey !== nextDayKey ? 1 : 0;
-
-            const { error: updateError } = await supabase
-                .from("Days")
-                .update({
-                    total: (existingDay.total || 0) + shouldIncrement,
-                    done_count: done
-                        ? (existingDay.done_count || 0) + shouldIncrement
-                        : (existingDay.done_count || 0),
-                    updated_at: toAppDateKey(new Date()),
-                })
-                .eq("id", existingDay.id);
-
-            if (updateError) {
-                console.error("Erreur lors de la mise à jour du jour:", updateError);
-                throw new Error(updateError.message);
-            }
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['days'] });
-        },
-    });
-
-
     const deleteTaskMutation = useMutation({
         mutationFn: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) {
-                throw new Error("Utilisateur non connecté");
-            }
-
-            // Récupérer la tâche AVANT la suppression pour avoir la date
-            const { data: taskData, error: fetchError } = await supabase
-                .from("Tasks")
-                .select("id, date, order")
-                .eq("id", id)
-                .eq("user_id", user.id)
-                .single();
-
-            if (fetchError || !taskData) {
-                throw new Error(fetchError?.message || t("task.popup.notFound"));
-            }
-
-            const deletedTaskDate = taskData.date;
-
-            // Supprimer la tâche
-            const { error: deleteError } = await supabase
-                .from("Tasks")
-                .delete()
-                .eq("id", id)
-                .eq("user_id", user.id);
-
-            if (deleteError) {
-                throw new Error(deleteError.message);
-            }
-
-            // Récupérer TOUTES les tâches de la même journée (sauf celle supprimée)
-            if (deletedTaskDate) {
-                const { data: allTasks, error: fetchAllError } = await supabase
-                    .from("Tasks")
-                    .select("id, order")
-                    .eq("user_id", user.id)
-                    .eq("date", deletedTaskDate)
-                    .order("order", { ascending: true });
-
-                if (fetchAllError) {
-                    console.error("Erreur lors de la récupération des tâches:", fetchAllError);
-                    return;
-                }
-
-                // Recalculer les orders de 1 à N pour toutes les tâches restantes
-                let newOrder = 1;
-                for (const task of (allTasks || [])) {
-                    if (task.order !== newOrder) {
-                        const { error: updateError } = await supabase
-                            .from("Tasks")
-                            .update({ order: newOrder })
-                            .eq("id", task.id)
-                            .eq("user_id", user.id);
-
-                        if (updateError) {
-                            console.error("Erreur lors de la mise à jour de l'order:", updateError);
-                        }
-                    }
-                    newOrder++;
-                }
-            }
+            if (!id) throw new Error(t("task.popup.notFound"));
+            await deleteTask(id);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
+            queryClient.invalidateQueries({ queryKey: ['days'] });
             onClose();
         },
         onError: (error: any) => {
@@ -375,44 +96,16 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
 
     const updateTaskMutation = useMutation({
         mutationFn: async (draft: TaskDraft) => {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) {
-                throw new Error("Utilisateur non connecté");
-            }
-
-            const trimmedName = draft.name.trim();
-            if (!trimmedName) {
+            if (!draft.name.trim()) {
                 throw new Error(t("task.popup.nameRequired"));
             }
 
-            const savedAt = new Date().toISOString();
-            const { error } = await supabase
-                .from("Tasks")
-                .update({
-                    name: trimmedName,
-                    description: draft.description.trim(),
-                    date: toAppDateKey(draft.taskDate),
-                    done: draft.isDone,
-                    last_update_date: savedAt,
-                })
-                .eq("id", id)
-                .eq("user_id", user.id);
-            if (error) {
-                throw new Error(error.message);
-            }
-
-            return {
-                draft: {
-                    ...draft,
-                    name: trimmedName,
-                    description: draft.description.trim(),
-                },
-                savedAt,
-            };
+            if (!id) throw new Error(t("task.popup.notFound"));
+            return updateTaskDraft(id, draft);
         },
         onSuccess: ({ draft, savedAt }) => {
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
+            queryClient.invalidateQueries({ queryKey: ['days'] });
             setTask((current: any) => current ? {
                 ...current,
                 name: draft.name,
@@ -578,10 +271,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
     const loading = taskQuery.isLoading && !task;
     const isTaskReady = !!task;
     const isBusy = updateTaskMutation.isPending
-        || deleteTaskMutation.isPending
-        || deleteDayMutation.isPending
-        || changeDayMutation.isPending
-        || doneDayMutation.isPending;
+        || deleteTaskMutation.isPending;
     const isNameEditable = !inputLock && activeField !== "description";
     const isDescriptionEditable = !inputLock && activeField !== "name";
 
@@ -618,12 +308,8 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                 {
                     text: t("common.actions.delete"),
                     onPress: async () => {
-                        const currentDate = task?.date ? fromAppDateKey(task.date) : taskDate;
-                        const currentDone = task?.done ?? isDone;
-
                         try {
                             await deleteTaskMutation.mutateAsync();
-                            await deleteDayMutation.mutateAsync({ date: currentDate, done: currentDone });
                         } catch (error) {
                             console.error("Erreur lors de la suppression:", error);
                         }
@@ -635,7 +321,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
     };
 
     const handleDateChange = async (date: Date) => {
-        const previousDate = task?.date ? fromAppDateKey(task.date) : taskDate;
+        const previousDate = taskDate;
         const nextDraft = {
             ...latestDraftRef.current,
             taskDate: date,
@@ -647,14 +333,6 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
         try {
             await flushPendingSave();
             await updateTaskMutation.mutateAsync(nextDraft);
-
-            if (toAppDateKey(previousDate) !== toAppDateKey(date)) {
-                await changeDayMutation.mutateAsync({
-                    previousDate,
-                    nextDate: date,
-                    done: nextDraft.isDone,
-                });
-            }
         } catch (error: any) {
             setTaskDate(previousDate);
             latestDraftRef.current = {
@@ -681,7 +359,6 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
         try {
             await flushPendingSave();
             await updateTaskMutation.mutateAsync(nextDraft);
-            await doneDayMutation.mutateAsync({ date: nextDraft.taskDate, nextDone });
         } catch (error: any) {
             setIsDone(previousDone);
             latestDraftRef.current = {

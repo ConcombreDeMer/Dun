@@ -13,6 +13,7 @@ import { toAppDateKey } from '../lib/date';
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from '../lib/i18n';
 import { supabase } from '../lib/supabase';
+import { setTaskDone } from '../lib/tasks';
 import { useTheme } from '../lib/ThemeContext';
 
 const screenWidth = Dimensions.get('window').width;
@@ -79,7 +80,7 @@ export default function DailyScreen() {
             }
         };
         fetchData();
-    }, []);
+    }, [t]);
 
     const getTodayTasks = async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -119,13 +120,16 @@ export default function DailyScreen() {
             ) || []
         );
 
-        const { error } = await supabase.from('Tasks').update({ done: !currentDone }).eq('id', taskId);
-
-        if (error) {
+        try {
+            await setTaskDone(taskId, !currentDone);
+        } catch {
             queryClient.setQueryData(['tasks', 'past'], previousTasks || []);
-        } else {
-            queryClient.invalidateQueries({ queryKey: ['tasks', 'past'] });
+            return;
         }
+
+        queryClient.invalidateQueries({ queryKey: ['tasks', 'past'] });
+        queryClient.invalidateQueries({ queryKey: ['tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['days'] });
     };
 
     const handleToggleTodayTask = async (taskId: number, currentDone: boolean) => {
@@ -138,13 +142,16 @@ export default function DailyScreen() {
             ) || []
         );
 
-        const { error } = await supabase.from('Tasks').update({ done: !currentDone }).eq('id', taskId);
-
-        if (error) {
+        try {
+            await setTaskDone(taskId, !currentDone);
+        } catch {
             queryClient.setQueryData(['tasks', todayString], previousTasks || []);
-        } else {
-            queryClient.invalidateQueries({ queryKey: ['tasks', todayString] });
+            return;
         }
+
+        queryClient.invalidateQueries({ queryKey: ['tasks', todayString] });
+        queryClient.invalidateQueries({ queryKey: ['tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['days'] });
     };
 
     const finishDaily = async () => {

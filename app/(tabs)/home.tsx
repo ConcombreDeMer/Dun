@@ -8,9 +8,10 @@ import { toAppDateKey } from "@/lib/date";
 import { useAppTranslation } from "@/lib/i18n";
 import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "@/lib/notificationService";
 import { supabase } from "@/lib/supabase";
+import { setTaskDone } from "@/lib/tasks";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStore } from "@/store/store";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -297,72 +298,9 @@ export default function Home() {
     setProgress(Math.round(calculatedProgress));
   }, [currentTasks]);
 
-
-
-  // Ref pour gérer les mutations en queue (éviter les race conditions)
-  const mutationQueueRef = useRef<Promise<void>>(Promise.resolve());
-
-  const doneDayMutation = useMutation({
-    mutationFn: async ({ taskId, currentDone }: { taskId: number; currentDone: boolean }) => {
-      // Queue les mutations pour les exécuter séquentiellement
-      return new Promise<void>((resolve, reject) => {
-        mutationQueueRef.current = mutationQueueRef.current.then(async () => {
-          try {
-            // Récupérer l'utilisateur connecté
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) {
-              throw new Error("Utilisateur non connecté");
-            }
-
-            // Mettre à jour le jour associé à la tâche modifiée
-            const { data: existingDay, error: fetchError } = await supabase
-              .from("Days")
-              .select("*")
-              .eq("user_id", user.id)
-              .eq("date", dateKey)
-              .maybeSingle();
-
-            if (fetchError) {
-              console.error("Erreur lors de la récupération du jour:", fetchError);
-              throw new Error(fetchError.message);
-            }
-
-            if (existingDay) {
-              const newDoneCount = currentDone
-                ? Math.max((existingDay.done_count || 1) - 1, 0)
-                : (existingDay.done_count || 0) + 1;
-
-              const { error: updateError } = await supabase
-                .from("Days")
-                .update({
-                  done_count: newDoneCount,
-                  updated_at: toAppDateKey(new Date()),
-                })
-                .eq("id", existingDay.id);
-
-              if (updateError) {
-                console.error("Erreur lors de la mise à jour du jour:", updateError);
-                throw new Error(updateError.message);
-              }
-            }
-            resolve();
-          } catch (error) {
-            reject(error);
-          }
-        });
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['days'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-    },
-  });
-
-
-
   const handleToggleTask = useCallback(async (taskId: number, currentDone: boolean) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const nextDone = !currentDone;
 
     try {
       // Optimistic update : mettre à jour le cache immédiatement
@@ -371,20 +309,14 @@ export default function Home() {
       queryClient.setQueryData(
         ['tasks'],
         previousTasks?.map((task: any) =>
-          task.id === taskId ? { ...task, done: !currentDone } : task
+          task.id === taskId ? { ...task, done: nextDone } : task
         ) || []
       );
 
-      // Ensuite, mettre à jour Supabase
-      const { error } = await supabase
-        .from("Tasks")
-        .update({ done: !currentDone })
-        .eq("id", taskId)
-        .eq("user_id", store.user.id);
-
-      if (error) {
+      try {
+        await setTaskDone(taskId, nextDone);
+      } catch (error) {
         console.error("Erreur lors de la mise à jour de la tâche:", error);
-        // Rollback si erreur
         queryClient.setQueryData(
           ['tasks'],
           previousTasks || []
@@ -392,12 +324,12 @@ export default function Home() {
         return;
       }
 
-      // La mutation est queuée automatiquement
-      doneDayMutation.mutate({ taskId, currentDone });
+      queryClient.invalidateQueries({ queryKey: ['days'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     } catch (error) {
       console.error("Erreur:", error);
     }
-  }, [queryClient, doneDayMutation, store.user.id]);
+  }, [queryClient]);
 
 
   const handleDragEnd = useCallback(async ({ data }: { data: any[] }) => {

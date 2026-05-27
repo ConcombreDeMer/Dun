@@ -10,6 +10,7 @@ import { toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import { supabase } from "../lib/supabase";
+import { deleteTask, moveTaskDate } from "../lib/tasks";
 import { useTheme } from "../lib/ThemeContext";
 import Squircle from "./Squircle";
 
@@ -118,56 +119,7 @@ export const TaskItem = ({
   const deleteTaskMutation = useMutation({
     mutationFn: async () => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Utilisateur non connecté");
-
-      // Récupérer la tâche AVANT la suppression
-      const { data: taskData, error: fetchError } = await supabase
-        .from("Tasks")
-        .select("date, done")
-        .eq("id", item.id)
-        .eq("user_id", user.id)
-        .single();
-      if (fetchError || !taskData) throw new Error(fetchError?.message || "Tâche non trouvée");
-
-      const taskDate = toAppDateKey(taskData.date);
-      const isDone = taskData.done;
-
-      // Supprimer la tâche
-      const { error: deleteError } = await supabase
-        .from("Tasks")
-        .delete()
-        .eq("id", item.id)
-        .eq("user_id", user.id);
-      if (deleteError) throw new Error(deleteError.message);
-
-      // Mettre à jour la table Days
-      const { data: existingDay, error: fetchDayError } = await supabase
-        .from("Days")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("date", taskDate)
-        .maybeSingle();
-
-      if (existingDay) {
-        const newTotal = Math.max((existingDay.total || 1) - 1, 0);
-        const newDoneCount = isDone
-          ? Math.max((existingDay.done_count || 1) - 1, 0)
-          : (existingDay.done_count || 0);
-
-        if (newTotal === 0) {
-          await supabase.from("Days").delete().eq("id", existingDay.id);
-        } else {
-          await supabase
-            .from("Days")
-            .update({
-              total: newTotal,
-              done_count: newDoneCount,
-              updated_at: toAppDateKey(new Date()),
-            })
-            .eq("id", existingDay.id);
-        }
-      }
+      await deleteTask(item.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
@@ -183,16 +135,14 @@ export const TaskItem = ({
 
       const { data: taskData, error: fetchError } = await supabase
         .from("Tasks")
-        .select("date, done")
+        .select("date")
         .eq("id", item.id)
         .eq("user_id", user.id)
         .single();
 
       if (fetchError || !taskData) throw new Error(fetchError?.message || "Tâche non trouvée");
 
-      const oldDate = new Date(taskData.date);
       const oldDateString = toAppDateKey(taskData.date);
-      const isDone = taskData.done;
 
       let currentDate = new Date(taskData.date);
       if (mode === 'daily') {
@@ -204,62 +154,7 @@ export const TaskItem = ({
       
       if (oldDateString === newDateString) return;
 
-      // Update Task date
-      const { error } = await supabase
-        .from("Tasks")
-        .update({ date: newDateString })
-        .eq("id", item.id)
-        .eq("user_id", user.id);
-      if (error) throw new Error(error.message);
-
-      // Retirer la tâche de l'ancien jour
-      const { data: oldDay } = await supabase
-        .from("Days")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("date", oldDateString)
-        .maybeSingle();
-
-      if (oldDay) {
-        const newTotal = Math.max((oldDay.total || 1) - 1, 0);
-        const newDoneCount = isDone
-          ? Math.max((oldDay.done_count || 1) - 1, 0)
-          : (oldDay.done_count || 0);
-
-        if (newTotal === 0) {
-          await supabase.from("Days").delete().eq("id", oldDay.id);
-        } else {
-          await supabase.from("Days").update({
-            total: newTotal,
-            done_count: newDoneCount,
-            updated_at: toAppDateKey(new Date()),
-          }).eq("id", oldDay.id);
-        }
-      }
-
-      // Ajouter la tâche au nouveau jour
-      const { data: newDay } = await supabase
-        .from("Days")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("date", newDateString)
-        .maybeSingle();
-
-      if (!newDay) {
-        await supabase.from("Days").insert([{
-          user_id: user.id,
-          date: newDateString,
-          total: 1,
-          done_count: isDone ? 1 : 0,
-          updated_at: toAppDateKey(new Date()),
-        }]);
-      } else {
-        await supabase.from("Days").update({
-          total: (newDay.total || 0) + 1,
-          done_count: isDone ? (newDay.done_count || 0) + 1 : (newDay.done_count || 0),
-          updated_at: toAppDateKey(new Date()),
-        }).eq("id", newDay.id);
-      }
+      await moveTaskDate(item.id, newDateString);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
@@ -305,7 +200,7 @@ export const TaskItem = ({
         </SquircleButton>
       </View>
     );
-  }, [handleSwipeLeft, fontSizes.base]);
+  }, [handleSwipeLeft, fontSizes.base, t]);
 
   const renderLeftActions = useCallback(() => {
     const actionWidth = mode === 'daily' ? 170 : 120;

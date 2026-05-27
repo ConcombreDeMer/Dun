@@ -1,5 +1,5 @@
 import { FontContext } from "@/lib/FontContext";
-import { supabase } from "@/lib/supabase";
+import { createTask } from "@/lib/tasks";
 import { useStore } from "@/store/store";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from 'expo-haptics';
@@ -29,110 +29,17 @@ export default function CreateModal({ accessoryId = "createTaskAccessory", onClo
     const selectedDateKey = toAppDateKey(selectedDate);
     
     
-
-    const dayMutation = useMutation({
-        mutationFn: async () => {
-            // Récupérer l'utilisateur connecté
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                throw new Error(t("common.alerts.nonConnectedUser"));
-            }
-            const { data: existingDay, error: fetchError } = await supabase
-                .from("Days")
-                .select("*")
-                .eq("user_id", user.id)
-                .eq("date", selectedDateKey)
-                .maybeSingle();
-
-            if (fetchError) {
-                console.error("Erreur lors de la récupération du jour:", fetchError);
-                throw new Error(fetchError.message);
-            }
-            // Si le jour n'existe pas, le créer
-            if (!existingDay) {
-                const { error: insertError } = await supabase.from("Days").insert([
-                    {
-                        user_id: user.id,
-                        date: selectedDateKey,
-                        total: 1,
-                        done_count: 0,
-                        updated_at: toAppDateKey(new Date()),
-                    },
-                ]);
-
-                if (insertError) {
-                    console.error("Erreur lors de l'insertion du jour:", insertError);
-                    throw new Error(insertError.message);
-                }
-            }
-
-            // Si le jour existe déjà, incrémenter "total" et mettre à jour "updated_at"
-            else {
-                const { error: updateError } = await supabase
-                    .from("Days")
-                    .update({
-                        total: (existingDay.total || 0) + 1,
-                        updated_at: toAppDateKey(new Date()),
-                    })
-                    .eq("id", existingDay.id)
-
-                if (updateError) {
-                    console.error("Erreur lors de la mise à jour du jour:", updateError);
-                    throw new Error(updateError.message);
-                }
-            }
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['days'] });
-        },
-        onError: (error: any) => {
-            console.error("Erreur dans la mutation du jour:", error);
-        }
-    });
-
     const createTaskMutation = useMutation({
         mutationFn: async () => {
-            // Récupérer l'utilisateur connecté
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) {
-                throw new Error(t("common.alerts.nonConnectedUser"));
-            }
-
-            // Récupérer le nombre de tâches existantes pour cette journée
-            const { data: existingTasks, error: fetchError } = await supabase
-                .from("Tasks")
-                .select("id")
-                .eq("date", selectedDateKey)
-                .eq("user_id", user.id);
-
-            if (fetchError) {
-                throw new Error(fetchError.message);
-            }
-
-            const newOrder = (existingTasks?.length || 0) + 1;
-
-            const { data, error } = await supabase.from("Tasks").insert([
-                {
-                    name: taskTitle.trim(),
-                    description: "",
-                    done: false,
-                    date: selectedDateKey,
-                    created_at: toAppDateKey(new Date()),
-                    user_id: user.id,
-                    order: newOrder,
-                },
-            ]).select("id").single();
-
-            if (error) {
-                throw new Error(error.message);
-            }
-
-            return data.id as number;
+            return createTask({
+                name: taskTitle,
+                dateKey: selectedDateKey,
+            });
         },
         onSuccess: () => {
             // Invalide la query et refetch automatiquement
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
+            queryClient.invalidateQueries({ queryKey: ['days'] });
             setTaskTitle("");
         },
         onError: (error: any) => {
@@ -167,16 +74,9 @@ const handleCreateTask = async () => {
             return;
         }
 
-        let createdTaskId: number | null = null;
-
         try {
-            createdTaskId = await createTaskMutation.mutateAsync();
-            await dayMutation.mutateAsync();
+            await createTaskMutation.mutateAsync();
         } catch (error: any) {
-            if (createdTaskId !== null) {
-                await supabase.from("Tasks").delete().eq("id", createdTaskId);
-            }
-
             Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
             isCreatingTaskRef.current = false;
             return;
