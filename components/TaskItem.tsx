@@ -5,13 +5,55 @@ import { SquircleButton } from 'expo-squircle-view';
 import { useCallback, useEffect, useRef } from "react";
 import { Dimensions, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Swipeable } from 'react-native-gesture-handler';
-import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { Easing, interpolateColor, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
 import Squircle from "./Squircle";
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
+const hexToRgb = (color: string) => {
+  const normalized = color.replace('#', '');
+  const hex = normalized.length === 3 || normalized.length === 4
+    ? normalized
+      .slice(0, 3)
+      .split('')
+      .map((value) => value + value)
+      .join('')
+    : normalized.slice(0, 6);
+
+  if (hex.length !== 6) {
+    return null;
+  }
+
+  const value = Number.parseInt(hex, 16);
+  if (Number.isNaN(value)) {
+    return null;
+  }
+
+  return {
+    r: (value >> 16) & 255,
+    g: (value >> 8) & 255,
+    b: value & 255,
+  };
+};
+
+const blendColors = (foreground: string, background: string, foregroundOpacity: number) => {
+  const foregroundRgb = hexToRgb(foreground);
+  const backgroundRgb = hexToRgb(background);
+
+  if (!foregroundRgb || !backgroundRgb) {
+    return foreground;
+  }
+
+  const blendChannel = (foregroundChannel: number, backgroundChannel: number) =>
+    Math.round(foregroundChannel * foregroundOpacity + backgroundChannel * (1 - foregroundOpacity));
+
+  return `rgb(${blendChannel(foregroundRgb.r, backgroundRgb.r)}, ${blendChannel(foregroundRgb.g, backgroundRgb.g)}, ${blendChannel(foregroundRgb.b, backgroundRgb.b)})`;
+};
 
 export interface TaskItemLayout {
   x: number;
@@ -48,7 +90,7 @@ export const TaskItem = ({
   isExtendable = true,
   mode = 'normal',
 }: TaskItemProps) => {
-  const { colors } = useTheme();
+  const { actualTheme, colors } = useTheme();
   const { fontSizes } = useFont();
   const { t } = useAppTranslation();
   const dotScale = useSharedValue(item.done ? 1 : 0);
@@ -56,6 +98,7 @@ export const TaskItem = ({
   const rowScale = useSharedValue(1);
   const rowTranslateY = useSharedValue(0);
   const pressScale = useSharedValue(1);
+  const doneProgress = useSharedValue(item.done ? 1 : 0);
 
   const queryClient = useQueryClient();
   const swipeableRef = useRef<Swipeable>(null);
@@ -66,6 +109,11 @@ export const TaskItem = ({
   const itemOpacity = useSharedValue(1);
   const isSelected = selectedTaskId === item.id;
   const isHidden = selectedTaskId !== null && !isSelected;
+  const checkboxDoneBackground = actualTheme === 'dark' ? '#314539' : '#E3F4E9';
+  const checkboxDoneBorder = actualTheme === 'dark' ? '#5A9B73' : '#74BE8C';
+  const checkboxDoneIcon = actualTheme === 'dark' ? '#89BE9B' : '#4E9C68';
+  const mutedTaskColor = blendColors(colors.task, colors.background, 0.5);
+  const mutedTextColor = blendColors(colors.text, colors.background, 0.5);
 
   const deleteTaskMutation = useMutation({
     mutationFn: async () => {
@@ -305,10 +353,54 @@ export const TaskItem = ({
     };
   });
 
-  const dotAnimatedStyle = useAnimatedStyle(() => {
+  const checkboxAnimatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ scale: dotScale.value }],
-      opacity: Math.min(dotScale.value, 1),
+      backgroundColor: interpolateColor(
+        dotScale.value,
+        [0, 1],
+        [colors.checkbox, checkboxDoneBackground]
+      ),
+      borderColor: interpolateColor(
+        dotScale.value,
+        [0, 1],
+        [colors.border, checkboxDoneBorder]
+      ),
+      transform: [
+        {
+          scale: 0.96 + dotScale.value * 0.04,
+        },
+      ],
+    };
+  });
+
+  const taskSurfaceAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      backgroundColor: interpolateColor(
+        doneProgress.value,
+        [0, 1],
+        [colors.task, mutedTaskColor]
+      ),
+    };
+  });
+
+  const taskTextAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      color: interpolateColor(
+        doneProgress.value,
+        [0, 1],
+        [colors.text, mutedTextColor]
+      ),
+    };
+  });
+
+  const checkAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: dotScale.value,
+      transform: [
+        {
+          scale: 0.6 + dotScale.value * 0.4,
+        },
+      ],
     };
   });
 
@@ -349,7 +441,7 @@ export const TaskItem = ({
   }, [pressScale]);
 
   const taskItemStyle =
-    [styles.taskItem, { backgroundColor: colors.task }];
+    [styles.taskItem, taskSurfaceAnimatedStyle];
 
   useEffect(() => {
     dotScale.value = withSpring(item.done ? 1 : 0, {
@@ -359,6 +451,13 @@ export const TaskItem = ({
       overshootClamping: true,
     });
   }, [item.done, dotScale]);
+
+  useEffect(() => {
+    doneProgress.value = withTiming(item.done ? 1 : 0, {
+      duration: 180,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [doneProgress, item.done]);
 
   useEffect(() => {
     rowOpacity.value = withTiming(selectedTaskId === null ? 1 : isSelected ? 0 : 0, {
@@ -403,26 +502,27 @@ export const TaskItem = ({
             onPressOut={handlePressOut}
           >
             <View style={styles.taskContent}>
-              <Text style={[
-                item.done ? styles.taskNameDone : styles.taskName,
-                { color: item.done ? colors.textDone : colors.text, fontSize: fontSizes.lg }
+              <Animated.Text style={[
+                styles.taskName,
+                taskTextAnimatedStyle,
+                { fontSize: fontSizes.lg }
               ]}>
                 {item.name}
-              </Text>
+              </Animated.Text>
 
               <View style={styles.checkboxContainer}>
-                <Animated.View style={[styles.checkboxDot, dotAnimatedStyle, { backgroundColor: colors.taskDone }]} />
-                <TouchableOpacity
+                <AnimatedTouchableOpacity
                   style={[
                     styles.taskCheckbox,
-                    item.done && { backgroundColor: colors.checkboxDone },
-                    !item.done && { backgroundColor: colors.checkbox }
+                    checkboxAnimatedStyle,
                   ]}
                   onPress={handleCheckboxPress}
-                  activeOpacity={0.7}
+                  activeOpacity={0.85}
                 >
-                  {item.done && <Text style={[styles.checkmark, { color: colors.checkMark }]}>✓</Text>}
-                </TouchableOpacity>
+                  <Animated.View style={checkAnimatedStyle}>
+                    <Feather name="check" size={21} color={checkboxDoneIcon} strokeWidth={3.2} />
+                  </Animated.View>
+                </AnimatedTouchableOpacity>
               </View>
             </View>
           </Pressable>
@@ -437,8 +537,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 64,
-    paddingHorizontal: 12,
-    // marginBottom: 10,
     justifyContent: 'space-between',
     borderRadius: 20,
     width: '100%',
@@ -461,7 +559,6 @@ const styles = StyleSheet.create({
     marginRight: 'auto',
     overflow: 'hidden',
     backgroundColor: '#475c48ff',
-    // boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.2)',
   },
 
   taskContent: {
@@ -487,9 +584,10 @@ const styles = StyleSheet.create({
   },
 
   taskCheckbox: {
-    width: 45,
-    height: 45,
+    width: 38,
+    height: 38,
     borderRadius: 100,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -502,21 +600,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  checkboxDot: {
-    position: 'absolute',
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    zIndex: 0,
-  },
-
   taskCheckboxDone: {
-  },
-
-  checkmark: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    lineHeight: 40,
   },
 });
