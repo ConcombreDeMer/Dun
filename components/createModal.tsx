@@ -11,13 +11,12 @@ import { toAppDateKey } from "../lib/date";
 import { useAppTranslation } from "../lib/i18n";
 import SecondaryButton from "./secondaryButton";
 
-const INPUT_ACCESSORY_ID = "createTaskAccessory";
-
 interface CreateModalProps {
+    accessoryId?: string;
     onClose?: () => void;
 }
 
-export default function CreateModal({ onClose }: CreateModalProps) {
+export default function CreateModal({ accessoryId = "createTaskAccessory", onClose }: CreateModalProps) {
     const [taskTitle, setTaskTitle] = useState("");
     const phantomInputRef = useRef<TextInput>(null);
     const inputRef = useRef<TextInput>(null);
@@ -213,10 +212,10 @@ const handleCreateTask = async () => {
                 ref={phantomInputRef}
                 style={styles.phantomInput}
                 onBlur={handleBlur}
-                inputAccessoryViewID={INPUT_ACCESSORY_ID}
+                inputAccessoryViewID={accessoryId}
             />
 
-            <InputAccessoryView nativeID={INPUT_ACCESSORY_ID}>
+            <InputAccessoryView nativeID={accessoryId}>
 
                 <SquircleView
                     cornerSmoothing={100}
@@ -238,8 +237,8 @@ const handleCreateTask = async () => {
                         >
                             <TextInput
                                 ref={inputRef}
-                                nativeID={`input-${INPUT_ACCESSORY_ID}`}
-                                inputAccessoryViewID={INPUT_ACCESSORY_ID}
+                                nativeID={`input-${accessoryId}`}
+                                inputAccessoryViewID={accessoryId}
                                 placeholder={t("createModal.titlePlaceholder")}
                                 value={taskTitle}
                                 onChangeText={setTaskTitle}

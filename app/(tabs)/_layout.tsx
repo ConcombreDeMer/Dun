@@ -1,58 +1,47 @@
-import { useTheme } from "@/lib/ThemeContext";
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
+import { CreateModalControllerProvider, useCreateModalController } from "@/lib/createModalController";
+import * as Haptics from "expo-haptics";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 
-export default function TabsLayout() {
-  const { colors } = useTheme();
+function Tabs() {
+  const { openCreateModal } = useCreateModalController();
 
-  const handlePress = () => {
-    console.log("Tab pressed!");
+  const handlePress = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    openCreateModal();
   }
 
   return (
     <NativeTabs
-      backgroundColor={colors.background}
-      blurEffect="systemMaterial"
-      disableTransparentOnScrollEdge
-      iconColor={{
-        default: colors.textSecondary,
-        selected: colors.text,
-      }}
-      labelStyle={{
-        default: {
-          color: colors.textSecondary,
-          fontFamily: "Satoshi-Medium",
-          fontSize: 11,
-        },
-        selected: {
-          color: colors.text,
-          fontFamily: "Satoshi-Bold",
-          fontSize: 11,
+      unstable_nativeProps={{
+        onTabSelectionPrevented: () => {
+          handlePress();
         },
       }}
-      tintColor={colors.text}
-      shadowColor={colors.border}
     >
       <NativeTabs.Trigger name="home">
-        <Icon
-          sf={{ default: "house", selected: "house.fill" }}
-          androidSrc={require("@/assets/images/light/home.png")}
-        />
-        <Label hidden />
+        <NativeTabs.Trigger.Label hidden>Home</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} md="home" selectedColor={"black"} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="stats">
-        <Icon
-          sf={{ default: "chart.bar", selected: "chart.bar.fill" }}
-          androidSrc={require("@/assets/images/stats/done.png")}
-        />
-        <Label hidden />
+        <NativeTabs.Trigger.Label hidden>Stats</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'chart.bar', selected: 'chart.bar.fill' }} md="home" selectedColor={"black"} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="settings">
-        <Icon
-          sf={{ default: "gearshape", selected: "gearshape.fill" }}
-          androidSrc={require("@/assets/images/light/settings.png")}
-        />
-        <Label hidden />
+        <NativeTabs.Trigger.Label hidden>Settings</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'gearshape', selected: 'gearshape.fill' }} md="home" selectedColor={"black"} />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="create-task" disabled role="search">
+        <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'plus', selected: 'gearshape.fill' }} md="home" selectedColor={"black"} />
       </NativeTabs.Trigger>
     </NativeTabs>
+  );
+}
+
+export default function TabsLayout() {
+  return (
+    <CreateModalControllerProvider>
+      <Tabs />
+    </CreateModalControllerProvider>
   );
 }

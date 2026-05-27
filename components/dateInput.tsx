@@ -1,6 +1,6 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { SquircleView } from "expo-squircle-view";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Modal,
     Platform,
@@ -115,7 +115,7 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
                     onPress={() => setShowDatePicker(true)}
                     disabled={disabled}
                 >
-                    <Text style={[styles.dateButtonText, { color: colors.text, fontWeight: bold ? '400' : '200', fontSize: fontSizes.lg, fontFamily: 'Satoshi-Medium' }]}>
+                    <Text style={[styles.dateButtonText, { color: colors.text, fontSize: fontSizes.lg, fontFamily: 'Satoshi-Medium' }]}>
                         {formattedDate}
                     </Text>
                 </TouchableOpacity>
@@ -209,7 +209,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     dateButtonText: {
-        fontWeight: "600",
         textTransform: "capitalize",
     },
     todayButton: {
@@ -223,7 +222,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     todayButtonText: {
-        fontWeight: "600",
         fontFamily: "Satoshi-Bold",
     },
     datePickerOverlay: {
@@ -255,6 +253,5 @@ const styles = StyleSheet.create({
     },
     datePickerCloseText: {
         fontSize: 16,
-        fontWeight: "600",
     },
 });

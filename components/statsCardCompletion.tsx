@@ -2,7 +2,6 @@ import { useFont } from "@/lib/FontContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { router } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
-import React from "react";
 import { Image, StyleSheet, Text } from "react-native";
 import Animated, { FadeInLeft, FadeOut } from "react-native-reanimated";
 
@@ -83,7 +82,6 @@ const styles = StyleSheet.create({
         left: 0,
     },
     title: {
-        fontWeight: '500',
         position: 'absolute',
         bottom: 10,
         left: 15,
@@ -91,7 +89,6 @@ const styles = StyleSheet.create({
 
     },
     value: {
-        fontWeight: '700',
         position: 'absolute',
         top: 10,
         right: 15,

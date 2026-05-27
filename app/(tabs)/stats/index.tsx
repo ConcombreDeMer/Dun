@@ -1,3 +1,4 @@
+import CreateModalHost from "@/components/CreateModalHost";
 import PopUpModal from "@/components/popUpModal";
 import SecondaryButton from "@/components/secondaryButton";
 import StatsBarGraph from "@/components/statsBarGraph";
@@ -573,6 +574,7 @@ export default function Stats() {
 
         <StatsBarGraph daysData={useMemo(() => daysQuery.data || [], [daysQuery.data])} period={period} onSlideChange={handleSlideChange} />
       </Animated.ScrollView>
+      <CreateModalHost activePath="/stats" />
     </View>
   );
 }

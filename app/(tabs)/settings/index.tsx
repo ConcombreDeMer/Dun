@@ -1,3 +1,4 @@
+import CreateModalHost from "@/components/CreateModalHost";
 import NavItem from "@/components/navItem";
 import PopUpContainer from "@/components/popUpContainer";
 import PrimaryButton from "@/components/primaryButton";
@@ -412,6 +413,7 @@ export default function Settings() {
                 </TouchableWithoutFeedback>
             </PopUpContainer>
 
+            <CreateModalHost activePath="/settings" />
 
 
         </View>

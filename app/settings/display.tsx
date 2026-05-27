@@ -1,5 +1,8 @@
 import Headline from "@/components/headline";
 import SecondaryButton from "@/components/secondaryButton";
+import { useFont, type FontSize } from "@/lib/FontContext";
+import { AppLanguage, useAppTranslation } from "@/lib/i18n";
+import { colorThemeOptions, useTheme } from "@/lib/ThemeContext";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
@@ -10,9 +13,6 @@ import {
     Text,
     View,
 } from "react-native";
-import { useFont, type FontSize } from "@/lib/FontContext";
-import { AppLanguage, useAppTranslation } from "@/lib/i18n";
-import { colorThemeOptions, useTheme } from "@/lib/ThemeContext";
 
 export default function Display() {
     const router = useRouter();
@@ -313,7 +313,6 @@ const styles = StyleSheet.create({
     },
 
     sectionTitle: {
-        fontWeight: "600",
         fontFamily: "Satoshi-Bold",
         textTransform: "uppercase",
         letterSpacing: 0.5,
@@ -350,7 +349,6 @@ const styles = StyleSheet.create({
 
     themeTitle: {
         fontSize: 14,
-        fontWeight: "600",
         fontFamily: "Satoshi-Bold",
         marginBottom: 8,
     },
@@ -430,7 +428,6 @@ const styles = StyleSheet.create({
     },
 
     optionLabel: {
-        fontWeight: "600",
         fontFamily: "Satoshi-Bold",
     },
 
@@ -449,7 +446,6 @@ const styles = StyleSheet.create({
     },
 
     densityLabel: {
-        fontWeight: "600",
         fontFamily: "Satoshi-Bold",
     },
 
@@ -482,7 +478,6 @@ const styles = StyleSheet.create({
     },
 
     aboutText: {
-        fontWeight: "600",
         fontFamily: "Satoshi-Bold",
     },
 });

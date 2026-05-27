@@ -15,11 +15,11 @@ import {
     StyleSheet,
     View
 } from "react-native";
-import { toAppDateKey } from "../lib/date";
-import { taskEmitter } from "../lib/eventEmitter";
-import { useAppTranslation } from "../lib/i18n";
-import { supabase } from "../lib/supabase";
-import { useTheme } from "../lib/ThemeContext";
+import { toAppDateKey } from "@/lib/date";
+import { taskEmitter } from "@/lib/eventEmitter";
+import { useAppTranslation } from "@/lib/i18n";
+import { supabase } from "@/lib/supabase";
+import { useTheme } from "@/lib/ThemeContext";
 
 export default function CreateTask() {
     const router = useRouter();

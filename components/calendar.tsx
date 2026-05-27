@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { SquircleButton } from "expo-squircle-view";
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     FlatList,
     PanResponder,
@@ -864,12 +864,10 @@ const styles = StyleSheet.create({
         height: 80,
     },
     sliderDayName: {
-        fontWeight: "600",
         fontFamily: "Satoshi-Medium",
         marginBottom: 2,
     },
     sliderDayNumber: {
-        fontWeight: "600",
         fontFamily: "Satoshi-Bold",
     },
     sliderTaskIndicator: {
@@ -901,7 +899,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     todayButtonText: {
-        fontWeight: "600",
         fontFamily: "Satoshi-Bold",
     },
     toggleButton: {
@@ -924,7 +921,6 @@ const styles = StyleSheet.create({
         borderRadius: 6,
     },
     monthYear: {
-        fontWeight: "600",
         fontFamily: "Satoshi-Bold",
     },
     weekDaysContainer: {
@@ -938,7 +934,6 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
     },
     weekDayText: {
-        fontWeight: "600",
         fontFamily: "Satoshi-Medium",
     },
     calendarGrid: {
@@ -962,7 +957,6 @@ const styles = StyleSheet.create({
         marginBottom: CALENDAR_DAY_ROW_GAP,
     },
     dayText: {
-        fontWeight: "500",
         fontFamily: "Satoshi-Medium",
     },
     taskIndicator: {

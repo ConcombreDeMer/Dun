@@ -1,7 +1,6 @@
 import { useFont } from "@/lib/FontContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { useRouter } from "expo-router";
-import React from "react";
 import { Image, StyleSheet, Text } from "react-native";
 import Animated, { FadeInLeft, FadeOut } from "react-native-reanimated";
 import Squircle from "./Squircle";
@@ -73,14 +72,12 @@ const styles = StyleSheet.create({
         mixBlendMode: 'darken',
     },
     title: {
-        fontWeight: '500',
         position: 'absolute',
         bottom: 10,
         left: 15,
         fontFamily: 'Satoshi-Medium',
     },
     value: {
-        fontWeight: '700',
         position: 'absolute',
         top: 10,
         right: 15,

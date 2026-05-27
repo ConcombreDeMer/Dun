@@ -24,7 +24,7 @@ export default function StatsStatut({ value }: { value: string }) {
             onTouchEnd={handleExplicationPress}
         >
             <Image source={require('../assets/images/stats/streak/high.png')} style={styles.image} />
-            <Text style={[styles.value, { color: colors.text, fontSize: fontSizes.lg, fontFamily: 'Satoshi-Medium' }]}>
+            <Text style={[ { color: colors.text, fontSize: fontSizes.lg, fontFamily: 'Satoshi-Medium' }]}>
                 <Text>{t("stats.badge.days", { count: Number(value) })}</Text>
                 <Text style={{opacity: 0.6}}>{t("stats.badge.suffix")}</Text>
             </Text>
@@ -54,7 +54,4 @@ const styles = StyleSheet.create({
         resizeMode: 'contain',
     },
 
-    value: {
-        fontWeight: '300',
-    },
 });
