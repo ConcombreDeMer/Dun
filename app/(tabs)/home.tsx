@@ -8,14 +8,14 @@ import { toAppDateKey } from "@/lib/date";
 import { useAppTranslation } from "@/lib/i18n";
 import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "@/lib/notificationService";
 import { supabase } from "@/lib/supabase";
-import { setTaskDone } from "@/lib/tasks";
 import { useTheme } from "@/lib/ThemeContext";
+import { useToggleTaskDone } from "@/lib/useToggleTaskDone";
 import { useStore } from "@/store/store";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReAnimated, { Easing, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -57,6 +57,7 @@ type DayTasksPageProps = {
   onPlaceholderIndexChange?: () => void;
   onTaskPress: (taskId: number, layout?: TaskItemLayout) => void;
   onToggleTask: (taskId: number, currentDone: boolean) => void;
+  isTaskTogglePending: (taskId: number) => boolean;
   t: ReturnType<typeof useAppTranslation>["t"];
 };
 
@@ -70,6 +71,7 @@ const DayTasksPage = ({
   onPlaceholderIndexChange,
   onTaskPress,
   onToggleTask,
+  isTaskTogglePending,
   selectedTaskId,
   tasks,
   t,
@@ -100,6 +102,7 @@ const DayTasksPage = ({
               isActive={isActive}
               handleToggleTask={onToggleTask}
               handleTaskPress={onTaskPress}
+              isTogglePending={isTaskTogglePending(item.id)}
               selectedTaskId={selectedTaskId}
               listHeight={0}
               mode="normal"
@@ -134,6 +137,12 @@ export default function Home() {
   const [shouldRenderOverlayContent, setShouldRenderOverlayContent] = useState(false);
   const queryClient = useQueryClient();
   const store = useStore();
+  const taskToggleQueryKeys = useMemo(() => [["tasks"]], []);
+  const { isTaskPending, toggleTaskDone } = useToggleTaskDone({
+    queryKeys: taskToggleQueryKeys,
+    errorTitle: t("common.alerts.errorTitle"),
+    errorMessage: t("common.alerts.genericError"),
+  });
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
   const overlayProgress = useSharedValue(0);
   const horizontalListRef = useRef<FlatList<number>>(null);
@@ -299,37 +308,8 @@ export default function Home() {
   }, [currentTasks]);
 
   const handleToggleTask = useCallback(async (taskId: number, currentDone: boolean) => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const nextDone = !currentDone;
-
-    try {
-      // Optimistic update : mettre à jour le cache immédiatement
-      const previousTasks = queryClient.getQueryData<any[]>(['tasks']);
-
-      queryClient.setQueryData(
-        ['tasks'],
-        previousTasks?.map((task: any) =>
-          task.id === taskId ? { ...task, done: nextDone } : task
-        ) || []
-      );
-
-      try {
-        await setTaskDone(taskId, nextDone);
-      } catch (error) {
-        console.error("Erreur lors de la mise à jour de la tâche:", error);
-        queryClient.setQueryData(
-          ['tasks'],
-          previousTasks || []
-        );
-        return;
-      }
-
-      queryClient.invalidateQueries({ queryKey: ['days'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-    } catch (error) {
-      console.error("Erreur:", error);
-    }
-  }, [queryClient]);
+    void toggleTaskDone(taskId, currentDone);
+  }, [toggleTaskDone]);
 
 
   const handleDragEnd = useCallback(async ({ data }: { data: any[] }) => {
@@ -576,6 +556,7 @@ export default function Home() {
         onPlaceholderIndexChange={isSelectedPage ? handlePlaceholderIndexChange : undefined}
         onTaskPress={handleTaskPress}
         onToggleTask={handleToggleTask}
+        isTaskTogglePending={isTaskPending}
         selectedTaskId={selectedTaskId}
         tasks={pageTasks}
         t={t}
@@ -589,6 +570,7 @@ export default function Home() {
     handlePlaceholderIndexChange,
     handleTaskPress,
     handleToggleTask,
+    isTaskPending,
     isCalendarExpanded,
     loading,
     selectedTaskId,

@@ -77,6 +77,7 @@ interface TaskItemProps {
   selectedTaskId: number | null;
   listHeight: number;
   isExtendable?: boolean;
+  isTogglePending?: boolean;
   mode?: 'normal' | 'daily';
 }
 
@@ -89,6 +90,7 @@ export const TaskItem = ({
   selectedTaskId,
   listHeight,
   isExtendable = true,
+  isTogglePending = false,
   mode = 'normal',
 }: TaskItemProps) => {
   const { actualTheme, colors } = useTheme();
@@ -268,13 +270,9 @@ export const TaskItem = ({
     };
   });
 
-  const taskSurfaceAnimatedStyle = useAnimatedStyle(() => {
+  const taskDoneOverlayStyle = useAnimatedStyle(() => {
     return {
-      backgroundColor: interpolateColor(
-        doneProgress.value,
-        [0, 1],
-        [colors.task, mutedTaskColor]
-      ),
+      opacity: doneProgress.value,
     };
   });
 
@@ -300,15 +298,23 @@ export const TaskItem = ({
   });
 
   const handleCheckboxPress = useCallback(() => {
+    if (isTogglePending) return;
+
+    const nextDone = !item.done;
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    dotScale.value = withSpring(item.done ? 0 : 1, {
+    dotScale.value = withSpring(nextDone ? 1 : 0, {
       damping: 18,
       stiffness: 220,
       mass: 0.7,
       overshootClamping: true,
     });
+    doneProgress.value = withTiming(nextDone ? 1 : 0, {
+      duration: 180,
+      easing: Easing.out(Easing.quad),
+    });
     handleToggleTask(item.id, item.done);
-  }, [item.id, item.done, handleToggleTask, dotScale]);
+  }, [doneProgress, isTogglePending, item.id, item.done, handleToggleTask, dotScale]);
 
   const handlePress = useCallback(() => {
     if (!isExtendable) return;
@@ -336,7 +342,7 @@ export const TaskItem = ({
   }, [pressScale]);
 
   const taskItemStyle =
-    [styles.taskItem, taskSurfaceAnimatedStyle];
+    [styles.taskItem, { backgroundColor: colors.task }];
 
   useEffect(() => {
     dotScale.value = withSpring(item.done ? 1 : 0, {
@@ -384,6 +390,14 @@ export const TaskItem = ({
         containerStyle={{ overflow: 'visible' }}
       >
         <Squircle style={taskItemStyle}>
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.taskDoneOverlay,
+              { backgroundColor: mutedTaskColor },
+              taskDoneOverlayStyle,
+            ]}
+          />
           <Pressable
             onLongPress={drag}
             disabled={isActive || selectedTaskId !== null}
@@ -412,6 +426,7 @@ export const TaskItem = ({
                     checkboxAnimatedStyle,
                   ]}
                   onPress={handleCheckboxPress}
+                  disabled={isTogglePending}
                   activeOpacity={0.85}
                 >
                   <Animated.View style={checkAnimatedStyle}>
@@ -432,6 +447,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 64,
+    position: 'relative',
     justifyContent: 'space-between',
     borderRadius: 20,
     width: '100%',
@@ -439,6 +455,14 @@ const styles = StyleSheet.create({
     marginRight: 'auto',
     overflow: 'hidden',
     boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.15)',
+  },
+
+  taskDoneOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
   },
 
   taskItemDone: {

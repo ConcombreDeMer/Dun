@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Keyboard, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { fromAppDateKey, toAppDateKey } from "../lib/date";
@@ -9,6 +9,7 @@ import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import { deleteTask, updateTaskDraft } from "../lib/tasks";
 import { useTheme } from "../lib/ThemeContext";
+import { useToggleTaskDone } from "../lib/useToggleTaskDone";
 import AnimatedCheckbox from "./checkboxAnimated";
 import DateInput from "./dateInput";
 import PrimaryButton from "./primaryButton";
@@ -47,6 +48,26 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
         description: "",
         taskDate: new Date(),
         isDone: false,
+    });
+    const taskToggleQueryKeys = useMemo(() => id ? [["tasks"], ["tasks", id]] : [["tasks"]], [id]);
+    const {
+        isTaskPending: isTogglePending,
+        toggleTaskDone,
+    } = useToggleTaskDone({
+        queryKeys: taskToggleQueryKeys,
+        errorTitle: t("common.alerts.errorTitle"),
+        errorMessage: t("common.alerts.genericError"),
+        onError: (_taskId, previousDone) => {
+            setIsDone(previousDone);
+            latestDraftRef.current = {
+                ...latestDraftRef.current,
+                isDone: previousDone,
+            };
+            setTask((current: any) => current ? { ...current, done: previousDone } : current);
+        },
+        onSuccess: (_taskId, nextDone) => {
+            setTask((current: any) => current ? { ...current, done: nextDone } : current);
+        },
     });
 
     const taskQuery = useQuery({
@@ -111,7 +132,6 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                 name: draft.name,
                 description: draft.description,
                 date: toAppDateKey(draft.taskDate),
-                done: draft.isDone,
                 last_update_date: savedAt,
             } : current);
             setLastUpdateDate(new Date(savedAt));
@@ -344,9 +364,12 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
     };
 
     const handleToggleTask = async () => {
+        if (!task?.id || isTogglePending(task.id)) {
+            return;
+        }
+
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-        const previousDone = isDone;
         const nextDone = !isDone;
         const nextDraft = {
             ...latestDraftRef.current,
@@ -355,18 +378,8 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
 
         setIsDone(nextDone);
         latestDraftRef.current = nextDraft;
-
-        try {
-            await flushPendingSave();
-            await updateTaskMutation.mutateAsync(nextDraft);
-        } catch (error: any) {
-            setIsDone(previousDone);
-            latestDraftRef.current = {
-                ...latestDraftRef.current,
-                isDone: previousDone,
-            };
-            Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
-        }
+        setTask((current: any) => current ? { ...current, done: nextDone } : current);
+        void toggleTaskDone(task.id, isDone);
     };
 
     const formatLastUpdateDate = (date: Date | null): string => {
@@ -543,6 +556,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                                     <AnimatedCheckbox
                                         checked={isDone}
                                         onChange={handleToggleTask}
+                                        disabled={task?.id ? isTogglePending(task.id) : false}
                                         size={48}
                                     />
                                 </View>

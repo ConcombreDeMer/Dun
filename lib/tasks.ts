@@ -92,7 +92,6 @@ export const updateTaskDraft = async (taskId: number, draft: TaskDraftUpdate) =>
       name: trimmedName,
       description: draft.description.trim(),
       date: toAppDateKey(draft.taskDate),
-      done: draft.isDone,
       last_update_date: savedAt,
     })
     .eq("id", taskId)

@@ -1,9 +1,9 @@
 import PopUpContainer from "@/components/popUpContainer";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { SquircleButton } from "expo-squircle-view";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Dimensions, Image, Keyboard, ScrollView, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import CreateModal from '../components/createModal';
@@ -13,8 +13,8 @@ import { toAppDateKey } from '../lib/date';
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from '../lib/i18n';
 import { supabase } from '../lib/supabase';
-import { setTaskDone } from '../lib/tasks';
 import { useTheme } from '../lib/ThemeContext';
+import { useToggleTaskDone } from '../lib/useToggleTaskDone';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -23,13 +23,30 @@ export default function DailyScreen() {
     const router = useRouter();
     const { fontSizes } = useFont();
     const { t } = useAppTranslation();
-    const queryClient = useQueryClient();
     const [loading, setLoading] = useState(false);
     const [userName, setUserName] = useState('');
     const [currentStep, setCurrentStep] = useState(1);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const todayString = toAppDateKey(new Date());
+    const pastToggleQueryKeys = useMemo(() => [["tasks", "past"], ["tasks"]], []);
+    const todayToggleQueryKeys = useMemo(() => [["tasks", todayString], ["tasks"]], [todayString]);
+    const {
+        isTaskPending: isPastTaskPending,
+        toggleTaskDone: togglePastTaskDone,
+    } = useToggleTaskDone({
+        queryKeys: pastToggleQueryKeys,
+        errorTitle: t("common.alerts.errorTitle"),
+        errorMessage: t("common.alerts.genericError"),
+    });
+    const {
+        isTaskPending: isTodayTaskPending,
+        toggleTaskDone: toggleTodayTaskDone,
+    } = useToggleTaskDone({
+        queryKeys: todayToggleQueryKeys,
+        errorTitle: t("common.alerts.errorTitle"),
+        errorMessage: t("common.alerts.genericError"),
+    });
 
     const getPastTasks = async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -111,47 +128,11 @@ export default function DailyScreen() {
     });
 
     const handleTogglePastTask = async (taskId: number, currentDone: boolean) => {
-        const previousTasks = queryClient.getQueryData<any[]>(['tasks', 'past']);
-
-        queryClient.setQueryData(
-            ['tasks', 'past'],
-            previousTasks?.map(task =>
-                task.id === taskId ? { ...task, done: !currentDone } : task
-            ) || []
-        );
-
-        try {
-            await setTaskDone(taskId, !currentDone);
-        } catch {
-            queryClient.setQueryData(['tasks', 'past'], previousTasks || []);
-            return;
-        }
-
-        queryClient.invalidateQueries({ queryKey: ['tasks', 'past'] });
-        queryClient.invalidateQueries({ queryKey: ['tasks'] });
-        queryClient.invalidateQueries({ queryKey: ['days'] });
+        void togglePastTaskDone(taskId, currentDone);
     };
 
     const handleToggleTodayTask = async (taskId: number, currentDone: boolean) => {
-        const previousTasks = queryClient.getQueryData<any[]>(['tasks', todayString]);
-
-        queryClient.setQueryData(
-            ['tasks', todayString],
-            previousTasks?.map(task =>
-                task.id === taskId ? { ...task, done: !currentDone } : task
-            ) || []
-        );
-
-        try {
-            await setTaskDone(taskId, !currentDone);
-        } catch {
-            queryClient.setQueryData(['tasks', todayString], previousTasks || []);
-            return;
-        }
-
-        queryClient.invalidateQueries({ queryKey: ['tasks', todayString] });
-        queryClient.invalidateQueries({ queryKey: ['tasks'] });
-        queryClient.invalidateQueries({ queryKey: ['days'] });
+        void toggleTodayTaskDone(taskId, currentDone);
     };
 
     const finishDaily = async () => {
@@ -318,6 +299,7 @@ export default function DailyScreen() {
                                     isActive={false}
                                     handleToggleTask={handleTogglePastTask}
                                     handleTaskPress={() => { }}
+                                    isTogglePending={isPastTaskPending(task.id)}
                                     selectedTaskId={null}
                                     listHeight={400}
                                     isExtendable={false}
@@ -366,6 +348,7 @@ export default function DailyScreen() {
                                     isActive={false}
                                     handleToggleTask={handleToggleTodayTask}
                                     handleTaskPress={() => { }}
+                                    isTogglePending={isTodayTaskPending(task.id)}
                                     selectedTaskId={null}
                                     listHeight={400}
                                     isExtendable={false}
