@@ -11,7 +11,7 @@ const SUPPORTED_LANGUAGES = ["fr", "en"] as const;
 export type AppLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 const I18nReadyContext = createContext(false);
-const i18n = createInstance();
+export const i18n = createInstance();
 
 const getDeviceLanguage = (): AppLanguage => {
   const locale = Intl.DateTimeFormat().resolvedOptions().locale.toLowerCase();

@@ -122,7 +122,93 @@ export const resources = {
           "delay": "Delay",
           "repetitions": "Repeats",
           "weekends": "Weekends",
-          "description": "If you do not react to a reminder, Dun can repeat it to help you stay consistent."
+          "description": "If you do not react to a reminder, Dun can repeat it to help you stay consistent.",
+          "reminders": {
+            "main": [
+              {
+                "title": "Ready to shape your day?",
+                "body": "Take a minute to choose what matters today."
+              },
+              {
+                "title": "A fresh day is waiting",
+                "body": "Let's line up your tasks before things get busy."
+              },
+              {
+                "title": "Time for your daily plan",
+                "body": "Check your list and decide what deserves your focus today."
+              },
+              {
+                "title": "What are we doing today?",
+                "body": "A quick check-in can make the day feel lighter."
+              },
+              {
+                "title": "Sleeped well? Let's plan well!",
+                "body": "Pick your priorities and give the day some direction."
+              },
+              {
+                "title": "Good check-in, better day",
+                "body": "Plan today's tasks before the momentum starts."
+              },
+              {
+                "title": "Let's set today's rhythm",
+                "body": "A few choices now can keep the day clear."
+              },
+              {
+                "title": "Your day starts here",
+                "body": "Come choose the tasks you want to move forward."
+              },
+              {
+                "title": "Make today easier",
+                "body": "Let's prepare a plan you can stick to for the day."
+              },
+              {
+                "title": "A quick planning moment",
+                "body": "Review your tasks and decide what comes first."
+              }
+            ],
+            "insistence": [
+              {
+                "title": "Still up for planning?",
+                "body": "Your day is easier to handle once your tasks are set."
+              },
+              {
+                "title": "One gentle reminder",
+                "body": "Take a moment to check today's tasks in Dun."
+              },
+              {
+                "title": "Your plan is still waiting",
+                "body": "Check your list and pick the tasks that matter most today."
+              },
+              {
+                "title": "Before the day runs away",
+                "body": "A quick task check can help you keep control."
+              },
+              {
+                "title": "Need focus?",
+                "body": "Take time to prepare the rest of your day."
+              },
+              {
+                "title": "Let's not leave it blurry",
+                "body": "Choose today's priorities while you still have a clear view."
+              },
+              {
+                "title": "Quick check-in?",
+                "body": "Your tasks are waiting for a short planning pass."
+              },
+              {
+                "title": "A minute is enough",
+                "body": "Take a small time and give your day a simple plan."
+              },
+              {
+                "title": "Your future self may approve",
+                "body": "Review today's tasks before they pile up."
+              },
+              {
+                "title": "Still time to plan",
+                "body": "Come set your priorities and keep the day moving."
+              }
+            ]
+          }
         },
         "premium": {
           "offersNotLoaded": "Offers are not loaded yet.",
@@ -796,7 +882,93 @@ export const resources = {
           "delay": "Délais",
           "repetitions": "Répétitions",
           "weekends": "Week-ends",
-          "description": "Dans le cas où vous n'avez pas réagi à un rappel, Dun peut insister pour vous aider à maintenir votre régularité."
+          "description": "Dans le cas où vous n'avez pas réagi à un rappel, Dun peut insister pour vous aider à maintenir votre régularité.",
+          "reminders": {
+            "main": [
+              {
+                "title": "On prépare ta journée ?",
+                "body": "Prends une minute pour choisir ce qui compte aujourd'hui."
+              },
+              {
+                "title": "Une nouvelle journée t'attend",
+                "body": "Viens poser tes priorités avant que le rythme s'accélère."
+              },
+              {
+                "title": "C'est le moment de planifier",
+                "body": "Consulte ta liste et décide où tu veux mettre ton énergie aujourd'hui."
+              },
+              {
+                "title": "Qu'est-ce qu'on avance aujourd'hui ?",
+                "body": "Un petit check des tâches peut alléger toute la journée."
+              },
+              {
+                "title": "Bien dormi ? On planifie bien !",
+                "body": "Choisis tes priorités et donne une direction à ta journée."
+              },
+              {
+                "title": "Bon check-in, meilleure journée",
+                "body": "Planifie tes tâches avant de te lancer."
+              },
+              {
+                "title": "On règle le tempo du jour ?",
+                "body": "Quelques choix maintenant peuvent rendre la suite plus claire."
+              },
+              {
+                "title": "Ta journée commence ici",
+                "body": "Viens choisir les tâches que tu veux vraiment faire avancer."
+              },
+              {
+                "title": "Rends aujourd'hui plus simple",
+                "body": "Préparons un plan que tu pourras tenir pour la journée."
+              },
+              {
+                "title": "Un petit moment pour planifier",
+                "body": "Relis tes tâches et décide par quoi commencer."
+              }
+            ],
+            "insistence": [
+              {
+                "title": "Toujours partant pour planifier ?",
+                "body": "Ta journée sera plus simple une fois tes tâches posées."
+              },
+              {
+                "title": "Petit rappel en douceur",
+                "body": "Prends un instant pour vérifier tes tâches du jour dans Dun."
+              },
+              {
+                "title": "Ton plan t'attend encore",
+                "body": "Consulte ta liste et choisis les tâches qui comptent le plus aujourd'hui."
+              },
+              {
+                "title": "Avant que la journée file",
+                "body": "Un rapide check des tâches peut t'aider à garder le cap."
+              },
+              {
+                "title": "Besoin de focus ?",
+                "body": "Prends le temps de préparer le reste de ta journée."
+              },
+              {
+                "title": "On évite le flou ?",
+                "body": "Choisis tes priorités tant que la journée est encore lisible."
+              },
+              {
+                "title": "Petit check-in ?",
+                "body": "Tes tâches attendent juste un court passage de planification."
+              },
+              {
+                "title": "Une minute peut suffire",
+                "body": "Prends un petit moment et donne un plan simple à ta journée."
+              },
+              {
+                "title": "Ton toi du futur appréciera",
+                "body": "Relis tes tâches du jour avant qu'elles s'empilent."
+              },
+              {
+                "title": "Il est encore temps de planifier",
+                "body": "Viens poser tes priorités et garder la journée en mouvement."
+              }
+            ]
+          }
         },
         "premium": {
           "offersNotLoaded": "Les offres ne sont pas encore chargées.",

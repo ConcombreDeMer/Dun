@@ -1,11 +1,17 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from 'expo-notifications';
 import { Platform } from "react-native";
+import { i18n } from "./i18n";
 // import { useStore } from "../store/store";
 
 // const store = useStore();
 
 const REMINDER_IDS_STORAGE_KEY = "scheduledReminderIds";
+
+type ReminderVariant = {
+  title: string;
+  body: string;
+};
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -37,6 +43,21 @@ async function ensureNotificationChannel() {
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
   });
+}
+
+function getRandomReminderVariant(key: "main" | "insistence"): ReminderVariant {
+  const variants = i18n.t(`settings.notifications.reminders.${key}`, {
+    returnObjects: true,
+  }) as ReminderVariant[];
+  const validVariants = Array.isArray(variants)
+    ? variants.filter((variant) => typeof variant.title === "string" && typeof variant.body === "string")
+    : [];
+
+  if (validVariants.length === 0) {
+    return { title: "", body: "" };
+  }
+
+  return validVariants[Math.floor(Math.random() * validVariants.length)];
 }
 
 async function getStoredReminderIds() {
@@ -77,13 +98,10 @@ export async function scheduleDailyReminder(
   const scheduledIds: string[] = [];
 
   const scheduleNotification = async (triggerHour: number, triggerMinute: number, isMain: boolean) => {
-    const content = isMain ? {
-      title: 'Hello ! 👋',
-      body: 'On check tes tâches du jour ?',
-      sound: true,
-    } : {
-      title: 'Toujours là ? 👀',
-      body: 'N\'oublie pas d\'aller vérifier tes tâches du jour !',
+    const variant = getRandomReminderVariant(isMain ? "main" : "insistence");
+    const content = {
+      title: variant.title,
+      body: variant.body,
       sound: true,
     };
 
