@@ -3,38 +3,30 @@ import { useAppTranslation } from "@/lib/i18n";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStore } from "@/store/store";
 import { useQueryClient } from "@tanstack/react-query";
-import * as Haptic from 'expo-haptics';
+import { LinearGradient } from "expo-linear-gradient";
+import * as Haptic from "expo-haptics";
 import { router } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import { BarChart } from "react-native-gifted-charts";
+import { SymbolView } from "expo-symbols";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
 import Squircle from "./Squircle";
 
 interface StatsBarGraphProps {
-  daysData: any[];
-  period: 'Par semaine' | 'Par mois' | 'Par année' | 'Global';
+  daysData: Day[];
+  period: Period;
   onSlideChange?: (slide: Slide) => void;
 }
 
-type Week = {
-  days: { date: Date; timestamp: number; isoString: string; dateString: string; }[];
-  firstDayOfWeek: string;
-  lastDayOfWeek: string;
-  offset: number;
-  id: string;
-};
-
-type BarData = {
-  stacks: Array<{ value: number; color: string; marginBottom?: number }>;
-  label: string;
-  date: string;
-};
-
-type Slide = {
-  bars: BarData[];
-  periodLabel: string;
-  id: string;
-};
+type Period = "Par semaine" | "Par mois" | "Par année" | "Global";
 
 type Day = {
   date: string;
@@ -42,325 +34,532 @@ type Day = {
   total: number;
 };
 
-// Fonction pour obtenir le début de la semaine (lundi)
-const getWeekStart = (date: Date): Date => {
-  const d = new Date(date);
-  const dayOfWeek = d.getDay();
-  const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  d.setDate(d.getDate() - daysToMonday);
-  d.setHours(0, 0, 0, 0);
-  return d;
+type BarData = {
+  stacks: { value: number; color: string; marginBottom?: number }[];
+  label: string;
+  date: string;
+  done: number;
+  total: number;
+  remaining: number;
+  completion: number;
+  isCurrent: boolean;
+  caption: string;
 };
 
-// Fonction pour regrouper les jours par semaine
-const groupDaysByWeek = (days: any[]): Map<string, any[]> => {
-  const map = new Map<string, any[]>();
-  days.forEach(day => {
-    const date = new Date(day.date);
-    const weekStart = getWeekStart(date);
-    const weekKey = weekStart.toISOString().split('T')[0];
-    if (!map.has(weekKey)) map.set(weekKey, []);
-    map.get(weekKey)!.push(day);
-  });
-  return map;
-};
-
-// Fonction pour regrouper les jours par mois
-const groupDaysByMonth = (days: any[]): Map<string, any[]> => {
-  const map = new Map<string, any[]>();
-  days.forEach(day => {
-    const date = new Date(day.date);
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    if (!map.has(monthKey)) map.set(monthKey, []);
-    map.get(monthKey)!.push(day);
-  });
-  return map;
-};
-
-// Fonction pour créer une barre à partir d'un groupe de jours
-const createBarFromDays = (days: any[], label: string, isToday: boolean, colors: any): BarData => {
-  const totalDone = days.reduce((sum, d) => sum + (d.done_count || 0), 0);
-  const totalTasks = days.reduce((sum, d) => sum + (d.total || 0), 0);
-  const remaining = Math.max(0, totalTasks - totalDone);
-
-  const complete = colors.text;
-  const incomplete = colors.textSecondary;
-  const completeToday = '#3f8041ff';
-  const incompleteToday = '#a5d6a7ff';
-
-  return {
-    stacks: [
-      { value: totalDone, color: isToday ? completeToday : complete },
-      { value: remaining, color: isToday ? incompleteToday : incomplete, marginBottom: 2 },
-    ],
-    label,
-    date: days[0].date,
+type Slide = {
+  bars: BarData[];
+  periodLabel: string;
+  id: string;
+  summary: {
+    done: number;
+    total: number;
+    completion: number;
   };
 };
 
-// Fonction principale pour transformer les données selon la période
-const transformDaysDataByPeriod = (
-  daysData: any[],
-  period: 'Par semaine' | 'Par mois' | 'Par année' | 'Global',
-  colors: any,
-  locale: string,
-  t: (key: string, options?: Record<string, any>) => string
-): Slide[] => {
-  if (!daysData || daysData.length === 0) return [];
+type ChartPalette = {
+  accent: string;
+  accentSoft: string;
+  track: string;
+  mutedTrack: string;
+  grid: string;
+};
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayString = today.toDateString();
+const CHART_HEIGHT = 168;
+const MIN_BAR_HEIGHT = 12;
 
-  // Créer une map pour O(1) lookup
-  const daysDataMap = new Map<string, any>();
-  daysData.forEach(day => {
-    daysDataMap.set(new Date(day.date).toDateString(), day);
+const normalizeDate = (date: Date) => {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+};
+
+const toDateKey = (date: Date) => normalizeDate(date).toDateString();
+
+const getWeekStart = (date: Date): Date => {
+  const d = normalizeDate(date);
+  const dayOfWeek = d.getDay();
+  const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  d.setDate(d.getDate() - daysToMonday);
+  return d;
+};
+
+const clampDone = (done: number, total: number) => Math.min(Math.max(done, 0), Math.max(total, 0));
+
+const getPeriodName = (period: Period, t: (key: string) => string) => {
+  if (period === "Par semaine") return t("stats.general.period.week");
+  if (period === "Par mois") return t("stats.general.period.month");
+  if (period === "Par année") return t("stats.general.period.year");
+  return t("stats.general.period.global");
+};
+
+const createBar = (
+  days: Day[],
+  label: string,
+  caption: string,
+  date: Date,
+  isCurrent: boolean,
+  palette: ChartPalette
+): BarData => {
+  const total = days.reduce((sum, day) => sum + Math.max(day.total || 0, 0), 0);
+  const done = clampDone(days.reduce((sum, day) => sum + Math.max(day.done_count || 0, 0), 0), total);
+  const remaining = Math.max(total - done, 0);
+  const completion = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  return {
+    stacks: [
+      { value: done, color: isCurrent ? palette.accent : palette.accent },
+      { value: remaining, color: isCurrent ? palette.accentSoft : palette.track, marginBottom: 2 },
+    ],
+    label,
+    caption,
+    date: date.toISOString(),
+    done,
+    total,
+    remaining,
+    completion,
+    isCurrent,
+  };
+};
+
+const summarizeSlide = (bars: BarData[]) => {
+  const done = bars.reduce((sum, bar) => sum + bar.done, 0);
+  const total = bars.reduce((sum, bar) => sum + bar.total, 0);
+  return {
+    done,
+    total,
+    completion: total > 0 ? Math.round((done / total) * 100) : 0,
+  };
+};
+
+const buildDaysMap = (daysData: Day[]) => {
+  const map = new Map<string, Day>();
+  daysData.forEach((day) => {
+    map.set(toDateKey(new Date(day.date)), day);
   });
+  return map;
+};
 
-  if (period === 'Par semaine') {
-    // Logique actuelle : 5 semaines (dernière slide = semaine actuelle)
-    const slides: Slide[] = [];
-    const complete = colors.text;
-    const incomplete = colors.textSecondary;
-    const completeToday = '#3f8041ff';
-    const incompleteToday = '#a5d6a7ff';
+const buildWeekSlides = (
+  daysMap: Map<string, Day>,
+  palette: ChartPalette,
+  locale: string,
+  t: (key: string, options?: Record<string, any>) => string,
+  today: Date,
+  offsets = [-4, -3, -2, -1, 0]
+): Slide[] => {
+  const todayKey = toDateKey(today);
+  const currentWeekStart = getWeekStart(today);
 
-    for (let i = -4; i <= 0; i++) {
-      const baseDay = new Date(today);
-      const dayOfWeek = baseDay.getDay();
-      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      
-      const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - daysToMonday + (i * 7));
-      weekStart.setHours(0, 0, 0, 0);
+  return offsets.map((offset) => {
+    const weekStart = new Date(currentWeekStart);
+    weekStart.setDate(currentWeekStart.getDate() + offset * 7);
 
-      const bars: BarData[] = [];
-      for (let j = 0; j < 7; j++) {
-        const currentDay = new Date(weekStart);
-        currentDay.setDate(weekStart.getDate() + j);
-        const dayString = currentDay.toDateString();
-        const isToday = dayString === todayString;
-        const dayData = daysDataMap.get(dayString);
+    const bars = Array.from({ length: 7 }, (_, index) => {
+      const currentDay = new Date(weekStart);
+      currentDay.setDate(weekStart.getDate() + index);
+      const key = toDateKey(currentDay);
+      const day = daysMap.get(key) || {
+        date: currentDay.toISOString(),
+        done_count: 0,
+        total: 0,
+      };
 
-        const dayFormatted = currentDay.toLocaleDateString(locale, { weekday: 'narrow', day: 'numeric' });
+      return createBar(
+        [day],
+        currentDay.toLocaleDateString(locale, { weekday: "narrow" }),
+        currentDay.toLocaleDateString(locale, { day: "numeric", month: "short" }),
+        currentDay,
+        key === todayKey,
+        palette
+      );
+    });
 
-        bars.push({
-          stacks: [
-            { value: dayData?.done_count || 0, color: isToday ? completeToday : complete },
-            { value: (dayData?.total || 0) - (dayData?.done_count || 0), color: isToday ? incompleteToday : incomplete, marginBottom: 2 },
-          ],
-          label: dayFormatted,
-          date: dayData?.date || currentDay.toISOString(),
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+
+    return {
+      id: `week-${weekStart.toISOString()}`,
+      bars,
+      periodLabel: t("stats.chart.weekRange", {
+        start: weekStart.toLocaleDateString(locale, { day: "numeric", month: "short" }),
+        end: weekEnd.toLocaleDateString(locale, { day: "numeric", month: "short" }),
+      }),
+      summary: summarizeSlide(bars),
+    };
+  });
+};
+
+const buildMonthSlides = (
+  daysMap: Map<string, Day>,
+  palette: ChartPalette,
+  locale: string,
+  t: (key: string, options?: Record<string, any>) => string,
+  today: Date
+): Slide[] => {
+  const slides: Slide[] = [];
+
+  for (let monthOffset = -12; monthOffset <= 0; monthOffset++) {
+    const target = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+    const monthEnd = new Date(target.getFullYear(), target.getMonth() + 1, 0);
+    const bars: BarData[] = [];
+
+    let cursor = new Date(target);
+    while (cursor <= monthEnd) {
+      const rangeStart = new Date(cursor);
+      const rangeEnd = new Date(cursor);
+      rangeEnd.setDate(Math.min(rangeStart.getDate() + 6, monthEnd.getDate()));
+
+      const days: Day[] = [];
+      while (cursor <= rangeEnd) {
+        const key = toDateKey(cursor);
+        days.push(daysMap.get(key) || {
+          date: cursor.toISOString(),
+          done_count: 0,
+          total: 0,
         });
+        cursor.setDate(cursor.getDate() + 1);
       }
 
-      const firstDay = new Date(weekStart);
-      const lastDay = new Date(weekStart);
-      lastDay.setDate(weekStart.getDate() + 6);
-
-      const firstDayStr = firstDay.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
-      const lastDayStr = lastDay.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
-
-      slides.push({
-        id: `week-${i}`,
-        bars,
-        periodLabel: t("stats.chart.weekRange", { start: firstDayStr, end: lastDayStr }),
-      });
-    }
-    return slides;
-  } else if (period === 'Par mois') {
-    // Afficher les 12 derniers mois, chacun en une slide
-    const slides: Slide[] = [];
-
-    let startDate = new Date(today);
-    startDate.setFullYear(today.getFullYear() - 1);
-
-    // Pour "Par mois", afficher depuis 12 mois en arrière
-    let currentMonthDate = new Date(startDate);
-    
-    while (currentMonthDate <= today) {
-      const monthStart = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), 1);
-      const monthEnd = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 0);
-
-      // Grouper par semaine calendaire pour ce mois
-      const weeks: Map<string, any[]> = new Map();
-      let currentDate = new Date(monthStart);
-      
-      while (currentDate <= monthEnd) {
-        const weekStart = getWeekStart(currentDate);
-        const weekKey = weekStart.toISOString().split('T')[0];
-        
-        if (!weeks.has(weekKey)) {
-          weeks.set(weekKey, []);
-        }
-        
-        // Ajouter le jour de ce mois
-        const dayString = currentDate.toDateString();
-        const dayData = daysDataMap.get(dayString);
-        if (dayData) {
-          weeks.get(weekKey)!.push(dayData);
-        } else {
-          weeks.get(weekKey)!.push({
-            date: currentDate.toISOString(),
-            done_count: 0,
-            total: 0,
-          });
-        }
-        
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-
-      const bars: BarData[] = [];
-      weeks.forEach((weekDays, weekKey) => {
-        // Calculer si cette semaine inclut aujourd'hui
-        const isToday = weekDays.some(d => new Date(d.date).toDateString() === todayString);
-        
-        // Extraire le premier et dernier jour de la semaine
-        const firstDate = new Date(weekDays[0].date);
-        const lastDate = new Date(weekDays[weekDays.length - 1].date);
-        const firstDay = firstDate.getDate();
-        const lastDay = lastDate.getDate();
-        const label = `${firstDay}-${lastDay}`;
-        
-        bars.push(createBarFromDays(weekDays, label, isToday, colors));
-      });
-
-      if (bars.length > 0) {
-        const monthStr = currentMonthDate.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
-        slides.push({
-          id: `month-${currentMonthDate.getFullYear()}-${currentMonthDate.getMonth()}`,
-          bars,
-          periodLabel: t("stats.chart.monthOf", { month: monthStr.charAt(0).toUpperCase() + monthStr.slice(1) }),
-        });
-      }
-
-      currentMonthDate.setMonth(currentMonthDate.getMonth() + 1);
+      const includesToday = days.some((day) => toDateKey(new Date(day.date)) === toDateKey(today));
+      const label = `${rangeStart.getDate()}-${rangeEnd.getDate()}`;
+      bars.push(createBar(days, label, label, rangeStart, includesToday, palette));
     }
 
-    return slides;
-  } else if (period === 'Par année' || period === 'Global') {
-    // Afficher les 12 derniers mois (ou tous les mois pour "Global")
-    const slides: Slide[] = [];
+    const month = target.toLocaleDateString(locale, { month: "long", year: "numeric" });
+    slides.push({
+      id: `month-${target.getFullYear()}-${target.getMonth()}`,
+      bars,
+      periodLabel: t("stats.chart.monthOf", { month: month.charAt(0).toUpperCase() + month.slice(1) }),
+      summary: summarizeSlide(bars),
+    });
+  }
 
-    if (period === 'Global') {
-      // "Global" affiche la même chose que "Par semaine" : 5 semaines
-      const complete = colors.text;
-      const incomplete = colors.textSecondary;
-      const completeToday = '#3f8041ff';
-      const incompleteToday = '#a5d6a7ff';
+  return slides;
+};
 
-      for (let i = -4; i <= 0; i++) {
-        const baseDay = new Date(today);
-        const dayOfWeek = baseDay.getDay();
-        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        
-        const weekStart = new Date(today);
-        weekStart.setDate(today.getDate() - daysToMonday + (i * 7));
-        weekStart.setHours(0, 0, 0, 0);
+const buildYearSlides = (
+  daysMap: Map<string, Day>,
+  palette: ChartPalette,
+  locale: string,
+  today: Date
+): Slide[] => {
+  const slides: Slide[] = [];
+  const startYear = today.getFullYear() - 1;
 
-        const bars: BarData[] = [];
-        for (let j = 0; j < 7; j++) {
-          const currentDay = new Date(weekStart);
-          currentDay.setDate(weekStart.getDate() + j);
-          const dayString = currentDay.toDateString();
-          const isToday = dayString === todayString;
-          const dayData = daysDataMap.get(dayString);
+  for (let year = startYear; year <= today.getFullYear(); year++) {
+    const maxMonth = year === today.getFullYear() ? today.getMonth() : 11;
+    const bars = Array.from({ length: maxMonth + 1 }, (_, month) => {
+      const monthStart = new Date(year, month, 1);
+      const monthEnd = new Date(year, month + 1, 0);
+      const days: Day[] = [];
 
-          const dayFormatted = currentDay.toLocaleDateString(locale, { weekday: 'narrow', day: 'numeric' });
-
-          bars.push({
-            stacks: [
-              { value: dayData?.done_count || 0, color: isToday ? completeToday : complete },
-              { value: (dayData?.total || 0) - (dayData?.done_count || 0), color: isToday ? incompleteToday : incomplete, marginBottom: 2 },
-            ],
-            label: dayFormatted,
-            date: dayData?.date || currentDay.toISOString(),
-          });
-        }
-
-        const firstDay = new Date(weekStart);
-        const lastDay = new Date(weekStart);
-        lastDay.setDate(weekStart.getDate() + 6);
-
-        const firstDayStr = firstDay.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
-        const lastDayStr = lastDay.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
-
-        slides.push({
-          id: `week-${i}`,
-          bars,
-          periodLabel: t("stats.chart.weekRange", { start: firstDayStr, end: lastDayStr }),
-        });
-      }
-
-      return slides;
-    }
-
-    // Pour "Par année" : afficher les 12 derniers mois
-    let startDate = new Date(today);
-    startDate.setFullYear(today.getFullYear() - 1);
-
-    // Grouper par année puis par mois
-    const yearMap = new Map<number, Map<number, any[]>>();
-    
-    let currentDate = new Date(startDate);
-    while (currentDate <= today) {
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
-      
-      if (!yearMap.has(year)) {
-        yearMap.set(year, new Map());
-      }
-      
-      const monthKey = currentDate.toISOString().split('T')[0].substring(0, 7); // YYYY-MM
-      if (!yearMap.get(year)!.has(month)) {
-        yearMap.get(year)!.set(month, []);
-      }
-      
-      const dayString = currentDate.toDateString();
-      const dayData = daysDataMap.get(dayString);
-      if (dayData) {
-        yearMap.get(year)!.get(month)!.push(dayData);
-      } else {
-        yearMap.get(year)!.get(month)!.push({
-          date: currentDate.toISOString(),
+      for (let cursor = new Date(monthStart); cursor <= monthEnd; cursor.setDate(cursor.getDate() + 1)) {
+        const key = toDateKey(cursor);
+        days.push(daysMap.get(key) || {
+          date: cursor.toISOString(),
           done_count: 0,
           total: 0,
         });
       }
-      
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
 
-    // Créer les slides
-    yearMap.forEach((monthMap, year) => {
-      const bars: BarData[] = [];
-      
-      for (let month = 0; month < 12; month++) {
-        if (monthMap.has(month)) {
-          const monthDays = monthMap.get(month)!;
-          const monthDate = new Date(year, month);
-          const monthName = monthDate.toLocaleDateString(locale, { month: 'narrow' });
-          const isThisMonth = year === today.getFullYear() && month === today.getMonth();
-          
-          bars.push(createBarFromDays(monthDays, monthName, isThisMonth, colors));
-        }
-      }
-
-      if (bars.length > 0) {
-        slides.push({
-          id: `year-${year}`,
-          bars,
-          periodLabel: year.toString(),
-        });
-      }
+      return createBar(
+        days,
+        monthStart.toLocaleDateString(locale, { month: "narrow" }),
+        monthStart.toLocaleDateString(locale, { month: "short" }),
+        monthStart,
+        year === today.getFullYear() && month === today.getMonth(),
+        palette
+      );
     });
 
-    return slides;
+    slides.push({
+      id: `year-${year}`,
+      bars,
+      periodLabel: year.toString(),
+      summary: summarizeSlide(bars),
+    });
   }
 
-  return [];
+  return slides;
 };
+
+const buildGlobalSlides = (
+  daysData: Day[],
+  palette: ChartPalette,
+  locale: string,
+  today: Date
+): Slide[] => {
+  if (daysData.length === 0) return [];
+
+  const daysMap = buildDaysMap(daysData);
+  const sortedDates = daysData.map((day) => normalizeDate(new Date(day.date))).sort((a, b) => a.getTime() - b.getTime());
+  const firstDate = sortedDates[0];
+  const slides: Slide[] = [];
+
+  for (let year = firstDate.getFullYear(); year <= today.getFullYear(); year++) {
+    const startMonth = year === firstDate.getFullYear() ? firstDate.getMonth() : 0;
+    const endMonth = year === today.getFullYear() ? today.getMonth() : 11;
+    const bars: BarData[] = [];
+
+    for (let month = startMonth; month <= endMonth; month++) {
+      const monthStart = new Date(year, month, 1);
+      const monthEnd = new Date(year, month + 1, 0);
+      const days: Day[] = [];
+
+      for (let cursor = new Date(monthStart); cursor <= monthEnd; cursor.setDate(cursor.getDate() + 1)) {
+        const key = toDateKey(cursor);
+        days.push(daysMap.get(key) || {
+          date: cursor.toISOString(),
+          done_count: 0,
+          total: 0,
+        });
+      }
+
+      bars.push(createBar(
+        days,
+        monthStart.toLocaleDateString(locale, { month: "narrow" }),
+        monthStart.toLocaleDateString(locale, { month: "short" }),
+        monthStart,
+        year === today.getFullYear() && month === today.getMonth(),
+        palette
+      ));
+    }
+
+    slides.push({
+      id: `global-${year}`,
+      bars,
+      periodLabel: year.toString(),
+      summary: summarizeSlide(bars),
+    });
+  }
+
+  return slides;
+};
+
+const transformDaysDataByPeriod = (
+  daysData: Day[],
+  period: Period,
+  palette: ChartPalette,
+  locale: string,
+  t: (key: string, options?: Record<string, any>) => string
+): Slide[] => {
+  const today = normalizeDate(new Date());
+  const daysMap = buildDaysMap(daysData || []);
+
+  if (period === "Par semaine") {
+    return buildWeekSlides(daysMap, palette, locale, t, today);
+  }
+
+  if (period === "Par mois") {
+    return buildMonthSlides(daysMap, palette, locale, t, today);
+  }
+
+  if (period === "Par année") {
+    return buildYearSlides(daysMap, palette, locale, today);
+  }
+
+  return buildGlobalSlides(daysData || [], palette, locale, today);
+};
+
+const ChartSkeleton = memo(function ChartSkeleton({ colors, palette, itemWidth }: { colors: any; palette: ChartPalette; itemWidth: number }) {
+  return (
+    <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)} style={[styles.stateContainer, { width: itemWidth }]}>
+      <View style={styles.skeletonHeader}>
+        <View style={[styles.skeletonLine, { width: 132, backgroundColor: palette.track }]} />
+        <ActivityIndicator color={colors.text} />
+      </View>
+      <View style={styles.skeletonBars}>
+        {Array.from({ length: 7 }, (_, index) => (
+          <View key={index} style={styles.skeletonBarWrap}>
+            <View
+              style={[
+                styles.skeletonBar,
+                {
+                  height: 56 + (index % 4) * 22,
+                  backgroundColor: index === 4 ? palette.accentSoft : palette.track,
+                },
+              ]}
+            />
+            <View style={[styles.skeletonLabel, { backgroundColor: palette.mutedTrack }]} />
+          </View>
+        ))}
+      </View>
+    </Animated.View>
+  );
+});
+
+const EmptyState = memo(function EmptyState({ colors, itemWidth, text }: { colors: any; itemWidth: number; text: string }) {
+  return (
+    <View style={[styles.stateContainer, { width: itemWidth }]}>
+      <View style={[styles.emptyIcon, { backgroundColor: colors.input }]}>
+        <SymbolView name="chart.bar" size={26} tintColor={colors.textSecondary} />
+      </View>
+      <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{text}</Text>
+    </View>
+  );
+});
+
+const ChartSlide = memo(function ChartSlide({
+  slide,
+  colors,
+  palette,
+  fontSizes,
+  itemWidth,
+  onPressBar,
+  opensDayOnPress,
+}: {
+  slide: Slide;
+  colors: any;
+  palette: ChartPalette;
+  fontSizes: Record<string, number>;
+  itemWidth: number;
+  onPressBar: (bar: BarData) => void;
+  opensDayOnPress: boolean;
+}) {
+  const [selectedIndex, setSelectedIndex] = useState(() => {
+    const currentIndex = slide.bars.findIndex((bar) => bar.isCurrent);
+    return currentIndex >= 0 ? currentIndex : Math.max(0, slide.bars.length - 1);
+  });
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const currentIndex = slide.bars.findIndex((bar) => bar.isCurrent);
+      setSelectedIndex(currentIndex >= 0 ? currentIndex : Math.max(0, slide.bars.length - 1));
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [slide.id, slide.bars]);
+
+  const selectedBar = slide.bars[selectedIndex] || slide.bars[0];
+  const maxTotal = Math.max(1, ...slide.bars.map((bar) => bar.total));
+  const chartWidth = itemWidth - 40;
+  const barSlotWidth = Math.max(28, chartWidth / Math.max(slide.bars.length, 1));
+  const barWidth = Math.min(34, Math.max(16, barSlotWidth * 0.46));
+  const tooltipLeft = Math.min(
+    Math.max(8, selectedIndex * barSlotWidth + barSlotWidth / 2 - 48),
+    Math.max(8, chartWidth - 104)
+  );
+
+  const handleSelectBar = useCallback((bar: BarData, index: number) => {
+    setSelectedIndex(index);
+    onPressBar(bar);
+  }, [onPressBar]);
+
+  return (
+    <View style={[styles.slide, { width: itemWidth }]}>
+      <View style={styles.slideHeader}>
+        <View>
+          <Text style={[styles.kicker, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>
+            {slide.periodLabel}
+          </Text>
+          <Text style={[styles.title, { color: colors.text, fontSize: fontSizes["3xl"] }]}>
+            {slide.summary.done}/{slide.summary.total}
+          </Text>
+        </View>
+        <View style={[styles.scorePill, { backgroundColor: colors.input }]}>
+          <Text style={[styles.scoreText, { color: colors.text, fontSize: fontSizes.sm }]}>
+            {slide.summary.completion}%
+          </Text>
+        </View>
+      </View>
+
+      <View style={[styles.chartArea, { width: chartWidth }]}>
+        <View style={styles.gridLayer} pointerEvents="none">
+          <View style={[styles.gridLine, { backgroundColor: palette.grid }]} />
+          <View style={[styles.gridLine, { backgroundColor: palette.grid }]} />
+          <View style={[styles.gridLine, { backgroundColor: palette.grid }]} />
+        </View>
+
+        {selectedBar && (
+          <Animated.View
+            key={`${slide.id}-${selectedIndex}`}
+            entering={FadeIn.duration(120)}
+            layout={LinearTransition.duration(160)}
+            style={[styles.tooltip, { left: tooltipLeft, backgroundColor: colors.text }]}
+            pointerEvents="none"
+          >
+            <Text style={[styles.tooltipTitle, { color: colors.card }]}>{selectedBar.caption}</Text>
+            <Text style={[styles.tooltipValue, { color: colors.card }]}>
+              {selectedBar.done}/{selectedBar.total}
+            </Text>
+            <View style={[styles.tooltipArrow, { borderTopColor: colors.text }]} />
+          </Animated.View>
+        )}
+
+        <View style={styles.barsRow}>
+          {slide.bars.map((bar, index) => {
+            const totalHeight = bar.total > 0
+              ? Math.max(MIN_BAR_HEIGHT, (bar.total / maxTotal) * CHART_HEIGHT)
+              : MIN_BAR_HEIGHT;
+            const doneHeight = bar.total > 0
+              ? Math.max(4, (bar.done / bar.total) * totalHeight)
+              : 0;
+            const isSelected = index === selectedIndex;
+
+            return (
+              <Pressable
+                key={`${bar.date}-${index}`}
+                accessibilityRole="button"
+                accessibilityLabel={`${bar.caption}, ${bar.done}/${bar.total}`}
+                onPress={() => handleSelectBar(bar, index)}
+                style={[styles.barSlot, { width: barSlotWidth }]}
+              >
+                <View
+                  style={[
+                    styles.barTrack,
+                    {
+                      width: barWidth,
+                      height: totalHeight,
+                      backgroundColor: isSelected ? palette.accentSoft : palette.track,
+                    },
+                  ]}
+                >
+                  {isSelected && <View style={[styles.barGlow, { backgroundColor: palette.accentSoft }]} />}
+                  {bar.total > 0 && (
+                    <LinearGradient
+                      colors={bar.isCurrent || isSelected
+                        ? [palette.accentSoft, palette.accent]
+                        : [colors.textSecondary, colors.text]}
+                      start={{ x: 0.5, y: 0 }}
+                      end={{ x: 0.5, y: 1 }}
+                      style={[
+                        styles.barFill,
+                        {
+                          height: doneHeight,
+                          opacity: bar.isCurrent || isSelected ? 1 : 0.74,
+                        },
+                      ]}
+                    />
+                  )}
+                  {isSelected && <View style={[styles.barRing, { borderColor: palette.accentSoft }]} />}
+                </View>
+                {isSelected && opensDayOnPress && (
+                  <View style={[styles.openIndicator, { backgroundColor: palette.accent }]} />
+                )}
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.72}
+                  style={[
+                    styles.barLabel,
+                    {
+                      color: isSelected ? colors.text : colors.textSecondary,
+                      fontSize: fontSizes.xs,
+                      fontFamily: isSelected ? "Satoshi-Bold" : "Satoshi-Medium",
+                    },
+                  ]}
+                >
+                  {bar.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+    </View>
+  );
+});
 
 export default function StatsBarGraph({ daysData, period, onSlideChange }: StatsBarGraphProps) {
   const { width: screenWidth } = useWindowDimensions();
@@ -368,236 +567,468 @@ export default function StatsBarGraph({ daysData, period, onSlideChange }: Stats
   const { fontSizes } = useFont();
   const { t, language } = useAppTranslation();
   const locale = language === "en" ? "en-US" : "fr-FR";
-  
-  // Fonction pour compter les semaines dans le mois
-  const countWeeksInMonth = (date: Date): number => {
-    const monthStart = new Date(date);
-    monthStart.setDate(1);
-    const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-    
-    const weeks = new Set<string>();
-    let currentDate = new Date(monthStart);
-    
-    while (currentDate <= monthEnd) {
-      const weekStart = getWeekStart(currentDate);
-      const weekKey = weekStart.toISOString().split('T')[0];
-      weeks.add(weekKey);
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-    
-    return weeks.size;
-  };
-  
-  // Adapter la largeur des barres selon la période
-  const itemWidth = screenWidth * 0.9;
-  
-  // Mémoriser le calcul de barWidth et numBarsPerSlide
-  const barConfig = useMemo(() => {
-    let barWidth: number;
-    let numBarsPerSlide: number;
-
-    if (period === 'Par semaine' || period === 'Global') {
-      numBarsPerSlide = 7;
-      barWidth = (itemWidth * 0.5) / numBarsPerSlide;
-    } else if (period === 'Par mois') {
-      numBarsPerSlide = 6;
-      barWidth = (itemWidth * 0.6) / numBarsPerSlide;
-    } else {
-      numBarsPerSlide = 12;
-      barWidth = (itemWidth * 0.35) / numBarsPerSlide;
-    }
-    
-    return { barWidth, numBarsPerSlide };
-  }, [period, itemWidth]);
-
+  const palette = useMemo<ChartPalette>(() => {
+    const accent = colors.doneSecondary || colors.actionButton || colors.text;
+    return {
+      accent,
+      accentSoft: colors.donePrimary || colors.checkbox || colors.border,
+      track: colors.input || colors.border,
+      mutedTrack: colors.border || colors.input,
+      grid: colors.border || "rgba(120, 120, 120, 0.16)",
+    };
+  }, [
+    colors.actionButton,
+    colors.border,
+    colors.checkbox,
+    colors.donePrimary,
+    colors.doneSecondary,
+    colors.input,
+    colors.text,
+  ]);
   const queryClient = useQueryClient();
-  const setSelectedDate = useStore((state: { setSelectedDate: any; }) => state.setSelectedDate);
-  const flatListRef = useRef<FlatList>(null);
-  
-  // État de chargement pour éviter les freezes
-  const [isLoadingSlides, setIsLoadingSlides] = useState(false);
+  const setSelectedDate = useStore((state: { setSelectedDate: (date: Date) => void }) => state.setSelectedDate);
+  const flatListRef = useRef<FlatList<Slide>>(null);
+  const onSlideChangeRef = useRef(onSlideChange);
+  const itemWidth = Math.min(screenWidth * 0.9, 520);
+  const [isLoadingSlides, setIsLoadingSlides] = useState(true);
   const [displayedSlides, setDisplayedSlides] = useState<Slide[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [opensDayOnPress, setOpensDayOnPress] = useState(true);
 
-
-  const getFormattedLabel = (date: Date) => {
-    const dayOfWeek = date.toLocaleDateString(locale, { weekday: 'narrow' });
-    const dayOfMonth = date.getDate();
-    return `${dayOfWeek}. ${dayOfMonth}`;
-  }
-
-  // Générer les slides de manière asynchrone pour éviter les freezes
   useEffect(() => {
-    setIsLoadingSlides(true);
-    
-    // Utiliser setImmediate pour exécuter le calcul en arrière-plan
-    const timeoutId = setTimeout(() => {
-      const newSlides = transformDaysDataByPeriod(daysData, period, colors, locale, t);
-      setDisplayedSlides(newSlides);
-      setIsLoadingSlides(false);
-    }, 0);
-    
-    return () => clearTimeout(timeoutId);
-  }, [daysData, period, colors, locale, t]);
+    onSlideChangeRef.current = onSlideChange;
+  }, [onSlideChange]);
 
-  const handlePressBar = useCallback(async (data: any) => {
-    await Haptic.impactAsync(Haptic.ImpactFeedbackStyle.Medium);
-    if (data && data.date) {
-      setSelectedDate(new Date(data.date));
-    }
-
-    queryClient.invalidateQueries({ queryKey: ['days'] });
-
-    router.navigate('/home');
-  }, [setSelectedDate, queryClient]);
-
-  const renderWeekChart = useCallback(({ item }: { item: Slide }) => {
-    const weekStyles = getStyles(colors);
-    return (
-      <View style={[weekStyles.weekContainer, { width: itemWidth }]}>
-        <Text
-          style={{ fontSize: fontSizes.lg, fontWeight: '300', color: colors.textSecondary, paddingVertical: 8 }}
-        >
-          {item.periodLabel}
-        </Text>
-        <BarChart
-          barBorderRadius={8}
-          barWidth={barConfig.barWidth}
-          yAxisThickness={0}
-          xAxisThickness={0}
-          hideAxesAndRules
-          stackData={item.bars}
-          // animationDuration={500}
-          isAnimated={false} // Désactiver l'animation pour éviter les freezes
-          hideYAxisText
-          xAxisLabelTextStyle={{ fontSize: fontSizes.sm, color: colors.text }}
-          onPress={handlePressBar}
-          disableScroll
-        />
-      </View>
-    );
-  }, [itemWidth, fontSizes.lg, fontSizes.sm, colors, barConfig.barWidth, handlePressBar]);
-
-  // Déterminer l'index de scroll initial selon la période
-  const initialScrollIndex = useMemo(() => {
-    if (period === 'Par semaine' || period === 'Global') {
-      return 4; // Afficher la semaine actuelle (dernière slide)
-    } else if (period === 'Par mois' || period === 'Par année') {
-      // Afficher le mois/année courant (dernier slide)
-      return Math.max(0, displayedSlides.length - 1);
-    }
-    return 0;
-  }, [period, displayedSlides.length]);
-
-  // Utiliser un useEffect pour s'assurer que le scroll se fait correctement
   useEffect(() => {
-    if (!isLoadingSlides && displayedSlides.length > 0) {
-      if (period === 'Par mois' || period === 'Par année') {
-        const targetIndex = displayedSlides.length - 1;
-        requestAnimationFrame(() => {
-          flatListRef.current?.scrollToIndex({ index: targetIndex, animated: false });
-        });
-      } else if (period === 'Par semaine' || period === 'Global') {
-        requestAnimationFrame(() => {
-          flatListRef.current?.scrollToIndex({ index: 4, animated: false });
-        });
+    let isMounted = true;
+    const loadingTimeoutId = setTimeout(() => {
+      if (isMounted) {
+        setIsLoadingSlides(true);
       }
-    }
-  }, [displayedSlides.length, period, isLoadingSlides]);
+    }, 120);
 
-  const containerStyles = getStyles(colors);
+    const computeTimeoutId = setTimeout(() => {
+      const nextSlides = transformDaysDataByPeriod(daysData || [], period, palette, locale, t);
+      if (!isMounted) return;
+
+      clearTimeout(loadingTimeoutId);
+      const nextIndex = Math.max(0, nextSlides.length - 1);
+      setDisplayedSlides(nextSlides);
+      setActiveIndex(nextIndex);
+      setIsLoadingSlides(false);
+
+      if (nextSlides[nextIndex]) {
+        onSlideChangeRef.current?.(nextSlides[nextIndex]);
+      }
+
+      requestAnimationFrame(() => {
+        flatListRef.current?.scrollToIndex({ index: nextIndex, animated: false });
+      });
+    }, 0);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(loadingTimeoutId);
+      clearTimeout(computeTimeoutId);
+    };
+  }, [daysData, period, palette, locale, t]);
+
+  const handlePressBar = useCallback(async (bar: BarData) => {
+    await Haptic.impactAsync(opensDayOnPress ? Haptic.ImpactFeedbackStyle.Medium : Haptic.ImpactFeedbackStyle.Light);
+
+    if (!opensDayOnPress) {
+      return;
+    }
+
+    setSelectedDate(new Date(bar.date));
+    queryClient.invalidateQueries({ queryKey: ["days"] });
+    router.navigate("/home");
+  }, [opensDayOnPress, queryClient, setSelectedDate]);
+
+  const toggleOpenDayOnPress = useCallback(async () => {
+    await Haptic.impactAsync(Haptic.ImpactFeedbackStyle.Light);
+    setOpensDayOnPress((current) => !current);
+  }, []);
+
+  const goToSlide = useCallback(async (index: number) => {
+    if (index < 0 || index >= displayedSlides.length) return;
+    await Haptic.impactAsync(Haptic.ImpactFeedbackStyle.Light);
+    setActiveIndex(index);
+    flatListRef.current?.scrollToIndex({ index, animated: true });
+    onSlideChange?.(displayedSlides[index]);
+  }, [displayedSlides, onSlideChange]);
 
   const handleMomentumScrollEnd = useCallback((event: any) => {
-    const contentOffsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffsetX / itemWidth);
-    
-    if (index >= 0 && index < displayedSlides.length && onSlideChange) {
-      onSlideChange(displayedSlides[index]);
-    }
+    const index = Math.round(event.nativeEvent.contentOffset.x / itemWidth);
+    if (index < 0 || index >= displayedSlides.length) return;
+
+    setActiveIndex(index);
+    onSlideChange?.(displayedSlides[index]);
   }, [displayedSlides, itemWidth, onSlideChange]);
 
+  const renderSlide = useCallback(({ item }: { item: Slide }) => (
+    <ChartSlide
+      slide={item}
+      colors={colors}
+      palette={palette}
+      fontSizes={fontSizes}
+      itemWidth={itemWidth}
+      onPressBar={handlePressBar}
+      opensDayOnPress={opensDayOnPress}
+    />
+  ), [colors, fontSizes, handlePressBar, itemWidth, opensDayOnPress, palette]);
+
   return (
-    <Squircle style={containerStyles.barCharContainer}>
+    <Squircle style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={styles.topBar}>
+        <Text style={[styles.periodName, { color: colors.text, fontSize: fontSizes.base }]}>
+          {getPeriodName(period, t)}
+        </Text>
+        <View style={styles.timelineControls}>
+          <Pressable
+            accessibilityRole="switch"
+            accessibilityState={{ checked: opensDayOnPress }}
+            accessibilityLabel={language === "en" ? "Open day on bar tap" : "Ouvrir le jour au toucher"}
+            onPress={toggleOpenDayOnPress}
+            style={[
+              styles.redirectToggle,
+              {
+                backgroundColor: opensDayOnPress ? colors.text : colors.input,
+              },
+            ]}
+          >
+            <SymbolView
+              name="calendar"
+              size={14}
+              tintColor={opensDayOnPress ? colors.card : colors.textSecondary}
+            />
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.redirectToggleText,
+                {
+                  color: opensDayOnPress ? colors.card : colors.textSecondary,
+                  fontSize: fontSizes.xs,
+                },
+              ]}
+            >
+              {language === "en" ? "Open" : "Ouvrir"}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={activeIndex === 0 || isLoadingSlides}
+            onPress={() => goToSlide(activeIndex - 1)}
+            style={[styles.iconButton, { backgroundColor: colors.input, opacity: activeIndex === 0 || isLoadingSlides ? 0.42 : 1 }]}
+          >
+            <SymbolView name="chevron.left" size={15} tintColor={colors.text} />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={activeIndex >= displayedSlides.length - 1 || isLoadingSlides}
+            onPress={() => goToSlide(activeIndex + 1)}
+            style={[styles.iconButton, { backgroundColor: colors.input, opacity: activeIndex >= displayedSlides.length - 1 || isLoadingSlides ? 0.42 : 1 }]}
+          >
+            <SymbolView name="chevron.right" size={15} tintColor={colors.text} />
+          </Pressable>
+        </View>
+      </View>
+
       {isLoadingSlides ? (
-        <View style={{ 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: 220,
-          width: itemWidth 
-        }}>
-          <ActivityIndicator size="large" color={colors.text} />
-          <Text style={{ 
-            marginTop: 12, 
-            fontSize: 14, 
-            color: colors.textSecondary,
-            fontFamily: 'Satoshi-Medium'
-          }}>
-            {t("stats.chart.loading")}
-          </Text>
-        </View>
+        <ChartSkeleton colors={colors} palette={palette} itemWidth={itemWidth} />
       ) : displayedSlides.length === 0 ? (
-        <View style={{ 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: 220,
-          width: itemWidth 
-        }}>
-          <Text style={{ 
-            fontSize: 16, 
-            color: colors.textSecondary,
-            fontFamily: 'Satoshi-Medium',
-            textAlign: 'center'
-          }}>
-            {t("stats.chart.empty")}
-          </Text>
-        </View>
+        <EmptyState colors={colors} itemWidth={itemWidth} text={t("stats.chart.empty")} />
       ) : (
-        <FlatList
-          ref={flatListRef}
-          data={displayedSlides}
-          renderItem={renderWeekChart}
-          keyExtractor={(item) => item.id}
-          horizontal
-          scrollEventThrottle={16}
-          showsHorizontalScrollIndicator={false}
-          snapToInterval={itemWidth}
-          decelerationRate="fast"
-          bounces
-          initialScrollIndex={period === 'Par semaine' || period === 'Global' ? 4 : 0}
-          getItemLayout={(data, index) => ({
-            length: itemWidth,
-            offset: itemWidth * index,
-            index,
-          })}
-          onScrollToIndexFailed={() => { }}
-          onMomentumScrollEnd={handleMomentumScrollEnd}
-          removeClippedSubviews
-          updateCellsBatchingPeriod={50}
-          maxToRenderPerBatch={2}
-        />
+        <>
+          <FlatList
+            ref={flatListRef}
+            data={displayedSlides}
+            renderItem={renderSlide}
+            keyExtractor={(item) => item.id}
+            horizontal
+            pagingEnabled
+            scrollEventThrottle={16}
+            showsHorizontalScrollIndicator={false}
+            decelerationRate="fast"
+            initialScrollIndex={Math.max(0, displayedSlides.length - 1)}
+            getItemLayout={(_, index) => ({
+              length: itemWidth,
+              offset: itemWidth * index,
+              index,
+            })}
+            onScrollToIndexFailed={({ index }) => {
+              requestAnimationFrame(() => {
+                flatListRef.current?.scrollToOffset({ offset: itemWidth * index, animated: false });
+              });
+            }}
+            onMomentumScrollEnd={handleMomentumScrollEnd}
+            removeClippedSubviews
+            initialNumToRender={1}
+            maxToRenderPerBatch={1}
+            windowSize={3}
+          />
+          <View style={styles.timeline}>
+            {displayedSlides.map((slide, index) => (
+              <Pressable
+                key={slide.id}
+                accessibilityRole="button"
+                accessibilityLabel={slide.periodLabel}
+                onPress={() => goToSlide(index)}
+                style={[
+                  styles.timelineDot,
+                  {
+                    width: index === activeIndex ? 22 : 6,
+                    backgroundColor: index === activeIndex ? colors.text : colors.border,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        </>
       )}
     </Squircle>
   );
 }
 
-const getStyles = (colors: any) => StyleSheet.create({
-  barCharContainer: {
-    backgroundColor: colors.card,
+const styles = StyleSheet.create({
+  container: {
+    alignItems: "center",
+    alignSelf: "center",
     borderRadius: 30,
-    borderColor: colors.border,
-    // borderWidth: 0.5,
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '90%',
-    paddingTop: 0,
+    marginTop: 2,
+    overflow: "hidden",
     paddingBottom: 16,
-    overflow: 'hidden',
-    boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',
+    paddingTop: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    width: "90%",
   },
-  weekContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
+  topBar: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    width: "100%",
+  },
+  periodName: {
+    fontFamily: "Satoshi-Bold",
+  },
+  timelineControls: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  redirectToggle: {
+    alignItems: "center",
+    borderRadius: 16,
+    flexDirection: "row",
+    gap: 5,
+    height: 32,
+    justifyContent: "center",
+    paddingHorizontal: 10,
+  },
+  redirectToggleText: {
+    fontFamily: "Satoshi-Bold",
+  },
+  iconButton: {
+    alignItems: "center",
+    borderRadius: 16,
+    height: 32,
+    justifyContent: "center",
+    width: 32,
+  },
+  stateContainer: {
+    alignItems: "center",
+    height: 268,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  skeletonHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+    width: "100%",
+  },
+  skeletonLine: {
+    borderRadius: 999,
+    height: 18,
+  },
+  skeletonBars: {
+    alignItems: "flex-end",
+    flexDirection: "row",
+    gap: 12,
+    height: 186,
+    justifyContent: "center",
+  },
+  skeletonBarWrap: {
+    alignItems: "center",
+    gap: 10,
+    justifyContent: "flex-end",
+  },
+  skeletonBar: {
+    borderRadius: 14,
+    width: 26,
+  },
+  skeletonLabel: {
+    borderRadius: 999,
+    height: 6,
+    width: 18,
+  },
+  emptyIcon: {
+    alignItems: "center",
+    borderRadius: 24,
+    height: 48,
+    justifyContent: "center",
+    marginBottom: 12,
+    width: 48,
+  },
+  emptyText: {
+    fontFamily: "Satoshi-Medium",
+    fontSize: 15,
+    textAlign: "center",
+  },
+  slide: {
+    paddingHorizontal: 20,
+  },
+  slideHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingTop: 14,
+  },
+  kicker: {
+    fontFamily: "Satoshi-Medium",
+    marginBottom: 2,
+  },
+  title: {
+    fontFamily: "Satoshi-Bold",
+    letterSpacing: 0,
+  },
+  scorePill: {
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  scoreText: {
+    fontFamily: "Satoshi-Bold",
+  },
+  chartArea: {
+    height: 232,
+    justifyContent: "flex-end",
+    marginTop: 6,
+  },
+  gridLayer: {
+    bottom: 42,
+    height: CHART_HEIGHT,
+    justifyContent: "space-between",
+    left: 0,
+    position: "absolute",
+    right: 0,
+  },
+  gridLine: {
+    height: StyleSheet.hairlineWidth,
+    width: "100%",
+  },
+  tooltip: {
+    alignItems: "center",
+    borderRadius: 12,
+    minWidth: 96,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    position: "absolute",
+    top: 0,
+    zIndex: 4,
+  },
+  tooltipTitle: {
+    fontFamily: "Satoshi-Medium",
+    fontSize: 11,
+    opacity: 0.72,
+  },
+  tooltipValue: {
+    fontFamily: "Satoshi-Bold",
+    fontSize: 14,
+    marginTop: 1,
+  },
+  tooltipArrow: {
+    borderLeftColor: "transparent",
+    borderLeftWidth: 7,
+    borderRightColor: "transparent",
+    borderRightWidth: 7,
+    borderTopWidth: 7,
+    bottom: -7,
+    height: 0,
+    position: "absolute",
+    width: 0,
+  },
+  barsRow: {
+    alignItems: "flex-end",
+    flexDirection: "row",
+    height: CHART_HEIGHT + 42,
+    justifyContent: "space-between",
+  },
+  barSlot: {
+    alignItems: "center",
+    gap: 9,
+    height: "100%",
+    justifyContent: "flex-end",
+  },
+  barTrack: {
+    borderRadius: 18,
+    justifyContent: "flex-end",
+    overflow: "visible",
+  },
+  barFill: {
+    borderRadius: 18,
+    bottom: 0,
+    left: 0,
+    overflow: "hidden",
+    position: "absolute",
+    right: 0,
+  },
+  barGlow: {
+    borderRadius: 22,
+    bottom: -5,
+    left: -5,
+    opacity: 0.38,
+    position: "absolute",
+    right: -5,
+    top: -5,
+  },
+  barRing: {
+    borderRadius: 21,
+    borderWidth: 3,
+    bottom: -2,
+    left: -2,
+    opacity: 0.92,
+    position: "absolute",
+    right: -2,
+    top: -2,
+  },
+  openIndicator: {
+    borderRadius: 999,
+    height: 4,
+    marginTop: -4,
+    opacity: 0.75,
+    width: 4,
+  },
+  barLabel: {
+    fontFamily: "Satoshi-Medium",
+    textAlign: "center",
+    width: "100%",
+  },
+  timeline: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 6,
+    justifyContent: "center",
+    minHeight: 18,
+    paddingHorizontal: 22,
+  },
+  timelineDot: {
+    borderRadius: 999,
+    height: 6,
   },
 });
-
-const styles = getStyles({} as any);

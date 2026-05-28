@@ -6,16 +6,16 @@ import StatsCard from "@/components/statsCard";
 import StatsCardCharge from "@/components/statsCardCharge";
 import StatsCardCompletion from "@/components/statsCardCompletion";
 import StatsStreak from "@/components/statsStreak";
+import { useFont } from "@/lib/FontContext";
+import { useAppTranslation } from "@/lib/i18n";
+import { supabase } from "@/lib/supabase";
+import { useTheme } from "@/lib/ThemeContext";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { Extrapolate, interpolate, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { useFont } from "@/lib/FontContext";
-import { useAppTranslation } from "@/lib/i18n";
-import { supabase } from "@/lib/supabase";
-import { useTheme } from "@/lib/ThemeContext";
 
 interface StatsData {
   completion: string;
@@ -410,7 +410,7 @@ export default function Stats() {
       {/* Scrollable content */}
       <Animated.ScrollView
         style={{ width: '100%' }}
-        contentContainerStyle={{ alignItems: 'center', paddingBottom: 40, display: 'flex', gap: 10 }}
+        contentContainerStyle={{ alignItems: 'center', paddingBottom: 200, display: 'flex', gap: 10 }}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topContainer}>
