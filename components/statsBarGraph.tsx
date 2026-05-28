@@ -596,7 +596,7 @@ export default function StatsBarGraph({
   const [isLoadingSlides, setIsLoadingSlides] = useState(true);
   const [displayedSlides, setDisplayedSlides] = useState<Slide[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [opensDayOnPress, setOpensDayOnPress] = useState(true);
+  const [opensDayOnPress, setOpensDayOnPress] = useState(false);
 
   useEffect(() => {
     onSlideChangeRef.current = onSlideChange;
