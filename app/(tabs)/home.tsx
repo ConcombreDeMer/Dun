@@ -39,6 +39,7 @@ const addDays = (date: Date, amount: number) => {
 };
 
 const getDateKey = (date: Date) => toAppDateKey(startOfDay(date));
+const getTaskRenderKey = (task: any) => task.clientKey ?? task.id;
 const getDayOffset = (from: Date, to: Date) => {
   const start = startOfDay(from).getTime();
   const end = startOfDay(to).getTime();
@@ -53,6 +54,7 @@ type DayTasksPageProps = {
   loading: boolean;
   selectedTaskId: number | null;
   tasks: any[];
+  onDragBegin?: () => void;
   onDragEnd?: ({ data }: { data: any[] }) => void;
   onPlaceholderIndexChange?: () => void;
   onTaskPress: (taskId: number, layout?: TaskItemLayout) => void;
@@ -67,6 +69,7 @@ const DayTasksPage = ({
   dayWidth,
   isCalendarExpanded,
   loading,
+  onDragBegin,
   onDragEnd,
   onPlaceholderIndexChange,
   onTaskPress,
@@ -76,10 +79,65 @@ const DayTasksPage = ({
   tasks,
   t,
 }: DayTasksPageProps) => {
-  const taskListLayoutKey = useMemo(
-    () => tasks.map((task) => task.id).join(":"),
-    [tasks]
+  const [optimisticTaskOrder, setOptimisticTaskOrder] = useState<Array<string | number> | null>(null);
+  const displayedTasks = useMemo(() => {
+    if (!optimisticTaskOrder || optimisticTaskOrder.length !== tasks.length) {
+      return tasks;
+    }
+
+    const tasksById = new Map(tasks.map((task) => [getTaskRenderKey(task), task]));
+    const nextTasks = optimisticTaskOrder
+      .map((taskKey) => tasksById.get(taskKey))
+      .filter(Boolean);
+
+    return nextTasks.length === tasks.length ? nextTasks : tasks;
+  }, [optimisticTaskOrder, tasks]);
+  const taskListCompositionKey = useMemo(
+    () => displayedTasks.map(getTaskRenderKey).join(":"),
+    [displayedTasks]
   );
+  const reorderAnimationUnlockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [disableCustomListAnimations, setDisableCustomListAnimations] = useState(false);
+
+  const lockCustomListAnimations = useCallback(() => {
+    if (reorderAnimationUnlockTimeoutRef.current) {
+      clearTimeout(reorderAnimationUnlockTimeoutRef.current);
+      reorderAnimationUnlockTimeoutRef.current = null;
+    }
+
+    setDisableCustomListAnimations(true);
+  }, []);
+
+  const unlockCustomListAnimationsSoon = useCallback(() => {
+    if (reorderAnimationUnlockTimeoutRef.current) {
+      clearTimeout(reorderAnimationUnlockTimeoutRef.current);
+    }
+
+    reorderAnimationUnlockTimeoutRef.current = setTimeout(() => {
+      setOptimisticTaskOrder(null);
+      setDisableCustomListAnimations(false);
+      reorderAnimationUnlockTimeoutRef.current = null;
+    }, 700);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (reorderAnimationUnlockTimeoutRef.current) {
+        clearTimeout(reorderAnimationUnlockTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleDragBegin = useCallback(() => {
+    lockCustomListAnimations();
+    onDragBegin?.();
+  }, [lockCustomListAnimations, onDragBegin]);
+
+  const handleDragEnd = useCallback((params: { data: any[] }) => {
+    setOptimisticTaskOrder(params.data.map(getTaskRenderKey));
+    onDragEnd?.(params);
+    unlockCustomListAnimationsSoon();
+  }, [onDragEnd, unlockCustomListAnimationsSoon]);
 
   return (
     <View style={[styles.dayPage, { width: dayWidth }]}>
@@ -89,8 +147,8 @@ const DayTasksPage = ({
         </View>
       ) : (
         <DraggableFlatList
-          data={tasks}
-          keyExtractor={(item) => `${dayIndex}-${item.id}`}
+          data={displayedTasks}
+          keyExtractor={(item) => `${dayIndex}-${getTaskRenderKey(item)}`}
           scrollEnabled={selectedTaskId === null}
           nestedScrollEnabled
           showsVerticalScrollIndicator={false}
@@ -98,8 +156,8 @@ const DayTasksPage = ({
           removeClippedSubviews={false}
           contentContainerStyle={styles.flatListContent}
           activationDistance={20}
-          extraData={taskListLayoutKey}
-          onDragEnd={onDragEnd}
+          onDragBegin={handleDragBegin}
+          onDragEnd={handleDragEnd}
           onPlaceholderIndexChange={onPlaceholderIndexChange}
           renderItem={({ item, drag, isActive }) => (
             <TaskItem
@@ -111,7 +169,8 @@ const DayTasksPage = ({
               isTogglePending={isTaskTogglePending(item.id)}
               selectedTaskId={selectedTaskId}
               listHeight={0}
-              layoutAnimationKey={taskListLayoutKey}
+              layoutAnimationKey={taskListCompositionKey}
+              disableAddedAnimations={disableCustomListAnimations}
               mode="normal"
               isExtendable={!isCalendarExpanded}
             />
@@ -264,7 +323,18 @@ export default function Home() {
       console.error('Erreur lors de la récupération des tâches:', error);
       return [];
     }
-    return data;
+
+    const cachedTasks = queryClient.getQueryData<any[]>(['tasks']) ?? [];
+    const cachedKeysById = new Map(
+      cachedTasks
+        .filter((task: any) => task.clientKey)
+        .map((task: any) => [task.id, task.clientKey])
+    );
+
+    return data?.map((task: any) => {
+      const clientKey = cachedKeysById.get(task.id);
+      return clientKey ? { ...task, clientKey } : task;
+    }) ?? [];
   }
 
   const taskQuery = useQuery({
@@ -331,6 +401,9 @@ export default function Home() {
       ...task,
       order: data.length - index
     }));
+    const previousTasks = queryClient.getQueryData<any[]>(['tasks']);
+
+    await queryClient.cancelQueries({ queryKey: ['tasks'] });
 
     // Optimistic update immédiat avec les nouveaux "order"
     queryClient.setQueryData<any[]>(['tasks'], (oldVars) => {
@@ -350,32 +423,45 @@ export default function Home() {
 
         if (error) {
           console.error("Erreur lors de la mise à jour de l'ordre:", error);
-          // Rollback si erreur
-          queryClient.invalidateQueries({
-            queryKey: ['tasks']
-          });
-          break;
+          if (previousTasks) {
+            queryClient.setQueryData(['tasks'], previousTasks);
+          } else {
+            queryClient.invalidateQueries({ queryKey: ['tasks'] });
+          }
+          return;
         }
       }
     } catch (error) {
       console.error("Erreur:", error);
+      if (previousTasks) {
+        queryClient.setQueryData(['tasks'], previousTasks);
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      }
     }
   }, [dateKey, queryClient, store.user.id]);
 
-  const handleTaskPress = useCallback((taskId: number, layout?: TaskItemLayout) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    if (selectedTaskId === taskId) {
-      setShouldRenderOverlayContent(false);
-      overlayProgress.value = withTiming(0, {
+  const closeSelectedTaskOverlay = useCallback((afterClose?: () => void) => {
+    setShouldRenderOverlayContent(false);
+    overlayProgress.value = withTiming(0, {
         duration: 260,
         easing: Easing.bezier(0.2, 0.8, 0.2, 1),
       }, (finished) => {
         if (finished) {
           runOnJS(setSelectedTaskId)(null);
           runOnJS(setSelectedTaskLayout)(null);
+          if (afterClose) {
+            runOnJS(afterClose)();
+          }
         }
       });
+  }, [overlayProgress]);
+
+  const handleTaskPress = useCallback((taskId: number, layout?: TaskItemLayout) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    if (selectedTaskId === taskId) {
+      closeSelectedTaskOverlay();
       return;
     }
 
@@ -392,7 +478,7 @@ export default function Home() {
         easing: Easing.bezier(0.2, 0.8, 0.2, 1),
       });
     });
-  }, [overlayProgress, selectedTaskId]);
+  }, [closeSelectedTaskOverlay, overlayProgress, selectedTaskId]);
 
   useEffect(() => {
     if (selectedTaskId === null || selectedTaskLayout === null) return;
@@ -667,7 +753,7 @@ export default function Home() {
                 {shouldRenderOverlayContent ? (
                   <PopUpTask
                     id={selectedTask.id}
-                    onClose={() => handleTaskPress(selectedTask.id)}
+                    onClose={closeSelectedTaskOverlay}
                   />
                 ) : null}
               </View>

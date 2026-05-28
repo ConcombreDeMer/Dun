@@ -1,17 +1,15 @@
 import { Feather } from '@expo/vector-icons';
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { SquircleButton } from 'expo-squircle-view';
 import { useCallback, useEffect, useRef } from "react";
-import { Dimensions, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Dimensions, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Swipeable } from 'react-native-gesture-handler';
 import Animated, { Easing, interpolateColor, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
-import { supabase } from "../lib/supabase";
-import { deleteTask, moveTaskDate } from "../lib/tasks";
 import { useTheme } from "../lib/ThemeContext";
+import { useOptimisticTaskMutations } from "../lib/useOptimisticTaskMutations";
 import Squircle from "./Squircle";
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
@@ -69,6 +67,7 @@ interface TaskItemProps {
     name: string;
     done: boolean;
     description: string;
+    date?: string;
   };
   drag: () => void;
   isActive: boolean;
@@ -77,6 +76,7 @@ interface TaskItemProps {
   selectedTaskId: number | null;
   listHeight: number;
   layoutAnimationKey?: string;
+  disableAddedAnimations?: boolean;
   isExtendable?: boolean;
   isTogglePending?: boolean;
   mode?: 'normal' | 'daily';
@@ -91,6 +91,7 @@ export const TaskItem = ({
   selectedTaskId,
   listHeight,
   layoutAnimationKey,
+  disableAddedAnimations = false,
   isExtendable = true,
   isTogglePending = false,
   mode = 'normal',
@@ -107,10 +108,18 @@ export const TaskItem = ({
   const pressScale = useSharedValue(1);
   const doneProgress = useSharedValue(item.done ? 1 : 0);
 
-  const queryClient = useQueryClient();
+  const {
+    deleteTaskOptimistically,
+    isTaskDeletePending,
+    isTaskMovePending,
+    moveTaskDateOptimistically,
+  } = useOptimisticTaskMutations();
   const swipeableRef = useRef<Swipeable>(null);
   const rowRef = useRef<View>(null);
   const lastMeasuredYRef = useRef<number | null>(null);
+  const isActiveRef = useRef(isActive);
+  const selectedTaskIdRef = useRef(selectedTaskId);
+  const disableAddedAnimationsRef = useRef(disableAddedAnimations);
 
   const screenWidth = Dimensions.get('window').width;
   const translateX = useSharedValue(0);
@@ -123,66 +132,68 @@ export const TaskItem = ({
   const mutedTaskColor = blendColors(colors.task, colors.background, 0.5);
   const mutedTextColor = blendColors(colors.text, colors.background, 0.5);
 
-  const deleteTaskMutation = useMutation({
-    mutationFn: async () => {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      await deleteTask(item.id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["days"] });
-    }
-  });
-
-  const postponeTaskMutation = useMutation({
-    mutationFn: async () => {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Utilisateur non connecté");
-
-      const { data: taskData, error: fetchError } = await supabase
-        .from("Tasks")
-        .select("date")
-        .eq("id", item.id)
-        .eq("user_id", user.id)
-        .single();
-
-      if (fetchError || !taskData) throw new Error(fetchError?.message || "Tâche non trouvée");
-
-      const oldDateString = toAppDateKey(taskData.date);
-
-      let currentDate = new Date(taskData.date);
-      if (mode === 'daily') {
-        currentDate = new Date();
-      } else {
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      const newDateString = toAppDateKey(currentDate);
-      
-      if (oldDateString === newDateString) return;
-
-      await moveTaskDate(item.id, newDateString);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["days"] });
-    }
-  });
+  const handleDeleteAfterSwipe = useCallback(() => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    void deleteTaskOptimistically(item.id).catch((error: any) => {
+      console.error("Erreur lors de la suppression:", error);
+      Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
+    });
+  }, [deleteTaskOptimistically, item.id, t]);
 
   const handleSwipeLeft = useCallback(() => {
+    if (isTaskDeletePending(item.id)) return;
+
     swipeableRef.current?.close();
-    itemOpacity.value = withTiming(0, { duration: 600 });
-    translateX.value = withTiming(-screenWidth, { duration: 1000 }, (finished) => {
-      if (finished) runOnJS(deleteTaskMutation.mutate)();
+    itemOpacity.value = withTiming(0, { duration: 600 }, (finished) => {
+      if (finished) {
+        runOnJS(handleDeleteAfterSwipe)();
+      }
     });
-  }, [deleteTaskMutation, translateX, itemOpacity, screenWidth]);
+    translateX.value = withTiming(-screenWidth, { duration: 600 });
+  }, [handleDeleteAfterSwipe, isTaskDeletePending, item.id, translateX, itemOpacity, screenWidth]);
+
+  const handleMoveAfterSwipe = useCallback(() => {
+    const sourceDate = item.date ? new Date(item.date) : new Date();
+    const targetDate = mode === 'daily' ? new Date() : sourceDate;
+
+    if (mode !== 'daily') {
+      targetDate.setDate(targetDate.getDate() + 1);
+    }
+
+    const nextDateKey = toAppDateKey(targetDate);
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    void moveTaskDateOptimistically(item.id, nextDateKey).catch((error: any) => {
+      console.error("Erreur lors du report:", error);
+      Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
+    });
+  }, [item.date, item.id, mode, moveTaskDateOptimistically, t]);
 
   const handleSwipeRight = useCallback(() => {
+    if (isTaskMovePending(item.id)) return;
+
+    const sourceDate = item.date ? new Date(item.date) : new Date();
+    const targetDate = mode === 'daily' ? new Date() : new Date(sourceDate);
+
+    if (mode !== 'daily') {
+      targetDate.setDate(targetDate.getDate() + 1);
+    }
+
+    if (toAppDateKey(sourceDate) === toAppDateKey(targetDate)) {
+      swipeableRef.current?.close();
+      translateX.value = withTiming(0, { duration: 180 });
+      itemOpacity.value = withTiming(1, { duration: 180 });
+      return;
+    }
+
     swipeableRef.current?.close();
-    translateX.value = withTiming(screenWidth, { duration: 300 }, (finished) => {
-      if (finished) runOnJS(postponeTaskMutation.mutate)();
+    itemOpacity.value = withTiming(0, { duration: 300 }, (finished) => {
+      if (finished) {
+        runOnJS(handleMoveAfterSwipe)();
+      }
     });
-  }, [postponeTaskMutation, translateX, screenWidth]);
+    translateX.value = withTiming(screenWidth, { duration: 300 });
+  }, [handleMoveAfterSwipe, isTaskMovePending, item.date, item.id, mode, translateX, itemOpacity, screenWidth]);
 
   const renderRightActions = useCallback(() => {
     return (
@@ -238,13 +249,16 @@ export const TaskItem = ({
   }, [handleSwipeRight, fontSizes.base, mode]);
 
   const animatedStyle = useAnimatedStyle(() => {
+    const enterScale = disableAddedAnimations ? 1 : 0.3 + enterProgress.value * 0.7;
+    const enterOpacity = disableAddedAnimations ? 1 : enterProgress.value;
+
     return {
       transform: [
-        { scale: (isActive ? 1.02 : 1) * pressScale.value * rowScale.value * (0.3 + enterProgress.value * 0.7) },
+        { scale: (isActive ? 1.02 : 1) * pressScale.value * rowScale.value * enterScale },
         { translateY: rowTranslateY.value + layoutTranslateY.value },
         { translateX: translateX.value }
       ],
-      opacity: itemOpacity.value * rowOpacity.value * enterProgress.value,
+      opacity: itemOpacity.value * rowOpacity.value * enterOpacity,
     };
   });
 
@@ -346,46 +360,86 @@ export const TaskItem = ({
     });
   }, [pressScale]);
 
-  const measureAndAnimateLayoutChange = useCallback(() => {
+  const measureCurrentY = useCallback((onMeasure: (y: number) => void) => {
     requestAnimationFrame(() => {
       rowRef.current?.measureInWindow((_, y) => {
-        const previousY = lastMeasuredYRef.current;
-        lastMeasuredYRef.current = y;
-
-        if (previousY === null || isActive || selectedTaskId !== null) {
-          return;
-        }
-
-        const yDelta = previousY - y;
-
-        if (Math.abs(yDelta) < 1) {
-          return;
-        }
-
-        layoutTranslateY.value = yDelta;
-        layoutTranslateY.value = withSpring(0, {
-          damping: 20,
-          stiffness: 220,
-          mass: 0.75,
-          overshootClamping: true,
-        });
+        onMeasure(y);
       });
     });
-  }, [isActive, layoutTranslateY, selectedTaskId]);
+  }, []);
+
+  const measureInitialLayout = useCallback(() => {
+    if (lastMeasuredYRef.current !== null) {
+      return;
+    }
+
+    measureCurrentY((y) => {
+      lastMeasuredYRef.current = y;
+    });
+  }, [measureCurrentY]);
+
+  const measureAndAnimateLayoutChange = useCallback(() => {
+    measureCurrentY((y) => {
+      const previousY = lastMeasuredYRef.current;
+      lastMeasuredYRef.current = y;
+
+      if (previousY === null || disableAddedAnimationsRef.current || isActiveRef.current || selectedTaskIdRef.current !== null) {
+        return;
+      }
+
+      const yDelta = previousY - y;
+
+      if (Math.abs(yDelta) < 1) {
+        return;
+      }
+
+      layoutTranslateY.value = yDelta;
+      layoutTranslateY.value = withSpring(0, {
+        damping: 20,
+        stiffness: 220,
+        mass: 0.75,
+        overshootClamping: true,
+      });
+    });
+  }, [layoutTranslateY, measureCurrentY]);
+
+  useEffect(() => {
+    isActiveRef.current = isActive;
+    selectedTaskIdRef.current = selectedTaskId;
+    disableAddedAnimationsRef.current = disableAddedAnimations;
+  }, [disableAddedAnimations, isActive, selectedTaskId]);
 
   useEffect(() => {
     measureAndAnimateLayoutChange();
   }, [layoutAnimationKey, measureAndAnimateLayoutChange]);
 
+  useEffect(() => {
+    if (disableAddedAnimations) {
+      enterProgress.value = 1;
+      layoutTranslateY.value = 0;
+    }
+  }, [disableAddedAnimations, enterProgress, layoutTranslateY]);
+
+  useEffect(() => {
+    if (isActive) {
+      layoutTranslateY.value = 0;
+    }
+  }, [isActive, layoutTranslateY]);
+
   const taskItemStyle =
     [styles.taskItem, { backgroundColor: colors.task }];
 
   useEffect(() => {
+    if (disableAddedAnimations) {
+      enterProgress.value = 1;
+      return;
+    }
+
     enterProgress.value = withTiming(1, {
       duration: 220,
       easing: Easing.out(Easing.quad),
     });
-  }, [enterProgress]);
+  }, [disableAddedAnimations, enterProgress]);
 
   useEffect(() => {
     dotScale.value = withSpring(item.done ? 1 : 0, {
@@ -419,7 +473,7 @@ export const TaskItem = ({
   }, [isHidden, isSelected, listHeight, rowOpacity, rowScale, rowTranslateY, selectedTaskId]);
 
   return (
-    <Animated.View ref={rowRef} onLayout={measureAndAnimateLayoutChange} style={[animatedStyle, shadowStyle]}>
+    <Animated.View ref={rowRef} onLayout={measureInitialLayout} style={[animatedStyle, shadowStyle]}>
       <Swipeable
         ref={swipeableRef}
         renderLeftActions={renderLeftActions}

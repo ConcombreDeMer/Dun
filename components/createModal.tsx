@@ -1,7 +1,6 @@
 import { FontContext } from "@/lib/FontContext";
-import { createTask } from "@/lib/tasks";
+import { useOptimisticTaskMutations } from "@/lib/useOptimisticTaskMutations";
 import { useStore } from "@/store/store";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from 'expo-haptics';
 import { router } from "expo-router";
 import { SquircleView } from "expo-squircle-view";
@@ -24,29 +23,9 @@ export default function CreateModal({ accessoryId = "createTaskAccessory", onClo
     const isCreatingTaskRef = useRef(false);
     const { fontSizes } = React.useContext(FontContext)!;
     const { t } = useAppTranslation();
-    const queryClient = useQueryClient();
+    const { createTaskOptimistically } = useOptimisticTaskMutations();
     const selectedDate = useStore((state) => state.selectedDate) || new Date();
     const selectedDateKey = toAppDateKey(selectedDate);
-    
-    
-    const createTaskMutation = useMutation({
-        mutationFn: async () => {
-            return createTask({
-                name: taskTitle,
-                dateKey: selectedDateKey,
-            });
-        },
-        onSuccess: () => {
-            // Invalide la query et refetch automatiquement
-            queryClient.invalidateQueries({ queryKey: ['tasks'] });
-            queryClient.invalidateQueries({ queryKey: ['days'] });
-            setTaskTitle("");
-        },
-        onError: (error: any) => {
-            console.error("Erreur lors de la création de la tâche:", error);
-        }
-    });
-
 
 
     useEffect(() => {
@@ -62,7 +41,7 @@ export default function CreateModal({ accessoryId = "createTaskAccessory", onClo
         return () => clearTimeout(timer);
     }, []);
 
-const handleCreateTask = async () => {
+    const handleCreateTask = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
         // Marquer qu'on est en train de créer une tâche
@@ -74,13 +53,17 @@ const handleCreateTask = async () => {
             return;
         }
 
-        try {
-            await createTaskMutation.mutateAsync();
-        } catch (error: any) {
+        const nextTitle = taskTitle;
+        setTaskTitle("");
+
+        void createTaskOptimistically({
+            name: nextTitle,
+            dateKey: selectedDateKey,
+        }).catch((error: any) => {
+            console.error("Erreur lors de la création de la tâche:", error);
+            setTaskTitle((current) => current.trim() ? current : nextTitle);
             Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
-            isCreatingTaskRef.current = false;
-            return;
-        }
+        });
 
 
         // Rétablir le focus après un court délai

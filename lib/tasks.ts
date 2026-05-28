@@ -8,6 +8,10 @@ export type TaskDraftUpdate = {
   isDone: boolean;
 };
 
+type UpdateTaskDraftOptions = {
+  previousDateKey?: string | null;
+};
+
 const getUserId = async () => {
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -22,7 +26,7 @@ export const getNextTaskOrder = async (dateKey: string, userId?: string) => {
   const resolvedUserId = userId ?? await getUserId();
   const { data, error } = await supabase
     .from("Tasks")
-    .select("id")
+    .select("order")
     .eq("date", dateKey)
     .eq("user_id", resolvedUserId);
 
@@ -30,7 +34,11 @@ export const getNextTaskOrder = async (dateKey: string, userId?: string) => {
     throw new Error(error.message);
   }
 
-  return (data?.length || 0) + 1;
+  if (!data?.length) {
+    return 1;
+  }
+
+  return Math.max(...data.map((task) => task.order || 0)) + 1;
 };
 
 export const createTask = async ({
@@ -77,7 +85,11 @@ export const setTaskDone = async (taskId: number, nextDone: boolean) => {
   }
 };
 
-export const updateTaskDraft = async (taskId: number, draft: TaskDraftUpdate) => {
+export const updateTaskDraft = async (
+  taskId: number,
+  draft: TaskDraftUpdate,
+  options: UpdateTaskDraftOptions = {}
+) => {
   const userId = await getUserId();
   const trimmedName = draft.name.trim();
 
@@ -85,20 +97,43 @@ export const updateTaskDraft = async (taskId: number, draft: TaskDraftUpdate) =>
     throw new Error("Task name is required");
   }
 
+  const nextDateKey = toAppDateKey(draft.taskDate);
+  const hasPreviousDateKey = options.previousDateKey !== undefined;
+  const previousDateKey = options.previousDateKey
+    ? toAppDateKey(options.previousDateKey)
+    : options.previousDateKey;
+  const didDateChange = hasPreviousDateKey && previousDateKey !== nextDateKey;
+  const order = didDateChange ? await getNextTaskOrder(nextDateKey, userId) : undefined;
   const savedAt = new Date().toISOString();
+  const updatePayload: {
+    name: string;
+    description: string;
+    date: string;
+    last_update_date: string;
+    order?: number;
+  } = {
+    name: trimmedName,
+    description: draft.description.trim(),
+    date: nextDateKey,
+    last_update_date: savedAt,
+  };
+
+  if (order !== undefined) {
+    updatePayload.order = order;
+  }
+
   const { error } = await supabase
     .from("Tasks")
-    .update({
-      name: trimmedName,
-      description: draft.description.trim(),
-      date: toAppDateKey(draft.taskDate),
-      last_update_date: savedAt,
-    })
+    .update(updatePayload)
     .eq("id", taskId)
     .eq("user_id", userId);
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  if (didDateChange && previousDateKey) {
+    await normalizeTaskOrderForDate(previousDateKey, userId);
   }
 
   return {
@@ -172,13 +207,35 @@ export const deleteTask = async (taskId: number) => {
 
 export const moveTaskDate = async (taskId: number, dateKey: string) => {
   const userId = await getUserId();
+  const { data: taskData, error: fetchError } = await supabase
+    .from("Tasks")
+    .select("date")
+    .eq("id", taskId)
+    .eq("user_id", userId)
+    .single();
+
+  if (fetchError || !taskData) {
+    throw new Error(fetchError?.message || "Tâche non trouvée");
+  }
+
+  const previousDateKey = taskData.date ? toAppDateKey(taskData.date) : null;
+
+  if (previousDateKey === dateKey) {
+    return;
+  }
+
+  const order = await getNextTaskOrder(dateKey, userId);
   const { error } = await supabase
     .from("Tasks")
-    .update({ date: dateKey })
+    .update({ date: dateKey, order })
     .eq("id", taskId)
     .eq("user_id", userId);
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  if (previousDateKey) {
+    await normalizeTaskOrderForDate(previousDateKey, userId);
   }
 };

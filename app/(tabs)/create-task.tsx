@@ -3,7 +3,6 @@ import Headline from "@/components/headline";
 import PrimaryButton from "@/components/primaryButton";
 import SimpleInput from "@/components/textInput";
 import { useStore } from "@/store/store";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from 'expo-haptics';
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -18,8 +17,8 @@ import {
 import { toAppDateKey } from "@/lib/date";
 import { taskEmitter } from "@/lib/eventEmitter";
 import { useAppTranslation } from "@/lib/i18n";
-import { createTask } from "@/lib/tasks";
 import { useTheme } from "@/lib/ThemeContext";
+import { useOptimisticTaskMutations } from "@/lib/useOptimisticTaskMutations";
 
 export default function CreateTask() {
     const router = useRouter();
@@ -29,7 +28,7 @@ export default function CreateTask() {
     const setSelectedDate = useStore((state) => state.setSelectedDate);
     const { colors } = useTheme();
     const { t } = useAppTranslation();
-    const queryClient = useQueryClient();
+    const { createTaskOptimistically, isCreatingTask } = useOptimisticTaskMutations();
     const selectedDateKey = toAppDateKey(selectedDate);
 
     const leaveCreateTask = () => {
@@ -40,41 +39,28 @@ export default function CreateTask() {
         }
     };
 
-    const createTaskMutation = useMutation({
-        mutationFn: async () => {
-            return createTask({
-                name,
-                description,
-                dateKey: selectedDateKey,
-            });
-        },
-        onSuccess: () => {
-            // Invalide la query et refetch automatiquement
-            queryClient.invalidateQueries({ queryKey: ['tasks'] });
-            queryClient.invalidateQueries({ queryKey: ['days'] });
-
-            Alert.alert(t("common.alerts.successTitle"), t("common.alerts.taskCreated"));
-            setName("");
-            setDescription("");
-            taskEmitter.emit("taskAdded");
-            leaveCreateTask();
-        },
-        onError: (error: any) => {
-            console.error("Erreur lors de la création de la tâche:", error);
-        }
-    });
-
     const handleCreateTask = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         if (!name.trim()) {
             Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.requiredTaskName"));
             return;
         }
-        try {
-            await createTaskMutation.mutateAsync();
-        } catch (error: any) {
+
+        const nextTask = {
+            name,
+            description,
+            dateKey: selectedDateKey,
+        };
+
+        setName("");
+        setDescription("");
+        taskEmitter.emit("taskAdded");
+        leaveCreateTask();
+
+        void createTaskOptimistically(nextTask).catch((error: any) => {
+            console.error("Erreur lors de la création de la tâche:", error);
             Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
-        }
+        });
     };
 
     const handleCancel = async () => {
@@ -116,7 +102,7 @@ export default function CreateTask() {
                     <DateInput
                         value={selectedDate}
                         onChange={handleDateChange}
-                        disabled={createTaskMutation.isPending}
+                        disabled={isCreatingTask}
                         bold
                         showTodayButton
                     />

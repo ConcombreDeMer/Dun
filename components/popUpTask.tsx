@@ -9,8 +9,9 @@ import Animated, { FadeIn, FadeOut, interpolateColor, useAnimatedStyle, useShare
 import { fromAppDateKey, toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
-import { deleteTask, updateTaskDraft } from "../lib/tasks";
+import { updateTaskDraft } from "../lib/tasks";
 import { useTheme } from "../lib/ThemeContext";
+import { useOptimisticTaskMutations } from "../lib/useOptimisticTaskMutations";
 import { useToggleTaskDone } from "../lib/useToggleTaskDone";
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
@@ -24,7 +25,7 @@ type TaskDraft = {
 
 type ActiveField = "name" | "description" | null;
 
-export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: number }) {
+export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () => void) => void, id?: number }) {
     const { actualTheme, colors } = useTheme();
     const { fontSizes } = useFont();
     const { t, language } = useAppTranslation();
@@ -41,6 +42,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
     const [tempDate, setTempDate] = useState(new Date());
     const doneProgress = useSharedValue(0);
     const queryClient = useQueryClient();
+    const { deleteTaskOptimistically, isTaskDeletePending } = useOptimisticTaskMutations();
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
     const hydratedTaskIdRef = useRef<number | null>(null);
@@ -102,21 +104,6 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
     }
 
 
-    const deleteTaskMutation = useMutation({
-        mutationFn: async () => {
-            if (!id) throw new Error(t("task.popup.notFound"));
-            await deleteTask(id);
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['tasks'] });
-            queryClient.invalidateQueries({ queryKey: ['days'] });
-            onClose();
-        },
-        onError: (error: any) => {
-            Alert.alert(t("common.alerts.errorTitle"), error.message || t("common.alerts.genericError"));
-        }
-    });
-
     const updateTaskMutation = useMutation({
         mutationFn: async (draft: TaskDraft) => {
             if (!draft.name.trim()) {
@@ -124,7 +111,9 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
             }
 
             if (!id) throw new Error(t("task.popup.notFound"));
-            return updateTaskDraft(id, draft);
+            return updateTaskDraft(id, draft, {
+                previousDateKey: task?.date ?? null,
+            });
         },
         onSuccess: ({ draft, savedAt }) => {
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
@@ -302,7 +291,7 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
     const loading = taskQuery.isLoading && !task;
     const isTaskReady = !!task;
     const isBusy = updateTaskMutation.isPending
-        || deleteTaskMutation.isPending;
+        || (id ? isTaskDeletePending(id) : false);
     const isNameEditable = !inputLock && activeField !== "description";
     const isDescriptionEditable = !inputLock && activeField !== "name";
     const checkboxDoneBackground = actualTheme === "dark" ? "#314539" : "#E3F4E9";
@@ -368,12 +357,18 @@ export default function PopUpTask({ onClose, id }: { onClose: () => void, id?: n
                 },
                 {
                     text: t("common.actions.delete"),
-                    onPress: async () => {
-                        try {
-                            await deleteTaskMutation.mutateAsync();
-                        } catch (error) {
-                            console.error("Erreur lors de la suppression:", error);
+                    onPress: () => {
+                        if (!id) {
+                            Alert.alert(t("common.alerts.errorTitle"), t("task.popup.notFound"));
+                            return;
                         }
+
+                        onClose(() => {
+                            void deleteTaskOptimistically(id).catch((error: any) => {
+                                console.error("Erreur lors de la suppression:", error);
+                                Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
+                            });
+                        });
                     },
                     style: "destructive",
                 },
