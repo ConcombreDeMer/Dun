@@ -1,15 +1,24 @@
 import CreateModalHost from "@/components/CreateModalHost";
-import PopUpModal from "@/components/popUpModal";
 import SecondaryButton from "@/components/secondaryButton";
+import StatsPreferencesModal from "@/components/StatsPreferencesModal";
 import StatsBarGraph from "@/components/statsBarGraph";
 import StatsCard from "@/components/statsCard";
 import StatsCardCharge from "@/components/statsCardCharge";
 import StatsCardCompletion from "@/components/statsCardCompletion";
 import StatsStreak from "@/components/statsStreak";
+import {
+  CalculatedStats,
+  StatsDay,
+  calculateStats,
+  createEmptyStatsDay,
+  getGlobalStatsDays,
+  toDateKey,
+} from "@/lib/calculateStats";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
+import { useStatsPreferences } from "@/lib/useStatsPreferences";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
@@ -24,176 +33,46 @@ interface StatsData {
 }
 
 type Slide = {
-  bars: Array<{
-    stacks: Array<{ value: number; color: string; marginBottom?: number }>;
+  bars: {
+    stacks: { value: number; color: string; marginBottom?: number }[];
     label: string;
     date: string;
-  }>;
+  }[];
   periodLabel: string;
   id: string;
+  stats: CalculatedStats;
 };
 
 export default function Stats() {
   const { colors } = useTheme();
   const { t } = useAppTranslation();
-  const [previousDays, setPreviousDays] = useState<any[]>([]);
   const [showInfoPopUp, setShowInfoPopUp] = useState(false);
   const [period, setPeriod] = useState<'Par semaine' | 'Par mois' | 'Par année' | 'Global'>('Par semaine');
   const [showPeriodSelector, setShowPeriodSelector] = useState(false);
-  const [totalDone, setTotalDone] = useState(0);
-  const [perfectDays, setPerfectDays] = useState(0);
-  const [completion, setCompletion] = useState("0%");
-  const [charge, setCharge] = useState(0);
-  const [currentSlide, setCurrentSlide] = useState<Slide | null>(null);
+  const [slideStats, setSlideStats] = useState<CalculatedStats | null>(null);
+  const {
+    isPreferencePending,
+    preferences: statsPreferences,
+    setPreferenceOptimistically,
+  } = useStatsPreferences();
   const periodSelectorHeight = useSharedValue(0);
   const periodSelectorOpacity = useSharedValue(0);
   const chevronRotation = useSharedValue(0);
   const [loadingState, setLoadingState] = useState(true);
   const { fontSizes } = useFont();
 
-
-
-  // Fonction unique qui fait le filtrage une seule fois et retourne tous les stats
-  const calculatePeriodStats = useCallback((daysData: any[], selectedPeriod: string) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    let startDate: Date | null = null;
-
-    switch (selectedPeriod) {
-      case 'Par semaine':
-        startDate = new Date(today);
-        startDate.setDate(today.getDate() - 7);
-        break;
-      case 'Par mois':
-        startDate = new Date(today);
-        startDate.setDate(today.getDate() - 30);
-        break;
-      case 'Par année':
-        startDate = new Date(today);
-        startDate.setFullYear(today.getFullYear() - 1);
-        break;
-      case 'Global':
-      default:
-        startDate = null;
-    }
-
-    // Trouver le premier jour de données
-    let firstDayDate: Date | null = null;
-    if (daysData.length > 0) {
-      firstDayDate = new Date(daysData[daysData.length - 1].date);
-      firstDayDate.setHours(0, 0, 0, 0);
-    }
-
-    // Si la startDate remonte plus loin que le premier jour de données, utiliser le premier jour
-    if (startDate && firstDayDate && startDate < firstDayDate) {
-      startDate = new Date(firstDayDate);
-    }
-
-    // Un seul parcours pour calculer tous les stats
-    let totalDoneCount = 0;
-    let perfectDaysCount = 0;
-    let totalCharge = 0;
-    let totalCompletion = 0;
-    let daysWithTasks = 0;
-    let daysCount = 0;
-
-    for (const day of daysData) {
-      const dayDate = new Date(day.date);
-      dayDate.setHours(0, 0, 0, 0);
-
-      // Filtrer si nécessaire
-      if (startDate && dayDate < startDate) {
-        continue;
-      }
-
-      // Calculer tous les stats en un seul parcours
-      totalDoneCount += day.done_count || 0;
-      if (day.done_count === day.total && day.total > 0) {
-        perfectDaysCount++;
-      }
-
-      totalCharge += day.total || 0;
-      if (day.total > 0) {
-        totalCompletion += (day.done_count / day.total) * 100;
-        daysWithTasks++;
-      }
-      daysCount++;
-    }
-
-    // Calculer le nombre total de jours dans la période pour la charge moyenne
-    let totalDaysInPeriod = daysCount;
-    if (selectedPeriod === 'Global' && firstDayDate) {
-      // Pour "Global", calculer depuis le premier jour de données
-      const endDate = new Date(today);
-      endDate.setDate(endDate.getDate() + 1);
-      totalDaysInPeriod = Math.ceil((endDate.getTime() - firstDayDate.getTime()) / (1000 * 60 * 60 * 24));
-    } else if (startDate && firstDayDate) {
-      // Pour les autres périodes, calculer depuis startDate
-      const endDate = new Date(today);
-      endDate.setDate(endDate.getDate() + 1);
-      totalDaysInPeriod = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    }
-
-    const averageCharge = totalDaysInPeriod > 0 ? Math.round((totalCharge / totalDaysInPeriod) * 10) / 10 : 0;
-    const averageCompletion = daysWithTasks > 0 ? Math.round(totalCompletion / daysWithTasks) : 0;
-    const completionString = `${averageCompletion}%`;
-
-    return { totalDoneCount, perfectDaysCount, completion: completionString, charge: averageCharge };
-  }, []);
-
-
-
-
-  // Fonction pour calculer les stats basées sur un slide
-  const calculateStatsFromSlide = useCallback((slide: Slide) => {
-    if (!slide || !slide.bars) {
-      return { totalDoneCount: 0, perfectDaysCount: 0, completion: "0%", charge: 0 };
-    }
-
-    let totalDoneCount = 0;
-    let perfectDaysCount = 0;
-    let totalCharge = 0;
-    let daysInSlide = 0;
-
-    slide.bars.forEach((bar) => {
-      const done = bar.stacks[0]?.value || 0;
-      const incomplete = bar.stacks[1]?.value || 0;
-      const total = done + incomplete;
-
-      totalDoneCount += done;
-      totalCharge += total;
-
-      if (total > 0 && done === total) {
-        perfectDaysCount++;
-      }
-
-      daysInSlide++;
-    });
-
-    const averageCharge = daysInSlide > 0 ? Math.round((totalCharge / daysInSlide) * 10) / 10 : 0;
-    const averageCompletion = totalCharge > 0 ? Math.round((totalDoneCount / totalCharge) * 100) : 0;
-    const completionString = `${averageCompletion}%`;
-
-    return { totalDoneCount, perfectDaysCount, completion: completionString, charge: averageCharge };
-  }, []);
-
   // Gestionnaire pour les changements de slide
   const handleSlideChange = useCallback((slide: Slide) => {
     // Ne mettre à jour les stats que si ce n'est pas "Global"
     if (period === 'Global') return;
 
-    setCurrentSlide(slide);
-    const stats = calculateStatsFromSlide(slide);
-    setTotalDone(stats.totalDoneCount);
-    setPerfectDays(stats.perfectDaysCount);
-    setCompletion(stats.completion);
-    setCharge(stats.charge);
+    setSlideStats(slide.stats);
     setLoadingState(false);
-  }, [calculateStatsFromSlide, period]);
+  }, [period]);
 
 
   // Cela évite de parcourir previousDays 4 fois et élimine les calculs redondants
-  const calculateAllStats = useCallback((days: any[]): StatsData => {
+  const calculateAllStats = useCallback((days: StatsDay[]): StatsData => {
     if (!days || days.length === 0) {
       return {
         completion: "0%",
@@ -202,29 +81,7 @@ export default function Stats() {
       };
     }
 
-    // Passer 1 : Calculer les agrégats nécessaires pour tous les stats
-    let totalCharge = 0;
-    let totalCompletion = 0;
-    let daysWithTasks = 0;
-    let daysCount = 0;
-
-    for (let i = 0; i < Math.min(7, days.length); i++) {
-      const day = days[i];
-      totalCharge += day.total || 0;
-
-      if (day.total > 0) {
-        totalCompletion += (day.done_count / day.total) * 100;
-        daysWithTasks++;
-      }
-      daysCount++;
-    }
-
-    // Dériver tous les stat à partir de ces agrégats
-    const averageCharge =
-      daysCount > 0 ? Math.round((totalCharge / daysCount) * 10) / 10 : 0;
-    const averageCompletion =
-      daysWithTasks > 0 ? Math.round(totalCompletion / daysWithTasks) : 0;
-    const completion = `${averageCompletion}%`;
+    const { completion, charge: averageCharge } = calculateStats(days, statsPreferences);
 
     // Calcul du streak
     const today = new Date();
@@ -232,9 +89,6 @@ export default function Stats() {
     let streak = 0;
     let currentDate = new Date();
     currentDate.setDate(currentDate.getDate() - 1);
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(today.getDate() - 7);
-
     // Limiter la boucle aux 7 derniers jours et éviter recréation de Date
     for (let i = 0; i < Math.min(7, days.length); i++) {
       const day = days[i];
@@ -244,7 +98,9 @@ export default function Stats() {
       if (dayDateString === todayString) {
         continue;
       } else if (dayDateString === currentDate.toDateString()) {
-        if (day.total > 0 && day.done_count === day.total) {
+        const total = Math.max(day.total || 0, 0);
+        const done = Math.max(day.done_count || 0, 0);
+        if (total > 0 && done === total) {
           streak++;
           currentDate.setDate(currentDate.getDate() - 1);
         }
@@ -253,7 +109,7 @@ export default function Stats() {
       }
     }
     return { completion, charge: averageCharge, streak };
-  }, []);
+  }, [statsPreferences]);
 
 
   // FETCHING DES JOURS
@@ -280,12 +136,10 @@ export default function Stats() {
   });
 
   // Cela évite de recréer la fonction à chaque rendu
-  const getLastWeekDays = useCallback((daysData: any[]) => {
-    const lastWeekDays = [];
+  const getLastWeekDays = useCallback((daysData: StatsDay[]) => {
+    const lastWeekDays: StatsDay[] = [];
     const today = new Date();
     today.setHours(23, 59, 59, 999);
-    const todayString = today.toDateString();
-
     // Créer une Map pour O(1) lookup au lieu de O(n)
     const daysByDateString = new Map();
     for (const day of daysData) {
@@ -296,51 +150,26 @@ export default function Stats() {
     for (let i = 0; i < 7; i++) {
       const targetDate = new Date(today);
       targetDate.setDate(today.getDate() - i);
-      const targetDateString = targetDate.toDateString();
+      const targetDateString = toDateKey(targetDate);
 
       const dayData = daysByDateString.get(targetDateString);
       if (dayData) {
         lastWeekDays.push(dayData);
       } else {
-        lastWeekDays.push({
-          date: targetDate.toISOString(),
-          total: 0,
-          done_count: 0,
-        });
+        lastWeekDays.push(createEmptyStatsDay(targetDate));
       }
     }
     return lastWeekDays;
   }, []);
 
-  // Cela évite de recalculer le streak à chaque rendu
-  const streak = useMemo(() => {
-    return calculateAllStats(previousDays).streak;
-  }, [previousDays, calculateAllStats]);
-
-  // On récupère les données brutes et on les transforme directement
-  useEffect(() => {
-    if (daysQuery.data) {
-      setPreviousDays(getLastWeekDays(daysQuery.data));
-    }
-  }, [daysQuery.data, getLastWeekDays]);
-
-  useEffect(() => {
-    if (daysQuery.data) {
-      if (period != 'Global') {
-        return;
-      }
-      const { totalDoneCount, perfectDaysCount, completion: newCompletion, charge: newCharge } = calculatePeriodStats(daysQuery.data, period);
-      setTotalDone(totalDoneCount);
-      setPerfectDays(perfectDaysCount);
-      setCompletion(newCompletion);
-      setCharge(newCharge);
-      // Réinitialiser le slide actuel quand la période change
-      setCurrentSlide(null);
-      setLoadingState(false);
-    }
-  }, [period, daysQuery.data, calculatePeriodStats]);
-
-
+  const chartDaysData = useMemo(() => (daysQuery.data || []) as StatsDay[], [daysQuery.data]);
+  const previousDays = useMemo(() => getLastWeekDays(chartDaysData), [chartDaysData, getLastWeekDays]);
+  const streak = useMemo(() => calculateAllStats(previousDays).streak, [previousDays, calculateAllStats]);
+  const globalStats = useMemo(
+    () => calculateStats(getGlobalStatsDays(chartDaysData), statsPreferences),
+    [chartDaysData, statsPreferences]
+  );
+  const displayedStats = period === "Global" ? globalStats : slideStats || globalStats;
 
   useEffect(() => {
     periodSelectorHeight.value = withSpring(showPeriodSelector ? 170 : 0);
@@ -368,7 +197,7 @@ export default function Stats() {
     setShowPeriodSelector(prev => !prev);
   }, []);
 
-  const periodOptions: Array<'Par semaine' | 'Par mois' | 'Par année' | 'Global'> = ['Par semaine', 'Par mois', 'Par année', 'Global'];
+  const periodOptions: ('Par semaine' | 'Par mois' | 'Par année' | 'Global')[] = ['Par semaine', 'Par mois', 'Par année', 'Global'];
 
   const getDisplayedPeriod = (period: string) => {
     if (period === 'Par semaine') return t('stats.general.period.week');
@@ -380,9 +209,10 @@ export default function Stats() {
   const handlePeriodSelect = async (selectedPeriod: 'Par semaine' | 'Par mois' | 'Par année' | 'Global') => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setPeriod(selectedPeriod);
+    setSlideStats(null);
     setShowPeriodSelector(false);
     console.log('Période sélectionnée :', selectedPeriod);
-    setLoadingState(true);
+    setLoadingState(selectedPeriod !== 'Global');
   };
 
   return (
@@ -391,20 +221,18 @@ export default function Stats() {
         style={{ position: 'absolute', top: 70, right: 20, zIndex: 10 }}
       >
         <SecondaryButton
-          image='info'
+          image='slider.horizontal.3'
+          imageSize={27}
           onPress={showInfoPopUp ? () => setShowInfoPopUp(false) : () => setShowInfoPopUp(true)}
         />
       </View>
 
-      <PopUpModal
+      <StatsPreferencesModal
         isVisible={showInfoPopUp}
-        title={t('stats.general.aboutTitle')}
-        message={t('stats.general.aboutMessage')}
-        onCancel={() => setShowInfoPopUp(false)}
-        confirmText={t('common.actions.understood')}
-        onConfirm={() => setShowInfoPopUp(false)}
-        withNavbar={true}
-        symbolName="info.circle"
+        isPreferencePending={isPreferencePending}
+        preferences={statsPreferences}
+        onPreferenceChange={setPreferenceOptimistically}
+        onClose={() => setShowInfoPopUp(false)}
       />
 
       {/* Scrollable content */}
@@ -545,13 +373,13 @@ export default function Stats() {
           <StatsCard
             image={require('@/assets/images/stats/done.png')}
             title={t('stats.general.cards.tasksDone')}
-            value={totalDone.toString()}
+            value={displayedStats.totalDoneCount.toString()}
             loading={loadingState}
           />
           <StatsCard
             image={require('@/assets/images/stats/perfect.png')}
             title={t('stats.general.cards.perfectDays')}
-            value={perfectDays.toString()}
+            value={displayedStats.perfectDaysCount.toString()}
             loading={loadingState}
           />
         </View>
@@ -559,20 +387,25 @@ export default function Stats() {
           <StatsCardCompletion
             image={require('@/assets/images/stats/completion.png')}
             title={t('stats.general.cards.completion')}
-            value={completion}
+            value={displayedStats.completion}
             loading={loadingState}
           />
           <StatsCardCharge
             image={require('@/assets/images/stats/charge.png')}
             title={t('stats.general.cards.charge')}
-            value={charge.toString()}
+            value={displayedStats.charge.toString()}
             loading={loadingState}
           />
         </View>
 
         </View>
 
-        <StatsBarGraph daysData={useMemo(() => daysQuery.data || [], [daysQuery.data])} period={period} onSlideChange={handleSlideChange} />
+        <StatsBarGraph
+          daysData={chartDaysData}
+          period={period}
+          statsPreferences={statsPreferences}
+          onSlideChange={handleSlideChange}
+        />
       </Animated.ScrollView>
       <CreateModalHost activePath="/stats" />
     </View>

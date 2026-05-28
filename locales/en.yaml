@@ -419,6 +419,13 @@ stats:
   general:
     aboutTitle: "About stats"
     aboutMessage: "The statistics tab is still being developed and will gain more features over time."
+    preferences:
+      title: "Stats preferences"
+      message: "Choose which days are included in the displayed calculations."
+      includeToday: "Include today"
+      includeFutureDays: "Include following days"
+      includeEmptyDays: "Include empty days"
+      includeRestDays: "Include rest days"
     period:
       week: "By week"
       month: "By month"

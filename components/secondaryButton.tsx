@@ -10,11 +10,12 @@ interface SecondaryButtonProps {
     title?: string;
     backgroundColor?: string;
     imageColor?: string;
+    imageSize?: number;
 }
 
-export default function SecondaryButton({ onPress, image, title, backgroundColor, imageColor }: SecondaryButtonProps) {
+export default function SecondaryButton({ onPress, image, title, backgroundColor, imageColor, imageSize = 24 }: SecondaryButtonProps) {
 
-    const { colors, theme } = useTheme();
+    const { colors } = useTheme();
     const { fontSizes } = useFont();
 
     return (
@@ -24,7 +25,7 @@ export default function SecondaryButton({ onPress, image, title, backgroundColor
                     {image &&
                         <SymbolView
                             name={image}
-                            style={{ width: 24, height: 24, opacity: 1 }}
+                            style={{ width: imageSize, height: imageSize, opacity: 1 }}
                             type="palette"
                             tintColor={imageColor || colors.textSecondary}
                         />

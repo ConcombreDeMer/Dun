@@ -541,6 +541,14 @@ export const resources = {
         "general": {
           "aboutTitle": "About stats",
           "aboutMessage": "The statistics tab is still being developed and will gain more features over time.",
+          "preferences": {
+            "title": "Stats preferences",
+            "message": "Choose which days are included in the displayed calculations.",
+            "includeToday": "Include today",
+            "includeFutureDays": "Include following days",
+            "includeEmptyDays": "Include empty days",
+            "includeRestDays": "Include rest days"
+          },
           "period": {
             "week": "By week",
             "month": "By month",
@@ -902,7 +910,7 @@ export const resources = {
                 "body": "Un petit check des tâches peut alléger toute la journée."
               },
               {
-                "title": "Bien dormi ? On planifie bien !",
+                "title": "Bien dormi ? Viens on planifie !",
                 "body": "Choisis tes priorités et donne une direction à ta journée."
               },
               {
@@ -1301,6 +1309,14 @@ export const resources = {
         "general": {
           "aboutTitle": "À propos des stats",
           "aboutMessage": "L'onglet statistique est en cours de développement et sera agrémenté de nouvelles fonctionnalités au fil du temps.",
+          "preferences": {
+            "title": "Préférences des stats",
+            "message": "Choisis les jours pris en compte dans les calculs affichés.",
+            "includeToday": "Prendre en compte aujourd'hui",
+            "includeFutureDays": "Prendre en compte les jours suivants",
+            "includeEmptyDays": "Prendre en compte les jours vides",
+            "includeRestDays": "Prendre en compte les jours de repos"
+          },
           "period": {
             "week": "Par semaine",
             "month": "Par mois",

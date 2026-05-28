@@ -1,4 +1,15 @@
 import { useFont } from "@/lib/FontContext";
+import {
+  CalculatedStats,
+  DEFAULT_STATS_PREFERENCES,
+  StatsDay,
+  StatsPreferences,
+  buildDaysMap,
+  calculateStats,
+  createEmptyStatsDay,
+  normalizeDate,
+  toDateKey,
+} from "@/lib/calculateStats";
 import { useAppTranslation } from "@/lib/i18n";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStore } from "@/store/store";
@@ -23,16 +34,13 @@ import Squircle from "./Squircle";
 interface StatsBarGraphProps {
   daysData: Day[];
   period: Period;
+  statsPreferences?: StatsPreferences;
   onSlideChange?: (slide: Slide) => void;
 }
 
 type Period = "Par semaine" | "Par mois" | "Par année" | "Global";
 
-type Day = {
-  date: string;
-  done_count: number;
-  total: number;
-};
+type Day = StatsDay;
 
 type BarData = {
   stacks: { value: number; color: string; marginBottom?: number }[];
@@ -44,6 +52,7 @@ type BarData = {
   completion: number;
   isCurrent: boolean;
   caption: string;
+  days: StatsDay[];
 };
 
 type Slide = {
@@ -55,6 +64,7 @@ type Slide = {
     total: number;
     completion: number;
   };
+  stats: CalculatedStats;
 };
 
 type ChartPalette = {
@@ -67,14 +77,6 @@ type ChartPalette = {
 
 const CHART_HEIGHT = 168;
 const MIN_BAR_HEIGHT = 12;
-
-const normalizeDate = (date: Date) => {
-  const next = new Date(date);
-  next.setHours(0, 0, 0, 0);
-  return next;
-};
-
-const toDateKey = (date: Date) => normalizeDate(date).toDateString();
 
 const getWeekStart = (date: Date): Date => {
   const d = normalizeDate(date);
@@ -94,7 +96,7 @@ const getPeriodName = (period: Period, t: (key: string) => string) => {
 };
 
 const createBar = (
-  days: Day[],
+  days: StatsDay[],
   label: string,
   caption: string,
   date: Date,
@@ -119,33 +121,30 @@ const createBar = (
     remaining,
     completion,
     isCurrent,
+    days,
   };
 };
 
-const summarizeSlide = (bars: BarData[]) => {
-  const done = bars.reduce((sum, bar) => sum + bar.done, 0);
-  const total = bars.reduce((sum, bar) => sum + bar.total, 0);
+const buildSlideStats = (days: StatsDay[], preferences: StatsPreferences, today: Date) => {
+  const stats = calculateStats(days, preferences, today);
+
   return {
-    done,
-    total,
-    completion: total > 0 ? Math.round((done / total) * 100) : 0,
+    stats,
+    summary: {
+      done: stats.totalDoneCount,
+      total: stats.totalTasksCount,
+      completion: Number.parseInt(stats.completion, 10) || 0,
+    },
   };
-};
-
-const buildDaysMap = (daysData: Day[]) => {
-  const map = new Map<string, Day>();
-  daysData.forEach((day) => {
-    map.set(toDateKey(new Date(day.date)), day);
-  });
-  return map;
 };
 
 const buildWeekSlides = (
-  daysMap: Map<string, Day>,
+  daysMap: Map<string, StatsDay>,
   palette: ChartPalette,
   locale: string,
   t: (key: string, options?: Record<string, any>) => string,
   today: Date,
+  statsPreferences: StatsPreferences,
   offsets = [-4, -3, -2, -1, 0]
 ): Slide[] => {
   const todayKey = toDateKey(today);
@@ -159,11 +158,7 @@ const buildWeekSlides = (
       const currentDay = new Date(weekStart);
       currentDay.setDate(weekStart.getDate() + index);
       const key = toDateKey(currentDay);
-      const day = daysMap.get(key) || {
-        date: currentDay.toISOString(),
-        done_count: 0,
-        total: 0,
-      };
+      const day = daysMap.get(key) || createEmptyStatsDay(currentDay);
 
       return createBar(
         [day],
@@ -178,6 +173,8 @@ const buildWeekSlides = (
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
 
+    const calculated = buildSlideStats(bars.flatMap((bar) => bar.days), statsPreferences, today);
+
     return {
       id: `week-${weekStart.toISOString()}`,
       bars,
@@ -185,17 +182,18 @@ const buildWeekSlides = (
         start: weekStart.toLocaleDateString(locale, { day: "numeric", month: "short" }),
         end: weekEnd.toLocaleDateString(locale, { day: "numeric", month: "short" }),
       }),
-      summary: summarizeSlide(bars),
+      ...calculated,
     };
   });
 };
 
 const buildMonthSlides = (
-  daysMap: Map<string, Day>,
+  daysMap: Map<string, StatsDay>,
   palette: ChartPalette,
   locale: string,
   t: (key: string, options?: Record<string, any>) => string,
-  today: Date
+  today: Date,
+  statsPreferences: StatsPreferences
 ): Slide[] => {
   const slides: Slide[] = [];
 
@@ -210,14 +208,10 @@ const buildMonthSlides = (
       const rangeEnd = new Date(cursor);
       rangeEnd.setDate(Math.min(rangeStart.getDate() + 6, monthEnd.getDate()));
 
-      const days: Day[] = [];
+      const days: StatsDay[] = [];
       while (cursor <= rangeEnd) {
         const key = toDateKey(cursor);
-        days.push(daysMap.get(key) || {
-          date: cursor.toISOString(),
-          done_count: 0,
-          total: 0,
-        });
+        days.push(daysMap.get(key) || createEmptyStatsDay(cursor));
         cursor.setDate(cursor.getDate() + 1);
       }
 
@@ -227,11 +221,13 @@ const buildMonthSlides = (
     }
 
     const month = target.toLocaleDateString(locale, { month: "long", year: "numeric" });
+    const calculated = buildSlideStats(bars.flatMap((bar) => bar.days), statsPreferences, today);
+
     slides.push({
       id: `month-${target.getFullYear()}-${target.getMonth()}`,
       bars,
       periodLabel: t("stats.chart.monthOf", { month: month.charAt(0).toUpperCase() + month.slice(1) }),
-      summary: summarizeSlide(bars),
+      ...calculated,
     });
   }
 
@@ -239,10 +235,11 @@ const buildMonthSlides = (
 };
 
 const buildYearSlides = (
-  daysMap: Map<string, Day>,
+  daysMap: Map<string, StatsDay>,
   palette: ChartPalette,
   locale: string,
-  today: Date
+  today: Date,
+  statsPreferences: StatsPreferences
 ): Slide[] => {
   const slides: Slide[] = [];
   const startYear = today.getFullYear() - 1;
@@ -252,15 +249,11 @@ const buildYearSlides = (
     const bars = Array.from({ length: maxMonth + 1 }, (_, month) => {
       const monthStart = new Date(year, month, 1);
       const monthEnd = new Date(year, month + 1, 0);
-      const days: Day[] = [];
+      const days: StatsDay[] = [];
 
       for (let cursor = new Date(monthStart); cursor <= monthEnd; cursor.setDate(cursor.getDate() + 1)) {
         const key = toDateKey(cursor);
-        days.push(daysMap.get(key) || {
-          date: cursor.toISOString(),
-          done_count: 0,
-          total: 0,
-        });
+        days.push(daysMap.get(key) || createEmptyStatsDay(cursor));
       }
 
       return createBar(
@@ -273,11 +266,13 @@ const buildYearSlides = (
       );
     });
 
+    const calculated = buildSlideStats(bars.flatMap((bar) => bar.days), statsPreferences, today);
+
     slides.push({
       id: `year-${year}`,
       bars,
       periodLabel: year.toString(),
-      summary: summarizeSlide(bars),
+      ...calculated,
     });
   }
 
@@ -288,7 +283,8 @@ const buildGlobalSlides = (
   daysData: Day[],
   palette: ChartPalette,
   locale: string,
-  today: Date
+  today: Date,
+  statsPreferences: StatsPreferences
 ): Slide[] => {
   if (daysData.length === 0) return [];
 
@@ -304,16 +300,15 @@ const buildGlobalSlides = (
 
     for (let month = startMonth; month <= endMonth; month++) {
       const monthStart = new Date(year, month, 1);
-      const monthEnd = new Date(year, month + 1, 0);
-      const days: Day[] = [];
+      const calendarMonthEnd = new Date(year, month + 1, 0);
+      const monthEnd = year === today.getFullYear() && month === today.getMonth()
+        ? today
+        : calendarMonthEnd;
+      const days: StatsDay[] = [];
 
       for (let cursor = new Date(monthStart); cursor <= monthEnd; cursor.setDate(cursor.getDate() + 1)) {
         const key = toDateKey(cursor);
-        days.push(daysMap.get(key) || {
-          date: cursor.toISOString(),
-          done_count: 0,
-          total: 0,
-        });
+        days.push(daysMap.get(key) || createEmptyStatsDay(cursor));
       }
 
       bars.push(createBar(
@@ -326,11 +321,13 @@ const buildGlobalSlides = (
       ));
     }
 
+    const calculated = buildSlideStats(bars.flatMap((bar) => bar.days), statsPreferences, today);
+
     slides.push({
       id: `global-${year}`,
       bars,
       periodLabel: year.toString(),
-      summary: summarizeSlide(bars),
+      ...calculated,
     });
   }
 
@@ -342,24 +339,25 @@ const transformDaysDataByPeriod = (
   period: Period,
   palette: ChartPalette,
   locale: string,
-  t: (key: string, options?: Record<string, any>) => string
+  t: (key: string, options?: Record<string, any>) => string,
+  statsPreferences: StatsPreferences
 ): Slide[] => {
   const today = normalizeDate(new Date());
   const daysMap = buildDaysMap(daysData || []);
 
   if (period === "Par semaine") {
-    return buildWeekSlides(daysMap, palette, locale, t, today);
+    return buildWeekSlides(daysMap, palette, locale, t, today, statsPreferences);
   }
 
   if (period === "Par mois") {
-    return buildMonthSlides(daysMap, palette, locale, t, today);
+    return buildMonthSlides(daysMap, palette, locale, t, today, statsPreferences);
   }
 
   if (period === "Par année") {
-    return buildYearSlides(daysMap, palette, locale, today);
+    return buildYearSlides(daysMap, palette, locale, today, statsPreferences);
   }
 
-  return buildGlobalSlides(daysData || [], palette, locale, today);
+  return buildGlobalSlides(daysData || [], palette, locale, today, statsPreferences);
 };
 
 const ChartSkeleton = memo(function ChartSkeleton({ colors, palette, itemWidth }: { colors: any; palette: ChartPalette; itemWidth: number }) {
@@ -561,7 +559,12 @@ const ChartSlide = memo(function ChartSlide({
   );
 });
 
-export default function StatsBarGraph({ daysData, period, onSlideChange }: StatsBarGraphProps) {
+export default function StatsBarGraph({
+  daysData,
+  period,
+  statsPreferences = DEFAULT_STATS_PREFERENCES,
+  onSlideChange,
+}: StatsBarGraphProps) {
   const { width: screenWidth } = useWindowDimensions();
   const { colors } = useTheme();
   const { fontSizes } = useFont();
@@ -608,7 +611,7 @@ export default function StatsBarGraph({ daysData, period, onSlideChange }: Stats
     }, 120);
 
     const computeTimeoutId = setTimeout(() => {
-      const nextSlides = transformDaysDataByPeriod(daysData || [], period, palette, locale, t);
+      const nextSlides = transformDaysDataByPeriod(daysData || [], period, palette, locale, t, statsPreferences);
       if (!isMounted) return;
 
       clearTimeout(loadingTimeoutId);
@@ -631,7 +634,7 @@ export default function StatsBarGraph({ daysData, period, onSlideChange }: Stats
       clearTimeout(loadingTimeoutId);
       clearTimeout(computeTimeoutId);
     };
-  }, [daysData, period, palette, locale, t]);
+  }, [daysData, period, palette, locale, t, statsPreferences]);
 
   const handlePressBar = useCallback(async (bar: BarData) => {
     await Haptic.impactAsync(opensDayOnPress ? Haptic.ImpactFeedbackStyle.Medium : Haptic.ImpactFeedbackStyle.Light);
