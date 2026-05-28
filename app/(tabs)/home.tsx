@@ -76,6 +76,11 @@ const DayTasksPage = ({
   tasks,
   t,
 }: DayTasksPageProps) => {
+  const taskListLayoutKey = useMemo(
+    () => tasks.map((task) => task.id).join(":"),
+    [tasks]
+  );
+
   return (
     <View style={[styles.dayPage, { width: dayWidth }]}>
       {loading ? (
@@ -93,6 +98,7 @@ const DayTasksPage = ({
           removeClippedSubviews={false}
           contentContainerStyle={styles.flatListContent}
           activationDistance={20}
+          extraData={taskListLayoutKey}
           onDragEnd={onDragEnd}
           onPlaceholderIndexChange={onPlaceholderIndexChange}
           renderItem={({ item, drag, isActive }) => (
@@ -105,6 +111,7 @@ const DayTasksPage = ({
               isTogglePending={isTaskTogglePending(item.id)}
               selectedTaskId={selectedTaskId}
               listHeight={0}
+              layoutAnimationKey={taskListLayoutKey}
               mode="normal"
               isExtendable={!isCalendarExpanded}
             />

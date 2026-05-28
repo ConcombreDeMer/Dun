@@ -76,6 +76,7 @@ interface TaskItemProps {
   handleTaskPress: (taskId: number, layout?: TaskItemLayout) => void;
   selectedTaskId: number | null;
   listHeight: number;
+  layoutAnimationKey?: string;
   isExtendable?: boolean;
   isTogglePending?: boolean;
   mode?: 'normal' | 'daily';
@@ -89,6 +90,7 @@ export const TaskItem = ({
   handleTaskPress,
   selectedTaskId,
   listHeight,
+  layoutAnimationKey,
   isExtendable = true,
   isTogglePending = false,
   mode = 'normal',
@@ -100,12 +102,15 @@ export const TaskItem = ({
   const rowOpacity = useSharedValue(1);
   const rowScale = useSharedValue(1);
   const rowTranslateY = useSharedValue(0);
+  const layoutTranslateY = useSharedValue(0);
+  const enterProgress = useSharedValue(0);
   const pressScale = useSharedValue(1);
   const doneProgress = useSharedValue(item.done ? 1 : 0);
 
   const queryClient = useQueryClient();
   const swipeableRef = useRef<Swipeable>(null);
   const rowRef = useRef<View>(null);
+  const lastMeasuredYRef = useRef<number | null>(null);
 
   const screenWidth = Dimensions.get('window').width;
   const translateX = useSharedValue(0);
@@ -235,11 +240,11 @@ export const TaskItem = ({
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        { scale: (isActive ? 1.02 : 1) * pressScale.value * rowScale.value },
-        { translateY: rowTranslateY.value },
+        { scale: (isActive ? 1.02 : 1) * pressScale.value * rowScale.value * (0.3 + enterProgress.value * 0.7) },
+        { translateY: rowTranslateY.value + layoutTranslateY.value },
         { translateX: translateX.value }
       ],
-      opacity: itemOpacity.value * rowOpacity.value,
+      opacity: itemOpacity.value * rowOpacity.value * enterProgress.value,
     };
   });
 
@@ -341,8 +346,46 @@ export const TaskItem = ({
     });
   }, [pressScale]);
 
+  const measureAndAnimateLayoutChange = useCallback(() => {
+    requestAnimationFrame(() => {
+      rowRef.current?.measureInWindow((_, y) => {
+        const previousY = lastMeasuredYRef.current;
+        lastMeasuredYRef.current = y;
+
+        if (previousY === null || isActive || selectedTaskId !== null) {
+          return;
+        }
+
+        const yDelta = previousY - y;
+
+        if (Math.abs(yDelta) < 1) {
+          return;
+        }
+
+        layoutTranslateY.value = yDelta;
+        layoutTranslateY.value = withSpring(0, {
+          damping: 20,
+          stiffness: 220,
+          mass: 0.75,
+          overshootClamping: true,
+        });
+      });
+    });
+  }, [isActive, layoutTranslateY, selectedTaskId]);
+
+  useEffect(() => {
+    measureAndAnimateLayoutChange();
+  }, [layoutAnimationKey, measureAndAnimateLayoutChange]);
+
   const taskItemStyle =
     [styles.taskItem, { backgroundColor: colors.task }];
+
+  useEffect(() => {
+    enterProgress.value = withTiming(1, {
+      duration: 220,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [enterProgress]);
 
   useEffect(() => {
     dotScale.value = withSpring(item.done ? 1 : 0, {
@@ -376,7 +419,7 @@ export const TaskItem = ({
   }, [isHidden, isSelected, listHeight, rowOpacity, rowScale, rowTranslateY, selectedTaskId]);
 
   return (
-    <Animated.View ref={rowRef} style={[animatedStyle, shadowStyle]}>
+    <Animated.View ref={rowRef} onLayout={measureAndAnimateLayoutChange} style={[animatedStyle, shadowStyle]}>
       <Swipeable
         ref={swipeableRef}
         renderLeftActions={renderLeftActions}
