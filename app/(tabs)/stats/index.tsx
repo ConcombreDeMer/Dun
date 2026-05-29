@@ -8,8 +8,8 @@ import StatsPreferencesModal from "@/components/StatsPreferencesModal";
 import StatsStreak from "@/components/statsStreak";
 import {
   CalculatedStats,
-  StatsPeriod,
   StatsDay,
+  StatsPeriod,
   calculateStats,
   createEmptyStatsDay,
   getGlobalStatsDays,

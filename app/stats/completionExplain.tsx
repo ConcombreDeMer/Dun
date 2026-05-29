@@ -1,10 +1,31 @@
 import { useTheme } from '@/lib/ThemeContext';
 import { useAppTranslation } from '@/lib/i18n';
-import { useRouter } from 'expo-router';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+const mixHexColors = (from: string, to: string, amount: number) => {
+    const parseHex = (hex: string) => {
+        const cleanHex = hex.replace('#', '').slice(0, 6);
+        const value = parseInt(cleanHex, 16);
+
+        return {
+            r: (value >> 16) & 255,
+            g: (value >> 8) & 255,
+            b: value & 255,
+        };
+    };
+
+    const fromRgb = parseHex(from);
+    const toRgb = parseHex(to);
+    const mixed = {
+        r: Math.round(fromRgb.r + (toRgb.r - fromRgb.r) * amount),
+        g: Math.round(fromRgb.g + (toRgb.g - fromRgb.g) * amount),
+        b: Math.round(fromRgb.b + (toRgb.b - fromRgb.b) * amount),
+    };
+
+    return `#${mixed.r.toString(16).padStart(2, '0')}${mixed.g.toString(16).padStart(2, '0')}${mixed.b.toString(16).padStart(2, '0')}`;
+};
+
 export default function CompletionExplain() {
-    const router = useRouter();
     const { colors } = useTheme();
     const { t } = useAppTranslation();
     const bullets = t('stats.completionExplain.bullets', { returnObjects: true }) as string[];
@@ -15,20 +36,20 @@ export default function CompletionExplain() {
 
     const dynamicStyles = {
         container: {
-            backgroundColor: colors.background,
+            backgroundColor: colors.card,
         },
         header: {
-            backgroundColor: colors.background,
+            backgroundColor: colors.card,
         },
         card: {
-            backgroundColor: colors.card,
+            backgroundColor: mixHexColors(colors.background, colors.card, 0.45),
             borderColor: colors.border,
         },
         text: {
             color: colors.text,
         },
         textSecondary: {
-            color: colors.textSecondary,
+            color: mixHexColors(colors.textSecondary, colors.text, 0.45),
         },
         bullet: {
             borderColor: colors.border,

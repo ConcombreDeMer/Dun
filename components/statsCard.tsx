@@ -63,8 +63,8 @@ const styles = StyleSheet.create({
         boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',
     },
     image: {
-        width: 60,
-        height: 60,
+        width: 48,
+        height: 48,
         resizeMode: 'contain',
         position: 'absolute',
         top: 10,

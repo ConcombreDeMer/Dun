@@ -78,12 +78,13 @@ const styles = StyleSheet.create({
         boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',
     },
     image: {
-        width: 80,
-        height: 80,
+        width: 48,
+        height: 48,
         resizeMode: 'contain',
         position: 'absolute',
-        top: 0,
-        left: 0,
+        top: 10,
+        left: 10,
+        mixBlendMode: 'darken',
     },
     title: {
         position: 'absolute',
