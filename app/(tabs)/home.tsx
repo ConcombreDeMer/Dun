@@ -39,7 +39,7 @@ const addDays = (date: Date, amount: number) => {
 };
 
 const getDateKey = (date: Date) => toAppDateKey(startOfDay(date));
-const getTaskRenderKey = (task: any) => task.clientKey ?? task.id;
+const getTaskRenderKey = (task: any) => task.id;
 const getDayOffset = (from: Date, to: Date) => {
   const start = startOfDay(from).getTime();
   const end = startOfDay(to).getTime();
@@ -162,7 +162,7 @@ const DayTasksPage = ({
           renderItem={({ item, drag, isActive }) => (
             <TaskItem
               item={item}
-              drag={drag}
+              drag={tasks.length > 1 ? drag : () => {}}
               isActive={isActive}
               handleToggleTask={onToggleTask}
               handleTaskPress={onTaskPress}
@@ -324,17 +324,7 @@ export default function Home() {
       return [];
     }
 
-    const cachedTasks = queryClient.getQueryData<any[]>(['tasks']) ?? [];
-    const cachedKeysById = new Map(
-      cachedTasks
-        .filter((task: any) => task.clientKey)
-        .map((task: any) => [task.id, task.clientKey])
-    );
-
-    return data?.map((task: any) => {
-      const clientKey = cachedKeysById.get(task.id);
-      return clientKey ? { ...task, clientKey } : task;
-    }) ?? [];
+    return data ?? [];
   }
 
   const taskQuery = useQuery({

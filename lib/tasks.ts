@@ -45,13 +45,18 @@ export const createTask = async ({
   name,
   description = "",
   dateKey,
+  preferredOrder,
 }: {
   name: string;
   description?: string;
   dateKey: string;
+  preferredOrder?: number;
 }) => {
   const userId = await getUserId();
-  const order = await getNextTaskOrder(dateKey, userId);
+  const nextServerOrder = await getNextTaskOrder(dateKey, userId);
+  const order = preferredOrder === undefined
+    ? nextServerOrder
+    : Math.max(preferredOrder, nextServerOrder);
 
   const { data, error } = await supabase.from("Tasks").insert([
     {
