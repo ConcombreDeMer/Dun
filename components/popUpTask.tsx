@@ -47,6 +47,8 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
     const hydratedTaskIdRef = useRef<number | null>(null);
     const lastSavedTextSnapshotRef = useRef("");
+    const committedTaskDateRef = useRef<Date>(new Date());
+    const pendingTaskDateRef = useRef<Date | null>(null);
     const latestDraftRef = useRef<TaskDraft>({
         name: "",
         description: "",
@@ -125,6 +127,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                 date: toAppDateKey(draft.taskDate),
                 last_update_date: savedAt,
             } : current);
+            committedTaskDateRef.current = draft.taskDate;
             setLastUpdateDate(new Date(savedAt));
             const savedTextSnapshot = JSON.stringify({
                 name: draft.name,
@@ -164,7 +167,10 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                     return;
                 }
 
-                await updateTaskMutation.mutateAsync(nextDraft);
+                await updateTaskMutation.mutateAsync({
+                    ...nextDraft,
+                    taskDate: committedTaskDateRef.current,
+                });
             });
 
         return saveQueueRef.current;
@@ -193,6 +199,8 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
         setTaskDate(hydratedDraft.taskDate);
         setIsDone(hydratedDraft.isDone);
         setLastUpdateDate(taskQuery.data.last_update_date ? new Date(taskQuery.data.last_update_date) : null);
+        committedTaskDateRef.current = hydratedDraft.taskDate;
+        pendingTaskDateRef.current = null;
         latestDraftRef.current = hydratedDraft;
         lastSavedTextSnapshotRef.current = JSON.stringify({
             name: hydratedDraft.name.trim(),
@@ -279,9 +287,35 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
         await enqueueTaskSave(latestDraftRef.current);
     };
 
+    const flushPendingDateChange = async () => {
+        const pendingDate = pendingTaskDateRef.current;
+
+        if (!pendingDate) {
+            return;
+        }
+
+        if (toAppDateKey(pendingDate) === toAppDateKey(committedTaskDateRef.current)) {
+            pendingTaskDateRef.current = null;
+            return;
+        }
+
+        if (!latestDraftRef.current.name.trim()) {
+            throw new Error(t("task.popup.nameRequired"));
+        }
+
+        const nextDraft = {
+            ...latestDraftRef.current,
+            taskDate: pendingDate,
+        };
+
+        await updateTaskMutation.mutateAsync(nextDraft);
+        pendingTaskDateRef.current = null;
+    };
+
     const handleClose = async () => {
         try {
             await flushPendingSave();
+            await flushPendingDateChange();
             onClose();
         } catch (error: any) {
             Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
@@ -376,8 +410,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
         );
     };
 
-    const handleDateChange = async (date: Date) => {
-        const previousDate = taskDate;
+    const handleDateChange = (date: Date) => {
         const nextDraft = {
             ...latestDraftRef.current,
             taskDate: date,
@@ -385,18 +418,9 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
 
         setTaskDate(date);
         latestDraftRef.current = nextDraft;
-
-        try {
-            await flushPendingSave();
-            await updateTaskMutation.mutateAsync(nextDraft);
-        } catch (error: any) {
-            setTaskDate(previousDate);
-            latestDraftRef.current = {
-                ...latestDraftRef.current,
-                taskDate: previousDate,
-            };
-            Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
-        }
+        pendingTaskDateRef.current = toAppDateKey(date) === toAppDateKey(committedTaskDateRef.current)
+            ? null
+            : date;
     };
 
     const openDatePicker = () => {
