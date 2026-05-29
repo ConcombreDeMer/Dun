@@ -197,7 +197,7 @@ export const TaskItem = ({
 
   const renderRightActions = useCallback(() => {
     return (
-      <View style={{ width: 130, height: 64, paddingLeft: 10, justifyContent: 'center' }}>
+      <View style={{ width: 130, minHeight: 64, height: '100%', paddingLeft: 10, justifyContent: 'center' }}>
         <SquircleButton
           onPress={handleSwipeLeft}
           activeOpacity={0.8}
@@ -225,7 +225,7 @@ export const TaskItem = ({
     const actionText = mode === 'daily' ? "Pour aujourd'hui" : "Reporter";
 
     return (
-      <View style={{ width: actionWidth, height: 64, paddingRight: 10, justifyContent: 'center' }}>
+      <View style={{ width: actionWidth, minHeight: 64, height: '100%', paddingRight: 10, justifyContent: 'center' }}>
         <SquircleButton
           onPress={handleSwipeRight}
           activeOpacity={0.8}
@@ -501,7 +501,7 @@ export const TaskItem = ({
             delayLongPress={500}
             style={{
               width: "100%",
-              height: "100%",
+              minHeight: 64,
             }}
             onPress={handlePress}
             onPressIn={handlePressIn}
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
   taskItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 64,
+    minHeight: 64,
     position: 'relative',
     justifyContent: 'space-between',
     borderRadius: 20,
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
   taskItemDone: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 64,
+    minHeight: 64,
     paddingHorizontal: 12,
     marginBottom: 10,
     justifyContent: 'space-between',
@@ -584,18 +584,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 12,
     paddingVertical: 10,
+    minHeight: 64,
   },
 
   taskName: {
+    flex: 1,
+    flexShrink: 1,
     fontFamily: 'Satoshi-Regular',
     zIndex: 1,
     marginLeft: 10,
+    marginRight: 10,
   },
 
   taskNameDone: {
+    flex: 1,
+    flexShrink: 1,
     fontFamily: 'Satoshi-Regular',
     zIndex: 1,
     marginLeft: 10,
+    marginRight: 10,
     opacity: 0.6,
   },
 
@@ -612,6 +619,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: 45,
     height: 45,
+    flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
