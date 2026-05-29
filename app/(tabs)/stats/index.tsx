@@ -1,30 +1,29 @@
 import CreateModalHost from "@/components/CreateModalHost";
 import SecondaryButton from "@/components/secondaryButton";
-import StatsPreferencesModal from "@/components/StatsPreferencesModal";
 import StatsBarGraph from "@/components/statsBarGraph";
 import StatsCard from "@/components/statsCard";
 import StatsCardCharge from "@/components/statsCardCharge";
 import StatsCardCompletion from "@/components/statsCardCompletion";
+import StatsPreferencesModal from "@/components/StatsPreferencesModal";
 import StatsStreak from "@/components/statsStreak";
 import {
   CalculatedStats,
+  StatsPeriod,
   StatsDay,
   calculateStats,
   createEmptyStatsDay,
   getGlobalStatsDays,
   toDateKey,
 } from "@/lib/calculateStats";
-import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStatsPreferences } from "@/lib/useStatsPreferences";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
-import { SymbolView } from "expo-symbols";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { Extrapolate, interpolate, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { useCallback, useMemo, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import Animated from 'react-native-reanimated';
 
 interface StatsData {
   completion: string;
@@ -47,19 +46,14 @@ export default function Stats() {
   const { colors } = useTheme();
   const { t } = useAppTranslation();
   const [showInfoPopUp, setShowInfoPopUp] = useState(false);
-  const [period, setPeriod] = useState<'Par semaine' | 'Par mois' | 'Par année' | 'Global'>('Par semaine');
-  const [showPeriodSelector, setShowPeriodSelector] = useState(false);
+  const [period, setPeriod] = useState<StatsPeriod>('Par semaine');
   const [slideStats, setSlideStats] = useState<CalculatedStats | null>(null);
   const {
     isPreferencePending,
     preferences: statsPreferences,
     setPreferenceOptimistically,
   } = useStatsPreferences();
-  const periodSelectorHeight = useSharedValue(0);
-  const periodSelectorOpacity = useSharedValue(0);
-  const chevronRotation = useSharedValue(0);
   const [loadingState, setLoadingState] = useState(true);
-  const { fontSizes } = useFont();
 
   // Gestionnaire pour les changements de slide
   const handleSlideChange = useCallback((slide: Slide) => {
@@ -171,33 +165,7 @@ export default function Stats() {
   );
   const displayedStats = period === "Global" ? globalStats : slideStats || globalStats;
 
-  useEffect(() => {
-    periodSelectorHeight.value = withSpring(showPeriodSelector ? 170 : 0);
-    periodSelectorOpacity.value = withSpring(showPeriodSelector ? 1 : 0);
-    chevronRotation.value = withSpring(showPeriodSelector ? 0 : 180);
-  }, [showPeriodSelector, periodSelectorHeight, periodSelectorOpacity, chevronRotation]);
-
-  const animatedPeriodSelectorStyle = useAnimatedStyle(() => ({
-    height: periodSelectorHeight.value,
-    opacity: periodSelectorOpacity.value,
-    paddingVertical: interpolate(
-      periodSelectorHeight.value,
-      [0, 110],
-      [0, 10],
-      Extrapolate.CLAMP
-    ),
-  }));
-
-  const animatedChevronStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${chevronRotation.value}deg` }],
-  }));
-
-  const openPeriodSelector = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setShowPeriodSelector(prev => !prev);
-  }, []);
-
-  const periodOptions: ('Par semaine' | 'Par mois' | 'Par année' | 'Global')[] = ['Par semaine', 'Par mois', 'Par année', 'Global'];
+  const periodOptions: StatsPeriod[] = ['Par semaine', 'Par mois', 'Par année', 'Global'];
 
   const getDisplayedPeriod = (period: string) => {
     if (period === 'Par semaine') return t('stats.general.period.week');
@@ -206,11 +174,10 @@ export default function Stats() {
     return t('stats.general.period.global');
   };
 
-  const handlePeriodSelect = async (selectedPeriod: 'Par semaine' | 'Par mois' | 'Par année' | 'Global') => {
+  const handlePeriodSelect = async (selectedPeriod: StatsPeriod) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setPeriod(selectedPeriod);
     setSlideStats(null);
-    setShowPeriodSelector(false);
     console.log('Période sélectionnée :', selectedPeriod);
     setLoadingState(selectedPeriod !== 'Global');
   };
@@ -231,7 +198,11 @@ export default function Stats() {
         isVisible={showInfoPopUp}
         isPreferencePending={isPreferencePending}
         preferences={statsPreferences}
+        period={period}
+        periodOptions={periodOptions}
+        getDisplayedPeriod={getDisplayedPeriod}
         onPreferenceChange={setPreferenceOptimistically}
+        onPeriodChange={handlePeriodSelect}
         onClose={() => setShowInfoPopUp(false)}
       />
 
@@ -243,119 +214,6 @@ export default function Stats() {
       >
         <View style={styles.topContainer}>
           <StatsStreak value={streak.toString()} />
-        </View>
-
-
-        <View
-          style={{
-            width: '50%',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: 5,
-          }}
-        >
-          <Pressable
-            onPress={openPeriodSelector}
-            style={{
-              width: '80%',
-              minHeight: 40,
-              paddingHorizontal: 20,
-              paddingVertical: 10,
-              backgroundColor: colors.taskDone,
-              borderRadius: 30,
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                width: '100%',
-              }}
-            >
-              <Text
-                style={{
-                  color: colors.buttonText,
-                  opacity: 0.7,
-                  fontFamily: 'Satoshi-Medium',
-                  fontSize: fontSizes.sm,
-                }}
-              >
-                {getDisplayedPeriod(period)}
-              </Text>
-              <Animated.View
-                style={[animatedChevronStyle, { opacity: 0.7 }]}
-              >
-                <SymbolView
-                  name="chevron.up"
-                  tintColor={colors.buttonText}
-                  size={20}
-                />
-              </Animated.View>
-
-            </View>
-          </Pressable>
-          <Animated.View
-            style={[
-              {
-                width: '100%',
-                backgroundColor: colors.taskDone,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: 5,
-                overflow: 'hidden',
-                paddingHorizontal: 10,
-                borderRadius: 20,
-              },
-              animatedPeriodSelectorStyle,
-            ]}
-          >
-            {periodOptions.map((option) => (
-              <Pressable
-                key={option}
-                onPress={() => {
-                  if (option !== period) {
-                    handlePeriodSelect(option);
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  paddingVertical: 8,
-                  paddingHorizontal: 10,
-                  display: 'flex',
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: 8,
-                  pointerEvents: option === period ? 'none' : 'auto',
-                }}
-              >
-                <Text style={{
-                  color: colors.buttonText,
-                  fontFamily: 'Satoshi-Medium',
-                  opacity: option === period ? 1 : 0.5,
-                  fontSize: fontSizes.sm,
-                }}>
-                  {getDisplayedPeriod(option)}
-                </Text>
-                {option === period && (
-                  <SymbolView
-                    name="checkmark"
-                    tintColor={colors.buttonText}
-                    size={16}
-                  />
-                )}
-              </Pressable>
-            ))}
-          </Animated.View>
-
         </View>
 
         <View
@@ -441,8 +299,5 @@ const styles = StyleSheet.create({
     width: '90%',
     height: 100,
   },
-
-
-
 
 });

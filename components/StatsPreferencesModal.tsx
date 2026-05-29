@@ -1,25 +1,33 @@
-import { StatsPreferenceKey, StatsPreferences } from "@/lib/calculateStats";
+import { StatsPeriod, StatsPreferenceKey, StatsPreferences } from "@/lib/calculateStats";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { useTheme } from "@/lib/ThemeContext";
-import { BottomSheet, Group, Host, RNHostView, Toggle, VStack } from "@expo/ui/swift-ui";
-import { disabled, opacity, padding, presentationDetents, presentationDragIndicator, toggleStyle } from "@expo/ui/swift-ui/modifiers";
+import { BottomSheet, Group, Host, Picker, RNHostView, Text as SwiftText, Toggle, VStack } from "@expo/ui/swift-ui";
+import { buttonStyle, disabled, frame, opacity, padding, pickerStyle, presentationDetents, presentationDragIndicator, tag, tint, toggleStyle } from "@expo/ui/swift-ui/modifiers";
 import { SFSymbol, SymbolView } from "expo-symbols";
 import { StyleSheet, Text, View } from "react-native";
 
 type StatsPreferencesModalProps = {
   isVisible: boolean;
   isPreferencePending: (key: StatsPreferenceKey) => boolean;
+  period: StatsPeriod;
+  periodOptions: StatsPeriod[];
   preferences: StatsPreferences;
+  getDisplayedPeriod: (period: StatsPeriod) => string;
   onPreferenceChange: (key: StatsPreferenceKey, value: boolean) => void;
+  onPeriodChange: (period: StatsPeriod) => void;
   onClose: () => void;
 };
 
 export default function StatsPreferencesModal({
   isVisible,
   isPreferencePending,
+  period,
+  periodOptions,
   preferences,
+  getDisplayedPeriod,
   onPreferenceChange,
+  onPeriodChange,
   onClose,
 }: StatsPreferencesModalProps) {
   const { colors } = useTheme();
@@ -49,7 +57,7 @@ export default function StatsPreferencesModal({
           }}
           fitToContents
         >
-          <Group modifiers={[presentationDragIndicator("visible"), presentationDetents([{ height: 430 }, "medium"])]}>
+          <Group modifiers={[presentationDragIndicator("visible"), presentationDetents([{ height: 500 }, "medium"])]}>
             <VStack spacing={16}>
               <RNHostView matchContents>
                 <View style={[styles.header]}>
@@ -62,6 +70,29 @@ export default function StatsPreferencesModal({
                   </Text>
                 </View>
               </RNHostView>
+
+              <Picker
+                label={getDisplayedPeriod(period)}
+                selection={period}
+                onSelectionChange={(selectedPeriod) => {
+                  if (selectedPeriod && selectedPeriod !== period) {
+                    onPeriodChange(selectedPeriod);
+                  }
+                }}
+                modifiers={[
+                  pickerStyle("menu"),
+                  buttonStyle("borderedProminent"),
+                  tint(colors.taskDone),
+                  frame({ height: 44 }),
+                  padding({ horizontal: 28 }),
+                ]}
+              >
+                {periodOptions.map((option) => (
+                  <SwiftText key={option} modifiers={[tag(option)]}>
+                    {getDisplayedPeriod(option)}
+                  </SwiftText>
+                ))}
+              </Picker>
 
               <VStack
                 spacing={14}
