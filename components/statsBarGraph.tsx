@@ -398,6 +398,14 @@ const EmptyState = memo(function EmptyState({ colors, itemWidth, text }: { color
   );
 });
 
+const getDefaultSelectedBarIndex = (bars: BarData[]) => {
+  const currentNonEmptyIndex = bars.findIndex((bar) => bar.isCurrent && bar.total > 0);
+  if (currentNonEmptyIndex >= 0) return currentNonEmptyIndex;
+
+  const firstNonEmptyIndex = bars.findIndex((bar) => bar.total > 0);
+  return firstNonEmptyIndex >= 0 ? firstNonEmptyIndex : null;
+};
+
 const ChartSlide = memo(function ChartSlide({
   slide,
   colors,
@@ -415,32 +423,30 @@ const ChartSlide = memo(function ChartSlide({
   onPressBar: (bar: BarData) => void;
   opensDayOnPress: boolean;
 }) {
-  const [selectedIndex, setSelectedIndex] = useState(() => {
-    const currentIndex = slide.bars.findIndex((bar) => bar.isCurrent);
-    return currentIndex >= 0 ? currentIndex : Math.max(0, slide.bars.length - 1);
-  });
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(() => getDefaultSelectedBarIndex(slide.bars));
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      const currentIndex = slide.bars.findIndex((bar) => bar.isCurrent);
-      setSelectedIndex(currentIndex >= 0 ? currentIndex : Math.max(0, slide.bars.length - 1));
+      setSelectedIndex(getDefaultSelectedBarIndex(slide.bars));
     }, 0);
 
     return () => clearTimeout(timeoutId);
   }, [slide.id, slide.bars]);
 
-  const selectedBar = slide.bars[selectedIndex] || slide.bars[0];
+  const selectedBar = selectedIndex === null ? undefined : slide.bars[selectedIndex];
   const maxTotal = Math.max(1, ...slide.bars.map((bar) => bar.total));
   const chartWidth = itemWidth - 40;
   const barSlotWidth = Math.max(28, chartWidth / Math.max(slide.bars.length, 1));
   const barWidth = Math.min(34, Math.max(16, barSlotWidth * 0.46));
-  const tooltipLeft = Math.min(
-    Math.max(8, selectedIndex * barSlotWidth + barSlotWidth / 2 - 48),
-    Math.max(8, chartWidth - 104)
-  );
+  const tooltipLeft = selectedIndex === null
+    ? 8
+    : Math.min(
+      Math.max(8, selectedIndex * barSlotWidth + barSlotWidth / 2 - 48),
+      Math.max(8, chartWidth - 104)
+    );
 
   const handleSelectBar = useCallback((bar: BarData, index: number) => {
-    setSelectedIndex(index);
+    setSelectedIndex(bar.total > 0 ? index : null);
     onPressBar(bar);
   }, [onPressBar]);
 
