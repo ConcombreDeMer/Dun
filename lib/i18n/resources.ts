@@ -1312,10 +1312,10 @@ export const resources = {
           "preferences": {
             "title": "Préférences des stats",
             "message": "Choisis les jours pris en compte dans les calculs affichés.",
-            "includeToday": "Prendre en compte aujourd'hui",
-            "includeFutureDays": "Prendre en compte les jours suivants",
-            "includeEmptyDays": "Prendre en compte les jours vides",
-            "includeRestDays": "Prendre en compte les jours de repos"
+            "includeToday": "Aujourd'hui",
+            "includeFutureDays": "Les jours suivants",
+            "includeEmptyDays": "Les jours vides",
+            "includeRestDays": "Les jours de repos"
           },
           "period": {
             "week": "Par semaine",
