@@ -1,11 +1,12 @@
 import { FontContext } from "@/lib/FontContext";
 import { useOptimisticTaskMutations } from "@/lib/useOptimisticTaskMutations";
 import { useStore } from "@/store/store";
+import { BlurView } from "expo-blur";
 import * as Haptics from 'expo-haptics';
 import { router } from "expo-router";
 import { SquircleView } from "expo-squircle-view";
 import React, { useEffect, useRef, useState } from "react";
-import { Alert, InputAccessoryView, StyleSheet, TextInput, View } from "react-native";
+import { Alert, Animated, Easing, InputAccessoryView, Keyboard, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { toAppDateKey } from "../lib/date";
 import { useAppTranslation } from "../lib/i18n";
 import SecondaryButton from "./secondaryButton";
@@ -21,6 +22,7 @@ export default function CreateModal({ accessoryId = "createTaskAccessory", onClo
     const inputRef = useRef<TextInput>(null);
     const isIntentionalBlurRef = useRef(false);
     const isCreatingTaskRef = useRef(false);
+    const [backdropOpacity] = useState(() => new Animated.Value(0));
     const { fontSizes } = React.useContext(FontContext)!;
     const { t } = useAppTranslation();
     const { createTaskOptimistically } = useOptimisticTaskMutations();
@@ -29,6 +31,13 @@ export default function CreateModal({ accessoryId = "createTaskAccessory", onClo
 
 
     useEffect(() => {
+        Animated.timing(backdropOpacity, {
+            toValue: 1,
+            duration: 1500,
+            easing: Easing.bezier(0.16, 1, 0.3, 1),
+            useNativeDriver: true,
+        }).start();
+
         // Focus sur le TextInput fantôme pour ouvrir le clavier
         phantomInputRef.current?.focus();
 
@@ -39,7 +48,7 @@ export default function CreateModal({ accessoryId = "createTaskAccessory", onClo
         }, 100);
 
         return () => clearTimeout(timer);
-    }, []);
+    }, [backdropOpacity]);
 
     const handleCreateTask = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -90,6 +99,19 @@ export default function CreateModal({ accessoryId = "createTaskAccessory", onClo
 
     return (
         <>
+            <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t("common.actions.cancel")}
+                onPress={Keyboard.dismiss}
+                style={styles.backdrop}
+            >
+                <Animated.View style={[styles.backdropVisual, { opacity: backdropOpacity }]}>
+                    <BlurView intensity={18} tint="dark" style={StyleSheet.absoluteFill} />
+                    <View style={styles.backdropShade} />
+                    <View style={styles.backdropDim} />
+                </Animated.View>
+            </Pressable>
+
             {/* TextInput fantôme pour ouvrir le clavier */}
             <TextInput
                 ref={phantomInputRef}
@@ -160,6 +182,30 @@ const styles = StyleSheet.create({
         opacity: 0,
         height: 0,
         width: 0,
+    },
+    backdrop: {
+        position: "absolute",
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+        zIndex: 20,
+        elevation: 20,
+    },
+    backdropVisual: {
+        ...StyleSheet.absoluteFill,
+    },
+    backdropShade: {
+        ...StyleSheet.absoluteFill,
+        backgroundColor: "rgba(0, 0, 0, 0.34)",
+    },
+    backdropDim: {
+        position: "absolute",
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.22)",
     },
     accessoryContainer: {
         flexDirection: "column",
