@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { toAppDateKey } from './date';
+import { toDailyDateKey } from './date';
 import { supabase } from './supabase';
 
 export function useDailyScreen(isAuthLoading: boolean, isAuthenticated: boolean) {
@@ -16,7 +16,7 @@ export function useDailyScreen(isAuthLoading: boolean, isAuthenticated: boolean)
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
 
-                const today = toAppDateKey(new Date());
+                const today = toDailyDateKey(new Date());
 
                 const { data: profile, error } = await supabase
                     .from('Profiles')

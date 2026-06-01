@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { View } from 'react-native';
-import { toAppDateKey } from '../lib/date';
+import { toDailyDateKey } from '../lib/date';
 import { useTheme } from '../lib/ThemeContext';
 import { supabase } from '../lib/supabase';
 
@@ -18,7 +18,7 @@ export default function Index() {
                     return;
                 }
 
-                const today = toAppDateKey(new Date());
+                const today = toDailyDateKey(new Date());
 
                 const { data: profile, error } = await supabase
                     .from('Profiles')
