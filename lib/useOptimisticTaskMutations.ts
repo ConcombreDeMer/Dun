@@ -13,6 +13,16 @@ type TaskCacheItem = {
   date: string;
 };
 
+type TaskMutationSnapshot = {
+  id: number;
+  clientKey?: string;
+  name: string;
+  description: string;
+  done: boolean;
+  order?: number;
+  date?: string;
+};
+
 type CreateTaskInput = {
   name: string;
   description?: string;
@@ -49,6 +59,10 @@ const normalizeOrdersForDate = (tasks: TaskCacheItem[], dateKey: string) => {
     const nextOrder = nextOrderById.get(task.id);
     return nextOrder ? { ...task, order: nextOrder } : task;
   });
+};
+
+const isTaskCacheItem = (task: TaskMutationSnapshot | undefined): task is TaskCacheItem => {
+  return !!task?.date && typeof task.order === "number";
 };
 
 export const useOptimisticTaskMutations = () => {
@@ -156,13 +170,9 @@ export const useOptimisticTaskMutations = () => {
     }
   }, [queryClient, scheduleInvalidate]);
 
-  const deleteTaskOptimistically = useCallback(async (taskId: number) => {
+  const deleteTaskOptimistically = useCallback(async (taskId: number, taskSnapshot?: TaskMutationSnapshot) => {
     const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY);
-    const deletedTask = previousTasks?.find((task) => task.id === taskId);
-
-    if (!deletedTask) {
-      return;
-    }
+    const deletedTask = previousTasks?.find((task) => task.id === taskId) ?? taskSnapshot;
 
     if (isMountedRef.current) {
       setPendingDeleteIds((current) => {
@@ -172,24 +182,30 @@ export const useOptimisticTaskMutations = () => {
       });
     }
 
-    queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) =>
-      normalizeOrdersForDate(
-        removeTaskFromCache(current, taskId),
-        toAppDateKey(deletedTask.date)
-      )
-    );
+    if (deletedTask) {
+      queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) =>
+        deletedTask.date
+          ? normalizeOrdersForDate(
+            removeTaskFromCache(current, taskId),
+            toAppDateKey(deletedTask.date)
+          )
+          : removeTaskFromCache(current, taskId)
+      );
+    }
 
     try {
       await deleteTask(taskId);
       scheduleInvalidate();
     } catch (error) {
-      queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) => {
-        if (current?.some((task) => task.id === taskId)) {
-          return current;
-        }
+      if (deletedTask) {
+        queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) => {
+          if (current?.some((task) => task.id === taskId)) {
+            return current;
+          }
 
-        return [...(current ?? []), deletedTask];
-      });
+          return isTaskCacheItem(deletedTask) ? [...(current ?? []), deletedTask] : current;
+        });
+      }
       throw error;
     } finally {
       if (isMountedRef.current) {
@@ -202,11 +218,11 @@ export const useOptimisticTaskMutations = () => {
     }
   }, [queryClient, scheduleInvalidate]);
 
-  const moveTaskDateOptimistically = useCallback(async (taskId: number, dateKey: string) => {
+  const moveTaskDateOptimistically = useCallback(async (taskId: number, dateKey: string, taskSnapshot?: TaskMutationSnapshot) => {
     const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY);
-    const movedTask = previousTasks?.find((task) => task.id === taskId);
+    const movedTask = previousTasks?.find((task) => task.id === taskId) ?? taskSnapshot;
 
-    if (!movedTask || toAppDateKey(movedTask.date) === dateKey) {
+    if (movedTask?.date && toAppDateKey(movedTask.date) === dateKey) {
       return;
     }
 
@@ -218,29 +234,34 @@ export const useOptimisticTaskMutations = () => {
       });
     }
 
-    queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) => {
-      const currentTasks = current ?? [];
-      const sourceDateKey = toAppDateKey(movedTask.date);
-      const nextOrder = getNextLocalOrder(
-        currentTasks.filter((task) => task.id !== taskId),
-        dateKey
-      );
-      const movedTasks = currentTasks.map((task) =>
-        task.id === taskId ? { ...task, date: dateKey, order: nextOrder } : task
-      );
+    if (movedTask) {
+      queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) => {
+        const currentTasks = current ?? [];
+        const sourceDateKey = movedTask.date ? toAppDateKey(movedTask.date) : dateKey;
+        const nextOrder = getNextLocalOrder(
+          currentTasks.filter((task) => task.id !== taskId),
+          dateKey
+        );
+        const nextTask: TaskCacheItem = { ...movedTask, date: dateKey, order: nextOrder };
+        const movedTasks = currentTasks.some((task) => task.id === taskId)
+          ? currentTasks.map((task) => task.id === taskId ? nextTask : task)
+          : [...currentTasks, nextTask];
 
-      return normalizeOrdersForDate(movedTasks, sourceDateKey);
-    });
+        return normalizeOrdersForDate(movedTasks, sourceDateKey);
+      });
+    }
 
     try {
       await moveTaskDate(taskId, dateKey);
       scheduleInvalidate();
     } catch (error) {
-      queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) =>
-        (current ?? []).map((task) =>
-          task.id === taskId ? movedTask : task
-        )
-      );
+      if (movedTask) {
+        queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) =>
+          isTaskCacheItem(movedTask)
+            ? (current ?? []).map((task) => task.id === taskId ? movedTask : task)
+            : removeTaskFromCache(current, taskId)
+        );
+      }
       throw error;
     } finally {
       if (isMountedRef.current) {

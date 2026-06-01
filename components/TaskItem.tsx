@@ -134,11 +134,11 @@ export const TaskItem = ({
 
   const handleDeleteAfterSwipe = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    void deleteTaskOptimistically(item.id).catch((error: any) => {
+    void deleteTaskOptimistically(item.id, item).catch((error: any) => {
       console.error("Erreur lors de la suppression:", error);
       Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
     });
-  }, [deleteTaskOptimistically, item.id, t]);
+  }, [deleteTaskOptimistically, item, t]);
 
   const handleSwipeLeft = useCallback(() => {
     if (isTaskDeletePending(item.id)) return;
@@ -163,11 +163,11 @@ export const TaskItem = ({
     const nextDateKey = toAppDateKey(targetDate);
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    void moveTaskDateOptimistically(item.id, nextDateKey).catch((error: any) => {
+    void moveTaskDateOptimistically(item.id, nextDateKey, item).catch((error: any) => {
       console.error("Erreur lors du report:", error);
       Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
     });
-  }, [item.date, item.id, mode, moveTaskDateOptimistically, t]);
+  }, [item, mode, moveTaskDateOptimistically, t]);
 
   const handleSwipeRight = useCallback(() => {
     if (isTaskMovePending(item.id)) return;

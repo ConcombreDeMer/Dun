@@ -18,6 +18,15 @@ import { useToggleTaskDone } from '../lib/useToggleTaskDone';
 
 const screenWidth = Dimensions.get('window').width;
 
+type DailyTask = {
+    id: number;
+    name: string;
+    description: string;
+    done: boolean;
+    order: number;
+    date: string;
+};
+
 export default function DailyScreen() {
     const { colors } = useTheme();
     const router = useRouter();
@@ -29,13 +38,12 @@ export default function DailyScreen() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const todayString = toAppDateKey(new Date());
-    const pastToggleQueryKeys = useMemo(() => [["tasks", "past"], ["tasks"]], []);
-    const todayToggleQueryKeys = useMemo(() => [["tasks", todayString], ["tasks"]], [todayString]);
+    const taskToggleQueryKeys = useMemo(() => [["tasks"]], []);
     const {
         isTaskPending: isPastTaskPending,
         toggleTaskDone: togglePastTaskDone,
     } = useToggleTaskDone({
-        queryKeys: pastToggleQueryKeys,
+        queryKeys: taskToggleQueryKeys,
         errorTitle: t("common.alerts.errorTitle"),
         errorMessage: t("common.alerts.genericError"),
     });
@@ -43,12 +51,12 @@ export default function DailyScreen() {
         isTaskPending: isTodayTaskPending,
         toggleTaskDone: toggleTodayTaskDone,
     } = useToggleTaskDone({
-        queryKeys: todayToggleQueryKeys,
+        queryKeys: taskToggleQueryKeys,
         errorTitle: t("common.alerts.errorTitle"),
         errorMessage: t("common.alerts.genericError"),
     });
 
-    const getPastTasks = async () => {
+    const getTasks = async () => {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) {
@@ -59,23 +67,36 @@ export default function DailyScreen() {
             .from('Tasks')
             .select('id, name, description, done, order, date')
             .eq('user_id', user.id)
-            .lt('date', todayString)
-            .eq('done', false)
-            .order('date', { ascending: false });
+            .order("order", { ascending: false });
 
         if (error) {
-            console.error('Erreur lors de la récupération des tâches passées:', error);
+            console.error('Erreur lors de la récupération des tâches:', error);
             return [];
         }
-        return data;
+        return data ?? [];
     }
 
-    const pastTasksQuery = useQuery({
-        queryKey: ['tasks', 'past'],
-        queryFn: getPastTasks,
-        gcTime: 1000 * 60 * 5,
-        staleTime: 1000 * 60 * 2,
+    const taskQuery = useQuery({
+        queryKey: ['tasks'],
+        queryFn: getTasks,
+        gcTime: 1000 * 60 * 30,
+        staleTime: 1000 * 60 * 15,
     });
+
+    const pastTasks = useMemo(() => {
+        return ((taskQuery.data ?? []) as DailyTask[])
+            .filter((task) => task.date && toAppDateKey(task.date) < todayString && !task.done)
+            .sort((a, b) => {
+                const dateCompare = toAppDateKey(b.date).localeCompare(toAppDateKey(a.date));
+                return dateCompare === 0 ? (b.order || 0) - (a.order || 0) : dateCompare;
+            });
+    }, [taskQuery.data, todayString]);
+
+    const todayTasks = useMemo(() => {
+        return ((taskQuery.data ?? []) as DailyTask[])
+            .filter((task) => task.date && toAppDateKey(task.date) === todayString)
+            .sort((a, b) => (b.order || 0) - (a.order || 0));
+    }, [taskQuery.data, todayString]);
 
     const step1X = useSharedValue(0);
     const step2X = useSharedValue(screenWidth);
@@ -98,34 +119,6 @@ export default function DailyScreen() {
         };
         fetchData();
     }, [t]);
-
-    const getTodayTasks = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) {
-            return [];
-        }
-
-        const { data, error } = await supabase
-            .from('Tasks')
-            .select('id, name, description, done, order, date')
-            .eq('user_id', user.id)
-            .eq('date', todayString)
-            .order("order", { ascending: false });
-
-        if (error) {
-            console.error('Erreur lors de la récupération des tâches:', error);
-            return [];
-        }
-        return data;
-    }
-
-    const todayTasksQuery = useQuery({
-        queryKey: ['tasks', todayString],
-        queryFn: getTodayTasks,
-        gcTime: 1000 * 60 * 5,
-        staleTime: 1000 * 60 * 2,
-    });
 
     const handleTogglePastTask = async (taskId: number, currentDone: boolean) => {
         void togglePastTaskDone(taskId, currentDone);
@@ -280,14 +273,14 @@ export default function DailyScreen() {
                     <Text style={[styles.mainTitle, { color: colors.text, marginBottom: 20, textAlign: 'center', width: '100%' }]}>{t("daily.great")}</Text>
                     <Text style={[styles.subtitleLeft, { color: colors.textSecondary }]}>
                         {t("daily.yesterdayIntro", {
-                            tasksLabel: (pastTasksQuery.data && pastTasksQuery.data.length > 0)
+                            tasksLabel: pastTasks.length > 0
                                 ? t("daily.suspendedTasks")
                                 : t("daily.noSuspendedTasks")
                         })}
                     </Text>
 
                     <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
-                        {pastTasksQuery.data?.map(task => (
+                        {pastTasks.map(task => (
                             <View key={task.id}
                                 style={{
                                     marginBottom: 8,
@@ -307,7 +300,7 @@ export default function DailyScreen() {
                                 />
                             </View>
                         ))}
-                        {pastTasksQuery.data?.length === 0 && (
+                        {pastTasks.length === 0 && (
                             <Text style={{ color: colors.textSecondary, marginTop: 20, textAlign: 'center' }}>{t("daily.nothingToReport")}</Text>
                         )}
                     </ScrollView>
@@ -332,11 +325,11 @@ export default function DailyScreen() {
                 <View style={styles.contentContainerLeft}>
                     <Text style={[styles.mainTitle, { color: colors.text, marginBottom: 20, textAlign: 'center', width: '100%' }]}>{t("daily.noted")}</Text>
                     <Text style={[styles.subtitleLeft, { color: colors.textSecondary }]}>
-                        {t("daily.todayTasksIntro", { count: todayTasksQuery.data ? todayTasksQuery.data.length : 0 })}
+                        {t("daily.todayTasksIntro", { count: todayTasks.length })}
                     </Text>
 
                     <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
-                        {todayTasksQuery.data?.map(task => (
+                        {todayTasks.map(task => (
                             <View key={task.id}
                                 style={{
                                     marginBottom: 8,
