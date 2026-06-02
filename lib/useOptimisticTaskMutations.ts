@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toAppDateKey } from "./date";
-import { createTask, deleteTask, moveTaskDate } from "./tasks";
+import { createTask, deleteTask, moveTaskDate, resolveOverdueTask } from "./tasks";
 
 type TaskCacheItem = {
   id: number;
@@ -11,6 +11,11 @@ type TaskCacheItem = {
   done: boolean;
   order: number;
   date: string;
+  completed_at?: string | null;
+  resolved_at?: string | null;
+  resolution?: string | null;
+  carried_from_id?: number | null;
+  delay_count?: number | null;
 };
 
 type TaskMutationSnapshot = {
@@ -21,6 +26,11 @@ type TaskMutationSnapshot = {
   done: boolean;
   order?: number;
   date?: string;
+  completed_at?: string | null;
+  resolved_at?: string | null;
+  resolution?: string | null;
+  carried_from_id?: number | null;
+  delay_count?: number | null;
 };
 
 type CreateTaskInput = {
@@ -117,6 +127,11 @@ export const useOptimisticTaskMutations = () => {
       name: trimmedName,
       description: trimmedDescription,
       done: false,
+      completed_at: null,
+      resolved_at: null,
+      resolution: null,
+      carried_from_id: null,
+      delay_count: 0,
       order: optimisticOrder,
       date: dateKey,
     };
@@ -148,8 +163,7 @@ export const useOptimisticTaskMutations = () => {
             return task;
           }
 
-          const { clientKey: _clientKey, ...confirmedTask } = task;
-          return { ...confirmedTask, id: realTaskId };
+          return { ...task, id: realTaskId };
         })
       );
       scheduleInvalidate();
@@ -292,5 +306,139 @@ export const useOptimisticTaskMutations = () => {
     pendingCreateIds,
     pendingDeleteIds,
     pendingMoveIds,
+  };
+};
+
+export const useOptimisticOverdueTaskMutations = () => {
+  const queryClient = useQueryClient();
+  const invalidateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
+  const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(() => new Set());
+
+  const scheduleInvalidate = useCallback(() => {
+    if (invalidateTimeoutRef.current) {
+      clearTimeout(invalidateTimeoutRef.current);
+    }
+
+    invalidateTimeoutRef.current = setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: DAYS_QUERY_KEY });
+    }, 350);
+  }, [queryClient]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+
+      if (invalidateTimeoutRef.current) {
+        clearTimeout(invalidateTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const resolveOverdueTaskOptimistically = useCallback(async (
+    taskId: number,
+    resolution: "deleted" | "postponed" | "late_completed" | "ignored",
+    taskSnapshot?: TaskMutationSnapshot,
+    targetDateKey = toAppDateKey(new Date())
+  ) => {
+    const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY);
+    const overdueTask = previousTasks?.find((task) => task.id === taskId) ?? taskSnapshot;
+    const tempId = resolution === "postponed" ? nextTempTaskId-- : null;
+    const now = new Date().toISOString();
+
+    if (isMountedRef.current) {
+      setPendingTaskIds((current) => {
+        const next = new Set(current);
+        next.add(taskId);
+        return next;
+      });
+    }
+
+    if (overdueTask) {
+      queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) => {
+        const currentTasks = current ?? [];
+        const resolvedTasks = currentTasks.map((task) => {
+          if (task.id !== taskId) {
+            return task;
+          }
+
+          return {
+            ...task,
+            done: resolution === "late_completed",
+            completed_at: resolution === "late_completed" ? now : null,
+            resolved_at: now,
+            resolution,
+          };
+        });
+
+        if (resolution !== "postponed" || tempId === null) {
+          return resolvedTasks;
+        }
+
+        const nextOrder = getNextLocalOrder(resolvedTasks, targetDateKey);
+        const postponedTask: TaskCacheItem = {
+          ...overdueTask,
+          id: tempId,
+          clientKey: `optimistic-task-${tempId}`,
+          done: false,
+          completed_at: null,
+          resolved_at: null,
+          resolution: null,
+          carried_from_id: taskId,
+          delay_count: (overdueTask.delay_count || 0) + 1,
+          date: targetDateKey,
+          order: nextOrder,
+        };
+
+        return [...resolvedTasks, postponedTask];
+      });
+    }
+
+    try {
+      const createdTaskId = await resolveOverdueTask(taskId, resolution, targetDateKey);
+
+      if (resolution === "postponed" && tempId !== null && createdTaskId) {
+        queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) =>
+          (current ?? []).map((task) => {
+            if (task.id !== tempId) {
+              return task;
+            }
+
+            return { ...task, id: createdTaskId };
+          })
+        );
+      }
+
+      scheduleInvalidate();
+      return createdTaskId;
+    } catch (error) {
+      if (previousTasks) {
+        queryClient.setQueryData(TASKS_QUERY_KEY, previousTasks);
+      } else {
+        queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY });
+      }
+      throw error;
+    } finally {
+      if (isMountedRef.current) {
+        setPendingTaskIds((current) => {
+          const next = new Set(current);
+          next.delete(taskId);
+          return next;
+        });
+      }
+    }
+  }, [queryClient, scheduleInvalidate]);
+
+  const isOverdueTaskPending = useCallback((taskId: number) => {
+    return pendingTaskIds.has(taskId);
+  }, [pendingTaskIds]);
+
+  return {
+    isOverdueTaskPending,
+    pendingTaskIds,
+    resolveOverdueTaskOptimistically,
   };
 };

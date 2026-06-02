@@ -14,6 +14,8 @@ import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from '../lib/i18n';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../lib/ThemeContext';
+import { finalizeDailyReview } from '../lib/tasks';
+import { useOptimisticOverdueTaskMutations } from '../lib/useOptimisticTaskMutations';
 import { useToggleTaskDone } from '../lib/useToggleTaskDone';
 
 const screenWidth = Dimensions.get('window').width;
@@ -25,6 +27,11 @@ type DailyTask = {
     done: boolean;
     order: number;
     date: string;
+    completed_at?: string | null;
+    resolved_at?: string | null;
+    resolution?: string | null;
+    carried_from_id?: number | null;
+    delay_count?: number | null;
 };
 
 export default function DailyScreen() {
@@ -41,7 +48,6 @@ export default function DailyScreen() {
     const taskToggleQueryKeys = useMemo(() => [["tasks"]], []);
     const {
         isTaskPending: isPastTaskPending,
-        toggleTaskDone: togglePastTaskDone,
     } = useToggleTaskDone({
         queryKeys: taskToggleQueryKeys,
         errorTitle: t("common.alerts.errorTitle"),
@@ -55,6 +61,10 @@ export default function DailyScreen() {
         errorTitle: t("common.alerts.errorTitle"),
         errorMessage: t("common.alerts.genericError"),
     });
+    const {
+        isOverdueTaskPending,
+        resolveOverdueTaskOptimistically,
+    } = useOptimisticOverdueTaskMutations();
 
     const getTasks = async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -65,7 +75,7 @@ export default function DailyScreen() {
 
         const { data, error } = await supabase
             .from('Tasks')
-            .select('id, name, description, done, order, date')
+            .select('id, name, description, done, order, date, completed_at, resolved_at, resolution, carried_from_id, delay_count')
             .eq('user_id', user.id)
             .order("order", { ascending: false });
 
@@ -85,7 +95,7 @@ export default function DailyScreen() {
 
     const pastTasks = useMemo(() => {
         return ((taskQuery.data ?? []) as DailyTask[])
-            .filter((task) => task.date && toAppDateKey(task.date) < todayString && !task.done)
+            .filter((task) => task.date && toAppDateKey(task.date) < todayString && !task.done && !task.resolved_at)
             .sort((a, b) => {
                 const dateCompare = toAppDateKey(b.date).localeCompare(toAppDateKey(a.date));
                 return dateCompare === 0 ? (b.order || 0) - (a.order || 0) : dateCompare;
@@ -94,7 +104,7 @@ export default function DailyScreen() {
 
     const todayTasks = useMemo(() => {
         return ((taskQuery.data ?? []) as DailyTask[])
-            .filter((task) => task.date && toAppDateKey(task.date) === todayString)
+            .filter((task) => task.date && toAppDateKey(task.date) === todayString && !task.resolved_at)
             .sort((a, b) => (b.order || 0) - (a.order || 0));
     }, [taskQuery.data, todayString]);
 
@@ -121,7 +131,14 @@ export default function DailyScreen() {
     }, [t]);
 
     const handleTogglePastTask = async (taskId: number, currentDone: boolean) => {
-        void togglePastTaskDone(taskId, currentDone);
+        if (currentDone) {
+            return;
+        }
+
+        const task = pastTasks.find((pastTask) => pastTask.id === taskId);
+        void resolveOverdueTaskOptimistically(taskId, "late_completed", task).catch((error: any) => {
+            console.error("Erreur lors de la complétion en retard:", error);
+        });
     };
 
     const handleToggleTodayTask = async (taskId: number, currentDone: boolean) => {
@@ -134,6 +151,8 @@ export default function DailyScreen() {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
+                await finalizeDailyReview(todayString);
+
                 const { error } = await supabase
                     .from('Profiles')
                     .update({ hasDoneDaily: true })
@@ -292,11 +311,13 @@ export default function DailyScreen() {
                                     isActive={false}
                                     handleToggleTask={handleTogglePastTask}
                                     handleTaskPress={() => { }}
-                                    isTogglePending={isPastTaskPending(task.id)}
+                                    isTogglePending={isPastTaskPending(task.id) || isOverdueTaskPending(task.id)}
                                     selectedTaskId={null}
                                     listHeight={400}
                                     isExtendable={false}
                                     mode="daily"
+                                    onDeleteTask={(item) => resolveOverdueTaskOptimistically(item.id, "deleted", item)}
+                                    onMoveTask={(item, targetDateKey) => resolveOverdueTaskOptimistically(item.id, "postponed", item, targetDateKey)}
                                 />
                             </View>
                         ))}

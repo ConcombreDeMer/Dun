@@ -68,6 +68,7 @@ interface TaskItemProps {
     done: boolean;
     description: string;
     date?: string;
+    delay_count?: number | null;
   };
   drag: () => void;
   isActive: boolean;
@@ -80,6 +81,9 @@ interface TaskItemProps {
   isExtendable?: boolean;
   isTogglePending?: boolean;
   mode?: 'normal' | 'daily';
+  isReadOnly?: boolean;
+  onDeleteTask?: (item: TaskItemProps["item"]) => Promise<unknown> | unknown;
+  onMoveTask?: (item: TaskItemProps["item"], targetDateKey: string) => Promise<unknown> | unknown;
 }
 
 export const TaskItem = ({
@@ -95,6 +99,9 @@ export const TaskItem = ({
   isExtendable = true,
   isTogglePending = false,
   mode = 'normal',
+  isReadOnly = false,
+  onDeleteTask,
+  onMoveTask,
 }: TaskItemProps) => {
   const { actualTheme, colors } = useTheme();
   const { fontSizes } = useFont();
@@ -134,14 +141,18 @@ export const TaskItem = ({
 
   const handleDeleteAfterSwipe = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    void deleteTaskOptimistically(item.id, item).catch((error: any) => {
+    const mutation = onDeleteTask
+      ? Promise.resolve(onDeleteTask(item))
+      : deleteTaskOptimistically(item.id, item);
+
+    void mutation.catch((error: any) => {
       console.error("Erreur lors de la suppression:", error);
       Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
     });
-  }, [deleteTaskOptimistically, item, t]);
+  }, [deleteTaskOptimistically, item, onDeleteTask, t]);
 
   const handleSwipeLeft = useCallback(() => {
-    if (isTaskDeletePending(item.id)) return;
+    if (isReadOnly || isTaskDeletePending(item.id)) return;
 
     swipeableRef.current?.close();
     itemOpacity.value = withTiming(0, { duration: 600 }, (finished) => {
@@ -150,7 +161,7 @@ export const TaskItem = ({
       }
     });
     translateX.value = withTiming(-screenWidth, { duration: 600 });
-  }, [handleDeleteAfterSwipe, isTaskDeletePending, item.id, translateX, itemOpacity, screenWidth]);
+  }, [handleDeleteAfterSwipe, isReadOnly, isTaskDeletePending, item.id, translateX, itemOpacity, screenWidth]);
 
   const handleMoveAfterSwipe = useCallback(() => {
     const sourceDate = item.date ? new Date(item.date) : new Date();
@@ -163,14 +174,18 @@ export const TaskItem = ({
     const nextDateKey = toAppDateKey(targetDate);
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    void moveTaskDateOptimistically(item.id, nextDateKey, item).catch((error: any) => {
+    const mutation = onMoveTask
+      ? Promise.resolve(onMoveTask(item, nextDateKey))
+      : moveTaskDateOptimistically(item.id, nextDateKey, item);
+
+    void mutation.catch((error: any) => {
       console.error("Erreur lors du report:", error);
       Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
     });
-  }, [item, mode, moveTaskDateOptimistically, t]);
+  }, [item, mode, moveTaskDateOptimistically, onMoveTask, t]);
 
   const handleSwipeRight = useCallback(() => {
-    if (isTaskMovePending(item.id)) return;
+    if (isReadOnly || isTaskMovePending(item.id)) return;
 
     const sourceDate = item.date ? new Date(item.date) : new Date();
     const targetDate = mode === 'daily' ? new Date() : new Date(sourceDate);
@@ -193,7 +208,7 @@ export const TaskItem = ({
       }
     });
     translateX.value = withTiming(screenWidth, { duration: 300 });
-  }, [handleMoveAfterSwipe, isTaskMovePending, item.date, item.id, mode, translateX, itemOpacity, screenWidth]);
+  }, [handleMoveAfterSwipe, isReadOnly, isTaskMovePending, item.date, item.id, mode, translateX, itemOpacity, screenWidth]);
 
   const renderRightActions = useCallback(() => {
     return (
@@ -317,7 +332,7 @@ export const TaskItem = ({
   });
 
   const handleCheckboxPress = useCallback(() => {
-    if (isTogglePending) return;
+    if (isReadOnly || isTogglePending) return;
 
     const nextDone = !item.done;
 
@@ -333,14 +348,14 @@ export const TaskItem = ({
       easing: Easing.out(Easing.quad),
     });
     handleToggleTask(item.id, item.done);
-  }, [doneProgress, isTogglePending, item.id, item.done, handleToggleTask, dotScale]);
+  }, [doneProgress, isReadOnly, isTogglePending, item.id, item.done, handleToggleTask, dotScale]);
 
   const handlePress = useCallback(() => {
-    if (!isExtendable) return;
+    if (!isExtendable || isReadOnly) return;
     rowRef.current?.measureInWindow((x, y, width, height) => {
       handleTaskPress(item.id, { x, y, width, height });
     });
-  }, [handleTaskPress, item.id, isExtendable]);
+  }, [handleTaskPress, item.id, isExtendable, isReadOnly]);
 
   const handlePressIn = useCallback(() => {
     pressScale.value = withSpring(0.98, {
@@ -478,7 +493,7 @@ export const TaskItem = ({
         ref={swipeableRef}
         renderLeftActions={renderLeftActions}
         renderRightActions={renderRightActions}
-        enabled={selectedTaskId === null}
+        enabled={selectedTaskId === null && !isReadOnly}
         leftThreshold={40}
         rightThreshold={40}
         friction={1.05}
@@ -497,7 +512,7 @@ export const TaskItem = ({
           />
           <Pressable
             onLongPress={drag}
-            disabled={isActive || selectedTaskId !== null}
+            disabled={isActive || selectedTaskId !== null || isReadOnly}
             delayLongPress={500}
             style={{
               width: "100%",
@@ -516,6 +531,12 @@ export const TaskItem = ({
                 {item.name}
               </Animated.Text>
 
+              {item.delay_count ? (
+                <Text style={[styles.delayBadge, { color: colors.textSecondary }]}>
+                  retard de {item.delay_count} jour{item.delay_count > 1 ? "s" : ""}
+                </Text>
+              ) : null}
+
               <View style={styles.checkboxContainer}>
                 <AnimatedTouchableOpacity
                   style={[
@@ -523,7 +544,7 @@ export const TaskItem = ({
                     checkboxAnimatedStyle,
                   ]}
                   onPress={handleCheckboxPress}
-                  disabled={isTogglePending}
+                  disabled={isReadOnly || isTogglePending}
                   activeOpacity={0.85}
                 >
                   <Animated.View style={checkAnimatedStyle}>
@@ -594,6 +615,12 @@ const styles = StyleSheet.create({
     zIndex: 1,
     marginLeft: 10,
     marginRight: 10,
+  },
+
+  delayBadge: {
+    fontFamily: 'Satoshi-Regular',
+    fontSize: 12,
+    marginRight: 8,
   },
 
   taskNameDone: {

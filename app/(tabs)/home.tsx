@@ -39,7 +39,7 @@ const addDays = (date: Date, amount: number) => {
 };
 
 const getDateKey = (date: Date) => toAppDateKey(startOfDay(date));
-const getTaskRenderKey = (task: any) => task.id;
+const getTaskRenderKey = (task: any) => task.clientKey ?? task.id;
 const getDayOffset = (from: Date, to: Date) => {
   const start = startOfDay(from).getTime();
   const end = startOfDay(to).getTime();
@@ -54,6 +54,7 @@ type DayTasksPageProps = {
   loading: boolean;
   selectedTaskId: number | null;
   tasks: any[];
+  isReadOnly?: boolean;
   onDragBegin?: () => void;
   onDragEnd?: ({ data }: { data: any[] }) => void;
   onPlaceholderIndexChange?: () => void;
@@ -77,9 +78,10 @@ const DayTasksPage = ({
   isTaskTogglePending,
   selectedTaskId,
   tasks,
+  isReadOnly = false,
   t,
 }: DayTasksPageProps) => {
-  const [optimisticTaskOrder, setOptimisticTaskOrder] = useState<Array<string | number> | null>(null);
+  const [optimisticTaskOrder, setOptimisticTaskOrder] = useState<(string | number)[] | null>(null);
   const displayedTasks = useMemo(() => {
     if (!optimisticTaskOrder || optimisticTaskOrder.length !== tasks.length) {
       return tasks;
@@ -162,7 +164,7 @@ const DayTasksPage = ({
           renderItem={({ item, drag, isActive }) => (
             <TaskItem
               item={item}
-              drag={tasks.length > 1 ? drag : () => {}}
+              drag={!isReadOnly && tasks.length > 1 ? drag : () => {}}
               isActive={isActive}
               handleToggleTask={onToggleTask}
               handleTaskPress={onTaskPress}
@@ -172,6 +174,7 @@ const DayTasksPage = ({
               layoutAnimationKey={taskListCompositionKey}
               disableAddedAnimations={disableCustomListAnimations}
               mode="normal"
+              isReadOnly={isReadOnly}
               isExtendable={!isCalendarExpanded}
             />
           )}
@@ -293,6 +296,7 @@ export default function Home() {
   }, []);
 
   const dateKey = useMemo(() => getDateKey(selectedDate), [selectedDate]);
+  const todayKey = useMemo(() => getDateKey(new Date()), []);
 
   useEffect(() => {
     if (!storedDate) {
@@ -316,7 +320,7 @@ export default function Home() {
 
     const { data, error } = await supabase
       .from("Tasks")
-      .select("id, name, description, done, order, date")
+      .select("id, name, description, done, order, date, completed_at, resolved_at, resolution, carried_from_id, delay_count")
       .eq("user_id", user.id)
       .order("order", { ascending: false });
     if (error) {
@@ -324,7 +328,17 @@ export default function Home() {
       return [];
     }
 
-    return data ?? [];
+    const cachedTasks = queryClient.getQueryData<any[]>(['tasks']) ?? [];
+    const clientKeysByTaskId = new Map(
+      cachedTasks
+        .filter((task: any) => task.id > 0 && task.clientKey)
+        .map((task: any) => [task.id, task.clientKey])
+    );
+
+    return (data ?? []).map((task: any) => {
+      const clientKey = clientKeysByTaskId.get(task.id);
+      return clientKey ? { ...task, clientKey } : task;
+    });
   }
 
   const taskQuery = useQuery({
@@ -633,6 +647,7 @@ export default function Home() {
     const pageDateKey = getDateKey(pageDate);
     const pageTasks = tasksByDate.get(pageDateKey) ?? [];
     const isSelectedPage = pageDateKey === dateKey;
+    const isReadOnlyPage = pageDateKey < todayKey;
 
     return (
       <DayTasksPage
@@ -641,13 +656,14 @@ export default function Home() {
         dayWidth={windowWidth}
         isCalendarExpanded={isCalendarExpanded}
         loading={loading}
-        onDragEnd={isSelectedPage ? handleDragEnd : undefined}
+        onDragEnd={isSelectedPage && !isReadOnlyPage ? handleDragEnd : undefined}
         onPlaceholderIndexChange={isSelectedPage ? handlePlaceholderIndexChange : undefined}
         onTaskPress={handleTaskPress}
         onToggleTask={handleToggleTask}
         isTaskTogglePending={isTaskPending}
         selectedTaskId={selectedTaskId}
         tasks={pageTasks}
+        isReadOnly={isReadOnlyPage}
         t={t}
       />
     );
@@ -665,6 +681,7 @@ export default function Home() {
     selectedTaskId,
     t,
     tasksByDate,
+    todayKey,
     windowWidth,
   ]);
 
