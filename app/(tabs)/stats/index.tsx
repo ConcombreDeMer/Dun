@@ -1,4 +1,5 @@
 import CreateModalHost from "@/components/CreateModalHost";
+import HorizontalBarGraph from "@/components/horizontalBarGraph";
 import SecondaryButton from "@/components/secondaryButton";
 import StatsBarGraph from "@/components/statsBarGraph";
 import StatsCard from "@/components/statsCard";
@@ -8,15 +9,17 @@ import StatsPreferencesModal from "@/components/StatsPreferencesModal";
 import StatsStreak from "@/components/statsStreak";
 import {
   CalculatedStats,
-  StatsDay,
-  StatsPeriod,
   calculateStats,
   createEmptyStatsDay,
+  filterStatsDays,
   getGlobalStatsDays,
+  StatsDay,
+  StatsPeriod,
   toDateKey,
 } from "@/lib/calculateStats";
 import { useAppTranslation } from "@/lib/i18n";
 import { supabase } from "@/lib/supabase";
+import { getTagUsageStats, TAG_USAGE_STATS_QUERY_KEY } from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStatsPreferences } from "@/lib/useStatsPreferences";
 import { useQuery } from "@tanstack/react-query";
@@ -36,6 +39,7 @@ type Slide = {
     stacks: { value: number; color: string; marginBottom?: number }[];
     label: string;
     date: string;
+    days?: StatsDay[];
   }[];
   periodLabel: string;
   id: string;
@@ -48,6 +52,8 @@ export default function Stats() {
   const [showInfoPopUp, setShowInfoPopUp] = useState(false);
   const [period, setPeriod] = useState<StatsPeriod>('Par semaine');
   const [slideStats, setSlideStats] = useState<CalculatedStats | null>(null);
+  const [activeSlide, setActiveSlide] = useState<Slide | null>(null);
+  const [showUnusedTags, setShowUnusedTags] = useState(false);
   const {
     isPreferencePending,
     preferences: statsPreferences,
@@ -57,6 +63,8 @@ export default function Stats() {
 
   // Gestionnaire pour les changements de slide
   const handleSlideChange = useCallback((slide: Slide) => {
+    setActiveSlide(slide);
+
     // Ne mettre à jour les stats que si ce n'est pas "Global"
     if (period === 'Global') return;
 
@@ -164,6 +172,55 @@ export default function Stats() {
     [chartDaysData, statsPreferences]
   );
   const displayedStats = period === "Global" ? globalStats : slideStats || globalStats;
+  const includedTagStatsDateKeys = useMemo(() => {
+    if (!activeSlide) {
+      return null;
+    }
+
+    return filterStatsDays(
+      activeSlide.bars.flatMap((bar) => bar.days ?? []),
+      statsPreferences
+    )
+      .map((day) => day.date.slice(0, 10))
+      .filter(Boolean)
+      .sort();
+  }, [activeSlide, statsPreferences]);
+
+  const tagStatsDateRange = useMemo(() => {
+    const dates = includedTagStatsDateKeys;
+
+    if (!dates?.length) {
+      return { startDateKey: null, endDateKey: null };
+    }
+
+    return {
+      startDateKey: dates[0],
+      endDateKey: dates[dates.length - 1],
+    };
+  }, [includedTagStatsDateKeys]);
+
+  const tagStatsDateKeysQueryPart = useMemo(
+    () => includedTagStatsDateKeys?.join("|") ?? "no-slide",
+    [includedTagStatsDateKeys]
+  );
+
+  const tagUsageStatsQuery = useQuery({
+    queryKey: [
+      ...TAG_USAGE_STATS_QUERY_KEY,
+      tagStatsDateRange.startDateKey,
+      tagStatsDateRange.endDateKey,
+      tagStatsDateKeysQueryPart,
+      showUnusedTags,
+    ],
+    queryFn: () => getTagUsageStats({
+      startDateKey: tagStatsDateRange.startDateKey,
+      endDateKey: tagStatsDateRange.endDateKey,
+      includedDateKeys: includedTagStatsDateKeys ?? [],
+      includeUnused: showUnusedTags,
+    }),
+    enabled: !!activeSlide,
+    placeholderData: (previousData) => previousData,
+  });
 
   const periodOptions: StatsPeriod[] = ['Par semaine', 'Par mois', 'Par année', 'Global'];
 
@@ -178,8 +235,14 @@ export default function Stats() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setPeriod(selectedPeriod);
     setSlideStats(null);
+    setActiveSlide(null);
     console.log('Période sélectionnée :', selectedPeriod);
     setLoadingState(selectedPeriod !== 'Global');
+  };
+
+  const handleShowUnusedTagsChange = async (value: boolean) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowUnusedTags(value);
   };
 
   return (
@@ -203,6 +266,8 @@ export default function Stats() {
         getDisplayedPeriod={getDisplayedPeriod}
         onPreferenceChange={setPreferenceOptimistically}
         onPeriodChange={handlePeriodSelect}
+        showUnusedTags={showUnusedTags}
+        onShowUnusedTagsChange={handleShowUnusedTagsChange}
         onClose={() => setShowInfoPopUp(false)}
       />
 
@@ -258,11 +323,18 @@ export default function Stats() {
 
         </View>
 
+
         <StatsBarGraph
           daysData={chartDaysData}
           period={period}
           statsPreferences={statsPreferences}
           onSlideChange={handleSlideChange}
+        />
+        
+        <HorizontalBarGraph
+          data={tagUsageStatsQuery.data ?? []}
+          isLoading={!activeSlide || tagUsageStatsQuery.isLoading}
+          periodLabel={activeSlide?.periodLabel ?? getDisplayedPeriod(period)}
         />
       </Animated.ScrollView>
       <CreateModalHost activePath="/stats" />

@@ -13,9 +13,11 @@ type StatsPreferencesModalProps = {
   period: StatsPeriod;
   periodOptions: StatsPeriod[];
   preferences: StatsPreferences;
+  showUnusedTags: boolean;
   getDisplayedPeriod: (period: StatsPeriod) => string;
   onPreferenceChange: (key: StatsPreferenceKey, value: boolean) => void;
   onPeriodChange: (period: StatsPeriod) => void;
+  onShowUnusedTagsChange: (value: boolean) => void;
   onClose: () => void;
 };
 
@@ -25,9 +27,11 @@ export default function StatsPreferencesModal({
   period,
   periodOptions,
   preferences,
+  showUnusedTags,
   getDisplayedPeriod,
   onPreferenceChange,
   onPeriodChange,
+  onShowUnusedTagsChange,
   onClose,
 }: StatsPreferencesModalProps) {
   const { colors } = useTheme();
@@ -112,6 +116,13 @@ export default function StatsPreferencesModal({
                     ]}
                   />
                 ))}
+                <Toggle
+                  isOn={showUnusedTags}
+                  onIsOnChange={onShowUnusedTagsChange}
+                  label={t("stats.general.tags.showUnused")}
+                  systemImage="tag"
+                  modifiers={[toggleStyle("switch")]}
+                />
               </VStack>
             </VStack>
           </Group>

@@ -456,6 +456,12 @@ stats:
       perfectDays: "Perfect days"
       completion: "Completion"
       charge: "Load"
+    tags:
+      title: "Tag usage"
+      total: "Total"
+      done: "Done"
+      showUnused: "Empty tags"
+      empty: "No tagged tasks in this period"
   streakExplain:
     title: "What is a streak?"
     definitionTitle: "Definition"

@@ -1,6 +1,7 @@
 import { QueryKey, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
+import { TAG_USAGE_STATS_QUERY_KEY } from "./tags";
 import { setTaskDone } from "./tasks";
 
 type ToggleTaskDoneOptions = {
@@ -47,6 +48,7 @@ export const useToggleTaskDone = ({
         queryClient.invalidateQueries({ queryKey });
       });
       queryClient.invalidateQueries({ queryKey: ["days"] });
+      queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
     }, 350);
   }, [queryClient, queryKeys]);
 

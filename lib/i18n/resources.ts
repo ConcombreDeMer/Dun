@@ -587,6 +587,13 @@ export const resources = {
             "perfectDays": "Perfect days",
             "completion": "Completion",
             "charge": "Load"
+          },
+          "tags": {
+            "title": "Tag usage",
+            "total": "Total",
+            "done": "Done",
+            "showUnused": "Empty tags",
+            "empty": "No tagged tasks in this period"
           }
         },
         "streakExplain": {
@@ -1382,6 +1389,13 @@ export const resources = {
             "perfectDays": "Jours parfaits",
             "completion": "Complétion",
             "charge": "Charge"
+          },
+          "tags": {
+            "title": "Utilisation des tags",
+            "total": "Total",
+            "done": "Terminées",
+            "showUnused": "Tags vides",
+            "empty": "Aucune tâche taguée sur cette période"
           }
         },
         "streakExplain": {

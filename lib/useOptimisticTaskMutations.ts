@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toAppDateKey } from "./date";
+import { TAG_USAGE_STATS_QUERY_KEY } from "./tags";
 import { createTask, deleteTask, moveTaskDate, resolveOverdueTask } from "./tasks";
 
 type TaskCacheItem = {
@@ -94,6 +95,7 @@ export const useOptimisticTaskMutations = () => {
     invalidateTimeoutRef.current = setTimeout(() => {
       queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: DAYS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
     }, 350);
   }, [queryClient]);
 

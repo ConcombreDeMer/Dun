@@ -9,7 +9,7 @@ import Animated, { FadeIn, FadeOut, interpolateColor, useAnimatedStyle, useShare
 import { fromAppDateKey, toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
-import { getTaskTagIds, setTaskTags } from "../lib/tags";
+import { getTaskTagIds, setTaskTags, TAG_USAGE_STATS_QUERY_KEY } from "../lib/tags";
 import { updateTaskDraft } from "../lib/tasks";
 import { useTheme } from "../lib/ThemeContext";
 import { useOptimisticTaskMutations } from "../lib/useOptimisticTaskMutations";
@@ -166,6 +166,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
             setSelectedTagIds(null);
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
             queryClient.invalidateQueries({ queryKey: ['tasks', id] });
+            queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
         },
         onError: (error: any) => {
             console.error("Erreur lors de la sauvegarde des tags:", error);

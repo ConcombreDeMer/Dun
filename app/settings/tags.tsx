@@ -5,7 +5,7 @@ import SimpleInput from "@/components/textInput";
 import Squircle from "@/components/Squircle";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
-import { createTag, deleteTag, getTags, Tag, TAGS_QUERY_KEY, updateTag } from "@/lib/tags";
+import { createTag, deleteTag, getTags, Tag, TAGS_QUERY_KEY, TAG_USAGE_STATS_QUERY_KEY, updateTag } from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
 import { BottomSheet, Button as SwiftButton, Group, Host, Menu, RNHostView } from "@expo/ui/swift-ui";
 import { presentationDetents, presentationDragIndicator } from "@expo/ui/swift-ui/modifiers";
@@ -39,6 +39,7 @@ export default function TagsSettings() {
     mutationFn: createTag,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TAGS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
       closeSheet();
     },
     onError: (error: any) => {
@@ -50,6 +51,7 @@ export default function TagsSettings() {
     mutationFn: updateTag,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TAGS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       closeSheet();
     },
@@ -62,6 +64,7 @@ export default function TagsSettings() {
     mutationFn: deleteTag,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TAGS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
     onError: (error: any) => {
