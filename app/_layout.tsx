@@ -7,7 +7,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FontProvider } from "../lib/FontContext";
 import { I18nProvider, useAppTranslation, useI18nReady } from "../lib/i18n";
-import { initializeRevenueCat, syncRevenueCatUser } from "../lib/revenuecat";
+import { syncRevenueCatUser } from "../lib/revenuecat";
+import { SubscriptionProvider } from "../lib/subscription";
 import { supabase } from "../lib/supabase";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 
@@ -51,11 +52,6 @@ function RootLayoutContent() {
 
   // Détection du premier lancement quotidien (seulement si l'utilisateur est bien connecté)
 
-  // Initialiser RevenueCat
-  useEffect(() => {
-    initializeRevenueCat();
-  }, []);
-
   // Initialiser l'authentification et écouter les changements
   useEffect(() => {
     let authListener: any = null;
@@ -71,14 +67,6 @@ function RootLayoutContent() {
       const session = sessionData?.session ?? null;
       setSession(session);
       setIsAuthLoading(false);
-
-      if (session?.user?.id) {
-        try {
-          await syncRevenueCatUser(session.user.id);
-        } catch (e) {
-          console.error("Erreur RevenueCat initAuth logIn:", e);
-        }
-      }
     };
 
     // Initialiser et s'abonner aux changements
@@ -88,13 +76,7 @@ function RootLayoutContent() {
       setSession(newSession ?? null);
       setIsAuthLoading(false);
 
-      if (newSession?.user?.id) {
-        try {
-          await syncRevenueCatUser(newSession.user.id);
-        } catch (e) {
-          console.error("Erreur RevenueCat logIn:", e);
-        }
-      } else if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT') {
         try {
           await syncRevenueCatUser(null);
         } catch (e) {
@@ -168,6 +150,7 @@ function RootLayoutContent() {
   return (
 
     <QueryClientProvider client={queryClient}>
+      <SubscriptionProvider appUserID={session?.user?.id ?? null}>
 
       {/* <View
         pointerEvents="none"
@@ -265,6 +248,7 @@ function RootLayoutContent() {
             }}
           />
         </Stack>
+      </SubscriptionProvider>
     </QueryClientProvider>
   );
 }

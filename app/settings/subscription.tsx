@@ -5,48 +5,57 @@ import PrimaryButton from '@/components/primaryButton';
 import SecondaryButton from '@/components/secondaryButton';
 import SettingItem from '@/components/settingItem';
 import SwitchItem from '@/components/switchItem';
+import { useFont } from '@/lib/FontContext';
+import { useAppTranslation } from '@/lib/i18n';
+import { useSubscription } from '@/lib/subscription';
+import { useTheme } from '@/lib/ThemeContext';
 import { router } from 'expo-router';
 import { SquircleButton, SquircleView } from 'expo-squircle-view';
 import { SymbolView } from 'expo-symbols';
-import { useEffect, useState } from 'react';
-import { Image, Keyboard, Platform, Text, TouchableWithoutFeedback, View } from 'react-native';
-import Purchases from 'react-native-purchases';
-import { useFont } from '@/lib/FontContext';
-import { useAppTranslation } from '@/lib/i18n';
-import { useTheme } from '@/lib/ThemeContext';
-
-type SubscriptionStatus = "None" | "prem" | "other";
+import { useMemo, useState } from 'react';
+import { Image, Keyboard, Text, TouchableWithoutFeedback, View } from 'react-native';
 
 export default function Subscription() {
     const { colors } = useTheme();
     const { fontSizes } = useFont();
     const { t } = useAppTranslation();
     const [showCancelModal, setShowCancelModal] = useState(false);
-    const [isSubscribed, setIsSubscribed ]= useState(false);
+    const {
+        activeEntitlement,
+        isPremium,
+        packages,
+        showManageSubscriptions,
+    } = useSubscription();
 
-    useEffect(() => {
+    const activePackage = useMemo(() => {
+        const productIdentifier = activeEntitlement?.productIdentifier;
+        return [packages.monthly, packages.annual].find((pack) => pack?.product.identifier === productIdentifier);
+    }, [activeEntitlement?.productIdentifier, packages.annual, packages.monthly]);
 
-        const checkSubscription = async () => {
-            const customerInfo = await Purchases.getCustomerInfo();
-
-            // On vérifie si l'utilisateur possède l'accès 'pro'
-            // (assurez-vous d'utiliser le bon id 'Dun Pro' ou 'pro' selon ce que vous avez mis)
-            if (typeof customerInfo.entitlements.active['Dun Pro'] !== "undefined") {
-                setIsSubscribed(true);
-            } else {
-                setIsSubscribed(false);
-            }
+    const formatDate = (date?: string | null) => {
+        if (!date) {
+            return t("settings.subscription.unavailable");
         }
 
-        checkSubscription();
-    }, []);
+        return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(date));
+    };
+
+    const getPeriodicity = () => {
+        if (activePackage?.packageType === "MONTHLY") {
+            return t("settings.subscription.monthly");
+        }
+
+        if (activePackage?.packageType === "ANNUAL") {
+            return t("settings.subscription.annual");
+        }
+
+        return t("settings.subscription.unavailable");
+    };
 
 
     const cancelSubscription = () => {
-        // redirect user to the appropriate store to manage their subscription
-        if (Platform.OS === 'ios') {
-            Purchases.showManageSubscriptions();
-        }
+        setShowCancelModal(false);
+        void showManageSubscriptions();
     }
 
 
@@ -99,7 +108,7 @@ export default function Subscription() {
                         {t("settings.subscription.status")}
                     </Text>
                     {
-                        !isSubscribed ? (
+                        !isPremium ? (
                             <SquircleView
                                 style={{
                                     backgroundColor: colors.card,
@@ -192,7 +201,7 @@ export default function Subscription() {
 
 
                     {
-                        isSubscribed && (
+                        isPremium && (
 
                             <View
                                 style={{ display: 'flex', gap: 8, marginTop: 10 }}
@@ -216,28 +225,28 @@ export default function Subscription() {
                                         title={t("settings.subscription.startDate")}
                                         rightContent={
                                             <Text
-                                                style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>TEST</Text>
+                                                style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>{formatDate(activeEntitlement?.latestPurchaseDate)}</Text>
                                         }
                                     />
                                     <SettingItem
                                         title={t("settings.subscription.endDate")}
                                         rightContent={
                                             <Text
-                                                style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>TEST</Text>
+                                                style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>{formatDate(activeEntitlement?.expirationDate)}</Text>
 
                                         }
                                     />
                                     <SettingItem
                                         title={t("settings.subscription.periodicity")}
                                         rightContent={
-                                            <Text style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>TEST</Text>
+                                            <Text style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>{getPeriodicity()}</Text>
 
                                         }
                                     />
                                     <SettingItem
                                         title={t("settings.subscription.price")}
                                         rightContent={
-                                            <Text style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>TEST</Text>
+                                            <Text style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>{activePackage?.product.priceString ?? t("settings.subscription.unavailable")}</Text>
 
                                         }
                                     />
@@ -260,7 +269,7 @@ export default function Subscription() {
                         {t("settings.subscription.management")}
                     </Text>
                     {
-                        !isSubscribed ? (
+                        !isPremium ? (
 
                             <SquircleView>
                                 <NavItem title={t("settings.subscription.startSubscription")} onPress={() => router.push("/settings/premium")} />

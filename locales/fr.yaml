@@ -157,6 +157,12 @@ settings:
     monthly: "Mensuel"
     annualDiscount: "soit 1.33 € / mois (-25%)"
     buy: "Obtenir Dun +"
+    restorePurchases: "Restaurer mes achats"
+    restoreSuccessTitle: "Abonnement restauré"
+    restoreSuccessMessage: "Votre abonnement Dun Plus est actif."
+    restoreEmptyTitle: "Aucun abonnement trouvé"
+    restoreEmptyMessage: "Aucun achat actif n'a été trouvé pour ce compte Apple."
+    restoreErrorTitle: "Erreur de restauration"
   subscription:
     headline:
       title: "Gestion"
@@ -168,6 +174,9 @@ settings:
     endDate: "Date de fin"
     periodicity: "Périodicité"
     price: "Prix"
+    unavailable: "Non disponible"
+    monthly: "Mensuel"
+    annual: "Annuel"
     management: "GESTION"
     startSubscription: "Débuter un abonnement"
     autoRenewal: "Renouvellement automatique"
@@ -456,6 +465,10 @@ stats:
       perfectDays: "Jours parfaits"
       completion: "Complétion"
       charge: "Charge"
+    premium:
+      title: "Graphiques Dun Plus"
+      message: "Débloque les graphiques détaillés et l'analyse des tags avec Dun Plus."
+      cta: "Découvrir Dun +"
     tags:
       title: "Utilisation des tags"
       total: "Total"

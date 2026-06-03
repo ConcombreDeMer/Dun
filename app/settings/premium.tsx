@@ -1,4 +1,7 @@
 import Squircle from "@/components/Squircle";
+import { useFont } from "@/lib/FontContext";
+import { useAppTranslation } from "@/lib/i18n";
+import { useSubscription } from "@/lib/subscription";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
@@ -13,41 +16,25 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
-import Purchases, { PurchasesPackage } from "react-native-purchases";
-import { useFont } from "@/lib/FontContext";
-import { useAppTranslation } from "@/lib/i18n";
-import { useTheme } from "@/lib/ThemeContext";
 
 export default function Premium() {
     const router = useRouter();
     const { fontSizes } = useFont();
     const { t } = useAppTranslation();
-    const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<'annual' | 'monthly'>('annual');
-    const [packages, setPackages] = useState<{ annual?: PurchasesPackage, monthly?: PurchasesPackage }>({});
-    const [isLoading, setIsLoading] = useState(true);
-    const [isPurchasing, setIsPurchasing] = useState(false);
-    const { colors } = useTheme();
+    const {
+        isLoading,
+        isPurchasing,
+        isRestoring,
+        loadOfferings,
+        packages,
+        purchasePackage,
+        restorePurchases,
+    } = useSubscription();
 
     useEffect(() => {
-        const fetchOfferings = async () => {
-            try {
-                const offerings = await Purchases.getOfferings();
-                if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
-                    const annual = offerings.current.availablePackages.find(p => p.packageType === 'ANNUAL');
-                    const monthly = offerings.current.availablePackages.find(p => p.packageType === 'MONTHLY');
-                    
-                    setPackages({ annual, monthly });
-                }
-            } catch (e) {
-                console.error("Erreur lors de la récupération des offres", e);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchOfferings();
-    }, []);
+        void loadOfferings();
+    }, [loadOfferings]);
 
     const renderFeatureItem = (icon: string, textElements: React.ReactNode) => (
         <View style={styles.featureItem}>
@@ -66,12 +53,10 @@ export default function Premium() {
             return;
         }
 
-        setIsPurchasing(true);
         try {
-            const { customerInfo } = await Purchases.purchasePackage(packageToBuy);
-            
-            // Remplacez 'pro' par l'identifiant de votre Entitlement dans RevenueCat
-            if (typeof customerInfo.entitlements.active['Dun Pro'] !== "undefined") {
+            const hasPremium = await purchasePackage(packageToBuy);
+
+            if (hasPremium) {
                 Alert.alert(t("settings.premium.purchaseSuccessTitle"), t("settings.premium.purchaseSuccessMessage"));
                 router.back();
             }
@@ -79,8 +64,22 @@ export default function Premium() {
             if (!e.userCancelled) {
                 Alert.alert(t("settings.premium.purchaseErrorTitle"), e.message || t("common.alerts.genericError"));
             }
-        } finally {
-            setIsPurchasing(false);
+        }
+    };
+
+    const restorePremium = async () => {
+        try {
+            const hasPremium = await restorePurchases();
+
+            if (hasPremium) {
+                Alert.alert(t("settings.premium.restoreSuccessTitle"), t("settings.premium.restoreSuccessMessage"));
+                router.back();
+                return;
+            }
+
+            Alert.alert(t("settings.premium.restoreEmptyTitle"), t("settings.premium.restoreEmptyMessage"));
+        } catch (e: any) {
+            Alert.alert(t("settings.premium.restoreErrorTitle"), e.message || t("common.alerts.genericError"));
         }
     };
 
@@ -135,7 +134,7 @@ export default function Premium() {
                             {t("settings.premium.futureFeatures")}
                         </Text>
                         <TouchableOpacity
-                            onPress={() => setShowDetailsModal(true)}
+                            onPress={() => Alert.alert("Dun+", t("settings.premium.futureFeatures"))}
                         >
                             <Text style={[styles.learnMoreText, { fontSize: fontSizes.sm }]}>{t("settings.premium.learnMore")}</Text>
                         </TouchableOpacity>
@@ -195,6 +194,19 @@ export default function Premium() {
                         </Text>
                     )}
                 </SquircleButton>
+                <TouchableOpacity
+                    style={styles.restoreButton}
+                    onPress={restorePremium}
+                    disabled={isRestoring}
+                >
+                    {isRestoring ? (
+                        <ActivityIndicator size="small" color="#554E3A" />
+                    ) : (
+                        <Text style={[styles.restoreButtonText, { fontSize: fontSizes.base }]}>
+                            {t("settings.premium.restorePurchases")}
+                        </Text>
+                    )}
+                </TouchableOpacity>
             </View>
 
 
@@ -415,6 +427,19 @@ const styles = StyleSheet.create({
     buyButtonText: {
         fontFamily: 'Satoshi-Bold',
         color: '#FFF',
+    },
+    restoreButton: {
+        alignItems: 'center',
+        alignSelf: 'center',
+        bottom: 74,
+        justifyContent: 'center',
+        minHeight: 34,
+        position: 'absolute',
+    },
+    restoreButtonText: {
+        color: '#554E3A',
+        fontFamily: 'Satoshi-Medium',
+        textDecorationLine: 'underline',
     },
     buyButtonPlus: {
         color: '#F4BA00',

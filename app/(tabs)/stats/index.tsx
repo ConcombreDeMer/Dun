@@ -18,14 +18,17 @@ import {
   toDateKey,
 } from "@/lib/calculateStats";
 import { useAppTranslation } from "@/lib/i18n";
+import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { getTagUsageStats, TAG_USAGE_STATS_QUERY_KEY } from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStatsPreferences } from "@/lib/useStatsPreferences";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
+import { SymbolView } from "expo-symbols";
 import { useCallback, useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated from 'react-native-reanimated';
 
 interface StatsData {
@@ -49,6 +52,8 @@ type Slide = {
 export default function Stats() {
   const { colors } = useTheme();
   const { t } = useAppTranslation();
+  const router = useRouter();
+  const { canUseAdvancedStats } = useSubscription();
   const [showInfoPopUp, setShowInfoPopUp] = useState(false);
   const [period, setPeriod] = useState<StatsPeriod>('Par semaine');
   const [slideStats, setSlideStats] = useState<CalculatedStats | null>(null);
@@ -223,6 +228,7 @@ export default function Stats() {
   });
 
   const periodOptions: StatsPeriod[] = ['Par semaine', 'Par mois', 'Par année', 'Global'];
+  const displayedLoadingState = canUseAdvancedStats ? loadingState : daysQuery.isLoading;
 
   const getDisplayedPeriod = (period: string) => {
     if (period === 'Par semaine') return t('stats.general.period.week');
@@ -297,13 +303,13 @@ export default function Stats() {
             image={require('@/assets/images/stats/done.png')}
             title={t('stats.general.cards.tasksDone')}
             value={displayedStats.totalDoneCount.toString()}
-            loading={loadingState}
+            loading={displayedLoadingState}
           />
           <StatsCard
             image={require('@/assets/images/stats/perfect.png')}
             title={t('stats.general.cards.perfectDays')}
             value={displayedStats.perfectDaysCount.toString()}
-            loading={loadingState}
+            loading={displayedLoadingState}
           />
         </View>
         <View style={styles.cardsRow}>
@@ -311,31 +317,55 @@ export default function Stats() {
             image={require('@/assets/images/stats/completion.png')}
             title={t('stats.general.cards.completion')}
             value={displayedStats.completion}
-            loading={loadingState}
+            loading={displayedLoadingState}
           />
           <StatsCardCharge
             image={require('@/assets/images/stats/charge.png')}
             title={t('stats.general.cards.charge')}
             value={displayedStats.charge.toString()}
-            loading={loadingState}
+            loading={displayedLoadingState}
           />
         </View>
 
         </View>
 
 
-        <StatsBarGraph
-          daysData={chartDaysData}
-          period={period}
-          statsPreferences={statsPreferences}
-          onSlideChange={handleSlideChange}
-        />
-        
-        <HorizontalBarGraph
-          data={tagUsageStatsQuery.data ?? []}
-          isLoading={!activeSlide || tagUsageStatsQuery.isLoading}
-          periodLabel={activeSlide?.periodLabel ?? getDisplayedPeriod(period)}
-        />
+        {canUseAdvancedStats ? (
+          <>
+            <StatsBarGraph
+              daysData={chartDaysData}
+              period={period}
+              statsPreferences={statsPreferences}
+              onSlideChange={handleSlideChange}
+            />
+
+            <HorizontalBarGraph
+              data={tagUsageStatsQuery.data ?? []}
+              isLoading={!activeSlide || tagUsageStatsQuery.isLoading}
+              periodLabel={activeSlide?.periodLabel ?? getDisplayedPeriod(period)}
+            />
+          </>
+        ) : (
+          <View style={[styles.premiumStatsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.premiumIcon}>
+              <SymbolView name="chart.bar.xaxis" size={30} tintColor="#F4BA00" />
+            </View>
+            <Text style={[styles.premiumTitle, { color: colors.text }]}>
+              {t("stats.general.premium.title")}
+            </Text>
+            <Text style={[styles.premiumMessage, { color: colors.textSecondary }]}>
+              {t("stats.general.premium.message")}
+            </Text>
+            <TouchableOpacity
+              style={styles.premiumButton}
+              onPress={() => router.push("/settings/premium")}
+            >
+              <Text style={styles.premiumButtonText}>
+                {t("stats.general.premium.cta")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </Animated.ScrollView>
       <CreateModalHost activePath="/stats" />
     </View>
@@ -370,6 +400,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '90%',
     height: 100,
+  },
+  premiumStatsCard: {
+    alignItems: "center",
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 10,
+    marginTop: 8,
+    paddingHorizontal: 22,
+    paddingVertical: 24,
+    width: "90%",
+  },
+  premiumIcon: {
+    alignItems: "center",
+    backgroundColor: "#FFF5D6",
+    borderRadius: 20,
+    height: 56,
+    justifyContent: "center",
+    width: 56,
+  },
+  premiumTitle: {
+    fontFamily: "Satoshi-Bold",
+    fontSize: 20,
+    textAlign: "center",
+  },
+  premiumMessage: {
+    fontFamily: "Satoshi-Regular",
+    fontSize: 15,
+    lineHeight: 21,
+    textAlign: "center",
+  },
+  premiumButton: {
+    alignItems: "center",
+    backgroundColor: "#272727",
+    borderRadius: 14,
+    justifyContent: "center",
+    marginTop: 4,
+    minHeight: 46,
+    paddingHorizontal: 22,
+  },
+  premiumButtonText: {
+    color: "#FFFFFF",
+    fontFamily: "Satoshi-Bold",
+    fontSize: 16,
   },
 
 });

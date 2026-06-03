@@ -4,6 +4,10 @@ import PopUpContainer from "@/components/popUpContainer";
 import PrimaryButton from "@/components/primaryButton";
 import Squircle from "@/components/Squircle";
 import SwitchItem from "@/components/switchItem";
+import { useFont } from "@/lib/FontContext";
+import { useAppTranslation } from "@/lib/i18n";
+import { supabase } from "@/lib/supabase";
+import { useTheme } from "@/lib/ThemeContext";
 import * as Haptics from 'expo-haptics';
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
@@ -18,10 +22,6 @@ import {
     View
 } from "react-native";
 import Purchases from "react-native-purchases";
-import { useFont } from "@/lib/FontContext";
-import { useAppTranslation } from "@/lib/i18n";
-import { supabase } from "@/lib/supabase";
-import { useTheme } from "@/lib/ThemeContext";
 
 
 export default function Settings() {
@@ -52,7 +52,7 @@ export default function Settings() {
                 // ATTENTION: Il faut utiliser le vrai "Identifier" ici, pas le "Display Name".
                 // Si lors de la création vous avez mis "Dun Pro" comme Identifier, gardez-le.
                 // S'il ne marche pas, essayez en minuscules sans espace (ex: dun_pro)
-                if (typeof customerInfo.entitlements.active['Dun Pro'] !== "undefined") {
+                if (typeof customerInfo.entitlements.active['dun_plus'] !== "undefined") {
                     console.log("Le user est abonné !");
                     if (isMounted) setIsSubscribed(true);
                 } else {

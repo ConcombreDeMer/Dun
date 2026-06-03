@@ -9,7 +9,7 @@ function getRevenueCatApiKey() {
   return process.env.EXPO_PUBLIC_REVENUECAT_KEY?.trim() || null;
 }
 
-export function initializeRevenueCat() {
+export function initializeRevenueCat(appUserID?: string | null) {
   if (Platform.OS !== "ios") {
     return false;
   }
@@ -21,40 +21,46 @@ export function initializeRevenueCat() {
     return false;
   }
 
-  if (hasConfiguredRevenueCat && configuredApiKey === apiKey) {
+  const normalizedAppUserID = appUserID?.trim() || null;
+
+  if (
+    hasConfiguredRevenueCat
+    && configuredApiKey === apiKey
+    && currentRevenueCatUserId === normalizedAppUserID
+  ) {
     return true;
   }
 
   Purchases.setLogLevel(LOG_LEVEL.DEBUG);
-  Purchases.configure({ apiKey });
+  Purchases.configure(
+    normalizedAppUserID
+      ? { apiKey, appUserID: normalizedAppUserID }
+      : { apiKey }
+  );
 
   hasConfiguredRevenueCat = true;
   configuredApiKey = apiKey;
+  currentRevenueCatUserId = normalizedAppUserID;
 
   return true;
 }
 
 export async function syncRevenueCatUser(userId: string | null) {
-  const isReady = initializeRevenueCat();
+  if (!userId) {
+    if (currentRevenueCatUserId === null) {
+      return;
+    }
+
+    await Purchases.logOut();
+    currentRevenueCatUserId = null;
+    return;
+  }
+
+  const isReady = initializeRevenueCat(userId);
 
   if (!isReady) {
     return;
   }
 
-  if (userId) {
-    if (currentRevenueCatUserId === userId) {
-      return;
-    }
-
-    await Purchases.logIn(userId);
-    currentRevenueCatUserId = userId;
-    return;
-  }
-
-  if (currentRevenueCatUserId === null) {
-    return;
-  }
-
-  await Purchases.logOut();
-  currentRevenueCatUserId = null;
+  currentRevenueCatUserId = userId;
 }

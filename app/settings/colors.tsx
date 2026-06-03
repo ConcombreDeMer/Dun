@@ -2,9 +2,11 @@ import Headline from "@/components/headline";
 import SecondaryButton from "@/components/secondaryButton";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
+import { SymbolView } from "expo-symbols";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
+import { useSubscription } from "@/lib/subscription";
 import { colorThemeOptions, darkColors, lightColors, useTheme } from "@/lib/ThemeContext";
 
 export default function ColorSettings() {
@@ -12,6 +14,7 @@ export default function ColorSettings() {
     const { t } = useAppTranslation();
     const { colorTheme, actualTheme, colors, setColorTheme } = useTheme();
     const { fontSizes } = useFont();
+    const { canUsePremiumColorThemes } = useSubscription();
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -32,6 +35,8 @@ export default function ColorSettings() {
             >
                 {colorThemeOptions.map((option) => {
                     const isActive = colorTheme === option.id;
+                    const isPremiumTheme = option.id !== "neutral";
+                    const isLocked = isPremiumTheme && !canUsePremiumColorThemes;
                     const previewColors = actualTheme === "light"
                         ? { ...lightColors, ...option.light }
                         : { ...darkColors, ...option.dark };
@@ -47,8 +52,20 @@ export default function ColorSettings() {
                                     borderWidth: isActive ? 2 : 1,
                                 },
                             ]}
-                            onPress={() => setColorTheme(option.id)}
+                            onPress={() => {
+                                if (isLocked) {
+                                    router.push("/settings/premium");
+                                    return;
+                                }
+
+                                setColorTheme(option.id);
+                            }}
                         >
+                            {isLocked && (
+                                <View style={styles.plusBadge}>
+                                    <SymbolView name="plus" size={15} weight="bold" tintColor="#2C2405" />
+                                </View>
+                            )}
                             <View
                                 style={[
                                     styles.preview,
@@ -136,6 +153,19 @@ const styles = StyleSheet.create({
     optionCard: {
         borderRadius: 15,
         padding: 14,
+        position: "relative",
+    },
+    plusBadge: {
+        alignItems: "center",
+        backgroundColor: "#F4BA00",
+        borderRadius: 999,
+        height: 28,
+        justifyContent: "center",
+        position: "absolute",
+        right: 12,
+        top: 12,
+        width: 28,
+        zIndex: 2,
     },
 
     preview: {

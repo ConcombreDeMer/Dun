@@ -225,7 +225,13 @@ export const resources = {
           "annual": "Yearly",
           "monthly": "Monthly",
           "annualDiscount": "or 1.33 € / month (-25%)",
-          "buy": "Get Dun +"
+          "buy": "Get Dun +",
+          "restorePurchases": "Restore purchases",
+          "restoreSuccessTitle": "Subscription restored",
+          "restoreSuccessMessage": "Your Dun Plus subscription is active.",
+          "restoreEmptyTitle": "No subscription found",
+          "restoreEmptyMessage": "No active purchase was found for this Apple account.",
+          "restoreErrorTitle": "Restore error"
         },
         "subscription": {
           "headline": {
@@ -239,6 +245,9 @@ export const resources = {
           "endDate": "End date",
           "periodicity": "Billing cycle",
           "price": "Price",
+          "unavailable": "Unavailable",
+          "monthly": "Monthly",
+          "annual": "Yearly",
           "management": "MANAGEMENT",
           "startSubscription": "Start a subscription",
           "autoRenewal": "Auto-renewal",
@@ -587,6 +596,11 @@ export const resources = {
             "perfectDays": "Perfect days",
             "completion": "Completion",
             "charge": "Load"
+          },
+          "premium": {
+            "title": "Dun Plus charts",
+            "message": "Unlock detailed charts and tag analysis with Dun Plus.",
+            "cta": "Discover Dun +"
           },
           "tags": {
             "title": "Tag usage",
@@ -1027,7 +1041,13 @@ export const resources = {
           "annual": "Annuel",
           "monthly": "Mensuel",
           "annualDiscount": "soit 1.33 € / mois (-25%)",
-          "buy": "Obtenir Dun +"
+          "buy": "Obtenir Dun +",
+          "restorePurchases": "Restaurer mes achats",
+          "restoreSuccessTitle": "Abonnement restauré",
+          "restoreSuccessMessage": "Votre abonnement Dun Plus est actif.",
+          "restoreEmptyTitle": "Aucun abonnement trouvé",
+          "restoreEmptyMessage": "Aucun achat actif n'a été trouvé pour ce compte Apple.",
+          "restoreErrorTitle": "Erreur de restauration"
         },
         "subscription": {
           "headline": {
@@ -1041,6 +1061,9 @@ export const resources = {
           "endDate": "Date de fin",
           "periodicity": "Périodicité",
           "price": "Prix",
+          "unavailable": "Non disponible",
+          "monthly": "Mensuel",
+          "annual": "Annuel",
           "management": "GESTION",
           "startSubscription": "Débuter un abonnement",
           "autoRenewal": "Renouvellement automatique",
@@ -1389,6 +1412,11 @@ export const resources = {
             "perfectDays": "Jours parfaits",
             "completion": "Complétion",
             "charge": "Charge"
+          },
+          "premium": {
+            "title": "Graphiques Dun Plus",
+            "message": "Débloque les graphiques détaillés et l'analyse des tags avec Dun Plus.",
+            "cta": "Découvrir Dun +"
           },
           "tags": {
             "title": "Utilisation des tags",
