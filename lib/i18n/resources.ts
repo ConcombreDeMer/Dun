@@ -9,6 +9,7 @@ export const resources = {
           "understood": "Understood",
           "back": "Back",
           "delete": "Delete",
+          "edit": "Edit",
           "resend": "Resend",
           "unlock": "Unlock",
           "extend": "Extend break",
@@ -49,6 +50,7 @@ export const resources = {
           "account": "Account",
           "notifications": "Notifications",
           "display": "Display",
+          "tags": "Tags",
           "daily": "Daily",
           "rest": "Rest",
           "subscribed": "Subscribed to Dun Plus",
@@ -466,6 +468,31 @@ export const resources = {
       "createModal": {
         "titlePlaceholder": "Task title"
       },
+      "tags": {
+        "headline": {
+          "title": "Tags",
+          "subtitle": "Organize your tasks"
+        },
+        "selector": {
+          "title": "Tags"
+        },
+        "empty": {
+          "title": "No tags yet",
+          "description": "Create your first tags to classify tasks quickly."
+        },
+        "form": {
+          "title": "New tag",
+          "editTitle": "Edit tag",
+          "name": "Name"
+        },
+        "alerts": {
+          "requiredName": "Tag name is required"
+        },
+        "delete": {
+          "title": "Delete tag",
+          "message": "Delete the {{name}} tag? It will be removed from linked tasks."
+        }
+      },
       "calendar": {
         "backToToday": "Back to today"
       },
@@ -777,6 +804,7 @@ export const resources = {
           "understood": "Compris",
           "back": "Retour",
           "delete": "Supprimer",
+          "edit": "Modifier",
           "resend": "Renvoyer",
           "unlock": "Débloquer",
           "extend": "Étendre la pause",
@@ -817,6 +845,7 @@ export const resources = {
           "account": "Compte",
           "notifications": "Notifications",
           "display": "Affichage",
+          "tags": "Tags",
           "daily": "Daily",
           "rest": "Repos",
           "subscribed": "Abonné à Dun Plus",
@@ -1233,6 +1262,31 @@ export const resources = {
       },
       "createModal": {
         "titlePlaceholder": "Titre de la tâche"
+      },
+      "tags": {
+        "headline": {
+          "title": "Tags",
+          "subtitle": "Organiser tes tâches"
+        },
+        "selector": {
+          "title": "Tags"
+        },
+        "empty": {
+          "title": "Aucun tag",
+          "description": "Crée tes premiers tags pour qualifier rapidement tes tâches."
+        },
+        "form": {
+          "title": "Nouveau tag",
+          "editTitle": "Modifier le tag",
+          "name": "Nom"
+        },
+        "alerts": {
+          "requiredName": "Le nom du tag est requis"
+        },
+        "delete": {
+          "title": "Supprimer le tag",
+          "message": "Supprimer le tag {{name}} ? Il sera retiré des tâches associées."
+        }
       },
       "calendar": {
         "backToToday": "Retour à aujourd'hui"

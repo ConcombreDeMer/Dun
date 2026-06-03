@@ -8,6 +8,7 @@ type TaskCacheItem = {
   clientKey?: string;
   name: string;
   description: string;
+  tagIds?: string[];
   done: boolean;
   order: number;
   date: string;
@@ -23,6 +24,7 @@ type TaskMutationSnapshot = {
   clientKey?: string;
   name: string;
   description: string;
+  tagIds?: string[];
   done: boolean;
   order?: number;
   date?: string;
@@ -37,6 +39,7 @@ type CreateTaskInput = {
   name: string;
   description?: string;
   dateKey: string;
+  tagIds?: string[];
 };
 
 const TASKS_QUERY_KEY = ["tasks"] as const;
@@ -110,6 +113,7 @@ export const useOptimisticTaskMutations = () => {
     name,
     description = "",
     dateKey,
+    tagIds = [],
   }: CreateTaskInput) => {
     const trimmedName = name.trim();
     const trimmedDescription = description.trim();
@@ -126,6 +130,7 @@ export const useOptimisticTaskMutations = () => {
       clientKey: `optimistic-task-${tempId}`,
       name: trimmedName,
       description: trimmedDescription,
+      tagIds,
       done: false,
       completed_at: null,
       resolved_at: null,
@@ -155,6 +160,7 @@ export const useOptimisticTaskMutations = () => {
         description: trimmedDescription,
         dateKey,
         preferredOrder: optimisticOrder,
+        tagIds,
       });
 
       queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) =>

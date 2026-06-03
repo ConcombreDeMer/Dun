@@ -2,6 +2,7 @@ import DateInput from "@/components/dateInput";
 import Headline from "@/components/headline";
 import PrimaryButton from "@/components/primaryButton";
 import SimpleInput from "@/components/textInput";
+import TagSelector from "@/components/TagSelector";
 import { useStore } from "@/store/store";
 import * as Haptics from 'expo-haptics';
 import { useRouter } from "expo-router";
@@ -24,6 +25,7 @@ export default function CreateTask() {
     const router = useRouter();
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
+    const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
     const selectedDate = useStore((state) => state.selectedDate) || new Date();
     const setSelectedDate = useStore((state) => state.setSelectedDate);
     const { colors } = useTheme();
@@ -50,10 +52,12 @@ export default function CreateTask() {
             name,
             description,
             dateKey: selectedDateKey,
+            tagIds: selectedTagIds,
         };
 
         setName("");
         setDescription("");
+        setSelectedTagIds([]);
         taskEmitter.emit("taskAdded");
         leaveCreateTask();
 
@@ -97,6 +101,11 @@ export default function CreateTask() {
                         onChangeText={setDescription}
                         multiline
                         bold
+                    />
+
+                    <TagSelector
+                        selectedTagIds={selectedTagIds}
+                        onChange={setSelectedTagIds}
                     />
 
                     <DateInput

@@ -10,6 +10,7 @@ import { Alert, Animated, Easing, InputAccessoryView, Keyboard, Pressable, Style
 import { toAppDateKey } from "../lib/date";
 import { useAppTranslation } from "../lib/i18n";
 import SecondaryButton from "./secondaryButton";
+import TagSelector from "./TagSelector";
 
 interface CreateModalProps {
     accessoryId?: string;
@@ -18,6 +19,7 @@ interface CreateModalProps {
 
 export default function CreateModal({ accessoryId = "createTaskAccessory", onClose }: CreateModalProps) {
     const [taskTitle, setTaskTitle] = useState("");
+    const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
     const phantomInputRef = useRef<TextInput>(null);
     const inputRef = useRef<TextInput>(null);
     const isIntentionalBlurRef = useRef(false);
@@ -63,14 +65,18 @@ export default function CreateModal({ accessoryId = "createTaskAccessory", onClo
         }
 
         const nextTitle = taskTitle;
+        const nextTagIds = selectedTagIds;
         setTaskTitle("");
+        setSelectedTagIds([]);
 
         void createTaskOptimistically({
             name: nextTitle,
             dateKey: selectedDateKey,
+            tagIds: nextTagIds,
         }).catch((error: any) => {
             console.error("Erreur lors de la création de la tâche:", error);
             setTaskTitle((current) => current.trim() ? current : nextTitle);
+            setSelectedTagIds((current) => current.length ? current : nextTagIds);
             Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
         });
 
@@ -127,6 +133,12 @@ export default function CreateModal({ accessoryId = "createTaskAccessory", onClo
                     preserveSmoothing={true}
                     style={styles.accessoryContainer}
                 >
+                    <TagSelector
+                        compact
+                        selectedTagIds={selectedTagIds}
+                        onChange={setSelectedTagIds}
+                    />
+
                     <View
                         style={{
                             flex: 1,

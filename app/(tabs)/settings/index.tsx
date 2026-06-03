@@ -237,6 +237,7 @@ export default function Settings() {
                     <NavItem image="person.fill" title={t("settings.root.account")} onPress={() => router.push(`/settings/account?id=${user.id}`)} />
                     <NavItem image="bell.fill" title={t("settings.root.notifications")} onPress={() => router.push("/settings/notifications")} />
                     <NavItem image="display" title={t("settings.root.display")} onPress={() => router.push("/settings/display")} />
+                    <NavItem image="tag.fill" title={t("settings.root.tags")} onPress={() => router.push("/settings/tags")} />
                     <Squircle
                         style={{
                             width: '100%',

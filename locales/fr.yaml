@@ -6,6 +6,7 @@ common:
     understood: "Compris"
     back: "Retour"
     delete: "Supprimer"
+    edit: "Modifier"
     resend: "Renvoyer"
     unlock: "Débloquer"
     extend: "Étendre la pause"
@@ -40,6 +41,7 @@ settings:
     account: "Compte"
     notifications: "Notifications"
     display: "Affichage"
+    tags: "Tags"
     daily: "Daily"
     rest: "Repos"
     subscribed: "Abonné à Dun Plus"
@@ -362,6 +364,24 @@ task:
     fullDate: "{{day}}/{{month}}/{{year}} à {{hours}}:{{minutes}}:{{seconds}}"
 createModal:
   titlePlaceholder: "Titre de la tâche"
+tags:
+  headline:
+    title: "Tags"
+    subtitle: "Organiser tes tâches"
+  selector:
+    title: "Tags"
+  empty:
+    title: "Aucun tag"
+    description: "Crée tes premiers tags pour qualifier rapidement tes tâches."
+  form:
+    title: "Nouveau tag"
+    editTitle: "Modifier le tag"
+    name: "Nom"
+  alerts:
+    requiredName: "Le nom du tag est requis"
+  delete:
+    title: "Supprimer le tag"
+    message: "Supprimer le tag {{name}} ? Il sera retiré des tâches associées."
 calendar:
   backToToday: "Retour à aujourd'hui"
 stats:

@@ -320,7 +320,7 @@ export default function Home() {
 
     const { data, error } = await supabase
       .from("Tasks")
-      .select("id, name, description, done, order, date, completed_at, resolved_at, resolution, carried_from_id, delay_count")
+      .select("id, name, description, done, order, date, completed_at, resolved_at, resolution, carried_from_id, delay_count, Task_Tags(tag_id)")
       .eq("user_id", user.id)
       .order("order", { ascending: false });
     if (error) {

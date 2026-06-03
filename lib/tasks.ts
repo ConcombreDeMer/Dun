@@ -1,5 +1,6 @@
 import { toAppDateKey } from "./date";
 import { supabase } from "./supabase";
+import { copyTaskTags, setTaskTags } from "./tags";
 
 export type TaskDraftUpdate = {
   name: string;
@@ -61,11 +62,13 @@ export const createTask = async ({
   description = "",
   dateKey,
   preferredOrder,
+  tagIds = [],
 }: {
   name: string;
   description?: string;
   dateKey: string;
   preferredOrder?: number;
+  tagIds?: string[];
 }) => {
   const userId = await getUserId();
   const nextServerOrder = await getNextTaskOrder(dateKey, userId);
@@ -92,6 +95,10 @@ export const createTask = async ({
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  if (tagIds.length) {
+    await setTaskTags(data.id as number, tagIds, userId);
   }
 
   return data.id as number;
@@ -389,6 +396,10 @@ export const resolveOverdueTask = async (
 
     if (insertError) {
       throw new Error(insertError.message);
+    }
+
+    if (newTask?.id) {
+      await copyTaskTags(taskId, newTask.id as number, userId);
     }
 
     return newTask?.id as number | undefined;

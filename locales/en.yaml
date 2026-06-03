@@ -6,6 +6,7 @@ common:
     understood: "Understood"
     back: "Back"
     delete: "Delete"
+    edit: "Edit"
     resend: "Resend"
     unlock: "Unlock"
     extend: "Extend break"
@@ -40,6 +41,7 @@ settings:
     account: "Account"
     notifications: "Notifications"
     display: "Display"
+    tags: "Tags"
     daily: "Daily"
     rest: "Rest"
     subscribed: "Subscribed to Dun Plus"
@@ -362,6 +364,24 @@ task:
     fullDate: "{{day}}/{{month}}/{{year}} at {{hours}}:{{minutes}}:{{seconds}}"
 createModal:
   titlePlaceholder: "Task title"
+tags:
+  headline:
+    title: "Tags"
+    subtitle: "Organize your tasks"
+  selector:
+    title: "Tags"
+  empty:
+    title: "No tags yet"
+    description: "Create your first tags to classify tasks quickly."
+  form:
+    title: "New tag"
+    editTitle: "Edit tag"
+    name: "Name"
+  alerts:
+    requiredName: "Tag name is required"
+  delete:
+    title: "Delete tag"
+    message: "Delete the {{name}} tag? It will be removed from linked tasks."
 calendar:
   backToToday: "Back to today"
 stats:

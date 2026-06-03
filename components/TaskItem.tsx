@@ -1,4 +1,5 @@
 import { Feather } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import * as Haptics from "expo-haptics";
 import { SquircleButton } from 'expo-squircle-view';
 import { useCallback, useEffect, useRef } from "react";
@@ -8,6 +9,7 @@ import Animated, { Easing, interpolateColor, runOnJS, useAnimatedStyle, useShare
 import { toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
+import { getTags, TAGS_QUERY_KEY } from "../lib/tags";
 import { useTheme } from "../lib/ThemeContext";
 import { useOptimisticTaskMutations } from "../lib/useOptimisticTaskMutations";
 import Squircle from "./Squircle";
@@ -69,6 +71,8 @@ interface TaskItemProps {
     description: string;
     date?: string;
     delay_count?: number | null;
+    tagIds?: string[];
+    Task_Tags?: { tag_id: string }[];
   };
   drag: () => void;
   isActive: boolean;
@@ -106,6 +110,10 @@ export const TaskItem = ({
   const { actualTheme, colors } = useTheme();
   const { fontSizes } = useFont();
   const { t } = useAppTranslation();
+  const { data: tags = [] } = useQuery({
+    queryKey: TAGS_QUERY_KEY,
+    queryFn: getTags,
+  });
   const dotScale = useSharedValue(item.done ? 1 : 0);
   const rowOpacity = useSharedValue(1);
   const rowScale = useSharedValue(1);
@@ -138,6 +146,11 @@ export const TaskItem = ({
   const checkboxDoneIcon = actualTheme === 'dark' ? '#89BE9B' : '#4E9C68';
   const mutedTaskColor = blendColors(colors.task, colors.background, 0.5);
   const mutedTextColor = blendColors(colors.text, colors.background, 0.5);
+  const itemTagIds = item.tagIds ?? item.Task_Tags?.map((tag) => tag.tag_id) ?? [];
+  const itemTags = itemTagIds.reduce<{ id: string; color: string }[]>((visibleTags, tagId) => {
+    const tag = tags.find((candidate) => candidate.id === tagId);
+    return tag ? [...visibleTags, { id: tag.id, color: tag.color }] : visibleTags;
+  }, []);
 
   const handleDeleteAfterSwipe = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -523,6 +536,17 @@ export const TaskItem = ({
             onPressOut={handlePressOut}
           >
             <View style={styles.taskContent}>
+              {itemTags.length > 0 && (
+                <View style={styles.tagDots}>
+                  {itemTags.map((tag) => (
+                    <View
+                      key={tag.id}
+                      style={[styles.tagDot, { backgroundColor: tag.color }]}
+                    />
+                  ))}
+                </View>
+              )}
+
               <Animated.Text style={[
                 styles.taskName,
                 taskTextAnimatedStyle,
@@ -613,8 +637,23 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontFamily: 'Satoshi-Regular',
     zIndex: 1,
-    marginLeft: 10,
+    marginLeft: 8,
     marginRight: 10,
+  },
+
+  tagDots: {
+    alignItems: 'center',
+    flexShrink: 0,
+    gap: 4,
+    justifyContent: 'center',
+    marginLeft: 2,
+    width: 10,
+  },
+
+  tagDot: {
+    borderRadius: 999,
+    height: 7,
+    width: 7,
   },
 
   delayBadge: {

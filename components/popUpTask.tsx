@@ -9,10 +9,12 @@ import Animated, { FadeIn, FadeOut, interpolateColor, useAnimatedStyle, useShare
 import { fromAppDateKey, toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
+import { getTaskTagIds, setTaskTags } from "../lib/tags";
 import { updateTaskDraft } from "../lib/tasks";
 import { useTheme } from "../lib/ThemeContext";
 import { useOptimisticTaskMutations } from "../lib/useOptimisticTaskMutations";
 import { useToggleTaskDone } from "../lib/useToggleTaskDone";
+import TagSelector from "./TagSelector";
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
@@ -32,6 +34,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     const [task, setTask] = useState<any>(null);
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
+    const [selectedTagIds, setSelectedTagIds] = useState<string[] | null>(null);
     const [taskDate, setTaskDate] = useState<Date>(new Date());
     const [last_update_date, setLastUpdateDate] = useState<Date | null>(null);
     const [hasChanges, setHasChanges] = useState(false);
@@ -79,6 +82,14 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     const taskQuery = useQuery({
         queryKey: ['tasks', id],
         queryFn: getTask,
+        enabled: !!id,
+        gcTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 2,
+    });
+
+    const taskTagsQuery = useQuery({
+        queryKey: ['task-tags', id],
+        queryFn: () => getTaskTagIds(id as number),
         enabled: !!id,
         gcTime: 1000 * 60 * 5,
         staleTime: 1000 * 60 * 2,
@@ -142,6 +153,25 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
         onError: (error: any) => {
             console.error("Erreur lors de la sauvegarde:", error);
         }
+    });
+
+    const updateTaskTagsMutation = useMutation({
+        mutationFn: async (tagIds: string[]) => {
+            if (!id) throw new Error(t("task.popup.notFound"));
+            await setTaskTags(id, tagIds);
+            return tagIds;
+        },
+        onSuccess: (tagIds) => {
+            queryClient.setQueryData(['task-tags', id], tagIds);
+            setSelectedTagIds(null);
+            queryClient.invalidateQueries({ queryKey: ['tasks'] });
+            queryClient.invalidateQueries({ queryKey: ['tasks', id] });
+        },
+        onError: (error: any) => {
+            console.error("Erreur lors de la sauvegarde des tags:", error);
+            setSelectedTagIds(null);
+            Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
+        },
     });
 
     const enqueueTaskSave = useCallback(async (draft: TaskDraft) => {
@@ -470,6 +500,13 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
         void toggleTaskDone(task.id, isDone);
     };
 
+    const handleTagsChange = (tagIds: string[]) => {
+        setSelectedTagIds(tagIds);
+        updateTaskTagsMutation.mutate(tagIds);
+    };
+
+    const displayedTagIds = selectedTagIds ?? taskTagsQuery.data ?? [];
+
     const formatLastUpdateDate = (date: Date | null): string => {
         if (!date) return "";
 
@@ -550,6 +587,13 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                             <>
                                 <View style={styles.header}>
                                     <View style={styles.titleColumn}>
+                                        <TagSelector
+                                            compact
+                                            mode="selectedMenu"
+                                            selectedTagIds={displayedTagIds}
+                                            onChange={handleTagsChange}
+                                        />
+
                                         <TextInput
                                             value={name}
                                             onChangeText={setName}
@@ -814,6 +858,7 @@ const styles = StyleSheet.create({
 
     titleColumn: {
         flex: 1,
+        gap: 8,
         minWidth: 0,
     },
 
