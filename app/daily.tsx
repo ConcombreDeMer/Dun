@@ -32,6 +32,7 @@ type DailyTask = {
     resolution?: string | null;
     carried_from_id?: number | null;
     delay_count?: number | null;
+    late_adjusted_at?: string | null;
 };
 
 export default function DailyScreen() {
@@ -75,7 +76,7 @@ export default function DailyScreen() {
 
         const { data, error } = await supabase
             .from('Tasks')
-            .select('id, name, description, done, order, date, completed_at, resolved_at, resolution, carried_from_id, delay_count, Task_Tags(tag_id)')
+            .select('id, name, description, done, order, date, completed_at, resolved_at, resolution, carried_from_id, delay_count, late_adjusted_at, Task_Tags(tag_id)')
             .eq('user_id', user.id)
             .order("order", { ascending: false });
 

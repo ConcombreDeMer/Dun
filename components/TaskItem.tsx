@@ -9,6 +9,7 @@ import Animated, { Easing, interpolateColor, runOnJS, useAnimatedStyle, useShare
 import { toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
+import { confirmLateAdjustment, needsLateAdjustmentConfirmation } from "../lib/lateAdjustmentConfirmation";
 import { getTags, TAGS_QUERY_KEY } from "../lib/tags";
 import { useTheme } from "../lib/ThemeContext";
 import { useOptimisticTaskMutations } from "../lib/useOptimisticTaskMutations";
@@ -71,6 +72,8 @@ interface TaskItemProps {
     description: string;
     date?: string;
     delay_count?: number | null;
+    late_adjusted_at?: string | null;
+    resolved_at?: string | null;
     tagIds?: string[];
     Task_Tags?: { tag_id: string }[];
   };
@@ -165,16 +168,19 @@ export const TaskItem = ({
   }, [deleteTaskOptimistically, item, onDeleteTask, t]);
 
   const handleSwipeLeft = useCallback(() => {
-    if (isReadOnly || isTaskDeletePending(item.id)) return;
+    void (async () => {
+      if (isReadOnly || isTaskDeletePending(item.id)) return;
+      if (needsLateAdjustmentConfirmation(item) && !(await confirmLateAdjustment(t))) return;
 
-    swipeableRef.current?.close();
-    itemOpacity.value = withTiming(0, { duration: 600 }, (finished) => {
-      if (finished) {
-        runOnJS(handleDeleteAfterSwipe)();
-      }
-    });
-    translateX.value = withTiming(-screenWidth, { duration: 600 });
-  }, [handleDeleteAfterSwipe, isReadOnly, isTaskDeletePending, item.id, translateX, itemOpacity, screenWidth]);
+      swipeableRef.current?.close();
+      itemOpacity.value = withTiming(0, { duration: 600 }, (finished) => {
+        if (finished) {
+          runOnJS(handleDeleteAfterSwipe)();
+        }
+      });
+      translateX.value = withTiming(-screenWidth, { duration: 600 });
+    })();
+  }, [handleDeleteAfterSwipe, isReadOnly, isTaskDeletePending, item, t, translateX, itemOpacity, screenWidth]);
 
   const handleMoveAfterSwipe = useCallback(() => {
     const sourceDate = item.date ? new Date(item.date) : new Date();
@@ -198,30 +204,37 @@ export const TaskItem = ({
   }, [item, mode, moveTaskDateOptimistically, onMoveTask, t]);
 
   const handleSwipeRight = useCallback(() => {
-    if (isReadOnly || isTaskMovePending(item.id)) return;
+    void (async () => {
+      if (isReadOnly || isTaskMovePending(item.id)) return;
 
-    const sourceDate = item.date ? new Date(item.date) : new Date();
-    const targetDate = mode === 'daily' ? new Date() : new Date(sourceDate);
+      const sourceDate = item.date ? new Date(item.date) : new Date();
+      const targetDate = mode === 'daily' ? new Date() : new Date(sourceDate);
 
-    if (mode !== 'daily') {
-      targetDate.setDate(targetDate.getDate() + 1);
-    }
-
-    if (toAppDateKey(sourceDate) === toAppDateKey(targetDate)) {
-      swipeableRef.current?.close();
-      translateX.value = withTiming(0, { duration: 180 });
-      itemOpacity.value = withTiming(1, { duration: 180 });
-      return;
-    }
-
-    swipeableRef.current?.close();
-    itemOpacity.value = withTiming(0, { duration: 300 }, (finished) => {
-      if (finished) {
-        runOnJS(handleMoveAfterSwipe)();
+      if (mode !== 'daily') {
+        targetDate.setDate(targetDate.getDate() + 1);
       }
-    });
-    translateX.value = withTiming(screenWidth, { duration: 300 });
-  }, [handleMoveAfterSwipe, isReadOnly, isTaskMovePending, item.date, item.id, mode, translateX, itemOpacity, screenWidth]);
+
+      if (toAppDateKey(sourceDate) === toAppDateKey(targetDate)) {
+        swipeableRef.current?.close();
+        translateX.value = withTiming(0, { duration: 180 });
+        itemOpacity.value = withTiming(1, { duration: 180 });
+        return;
+      }
+
+      if (needsLateAdjustmentConfirmation(item) && !(await confirmLateAdjustment(t))) {
+        swipeableRef.current?.close();
+        return;
+      }
+
+      swipeableRef.current?.close();
+      itemOpacity.value = withTiming(0, { duration: 300 }, (finished) => {
+        if (finished) {
+          runOnJS(handleMoveAfterSwipe)();
+        }
+      });
+      translateX.value = withTiming(screenWidth, { duration: 300 });
+    })();
+  }, [handleMoveAfterSwipe, isReadOnly, isTaskMovePending, item, mode, t, translateX, itemOpacity, screenWidth]);
 
   const renderRightActions = useCallback(() => {
     return (
@@ -345,23 +358,26 @@ export const TaskItem = ({
   });
 
   const handleCheckboxPress = useCallback(() => {
-    if (isReadOnly || isTogglePending) return;
+    void (async () => {
+      if (isReadOnly || isTogglePending) return;
+      if (needsLateAdjustmentConfirmation(item) && !(await confirmLateAdjustment(t))) return;
 
-    const nextDone = !item.done;
+      const nextDone = !item.done;
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    dotScale.value = withSpring(nextDone ? 1 : 0, {
-      damping: 18,
-      stiffness: 220,
-      mass: 0.7,
-      overshootClamping: true,
-    });
-    doneProgress.value = withTiming(nextDone ? 1 : 0, {
-      duration: 180,
-      easing: Easing.out(Easing.quad),
-    });
-    handleToggleTask(item.id, item.done);
-  }, [doneProgress, isReadOnly, isTogglePending, item.id, item.done, handleToggleTask, dotScale]);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      dotScale.value = withSpring(nextDone ? 1 : 0, {
+        damping: 18,
+        stiffness: 220,
+        mass: 0.7,
+        overshootClamping: true,
+      });
+      doneProgress.value = withTiming(nextDone ? 1 : 0, {
+        duration: 180,
+        easing: Easing.out(Easing.quad),
+      });
+      handleToggleTask(item.id, item.done);
+    })();
+  }, [doneProgress, isReadOnly, isTogglePending, item, t, handleToggleTask, dotScale]);
 
   const handlePress = useCallback(() => {
     if (!isExtendable || isReadOnly) return;
@@ -555,10 +571,20 @@ export const TaskItem = ({
                 {item.name}
               </Animated.Text>
 
-              {item.delay_count ? (
-                <Text style={[styles.delayBadge, { color: colors.textSecondary }]}>
-                  retard de {item.delay_count} jour{item.delay_count > 1 ? "s" : ""}
-                </Text>
+              {(item.delay_count || item.late_adjusted_at) ? (
+                <View style={styles.taskBadges}>
+                  {item.delay_count ? (
+                    <Text style={[styles.taskBadgeText, { color: colors.textSecondary }]}>
+                      retard de {item.delay_count} jour{item.delay_count > 1 ? "s" : ""}
+                    </Text>
+                  ) : null}
+
+                  {item.late_adjusted_at ? (
+                    <Text style={[styles.taskBadgeText, { color: colors.textSecondary }]}>
+                      {t("task.adjustedLabel")}
+                    </Text>
+                  ) : null}
+                </View>
               ) : null}
 
               <View style={styles.checkboxContainer}>
@@ -656,10 +682,19 @@ const styles = StyleSheet.create({
     width: 7,
   },
 
-  delayBadge: {
+  taskBadges: {
+    alignItems: 'flex-end',
+    flexShrink: 0,
+    gap: 1,
+    justifyContent: 'center',
+    marginRight: 8,
+    maxWidth: 118,
+  },
+
+  taskBadgeText: {
     fontFamily: 'Satoshi-Regular',
     fontSize: 12,
-    marginRight: 8,
+    textAlign: 'right',
   },
 
   taskNameDone: {

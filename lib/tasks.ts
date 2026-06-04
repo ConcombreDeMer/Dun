@@ -15,6 +15,11 @@ type UpdateTaskDraftOptions = {
   previousDateKey?: string | null;
 };
 
+type LateAdjustableTask = {
+  late_adjusted_at?: string | null;
+  resolved_at?: string | null;
+};
+
 const getUserId = async () => {
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -29,6 +34,42 @@ const getTodayKey = () => toAppDateKey(new Date());
 
 const isPastDateKey = (dateKey: string, todayKey = getTodayKey()) => {
   return dateKey < todayKey;
+};
+
+const getLateAdjustmentTimestamp = (task: LateAdjustableTask, now: string) => {
+  return task.resolved_at && !task.late_adjusted_at ? now : undefined;
+};
+
+export const markTaskLateAdjustedIfResolved = async (taskId: number, userId?: string) => {
+  const resolvedUserId = userId ?? await getUserId();
+  const { data: taskData, error: fetchError } = await supabase
+    .from("Tasks")
+    .select("resolved_at, late_adjusted_at")
+    .eq("id", taskId)
+    .eq("user_id", resolvedUserId)
+    .single();
+
+  if (fetchError || !taskData) {
+    throw new Error(fetchError?.message || "Tâche non trouvée");
+  }
+
+  const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, new Date().toISOString());
+
+  if (!lateAdjustedAt) {
+    return null;
+  }
+
+  const { error } = await supabase
+    .from("Tasks")
+    .update({ late_adjusted_at: lateAdjustedAt })
+    .eq("id", taskId)
+    .eq("user_id", resolvedUserId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return lateAdjustedAt;
 };
 
 const getNextDateKey = (dateKey: string) => {
@@ -108,7 +149,7 @@ export const setTaskDone = async (taskId: number, nextDone: boolean) => {
   const userId = await getUserId();
   const { data: taskData, error: fetchError } = await supabase
     .from("Tasks")
-    .select("date, resolved_at")
+    .select("date, resolved_at, late_adjusted_at")
     .eq("id", taskId)
     .eq("user_id", userId)
     .single();
@@ -119,15 +160,18 @@ export const setTaskDone = async (taskId: number, nextDone: boolean) => {
 
   const taskDateKey = taskData.date ? toAppDateKey(taskData.date) : null;
 
-  if (taskData.resolved_at || (taskDateKey && isPastDateKey(taskDateKey))) {
+  if (!taskData.resolved_at && taskDateKey && isPastDateKey(taskDateKey)) {
     throw new Error("Cette tâche appartient à un jour verrouillé");
   }
 
+  const now = new Date().toISOString();
+  const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, now);
   const { error } = await supabase
     .from("Tasks")
     .update({
       done: nextDone,
-      completed_at: nextDone ? new Date().toISOString() : null,
+      completed_at: nextDone ? now : null,
+      ...(lateAdjustedAt ? { late_adjusted_at: lateAdjustedAt } : {}),
     })
     .eq("id", taskId)
     .eq("user_id", userId);
@@ -150,24 +194,41 @@ export const updateTaskDraft = async (
   }
 
   const nextDateKey = toAppDateKey(draft.taskDate);
+  const { data: taskData, error: fetchError } = await supabase
+    .from("Tasks")
+    .select("date, resolved_at, late_adjusted_at")
+    .eq("id", taskId)
+    .eq("user_id", userId)
+    .single();
+
+  if (fetchError || !taskData) {
+    throw new Error(fetchError?.message || "Tâche non trouvée");
+  }
+
   const hasPreviousDateKey = options.previousDateKey !== undefined;
-  const previousDateKey = options.previousDateKey
-    ? toAppDateKey(options.previousDateKey)
-    : options.previousDateKey;
-  const didDateChange = hasPreviousDateKey && previousDateKey !== nextDateKey;
+  const previousDateKey = hasPreviousDateKey
+    ? options.previousDateKey
+      ? toAppDateKey(options.previousDateKey)
+      : options.previousDateKey
+    : taskData.date
+      ? toAppDateKey(taskData.date)
+      : null;
+  const didDateChange = previousDateKey !== nextDateKey;
   const todayKey = getTodayKey();
 
-  if (previousDateKey && (isPastDateKey(previousDateKey, todayKey) || isPastDateKey(nextDateKey, todayKey))) {
+  if (!taskData.resolved_at && previousDateKey && (isPastDateKey(previousDateKey, todayKey) || isPastDateKey(nextDateKey, todayKey))) {
     throw new Error("Impossible de modifier une tâche d'un jour verrouillé");
   }
 
   const order = didDateChange ? await getNextTaskOrder(nextDateKey, userId) : undefined;
   const savedAt = new Date().toISOString();
+  const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, savedAt);
   const updatePayload: {
     name: string;
     description: string;
     date: string;
     last_update_date: string;
+    late_adjusted_at?: string;
     order?: number;
   } = {
     name: trimmedName,
@@ -178,6 +239,10 @@ export const updateTaskDraft = async (
 
   if (order !== undefined) {
     updatePayload.order = order;
+  }
+
+  if (lateAdjustedAt) {
+    updatePayload.late_adjusted_at = lateAdjustedAt;
   }
 
   const { error } = await supabase
@@ -238,7 +303,7 @@ export const deleteTask = async (taskId: number) => {
   const userId = await getUserId();
   const { data: taskData, error: fetchError } = await supabase
     .from("Tasks")
-    .select("date, done, resolved_at")
+    .select("date, done, resolved_at, late_adjusted_at")
     .eq("id", taskId)
     .eq("user_id", userId)
     .single();
@@ -250,17 +315,16 @@ export const deleteTask = async (taskId: number) => {
   const deletedTaskDate = taskData.date ? toAppDateKey(taskData.date) : null;
 
   if (deletedTaskDate && isPastDateKey(deletedTaskDate)) {
-    if (taskData.resolved_at) {
-      throw new Error("Cette tâche appartient à un jour verrouillé");
-    }
-
+    const now = new Date().toISOString();
+    const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, now);
     const { error } = await supabase
       .from("Tasks")
       .update({
         done: false,
         completed_at: null,
-        resolved_at: new Date().toISOString(),
+        resolved_at: taskData.resolved_at || now,
         resolution: "deleted",
+        ...(lateAdjustedAt ? { late_adjusted_at: lateAdjustedAt } : {}),
       })
       .eq("id", taskId)
       .eq("user_id", userId);
@@ -291,7 +355,7 @@ export const moveTaskDate = async (taskId: number, dateKey: string) => {
   const userId = await getUserId();
   const { data: taskData, error: fetchError } = await supabase
     .from("Tasks")
-    .select("date, resolved_at")
+    .select("date, resolved_at, late_adjusted_at")
     .eq("id", taskId)
     .eq("user_id", userId)
     .single();
@@ -306,14 +370,19 @@ export const moveTaskDate = async (taskId: number, dateKey: string) => {
     return;
   }
 
-  if ((previousDateKey && isPastDateKey(previousDateKey)) || isPastDateKey(dateKey)) {
+  if (!taskData.resolved_at && ((previousDateKey && isPastDateKey(previousDateKey)) || isPastDateKey(dateKey))) {
     throw new Error("Impossible de déplacer une tâche d'un jour verrouillé");
   }
 
   const order = await getNextTaskOrder(dateKey, userId);
+  const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, new Date().toISOString());
   const { error } = await supabase
     .from("Tasks")
-    .update({ date: dateKey, order })
+    .update({
+      date: dateKey,
+      order,
+      ...(lateAdjustedAt ? { late_adjusted_at: lateAdjustedAt } : {}),
+    })
     .eq("id", taskId)
     .eq("user_id", userId);
 
@@ -490,7 +559,7 @@ export const syncDaySnapshot = async (dateKey: string, userId?: string) => {
   const resolvedUserId = userId ?? await getUserId();
   const { data: tasks, error: tasksError } = await supabase
     .from("Tasks")
-    .select("done")
+    .select("done, late_adjusted_at")
     .eq("user_id", resolvedUserId)
     .gte("date", dateKey)
     .lt("date", getNextDateKey(dateKey));
@@ -501,6 +570,7 @@ export const syncDaySnapshot = async (dateKey: string, userId?: string) => {
 
   const total = tasks?.length ?? 0;
   const doneCount = tasks?.filter((task) => task.done).length ?? 0;
+  const lateAdjustedCount = tasks?.filter((task) => task.late_adjusted_at).length ?? 0;
   const dayDate = `${dateKey}T00:00:00`;
 
   const { data: existingDay, error: existingError } = await supabase
@@ -518,7 +588,7 @@ export const syncDaySnapshot = async (dateKey: string, userId?: string) => {
   if (existingDay?.id) {
     const { error } = await supabase
       .from("Days")
-      .update({ total, done_count: doneCount })
+      .update({ total, done_count: doneCount, late_adjusted_count: lateAdjustedCount })
       .eq("id", existingDay.id)
       .eq("user_id", resolvedUserId);
 
@@ -536,6 +606,7 @@ export const syncDaySnapshot = async (dateKey: string, userId?: string) => {
         date: dayDate,
         total,
         done_count: doneCount,
+        late_adjusted_count: lateAdjustedCount,
       },
     ]);
 

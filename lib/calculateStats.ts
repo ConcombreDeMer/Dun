@@ -12,6 +12,7 @@ export type StatsPreferenceKey = keyof StatsPreferences;
 export type StatsDay = {
   date: string;
   done_count?: number | null;
+  late_adjusted_count?: number | null;
   total?: number | null;
   is_rest?: boolean | null;
   isRest?: boolean | null;
@@ -28,6 +29,8 @@ export type CalculatedStats = {
   completion: string;
   charge: number;
   includedDaysCount: number;
+  lateAdjustedTasksCount: number;
+  lateAdjustmentRate: string;
   totalTasksCount: number;
 };
 
@@ -116,6 +119,7 @@ export const calculateStats = (
   const includedDays = filterStatsDays(days, preferences, today);
 
   let totalDoneCount = 0;
+  let lateAdjustedTasksCount = 0;
   let perfectDaysCount = 0;
   let totalTasks = 0;
 
@@ -124,6 +128,7 @@ export const calculateStats = (
     const done = Math.min(Math.max(day.done_count || 0, 0), total);
 
     totalDoneCount += done;
+    lateAdjustedTasksCount += Math.min(Math.max(day.late_adjusted_count || 0, 0), total);
     totalTasks += total;
 
     if (total > 0 && done === total) {
@@ -135,6 +140,7 @@ export const calculateStats = (
     ? Math.round((totalTasks / includedDays.length) * 10) / 10
     : 0;
   const completionValue = totalTasks > 0 ? Math.round((totalDoneCount / totalTasks) * 100) : 0;
+  const lateAdjustmentValue = totalTasks > 0 ? Math.round((lateAdjustedTasksCount / totalTasks) * 100) : 0;
 
   return {
     totalDoneCount,
@@ -142,6 +148,8 @@ export const calculateStats = (
     completion: `${completionValue}%`,
     charge: averageCharge,
     includedDaysCount: includedDays.length,
+    lateAdjustedTasksCount,
+    lateAdjustmentRate: `${lateAdjustmentValue}%`,
     totalTasksCount: totalTasks,
   };
 };

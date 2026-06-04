@@ -463,11 +463,18 @@ export const resources = {
       },
       "task": {
         "deleteLabel": "Delete",
+        "adjustedLabel": "adjusted",
+        "lateAdjustmentAlert": {
+          "title": "Late adjustment",
+          "message": "This task belongs to a closed day. Any change will count toward your adjustment rate.",
+          "continue": "Continue"
+        },
         "popup": {
           "notFound": "Task not found",
           "insertDescription": "Add a description",
           "nameRequired": "Task name is required",
           "lastUpdated": "Last updated: {{date}}",
+          "lateAdjustmentNotice": "Past daily window: changes will count as adjustments.",
           "now": "just now",
           "secondsAgo": "{{count}} seconds ago",
           "minutesAgo": "{{count}} minutes ago",
@@ -595,7 +602,9 @@ export const resources = {
             "tasksDone": "Tasks done",
             "perfectDays": "Perfect days",
             "completion": "Completion",
-            "charge": "Load"
+            "charge": "Load",
+            "lateAdjustmentRate": "Adjustment rate",
+            "lateAdjustmentCount": "Adjusted tasks: {{count}}"
           },
           "premium": {
             "title": "Dun Plus charts",
@@ -809,6 +818,89 @@ export const resources = {
             {
               "title": "Stay consistent",
               "description": "A stable and realistic workload is more effective than alternating overload and underload."
+            }
+          ]
+        },
+        "adjustmentExplain": {
+          "title": "What is the adjustment rate?",
+          "definitionTitle": "Definition",
+          "definition": "The adjustment rate measures the share of tasks edited after their day has been officially closed. It helps you spot late corrections to your history without blocking them.",
+          "howTitle": "How is it calculated?",
+          "bullets": [
+            "A task is counted as adjusted after its first edit once the D+1 daily window has passed.",
+            "Formula: (adjusted tasks / total past tasks) × 100.",
+            "The same task is counted only once, even if it is edited several times afterward.",
+            "The calculation follows the same period preferences as the other statistics."
+          ],
+          "countedTitle": "What counts",
+          "counted": [
+            {
+              "title": "Editing a closed task",
+              "description": "Changing its title, description, tags, date, or status after the regulatory window counts as an adjustment."
+            },
+            {
+              "title": "Deleting a closed task",
+              "description": "Late deletion also counts because it changes the history of a day that had already been validated."
+            },
+            {
+              "title": "Confirming the warning",
+              "description": "Before the first adjustment, Dun warns you that the action will be counted. If you continue, the task enters the adjustment rate."
+            }
+          ],
+          "notCountedTitle": "What does not count",
+          "notCounted": [
+            {
+              "title": "Actions made on time",
+              "description": "Changes made before the D+1 daily closes are treated as normal actions."
+            },
+            {
+              "title": "Cancelling the warning",
+              "description": "If you cancel the adjustment warning, no change is applied and the task is not counted."
+            },
+            {
+              "title": "Daily postponements",
+              "description": "Postponing an overdue task through the daily flow feeds the delay metric, not the adjustment rate."
+            }
+          ],
+          "edgeCasesTitle": "Special cases",
+          "edgeCases": [
+            {
+              "title": "Adjustment and delay are separate",
+              "description": "Delay measures explicit postponements in the daily flow. Adjustment measures after-the-fact edits to a day that was already closed."
+            },
+            {
+              "title": "Moving a task to D+5",
+              "description": "If the task is already closed, this move counts as an adjustment. It does not automatically create 5 days of delay."
+            },
+            {
+              "title": "Restoring the original state",
+              "description": "Once the first edit is confirmed, the task remains counted as adjusted, even if you later put its content back exactly as it was."
+            },
+            {
+              "title": "Multiple edits",
+              "description": "A task adjusted and then edited again does not increase the counter multiple times. It still represents one adjusted task."
+            }
+          ],
+          "exampleTitle": "Example",
+          "examples": [
+            "Over the period: 40 past tasks",
+            "3 tasks were edited after their day had been closed",
+            "1 of those tasks was edited several times, but it counts only once",
+            "→ Adjustment rate = 3 / 40 = 8%"
+          ],
+          "tipsTitle": "How to read it",
+          "tips": [
+            {
+              "title": "A low rate is healthy",
+              "description": "It means your closed days are mostly stable and your adjustments happen at the right time."
+            },
+            {
+              "title": "A high rate is not a failure",
+              "description": "It may point to a blurry period, poorly prepared days, or a need to improve your planning system."
+            },
+            {
+              "title": "Use it as a signal",
+              "description": "If the rate rises, look at why you often return to history: forgotten tasks, overload, priority changes, or simple corrections."
             }
           ]
         }
@@ -1279,11 +1371,18 @@ export const resources = {
       },
       "task": {
         "deleteLabel": "Supprimer",
+        "adjustedLabel": "réajustée",
+        "lateAdjustmentAlert": {
+          "title": "Réajustement tardif",
+          "message": "Cette tâche appartient à une journée déjà clôturée. Toute modification sera comptée dans ton taux de réajustement.",
+          "continue": "Continuer"
+        },
         "popup": {
           "notFound": "Tâche non trouvée",
           "insertDescription": "Insérer une description",
           "nameRequired": "Le nom de la tâche est requis",
           "lastUpdated": "Dernière mise à jour : {{date}}",
+          "lateAdjustmentNotice": "Daily passé : les changements compteront comme réajustements.",
           "now": "à l'instant",
           "secondsAgo": "il y a {{count}} secondes",
           "minutesAgo": "il y a {{count}} minutes",
@@ -1411,7 +1510,9 @@ export const resources = {
             "tasksDone": "Tâches faites",
             "perfectDays": "Jours parfaits",
             "completion": "Complétion",
-            "charge": "Charge"
+            "charge": "Charge",
+            "lateAdjustmentRate": "Taux de réajustement",
+            "lateAdjustmentCount": "Tâches réajustées : {{count}}"
           },
           "premium": {
             "title": "Graphiques Dun Plus",
@@ -1625,6 +1726,89 @@ export const resources = {
             {
               "title": "Restez cohérent",
               "description": "Une charge stable et réaliste est plus efficace qu'une alternance entre surcharge et sous-charge."
+            }
+          ]
+        },
+        "adjustmentExplain": {
+          "title": "Qu'est-ce que le taux de réajustement ?",
+          "definitionTitle": "Définition",
+          "definition": "Le taux de réajustement mesure la part de tâches qui ont été modifiées après la clôture réglementaire de leur journée. Il sert à repérer les corrections tardives de l'historique, sans les bloquer.",
+          "howTitle": "Comment est-il calculé ?",
+          "bullets": [
+            "Une tâche est comptée comme réajustée dès sa première modification après le daily J+1.",
+            "Formule : (tâches réajustées / total des tâches passées) × 100.",
+            "Une même tâche n'est comptée qu'une seule fois, même si elle est modifiée plusieurs fois ensuite.",
+            "Le calcul suit les mêmes préférences de période que les autres statistiques."
+          ],
+          "countedTitle": "Ce qui compte",
+          "counted": [
+            {
+              "title": "Modifier une tâche clôturée",
+              "description": "Changer son titre, sa description, ses tags, sa date ou son statut après le délai réglementaire compte comme un réajustement."
+            },
+            {
+              "title": "Supprimer une tâche clôturée",
+              "description": "La suppression tardive compte aussi, car elle modifie l'historique d'une journée déjà validée."
+            },
+            {
+              "title": "Confirmer l'alerte",
+              "description": "Avant le premier réajustement, Dun prévient que l'action sera comptée. Si vous continuez, la tâche entre dans le taux de réajustement."
+            }
+          ],
+          "notCountedTitle": "Ce qui ne compte pas",
+          "notCounted": [
+            {
+              "title": "Les actions dans les délais",
+              "description": "Les modifications faites avant la clôture du daily J+1 restent des actions normales."
+            },
+            {
+              "title": "Annuler l'alerte",
+              "description": "Si vous annulez l'alerte de réajustement, aucune modification n'est appliquée et la tâche n'est pas comptée."
+            },
+            {
+              "title": "Les reports du daily",
+              "description": "Le report d'une tâche en retard via le flux daily alimente la notion de retard, pas le taux de réajustement."
+            }
+          ],
+          "edgeCasesTitle": "Cas particuliers",
+          "edgeCases": [
+            {
+              "title": "Réajustement et retard sont séparés",
+              "description": "Le retard mesure les reports explicites dans le daily. Le réajustement mesure les retouches faites après coup sur une journée déjà clôturée."
+            },
+            {
+              "title": "Déplacer une tâche à J+5",
+              "description": "Si la tâche est déjà clôturée, ce déplacement compte comme un réajustement. Il ne crée pas automatiquement 5 jours de retard."
+            },
+            {
+              "title": "Remettre la tâche comme avant",
+              "description": "Une fois la première modification confirmée, la tâche reste comptée comme réajustée, même si vous remettez ensuite son contenu initial."
+            },
+            {
+              "title": "Plusieurs modifications",
+              "description": "Une tâche réajustée puis remodifiée ne fait pas grimper le compteur plusieurs fois. Elle représente toujours une seule tâche réajustée."
+            }
+          ],
+          "exampleTitle": "Exemple",
+          "examples": [
+            "Sur la période : 40 tâches passées",
+            "3 tâches ont été modifiées après la clôture de leur journée",
+            "1 de ces tâches a été modifiée plusieurs fois, mais elle ne compte qu'une fois",
+            "→ Taux de réajustement = 3 / 40 = 8%"
+          ],
+          "tipsTitle": "Comment l'interpréter ?",
+          "tips": [
+            {
+              "title": "Un taux bas est sain",
+              "description": "Il indique que vos journées clôturées restent globalement stables et que vos ajustements se font au bon moment."
+            },
+            {
+              "title": "Un taux élevé n'est pas une faute",
+              "description": "Il peut signaler une période floue, des journées mal préparées ou un besoin de corriger votre système de planification."
+            },
+            {
+              "title": "Utilisez-le comme un signal",
+              "description": "Si le taux monte, observez pourquoi vous revenez souvent sur l'historique : oubli, surcharge, changement de priorité ou simple correction."
             }
           ]
         }

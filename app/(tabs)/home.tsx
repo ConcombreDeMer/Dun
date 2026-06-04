@@ -54,6 +54,7 @@ type DayTasksPageProps = {
   loading: boolean;
   selectedTaskId: number | null;
   tasks: any[];
+  canReorder?: boolean;
   isReadOnly?: boolean;
   onDragBegin?: () => void;
   onDragEnd?: ({ data }: { data: any[] }) => void;
@@ -78,6 +79,7 @@ const DayTasksPage = ({
   isTaskTogglePending,
   selectedTaskId,
   tasks,
+  canReorder = true,
   isReadOnly = false,
   t,
 }: DayTasksPageProps) => {
@@ -164,7 +166,7 @@ const DayTasksPage = ({
           renderItem={({ item, drag, isActive }) => (
             <TaskItem
               item={item}
-              drag={!isReadOnly && tasks.length > 1 ? drag : () => {}}
+              drag={!isReadOnly && canReorder && tasks.length > 1 ? drag : () => {}}
               isActive={isActive}
               handleToggleTask={onToggleTask}
               handleTaskPress={onTaskPress}
@@ -320,7 +322,7 @@ export default function Home() {
 
     const { data, error } = await supabase
       .from("Tasks")
-      .select("id, name, description, done, order, date, completed_at, resolved_at, resolution, carried_from_id, delay_count, Task_Tags(tag_id)")
+      .select("id, name, description, done, order, date, completed_at, resolved_at, resolution, carried_from_id, delay_count, late_adjusted_at, Task_Tags(tag_id)")
       .eq("user_id", user.id)
       .order("order", { ascending: false });
     if (error) {
@@ -647,7 +649,7 @@ export default function Home() {
     const pageDateKey = getDateKey(pageDate);
     const pageTasks = tasksByDate.get(pageDateKey) ?? [];
     const isSelectedPage = pageDateKey === dateKey;
-    const isReadOnlyPage = pageDateKey < todayKey;
+    const canReorderPage = isSelectedPage && pageDateKey >= todayKey;
 
     return (
       <DayTasksPage
@@ -656,14 +658,15 @@ export default function Home() {
         dayWidth={windowWidth}
         isCalendarExpanded={isCalendarExpanded}
         loading={loading}
-        onDragEnd={isSelectedPage && !isReadOnlyPage ? handleDragEnd : undefined}
+        canReorder={canReorderPage}
+        onDragEnd={canReorderPage ? handleDragEnd : undefined}
         onPlaceholderIndexChange={isSelectedPage ? handlePlaceholderIndexChange : undefined}
         onTaskPress={handleTaskPress}
         onToggleTask={handleToggleTask}
         isTaskTogglePending={isTaskPending}
         selectedTaskId={selectedTaskId}
         tasks={pageTasks}
-        isReadOnly={isReadOnlyPage}
+        isReadOnly={false}
         t={t}
       />
     );

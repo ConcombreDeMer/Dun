@@ -18,6 +18,7 @@ type TaskCacheItem = {
   resolution?: string | null;
   carried_from_id?: number | null;
   delay_count?: number | null;
+  late_adjusted_at?: string | null;
 };
 
 type TaskMutationSnapshot = {
@@ -34,6 +35,7 @@ type TaskMutationSnapshot = {
   resolution?: string | null;
   carried_from_id?: number | null;
   delay_count?: number | null;
+  late_adjusted_at?: string | null;
 };
 
 type CreateTaskInput = {
@@ -139,6 +141,7 @@ export const useOptimisticTaskMutations = () => {
       resolution: null,
       carried_from_id: null,
       delay_count: 0,
+      late_adjusted_at: null,
       order: optimisticOrder,
       date: dateKey,
     };
@@ -376,10 +379,11 @@ export const useOptimisticOverdueTaskMutations = () => {
           return {
             ...task,
             done: resolution === "late_completed",
-            completed_at: resolution === "late_completed" ? now : null,
-            resolved_at: now,
-            resolution,
-          };
+          completed_at: resolution === "late_completed" ? now : null,
+          resolved_at: now,
+          resolution,
+          late_adjusted_at: task.late_adjusted_at ?? null,
+        };
         });
 
         if (resolution !== "postponed" || tempId === null) {
@@ -397,6 +401,7 @@ export const useOptimisticOverdueTaskMutations = () => {
           resolution: null,
           carried_from_id: taskId,
           delay_count: (overdueTask.delay_count || 0) + 1,
+          late_adjusted_at: null,
           date: targetDateKey,
           order: nextOrder,
         };

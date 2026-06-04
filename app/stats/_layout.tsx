@@ -37,6 +37,12 @@ export default function StatsStackLayout() {
           title: "Completion Explanation",
         }}
       />
+      <Stack.Screen
+        name="adjustmentExplain"
+        options={{
+          title: "Adjustment Rate Explanation",
+        }}
+      />
     </Stack>
   );
 }

@@ -26,6 +26,7 @@ import { useStatsPreferences } from "@/lib/useStatsPreferences";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -326,6 +327,36 @@ export default function Stats() {
             loading={displayedLoadingState}
           />
         </View>
+        <SquircleButton
+          activeOpacity={0.82}
+          cornerSmoothing={100}
+          onPress={() => router.push("/stats/adjustmentExplain")}
+          preserveSmoothing
+          style={[styles.adjustmentMetric, { backgroundColor: colors.card, borderColor: colors.border }]}
+        >
+          <View style={[styles.adjustmentIcon, { backgroundColor: colors.background }]}>
+            <SymbolView name="arrow.triangle.2.circlepath" size={23} tintColor={colors.textSecondary} />
+          </View>
+          <View style={styles.adjustmentTextGroup}>
+            <Text style={[styles.adjustmentTitle, { color: colors.text }]}>
+              {t('stats.general.cards.lateAdjustmentRate')}
+            </Text>
+            <Text style={[styles.adjustmentSubtitle, { color: colors.textSecondary }]}>
+              {t('stats.general.cards.lateAdjustmentCount', { count: displayedStats.lateAdjustedTasksCount })}
+            </Text>
+          </View>
+          {displayedLoadingState ? (
+            <Animated.Text
+              style={[styles.adjustmentValue, { color: colors.text }]}
+            />
+          ) : (
+            <Animated.Text
+              style={[styles.adjustmentValue, { color: colors.text }]}
+            >
+              {displayedStats.lateAdjustmentRate}
+            </Animated.Text>
+          )}
+        </SquircleButton>
 
         </View>
 
@@ -400,6 +431,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '90%',
     height: 100,
+  },
+  adjustmentMetric: {
+    alignItems: "center",
+    borderRadius: 20,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    minHeight: 76,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    width: "90%",
+  },
+  adjustmentIcon: {
+    alignItems: "center",
+    borderRadius: 22,
+    height: 44,
+    justifyContent: "center",
+    width: 44,
+  },
+  adjustmentTextGroup: {
+    flex: 1,
+    minWidth: 0,
+  },
+  adjustmentTitle: {
+    fontFamily: "Satoshi-Bold",
+    fontSize: 16,
+  },
+  adjustmentSubtitle: {
+    fontFamily: "Satoshi-Regular",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  adjustmentValue: {
+    fontFamily: "Satoshi-Bold",
+    fontSize: 28,
   },
   premiumStatsCard: {
     alignItems: "center",

@@ -9,8 +9,14 @@ import Animated, { FadeIn, FadeOut, interpolateColor, useAnimatedStyle, useShare
 import { fromAppDateKey, toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
+import {
+    confirmLateAdjustment,
+    createLateAdjustmentCancelledError,
+    isLateAdjustmentConfirmationCancelled,
+    needsLateAdjustmentConfirmation,
+} from "../lib/lateAdjustmentConfirmation";
 import { getTaskTagIds, setTaskTags, TAG_USAGE_STATS_QUERY_KEY } from "../lib/tags";
-import { updateTaskDraft } from "../lib/tasks";
+import { markTaskLateAdjustedIfResolved, updateTaskDraft } from "../lib/tasks";
 import { useTheme } from "../lib/ThemeContext";
 import { useOptimisticTaskMutations } from "../lib/useOptimisticTaskMutations";
 import { useToggleTaskDone } from "../lib/useToggleTaskDone";
@@ -48,6 +54,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     const { deleteTaskOptimistically, isTaskDeletePending } = useOptimisticTaskMutations();
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+    const hasConfirmedLateAdjustmentRef = useRef(false);
     const hydratedTaskIdRef = useRef<number | null>(null);
     const lastSavedTextSnapshotRef = useRef("");
     const committedTaskDateRef = useRef<Date>(new Date());
@@ -117,6 +124,41 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     }
 
 
+    const ensureLateAdjustmentConfirmed = useCallback(async () => {
+        if (!needsLateAdjustmentConfirmation(task) || hasConfirmedLateAdjustmentRef.current) {
+            return true;
+        }
+
+        const confirmed = await confirmLateAdjustment(t);
+        hasConfirmedLateAdjustmentRef.current = confirmed;
+        return confirmed;
+    }, [task, t]);
+
+    const markLocalLateAdjusted = useCallback((lateAdjustedAt = new Date().toISOString()) => {
+        setTask((current: any) => current ? {
+            ...current,
+            late_adjusted_at: current.late_adjusted_at ?? (current.resolved_at ? lateAdjustedAt : null),
+        } : current);
+    }, []);
+
+    const resetTextDraftToLastSaved = useCallback(() => {
+        const savedSnapshot = JSON.parse(lastSavedTextSnapshotRef.current || "{}") as {
+            description?: string;
+            name?: string;
+        };
+        const nextName = savedSnapshot.name ?? "";
+        const nextDescription = savedSnapshot.description ?? "";
+
+        setName(nextName);
+        setDescription(nextDescription);
+        latestDraftRef.current = {
+            ...latestDraftRef.current,
+            name: nextName,
+            description: nextDescription,
+        };
+        setHasChanges(false);
+    }, []);
+
     const updateTaskMutation = useMutation({
         mutationFn: async (draft: TaskDraft) => {
             if (!draft.name.trim()) {
@@ -124,6 +166,10 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
             }
 
             if (!id) throw new Error(t("task.popup.notFound"));
+            if (!(await ensureLateAdjustmentConfirmed())) {
+                throw createLateAdjustmentCancelledError();
+            }
+
             return updateTaskDraft(id, draft, {
                 previousDateKey: task?.date ?? null,
             });
@@ -136,6 +182,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                 name: draft.name,
                 description: draft.description,
                 date: toAppDateKey(draft.taskDate),
+                late_adjusted_at: current.late_adjusted_at ?? (current.resolved_at ? savedAt : null),
                 last_update_date: savedAt,
             } : current);
             committedTaskDateRef.current = draft.taskDate;
@@ -151,6 +198,10 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
             }));
         },
         onError: (error: any) => {
+            if (isLateAdjustmentConfirmationCancelled(error)) {
+                return;
+            }
+
             console.error("Erreur lors de la sauvegarde:", error);
         }
     });
@@ -158,17 +209,29 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     const updateTaskTagsMutation = useMutation({
         mutationFn: async (tagIds: string[]) => {
             if (!id) throw new Error(t("task.popup.notFound"));
+            if (!(await ensureLateAdjustmentConfirmed())) {
+                throw createLateAdjustmentCancelledError();
+            }
+
+            await markTaskLateAdjustedIfResolved(id);
             await setTaskTags(id, tagIds);
             return tagIds;
         },
         onSuccess: (tagIds) => {
             queryClient.setQueryData(['task-tags', id], tagIds);
             setSelectedTagIds(null);
+            markLocalLateAdjusted();
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
             queryClient.invalidateQueries({ queryKey: ['tasks', id] });
+            queryClient.invalidateQueries({ queryKey: ['days'] });
             queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
         },
         onError: (error: any) => {
+            if (isLateAdjustmentConfirmationCancelled(error)) {
+                setSelectedTagIds(null);
+                return;
+            }
+
             console.error("Erreur lors de la sauvegarde des tags:", error);
             setSelectedTagIds(null);
             Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
@@ -198,14 +261,23 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                     return;
                 }
 
-                await updateTaskMutation.mutateAsync({
-                    ...nextDraft,
-                    taskDate: committedTaskDateRef.current,
-                });
+                try {
+                    await updateTaskMutation.mutateAsync({
+                        ...nextDraft,
+                        taskDate: committedTaskDateRef.current,
+                    });
+                } catch (error) {
+                    if (isLateAdjustmentConfirmationCancelled(error)) {
+                        resetTextDraftToLastSaved();
+                        return;
+                    }
+
+                    throw error;
+                }
             });
 
         return saveQueueRef.current;
-    }, [updateTaskMutation]);
+    }, [resetTextDraftToLastSaved, updateTaskMutation]);
 
     useEffect(() => {
         if (!taskQuery.data) {
@@ -224,6 +296,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
         };
 
         hydratedTaskIdRef.current = taskQuery.data.id;
+        hasConfirmedLateAdjustmentRef.current = Boolean(taskQuery.data.late_adjusted_at);
         setTask(taskQuery.data);
         setName(hydratedDraft.name);
         setDescription(hydratedDraft.description);
@@ -423,17 +496,23 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                 {
                     text: t("common.actions.delete"),
                     onPress: () => {
-                        if (!id) {
-                            Alert.alert(t("common.alerts.errorTitle"), t("task.popup.notFound"));
-                            return;
-                        }
+                        void (async () => {
+                            if (!id) {
+                                Alert.alert(t("common.alerts.errorTitle"), t("task.popup.notFound"));
+                                return;
+                            }
 
-                        onClose(() => {
-                            void deleteTaskOptimistically(id).catch((error: any) => {
-                                console.error("Erreur lors de la suppression:", error);
-                                Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
+                            if (!(await ensureLateAdjustmentConfirmed())) {
+                                return;
+                            }
+
+                            onClose(() => {
+                                void deleteTaskOptimistically(id).catch((error: any) => {
+                                    console.error("Erreur lors de la suppression:", error);
+                                    Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
+                                });
                             });
-                        });
+                        })();
                     },
                     style: "destructive",
                 },
@@ -441,7 +520,11 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
         );
     };
 
-    const handleDateChange = (date: Date) => {
+    const handleDateChange = async (date: Date) => {
+        if (toAppDateKey(date) !== toAppDateKey(committedTaskDateRef.current) && !(await ensureLateAdjustmentConfirmed())) {
+            return;
+        }
+
         const nextDraft = {
             ...latestDraftRef.current,
             taskDate: date,
@@ -487,6 +570,11 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
             return;
         }
 
+        if (!(await ensureLateAdjustmentConfirmed())) {
+            return;
+        }
+
+        markLocalLateAdjusted();
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
         const nextDone = !isDone;
@@ -502,8 +590,14 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     };
 
     const handleTagsChange = (tagIds: string[]) => {
-        setSelectedTagIds(tagIds);
-        updateTaskTagsMutation.mutate(tagIds);
+        void (async () => {
+            if (!(await ensureLateAdjustmentConfirmed())) {
+                return;
+            }
+
+            setSelectedTagIds(tagIds);
+            updateTaskTagsMutation.mutate(tagIds);
+        })();
     };
 
     const displayedTagIds = selectedTagIds ?? taskTagsQuery.data ?? [];
@@ -588,6 +682,15 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                             <>
                                 <View style={styles.header}>
                                     <View style={styles.titleColumn}>
+                                        {task.resolved_at ? (
+                                            <View style={[styles.adjustmentNotice, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                                                <Feather name="clock" size={14} color={colors.textSecondary} />
+                                                <Text style={[styles.adjustmentNoticeText, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>
+                                                    {t("task.popup.lateAdjustmentNotice")}
+                                                </Text>
+                                            </View>
+                                        ) : null}
+
                                         <TagSelector
                                             compact
                                             mode="selectedMenu"
@@ -861,6 +964,22 @@ const styles = StyleSheet.create({
         flex: 1,
         gap: 8,
         minWidth: 0,
+    },
+
+    adjustmentNotice: {
+        alignItems: "center",
+        alignSelf: "flex-start",
+        borderRadius: 16,
+        borderWidth: 1,
+        flexDirection: "row",
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+    },
+
+    adjustmentNoticeText: {
+        flexShrink: 1,
+        fontFamily: "Satoshi-Medium",
     },
 
     titleInput: {
