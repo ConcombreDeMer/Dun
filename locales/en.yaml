@@ -363,6 +363,11 @@ rest:
 task:
   deleteLabel: "Delete"
   adjustedLabel: "adjusted"
+  delayBadge_one: "{{count}} day late"
+  delayBadge_other: "{{count}} days late"
+  actions:
+    moveToToday: "Move to today"
+    postpone: "Postpone"
   lateAdjustmentAlert:
     title: "Late adjustment"
     message: "This task belongs to a closed day. Any change will count toward your adjustment rate."

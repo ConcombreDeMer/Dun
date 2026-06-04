@@ -363,6 +363,11 @@ rest:
 task:
   deleteLabel: "Supprimer"
   adjustedLabel: "réajustée"
+  delayBadge_one: "retard de {{count}} jour"
+  delayBadge_other: "retard de {{count}} jours"
+  actions:
+    moveToToday: "Pour aujourd'hui"
+    postpone: "Reporter"
   lateAdjustmentAlert:
     title: "Réajustement tardif"
     message: "Cette tâche appartient à une journée déjà clôturée. Toute modification sera comptée dans ton taux de réajustement."

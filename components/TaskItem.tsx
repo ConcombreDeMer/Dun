@@ -263,7 +263,7 @@ export const TaskItem = ({
 
   const renderLeftActions = useCallback(() => {
     const actionWidth = mode === 'daily' ? 170 : 120;
-    const actionText = mode === 'daily' ? "Pour aujourd'hui" : "Reporter";
+    const actionText = mode === 'daily' ? t("task.actions.moveToToday") : t("task.actions.postpone");
 
     return (
       <View style={{ width: actionWidth, minHeight: 64, height: '100%', paddingRight: 10, justifyContent: 'center' }}>
@@ -287,7 +287,7 @@ export const TaskItem = ({
         </SquircleButton>
       </View>
     );
-  }, [handleSwipeRight, fontSizes.base, mode]);
+  }, [handleSwipeRight, fontSizes.base, mode, t]);
 
   const animatedStyle = useAnimatedStyle(() => {
     const enterScale = disableAddedAnimations ? 1 : 0.3 + enterProgress.value * 0.7;
@@ -575,7 +575,7 @@ export const TaskItem = ({
                 <View style={styles.taskBadges}>
                   {item.delay_count ? (
                     <Text style={[styles.taskBadgeText, { color: colors.textSecondary }]}>
-                      retard de {item.delay_count} jour{item.delay_count > 1 ? "s" : ""}
+                      {t("task.delayBadge", { count: item.delay_count })}
                     </Text>
                   ) : null}
 

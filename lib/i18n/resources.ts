@@ -464,6 +464,12 @@ export const resources = {
       "task": {
         "deleteLabel": "Delete",
         "adjustedLabel": "adjusted",
+        "delayBadge_one": "{{count}} day late",
+        "delayBadge_other": "{{count}} days late",
+        "actions": {
+          "moveToToday": "Move to today",
+          "postpone": "Postpone"
+        },
         "lateAdjustmentAlert": {
           "title": "Late adjustment",
           "message": "This task belongs to a closed day. Any change will count toward your adjustment rate.",
@@ -1372,6 +1378,12 @@ export const resources = {
       "task": {
         "deleteLabel": "Supprimer",
         "adjustedLabel": "réajustée",
+        "delayBadge_one": "retard de {{count}} jour",
+        "delayBadge_other": "retard de {{count}} jours",
+        "actions": {
+          "moveToToday": "Pour aujourd'hui",
+          "postpone": "Reporter"
+        },
         "lateAdjustmentAlert": {
           "title": "Réajustement tardif",
           "message": "Cette tâche appartient à une journée déjà clôturée. Toute modification sera comptée dans ton taux de réajustement.",
