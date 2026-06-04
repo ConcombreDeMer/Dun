@@ -208,13 +208,19 @@ const buildMonthSlides = (
     const monthEnd = new Date(target.getFullYear(), target.getMonth() + 1, 0);
     const bars: BarData[] = [];
 
-    let cursor = new Date(target);
-    while (cursor <= monthEnd) {
-      const rangeStart = new Date(cursor);
-      const rangeEnd = new Date(cursor);
-      rangeEnd.setDate(Math.min(rangeStart.getDate() + 6, monthEnd.getDate()));
+    for (
+      let weekStart = getWeekStart(target);
+      weekStart <= monthEnd;
+      weekStart = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7)
+    ) {
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+
+      const rangeStart = weekStart < target ? new Date(target) : new Date(weekStart);
+      const rangeEnd = weekEnd > monthEnd ? new Date(monthEnd) : new Date(weekEnd);
 
       const days: StatsDay[] = [];
+      const cursor = new Date(rangeStart);
       while (cursor <= rangeEnd) {
         const key = toDateKey(cursor);
         days.push(daysMap.get(key) || createEmptyStatsDay(cursor));
