@@ -7,6 +7,7 @@ import {
   buildDaysMap,
   calculateStats,
   createEmptyStatsDay,
+  filterStatsDays,
   normalizeDate,
   toDateKey,
 } from "@/lib/calculateStats";
@@ -101,10 +102,13 @@ const createBar = (
   caption: string,
   date: Date,
   isCurrent: boolean,
-  palette: ChartPalette
+  palette: ChartPalette,
+  statsPreferences: StatsPreferences,
+  today: Date
 ): BarData => {
-  const total = days.reduce((sum, day) => sum + Math.max(day.total || 0, 0), 0);
-  const done = clampDone(days.reduce((sum, day) => sum + Math.max(day.done_count || 0, 0), 0), total);
+  const includedDays = filterStatsDays(days, statsPreferences, today);
+  const total = includedDays.reduce((sum, day) => sum + Math.max(day.total || 0, 0), 0);
+  const done = clampDone(includedDays.reduce((sum, day) => sum + Math.max(day.done_count || 0, 0), 0), total);
   const remaining = Math.max(total - done, 0);
   const completion = total > 0 ? Math.round((done / total) * 100) : 0;
 
@@ -121,7 +125,7 @@ const createBar = (
     remaining,
     completion,
     isCurrent,
-    days,
+    days: includedDays,
   };
 };
 
@@ -166,7 +170,9 @@ const buildWeekSlides = (
         currentDay.toLocaleDateString(locale, { day: "numeric", month: "short" }),
         currentDay,
         key === todayKey,
-        palette
+        palette,
+        statsPreferences,
+        today
       );
     });
 
@@ -217,7 +223,7 @@ const buildMonthSlides = (
 
       const includesToday = days.some((day) => toDateKey(new Date(day.date)) === toDateKey(today));
       const label = `${rangeStart.getDate()}-${rangeEnd.getDate()}`;
-      bars.push(createBar(days, label, label, rangeStart, includesToday, palette));
+      bars.push(createBar(days, label, label, rangeStart, includesToday, palette, statsPreferences, today));
     }
 
     const month = target.toLocaleDateString(locale, { month: "long", year: "numeric" });
@@ -262,7 +268,9 @@ const buildYearSlides = (
         monthStart.toLocaleDateString(locale, { month: "short" }),
         monthStart,
         year === today.getFullYear() && month === today.getMonth(),
-        palette
+        palette,
+        statsPreferences,
+        today
       );
     });
 
@@ -317,7 +325,9 @@ const buildGlobalSlides = (
         monthStart.toLocaleDateString(locale, { month: "short" }),
         monthStart,
         year === today.getFullYear() && month === today.getMonth(),
-        palette
+        palette,
+        statsPreferences,
+        today
       ));
     }
 
