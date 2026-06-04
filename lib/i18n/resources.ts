@@ -488,7 +488,8 @@ export const resources = {
         }
       },
       "createModal": {
-        "titlePlaceholder": "Task title"
+        "titlePlaceholder": "Task title",
+        "created": "Task created"
       },
       "tags": {
         "headline": {
@@ -1402,7 +1403,8 @@ export const resources = {
         }
       },
       "createModal": {
-        "titlePlaceholder": "Titre de la tâche"
+        "titlePlaceholder": "Titre de la tâche",
+        "created": "Tâche créée"
       },
       "tags": {
         "headline": {

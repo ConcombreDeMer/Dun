@@ -1,6 +1,6 @@
 import { useCreateModalController } from "@/lib/createModalController";
 import { usePathname } from "expo-router";
-import CreateModal from "./createModal";
+import LiquidCreateModal from "./liquidCreateModal";
 
 export default function CreateModalHost({ activePath }: { activePath?: string }) {
   const { closeCreateModal, createModalSession, isCreateModalOpen } = useCreateModalController();
@@ -11,7 +11,7 @@ export default function CreateModalHost({ activePath }: { activePath?: string })
   }
 
   return (
-    <CreateModal
+    <LiquidCreateModal
       key={createModalSession}
       accessoryId={`createTaskAccessory-${createModalSession}`}
       onClose={() => closeCreateModal(createModalSession)}

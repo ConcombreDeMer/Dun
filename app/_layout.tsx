@@ -221,7 +221,7 @@ function RootLayoutContent() {
             }}
           />
           <Stack.Screen
-            name="create-task"
+            name="create-task-modal"
             options={{
               title: t("navigation.createTask"),
               presentation: "modal",
