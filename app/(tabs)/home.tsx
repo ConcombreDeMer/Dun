@@ -1,14 +1,17 @@
 import CalendarComponent from "@/components/calendar";
 import CircularProgressBar from "@/components/circularProgressBar";
 import CreateModalHost from "@/components/CreateModalHost";
+import NewProgressBar from "@/components/newProgressBar";
 import PopUpTask from "@/components/popUpTask";
 import Squircle from "@/components/Squircle";
 import { TaskItem, TaskItemLayout } from "@/components/TaskItem";
 import { toAppDateKey } from "@/lib/date";
 import { useAppTranslation } from "@/lib/i18n";
 import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "@/lib/notificationService";
+import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
+import { useProgressBarPreference, type ProgressBarPreference } from "@/lib/useProgressBarPreference";
 import { useToggleTaskDone } from "@/lib/useToggleTaskDone";
 import { useStore } from "@/store/store";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -209,10 +212,12 @@ const DayTasksPage = ({
 
 type DayPageProps = DayTasksPageProps & {
   pageDateKey: string;
+  progressBarPreference: ProgressBarPreference;
 };
 
 const DayPage = ({
   pageDateKey,
+  progressBarPreference,
   tasks,
   ...dayTasksPageProps
 }: DayPageProps) => {
@@ -259,14 +264,24 @@ const DayPage = ({
         pointerEvents={isTaskSelected ? "none" : "auto"}
         style={progressBarAnimatedStyle}
       >
-        <CircularProgressBar
-          progress={progressStats.progress}
-          completedTasks={progressStats.completedTasks}
-          totalTasks={progressStats.totalTasks}
-          completedTaskIds={progressStats.completedTaskIds}
-          scopeKey={pageDateKey}
-          scrollY={taskListScrollY}
-        />
+        {progressBarPreference === 1 ? (
+          <CircularProgressBar
+            progress={progressStats.progress}
+            completedTasks={progressStats.completedTasks}
+            totalTasks={progressStats.totalTasks}
+            completedTaskIds={progressStats.completedTaskIds}
+            scopeKey={pageDateKey}
+            scrollY={taskListScrollY}
+          />
+        ) : (
+          <NewProgressBar
+            progress={progressStats.progress}
+            completedTasks={progressStats.completedTasks}
+            totalTasks={progressStats.totalTasks}
+            completedTaskIds={progressStats.completedTaskIds}
+            scopeKey={pageDateKey}
+          />
+        )}
       </ReAnimated.View>
 
       <DayTasksPage
@@ -300,6 +315,9 @@ export default function Home() {
     errorTitle: t("common.alerts.errorTitle"),
     errorMessage: t("common.alerts.genericError"),
   });
+  const { preference: progressBarPreference } = useProgressBarPreference();
+  const { isPremium } = useSubscription();
+  const activeProgressBarPreference: ProgressBarPreference = isPremium ? progressBarPreference : 1;
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
   const overlayProgress = useSharedValue(0);
   const horizontalListRef = useRef<FlatList<number>>(null);
@@ -740,6 +758,7 @@ export default function Home() {
         selectedTaskId={selectedTaskId}
         tasks={pageTasks}
         pageDateKey={pageDateKey}
+        progressBarPreference={activeProgressBarPreference}
         isReadOnly={false}
         t={t}
       />
@@ -754,6 +773,7 @@ export default function Home() {
     isTaskPending,
     isCalendarExpanded,
     loading,
+    activeProgressBarPreference,
     selectedTaskId,
     t,
     tasksByDate,

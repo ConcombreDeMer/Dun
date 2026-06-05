@@ -68,7 +68,8 @@ export const resources = {
             "theme": "Theme",
             "colorTheme": "Color theme",
             "fontSize": "Text size",
-            "language": "Language"
+            "language": "Language",
+            "progressBar": "Progress bar"
           },
           "themeOptions": {
             "light": "Light",
@@ -79,6 +80,15 @@ export const resources = {
           "languages": {
             "fr": "French",
             "en": "English"
+          },
+          "progressBar": {
+            "circular": {
+              "title": "Circular"
+            },
+            "classic": {
+              "title": "Classic"
+            },
+            "error": "The preference could not be saved. Your previous choice has been restored."
           },
           "about": {
             "title": "About",
@@ -1001,7 +1011,8 @@ export const resources = {
             "theme": "Thème",
             "colorTheme": "Coloris",
             "fontSize": "Taille du texte",
-            "language": "Langue"
+            "language": "Langue",
+            "progressBar": "Barre de progression"
           },
           "themeOptions": {
             "light": "Clair",
@@ -1012,6 +1023,15 @@ export const resources = {
           "languages": {
             "fr": "Français",
             "en": "English"
+          },
+          "progressBar": {
+            "circular": {
+              "title": "Circulaire"
+            },
+            "classic": {
+              "title": "Classique"
+            },
+            "error": "La préférence n'a pas pu être enregistrée. Ton choix précédent a été restauré."
           },
           "about": {
             "title": "À propos",

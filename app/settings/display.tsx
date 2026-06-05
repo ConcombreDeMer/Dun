@@ -2,12 +2,15 @@ import Headline from "@/components/headline";
 import SecondaryButton from "@/components/secondaryButton";
 import { useFont, type FontSize } from "@/lib/FontContext";
 import { AppLanguage, useAppTranslation } from "@/lib/i18n";
+import { useSubscription } from "@/lib/subscription";
 import { colorThemeOptions, useTheme } from "@/lib/ThemeContext";
+import { useProgressBarPreference, type ProgressBarPreference } from "@/lib/useProgressBarPreference";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
 import {
     Alert,
+    Image,
     ScrollView,
     StyleSheet,
     Text,
@@ -19,6 +22,13 @@ export default function Display() {
     const { t, language, setLanguage, supportedLanguages } = useAppTranslation();
     const { theme, colorTheme, colors, setTheme } = useTheme();
     const { fontSize, setFontSize, fontSizes } = useFont();
+    const { isPremium } = useSubscription();
+    const {
+        preference: progressBarPreference,
+        setPreference: setProgressBarPreference,
+        isSaving: isSavingProgressBarPreference,
+        error: progressBarPreferenceError,
+    } = useProgressBarPreference();
     const activeColorTheme = colorThemeOptions.find((option) => option.id === colorTheme) ?? colorThemeOptions[0];
 
     const handleAbout = () => {
@@ -28,7 +38,7 @@ export default function Display() {
         );
     };
 
-    const ThemePreviewBox = ({ previewTheme, title }: { previewTheme: 'light' | 'dark' | 'system'; title: string }) => {
+    const renderThemePreviewBox = (previewTheme: 'light' | 'dark' | 'system', title: string) => {
         const isActive = theme === previewTheme;
         const colors_temp = previewTheme === 'light' ? { bg: '#ffffff', text: '#000000' } : previewTheme === 'dark' ? { bg: '#1a1a1a', text: '#ffffff' } : { bg: '#e6e6e6', text: '#3d3d3d' };
         const borderColor = isActive ? colors.text : colors.border;
@@ -97,7 +107,7 @@ export default function Display() {
         );
     };
 
-    const FontSizeOption = ({ size, label }: { size: FontSize; label: string }) => {
+    const renderFontSizeOption = (size: FontSize, label: string) => {
         const isActive = fontSize === size;
         const sizeMap = {
             small: 13,
@@ -132,7 +142,7 @@ export default function Display() {
         );
     };
 
-    const LanguageOption = ({ value }: { value: AppLanguage }) => {
+    const renderLanguageOption = (value: AppLanguage) => {
         const isActive = language === value;
 
         return (
@@ -157,6 +167,67 @@ export default function Display() {
                     ]}
                 >
                     {t(`settings.display.languages.${value}`)}
+                </Text>
+            </SquircleButton>
+        );
+    };
+
+    const renderProgressBarOption = (value: ProgressBarPreference, title: string) => {
+        const isActive = progressBarPreference === value;
+        const isClassicOption = value === 2;
+        const isLocked = isClassicOption && !isPremium;
+
+        return (
+            <SquircleButton
+                style={[
+                    styles.progressOption,
+                    {
+                        backgroundColor: colors.card,
+                        borderColor: isActive ? colors.text : colors.border,
+                        borderWidth: isActive ? 0.5 : 0,
+                        opacity: isSavingProgressBarPreference && !isActive ? 0.66 : 1,
+                    },
+                ]}
+                onPress={() => {
+                    if (isLocked) {
+                        router.push("/settings/premium");
+                        return;
+                    }
+
+                    setProgressBarPreference(value);
+                }}
+            >
+                {isLocked ? (
+                    <View style={styles.plusBadge}>
+                        <SymbolView name="plus" size={15} weight="bold" tintColor="#2C2405" />
+                    </View>
+                ) : null}
+                <View style={styles.progressOptionHeader}>
+                    <View style={styles.progressMockupFrame}>
+                        <Image
+                            source={value === 1
+                                ? require("@/assets/images/settings/circular.png")
+                                : require("@/assets/images/settings/line.png")}
+                            style={styles.progressPreviewImage}
+                            resizeMode="contain"
+                        />
+                    </View>
+                    {isActive ? (
+                        <View style={[styles.progressCheckmark, { backgroundColor: colors.text }]}>
+                            <Text style={[styles.progressCheckmarkIcon, { color: colors.background }]}>✓</Text>
+                        </View>
+                    ) : null}
+                </View>
+                <Text
+                    style={[
+                        styles.progressOptionTitle,
+                        {
+                            color: colors.text,
+                            fontSize: fontSizes.base,
+                        },
+                    ]}
+                >
+                    {title}
                 </Text>
             </SquircleButton>
         );
@@ -187,9 +258,9 @@ export default function Display() {
                         {t("settings.display.sections.theme")}
                     </Text>
                     <View style={styles.themeContainer}>
-                        <ThemePreviewBox previewTheme="light" title={t("settings.display.themeOptions.light")} />
-                        <ThemePreviewBox previewTheme="dark" title={t("settings.display.themeOptions.dark")} />
-                        <ThemePreviewBox previewTheme="system" title={t("settings.display.themeOptions.system")} />
+                        {renderThemePreviewBox("light", t("settings.display.themeOptions.light"))}
+                        {renderThemePreviewBox("dark", t("settings.display.themeOptions.dark"))}
+                        {renderThemePreviewBox("system", t("settings.display.themeOptions.system"))}
                     </View>
                 </View>
 
@@ -220,15 +291,36 @@ export default function Display() {
                     </SquircleButton>
                 </View>
 
+                <View style={styles.section}>
+                    <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.base }]}>
+                        {t("settings.display.sections.progressBar")}
+                    </Text>
+                    <View style={styles.progressOptions}>
+                        {renderProgressBarOption(
+                            1,
+                            t("settings.display.progressBar.circular.title")
+                        )}
+                        {renderProgressBarOption(
+                            2,
+                            t("settings.display.progressBar.classic.title")
+                        )}
+                    </View>
+                    {progressBarPreferenceError ? (
+                        <Text style={[styles.errorText, { color: colors.danger ?? '#D94A4A', fontSize: fontSizes.sm }]}>
+                            {t("settings.display.progressBar.error")}
+                        </Text>
+                    ) : null}
+                </View>
+
                 {/* Font Size Section */}
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.base }]}>
                         {t("settings.display.sections.fontSize")}
                     </Text>
                     <View style={styles.optionGroup}>
-                        <FontSizeOption size="small" label="Aa" />
-                        <FontSizeOption size="medium" label="Aa" />
-                        <FontSizeOption size="large" label="Aa" />
+                        {renderFontSizeOption("small", "Aa")}
+                        {renderFontSizeOption("medium", "Aa")}
+                        {renderFontSizeOption("large", "Aa")}
                     </View>
                 </View>
 
@@ -241,7 +333,9 @@ export default function Display() {
                     </Text>
                     <View style={styles.optionGroup}>
                         {supportedLanguages.map((value) => (
-                            <LanguageOption key={value} value={value} />
+                            <View key={value} style={styles.optionRenderSlot}>
+                                {renderLanguageOption(value)}
+                            </View>
                         ))}
                     </View>
                 </View>
@@ -384,6 +478,74 @@ const styles = StyleSheet.create({
         fontFamily: "Satoshi-Regular",
     },
 
+    progressOptions: {
+        flexDirection: "row",
+        gap: 12,
+    },
+
+    progressOption: {
+        flex: 1,
+        borderRadius: 15,
+        padding: 12,
+        minHeight: 138,
+        position: "relative",
+    },
+
+    plusBadge: {
+        alignItems: "center",
+        backgroundColor: "#F4BA00",
+        borderRadius: 999,
+        height: 28,
+        justifyContent: "center",
+        position: "absolute",
+        right: 8,
+        top: 8,
+        width: 28,
+        zIndex: 2,
+    },
+
+    progressOptionHeader: {
+        minHeight: 82,
+        justifyContent: "center",
+        marginBottom: 10,
+    },
+
+    progressMockupFrame: {
+        minHeight: 82,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+    progressPreviewImage: {
+        width: "100%",
+        height: 82,
+    },
+
+    progressOptionTitle: {
+        fontFamily: "Satoshi-Bold",
+        textAlign: "center",
+    },
+
+    progressCheckmark: {
+        position: "absolute",
+        top: 0,
+        right: 0,
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+    progressCheckmarkIcon: {
+        fontWeight: "bold",
+        fontSize: 13,
+    },
+
+    errorText: {
+        fontFamily: "Satoshi-Medium",
+    },
+
     checkmark: {
         position: "absolute",
         top: 8,
@@ -404,6 +566,9 @@ const styles = StyleSheet.create({
     optionGroup: {
         flexDirection: "row-reverse",
         gap: 12,
+    },
+    optionRenderSlot: {
+        flex: 1,
     },
     languageButton: {
         flex: 1,
