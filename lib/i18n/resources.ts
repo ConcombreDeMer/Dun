@@ -539,6 +539,12 @@ export const resources = {
         "alerts": {
           "requiredName": "Tag name is required"
         },
+        "limit": {
+          "counter": "{{count}}/{{limit}} free tags",
+          "premium": "Unlimited tags with Dun Plus",
+          "reachedTitle": "Free tag limit reached",
+          "reachedDescription": "Free accounts can create up to {{limit}} tags. Unlock Dun Plus to create more."
+        },
         "delete": {
           "title": "Delete tag",
           "message": "Delete the {{name}} tag? It will be removed from linked tasks."
@@ -1481,6 +1487,12 @@ export const resources = {
         },
         "alerts": {
           "requiredName": "Le nom du tag est requis"
+        },
+        "limit": {
+          "counter": "{{count}}/{{limit}} tags gratuits",
+          "premium": "Tags illimités avec Dun Plus",
+          "reachedTitle": "Limite de tags atteinte",
+          "reachedDescription": "Les comptes gratuits peuvent créer jusqu'à {{limit}} tags. Débloque Dun Plus pour en créer davantage."
         },
         "delete": {
           "title": "Supprimer le tag",

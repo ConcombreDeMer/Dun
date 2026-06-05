@@ -5,6 +5,7 @@ import SimpleInput from "@/components/textInput";
 import Squircle from "@/components/Squircle";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
+import { useSubscription } from "@/lib/subscription";
 import { createTag, deleteTag, getTags, Tag, TAGS_QUERY_KEY, TAG_USAGE_STATS_QUERY_KEY, updateTag } from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
 import { BottomSheet, Button as SwiftButton, Group, Host, Menu, RNHostView } from "@expo/ui/swift-ui";
@@ -17,6 +18,7 @@ import { useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const TAG_COLORS = ["#4F8EF7", "#62B36F", "#F05D5E", "#F6A23D", "#8B6FF6", "#3A3A3A"];
+const FREE_TAG_LIMIT = 2;
 
 export default function TagsSettings() {
   const router = useRouter();
@@ -24,6 +26,7 @@ export default function TagsSettings() {
   const { colors } = useTheme();
   const { fontSizes } = useFont();
   const { t } = useAppTranslation();
+  const { isPremium } = useSubscription();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [name, setName] = useState("");
@@ -34,6 +37,7 @@ export default function TagsSettings() {
     queryKey: TAGS_QUERY_KEY,
     queryFn: getTags,
   });
+  const isTagLimitReached = !isPremium && tags.length >= FREE_TAG_LIMIT;
 
   const createTagMutation = useMutation({
     mutationFn: createTag,
@@ -80,6 +84,11 @@ export default function TagsSettings() {
   };
 
   const openCreateSheet = () => {
+    if (isTagLimitReached) {
+      router.push("/settings/premium");
+      return;
+    }
+
     setEditingTag(null);
     setName("");
     setSelectedColor(TAG_COLORS[0]);
@@ -119,6 +128,11 @@ export default function TagsSettings() {
 
     if (!name.trim()) {
       Alert.alert(t("common.alerts.errorTitle"), t("tags.alerts.requiredName"));
+      return;
+    }
+
+    if (!editingTag && isTagLimitReached) {
+      router.push("/settings/premium");
       return;
     }
 
@@ -202,11 +216,69 @@ export default function TagsSettings() {
             </Host>
           </Squircle>
         ))}
+
+        {!isLoading ? (
+          <View style={styles.limitSection}>
+            <View style={styles.limitHeader}>
+              <Text style={[styles.limitLabel, { color: colors.text, fontSize: fontSizes.base }]}>
+                {isPremium
+                  ? t("tags.limit.premium")
+                  : t("tags.limit.counter", { count: Math.min(tags.length, FREE_TAG_LIMIT), limit: FREE_TAG_LIMIT })}
+              </Text>
+              {!isPremium ? (
+                <View style={[styles.limitBadge, { backgroundColor: isTagLimitReached ? "#F4BA00" : colors.card, borderColor: colors.border }]}>
+                  <Text style={[styles.limitBadgeText, { color: isTagLimitReached ? "#2C2405" : colors.textSecondary, fontSize: fontSizes.sm }]}>
+                    {tags.length}/{FREE_TAG_LIMIT}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            {!isPremium ? (
+              <View style={[styles.limitTrack, { backgroundColor: colors.border }]}>
+                <View
+                  style={[
+                    styles.limitTrackFill,
+                    {
+                      backgroundColor: isTagLimitReached ? "#F4BA00" : colors.text,
+                      width: `${Math.min(100, (tags.length / FREE_TAG_LIMIT) * 100)}%`,
+                    },
+                  ]}
+                />
+              </View>
+            ) : null}
+
+            {isTagLimitReached ? (
+              <View style={[styles.limitNotice, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={styles.limitNoticeIcon}>
+                  <SymbolView name="plus" size={15} weight="bold" tintColor="#2C2405" />
+                </View>
+                <View style={styles.limitNoticeText}>
+                  <Text style={[styles.limitNoticeTitle, { color: colors.text, fontSize: fontSizes.lg }]}>
+                    {t("tags.limit.reachedTitle")}
+                  </Text>
+                  <Text style={[styles.limitNoticeDescription, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>
+                    {t("tags.limit.reachedDescription", { limit: FREE_TAG_LIMIT })}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => router.push("/settings/premium")}
+                  style={[styles.unlockButton, { backgroundColor: colors.text }]}
+                >
+                  <Text style={[styles.unlockButtonText, { color: colors.background, fontSize: fontSizes.sm }]}>
+                    {t("common.actions.unlock")}
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
       </ScrollView>
 
       <PrimaryButton
         image="plus"
         onPress={openCreateSheet}
+        disabled={isTagLimitReached}
         size="XS"
         style={styles.addButton}
       />
@@ -331,6 +403,76 @@ const styles = StyleSheet.create({
   tagName: {
     flex: 1,
     fontFamily: "Satoshi-Medium",
+  },
+  limitSection: {
+    gap: 10,
+    marginTop: 10,
+  },
+  limitHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  limitLabel: {
+    fontFamily: "Satoshi-Bold",
+  },
+  limitBadge: {
+    alignItems: "center",
+    borderRadius: 999,
+    borderWidth: 1,
+    minWidth: 46,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  limitBadgeText: {
+    fontFamily: "Satoshi-Bold",
+  },
+  limitTrack: {
+    borderRadius: 999,
+    height: 6,
+    overflow: "hidden",
+  },
+  limitTrackFill: {
+    borderRadius: 999,
+    height: "100%",
+  },
+  limitNotice: {
+    alignItems: "center",
+    borderRadius: 15,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    padding: 14,
+  },
+  limitNoticeIcon: {
+    alignItems: "center",
+    backgroundColor: "#F4BA00",
+    borderRadius: 999,
+    height: 28,
+    justifyContent: "center",
+    width: 28,
+  },
+  limitNoticeText: {
+    flex: 1,
+    gap: 3,
+    minWidth: 0,
+  },
+  limitNoticeTitle: {
+    fontFamily: "Satoshi-Bold",
+  },
+  limitNoticeDescription: {
+    fontFamily: "Satoshi-Regular",
+    lineHeight: 18,
+  },
+  unlockButton: {
+    alignItems: "center",
+    borderRadius: 999,
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  unlockButtonText: {
+    fontFamily: "Satoshi-Bold",
   },
   menuHost: {
     height: 38,
