@@ -419,7 +419,22 @@ export const resources = {
         }
       },
       "home": {
-        "emptyState": "No tasks for this date"
+        "emptyState": "No tasks for this date",
+        "progress": {
+          "empty": "No tasks yet",
+          "complete": "Day complete",
+          "close": "Almost there",
+          "inMotion": "Good pace",
+          "start": "Getting started",
+          "noTasks": "No tasks planned today.",
+          "allDone": "All tasks are complete today.",
+          "remaining": "You have {{count}} {{taskLabel}} left out of {{total}} today.",
+          "remainingPrefix": "You have",
+          "remainingAction": "to complete",
+          "remainingSuffix": "out of the {{total}} today.",
+          "task": "task",
+          "tasks": "tasks"
+        }
       },
       "createTask": {
         "headline": {
@@ -1334,7 +1349,22 @@ export const resources = {
         }
       },
       "home": {
-        "emptyState": "Aucune tâche pour cette date"
+        "emptyState": "Aucune tâche pour cette date",
+        "progress": {
+          "empty": "Journée vide",
+          "complete": "Journée terminée",
+          "close": "Presque terminé",
+          "inMotion": "Bon rythme",
+          "start": "Démarrage",
+          "noTasks": "Aucune tâche prévue aujourd'hui.",
+          "allDone": "Toutes les tâches sont terminées aujourd'hui.",
+          "remaining": "Il reste {{count}} {{taskLabel}} à compléter sur {{total}} aujourd'hui.",
+          "remainingPrefix": "Il reste",
+          "remainingAction": "à compléter",
+          "remainingSuffix": "sur les {{total}} d'aujourd'hui.",
+          "task": "tâche",
+          "tasks": "tâches"
+        }
       },
       "createTask": {
         "headline": {

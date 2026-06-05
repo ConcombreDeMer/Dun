@@ -326,6 +326,20 @@ auth:
     checking: "Verifying your account..."
 home:
   emptyState: "No tasks for this date"
+  progress:
+    empty: "No tasks yet"
+    complete: "Day complete"
+    close: "Almost there"
+    inMotion: "Good pace"
+    start: "Getting started"
+    noTasks: "No tasks planned today."
+    allDone: "All tasks are complete today."
+    remaining: "You have {{count}} {{taskLabel}} left out of {{total}} today."
+    remainingPrefix: "You have"
+    remainingAction: "to complete"
+    remainingSuffix: "out of the {{total}} today."
+    task: "task"
+    tasks: "tasks"
 createTask:
   headline:
     title: "Create"
@@ -384,6 +398,7 @@ task:
     fullDate: "{{day}}/{{month}}/{{year}} at {{hours}}:{{minutes}}:{{seconds}}"
 createModal:
   titlePlaceholder: "Task title"
+  created: "Task created"
 tags:
   headline:
     title: "Tags"

@@ -326,6 +326,20 @@ auth:
     checking: "Vérification de votre compte..."
 home:
   emptyState: "Aucune tâche pour cette date"
+  progress:
+    empty: "Journée vide"
+    complete: "Journée terminée"
+    close: "Presque terminé"
+    inMotion: "Bon rythme"
+    start: "Démarrage"
+    noTasks: "Aucune tâche prévue aujourd'hui."
+    allDone: "Toutes les tâches sont terminées aujourd'hui."
+    remaining: "Il reste {{count}} {{taskLabel}} à compléter sur {{total}} aujourd'hui."
+    remainingPrefix: "Il reste"
+    remainingAction: "à compléter"
+    remainingSuffix: "sur les {{total}} d'aujourd'hui."
+    task: "tâche"
+    tasks: "tâches"
 createTask:
   headline:
     title: "Créer"
@@ -384,6 +398,7 @@ task:
     fullDate: "{{day}}/{{month}}/{{year}} à {{hours}}:{{minutes}}:{{seconds}}"
 createModal:
   titlePlaceholder: "Titre de la tâche"
+  created: "Tâche créée"
 tags:
   headline:
     title: "Tags"

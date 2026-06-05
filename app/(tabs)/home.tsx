@@ -1,7 +1,7 @@
 import CalendarComponent from "@/components/calendar";
 import CreateModalHost from "@/components/CreateModalHost";
+import NewProgressBar from "@/components/newProgressBar";
 import PopUpTask from "@/components/popUpTask";
-import ProgressBar from "@/components/progressBar";
 import Squircle from "@/components/Squircle";
 import { TaskItem, TaskItemLayout } from "@/components/TaskItem";
 import { toAppDateKey } from "@/lib/date";
@@ -396,6 +396,18 @@ export default function Home() {
     return Math.round((doneCount / currentTasks.length) * 100);
   }, [currentTasks]);
 
+  const progressStats = useMemo(() => {
+    const completedTaskIds = currentTasks
+      .filter((task: any) => task.done)
+      .map((task: any) => task.id);
+
+    return {
+      completedTasks: completedTaskIds.length,
+      totalTasks: currentTasks.length,
+      completedTaskIds,
+    };
+  }, [currentTasks]);
+
   const handleToggleTask = useCallback(async (taskId: number, currentDone: boolean) => {
     void toggleTaskDone(taskId, currentDone);
   }, [toggleTaskDone]);
@@ -709,8 +721,12 @@ export default function Home() {
               onExpandedChange={setIsCalendarExpanded}
             />
 
-            <ProgressBar
+            <NewProgressBar
               progress={progress}
+              completedTasks={progressStats.completedTasks}
+              totalTasks={progressStats.totalTasks}
+              completedTaskIds={progressStats.completedTaskIds}
+              scopeKey={dateKey}
             />
           </ReAnimated.View>
 
