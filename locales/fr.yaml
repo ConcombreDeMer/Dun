@@ -338,6 +338,9 @@ home:
     remainingPrefix: "Il reste"
     remainingAction: "à compléter"
     remainingSuffix: "sur les {{total}} d'aujourd'hui."
+    remainingSuffixStart: "sur les"
+    remainingSuffixEnd: "aujourd'hui."
+    totalTasks: "au total"
     task: "tâche"
     tasks: "tâches"
 createTask:

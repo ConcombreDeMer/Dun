@@ -338,6 +338,9 @@ home:
     remainingPrefix: "You have"
     remainingAction: "to complete"
     remainingSuffix: "out of the {{total}} today."
+    remainingSuffixStart: "out of the"
+    remainingSuffixEnd: "today."
+    totalTasks: "in total"
     task: "task"
     tasks: "tasks"
 createTask:

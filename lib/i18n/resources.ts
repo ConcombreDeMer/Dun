@@ -432,6 +432,9 @@ export const resources = {
           "remainingPrefix": "You have",
           "remainingAction": "to complete",
           "remainingSuffix": "out of the {{total}} today.",
+          "remainingSuffixStart": "out of the",
+          "remainingSuffixEnd": "today.",
+          "totalTasks": "in total",
           "task": "task",
           "tasks": "tasks"
         }
@@ -1362,6 +1365,9 @@ export const resources = {
           "remainingPrefix": "Il reste",
           "remainingAction": "à compléter",
           "remainingSuffix": "sur les {{total}} d'aujourd'hui.",
+          "remainingSuffixStart": "sur les",
+          "remainingSuffixEnd": "aujourd'hui.",
+          "totalTasks": "au total",
           "task": "tâche",
           "tasks": "tâches"
         }

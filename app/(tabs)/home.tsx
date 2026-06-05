@@ -1,6 +1,6 @@
 import CalendarComponent from "@/components/calendar";
+import CircularProgressBar from "@/components/circularProgressBar";
 import CreateModalHost from "@/components/CreateModalHost";
-import NewProgressBar from "@/components/newProgressBar";
 import PopUpTask from "@/components/popUpTask";
 import Squircle from "@/components/Squircle";
 import { TaskItem, TaskItemLayout } from "@/components/TaskItem";
@@ -46,6 +46,19 @@ const getDayOffset = (from: Date, to: Date) => {
   return Math.round((end - start) / (1000 * 60 * 60 * 24));
 };
 
+const getProgressStats = (tasks: any[]) => {
+  const completedTaskIds = tasks
+    .filter((task: any) => task.done)
+    .map((task: any) => task.id);
+
+  return {
+    progress: tasks.length === 0 ? 0 : Math.round((completedTaskIds.length / tasks.length) * 100),
+    completedTasks: completedTaskIds.length,
+    totalTasks: tasks.length,
+    completedTaskIds,
+  };
+};
+
 type DayTasksPageProps = {
   colors: ReturnType<typeof useTheme>["colors"];
   dayIndex: number;
@@ -58,6 +71,7 @@ type DayTasksPageProps = {
   isReadOnly?: boolean;
   onDragBegin?: () => void;
   onDragEnd?: ({ data }: { data: any[] }) => void;
+  onScrollOffsetChange?: (offset: number) => void;
   onPlaceholderIndexChange?: () => void;
   onTaskPress: (taskId: number, layout?: TaskItemLayout) => void;
   onToggleTask: (taskId: number, currentDone: boolean) => void;
@@ -73,6 +87,7 @@ const DayTasksPage = ({
   loading,
   onDragBegin,
   onDragEnd,
+  onScrollOffsetChange,
   onPlaceholderIndexChange,
   onTaskPress,
   onToggleTask,
@@ -162,11 +177,12 @@ const DayTasksPage = ({
           activationDistance={20}
           onDragBegin={handleDragBegin}
           onDragEnd={handleDragEnd}
+          onScrollOffsetChange={onScrollOffsetChange}
           onPlaceholderIndexChange={onPlaceholderIndexChange}
           renderItem={({ item, drag, isActive }) => (
             <TaskItem
               item={item}
-              drag={!isReadOnly && canReorder && tasks.length > 1 ? drag : () => {}}
+              drag={!isReadOnly && canReorder && tasks.length > 1 ? drag : () => { }}
               isActive={isActive}
               handleToggleTask={onToggleTask}
               handleTaskPress={onTaskPress}
@@ -187,6 +203,77 @@ const DayTasksPage = ({
           }
         />
       )}
+    </View>
+  );
+};
+
+type DayPageProps = DayTasksPageProps & {
+  pageDateKey: string;
+};
+
+const DayPage = ({
+  pageDateKey,
+  tasks,
+  ...dayTasksPageProps
+}: DayPageProps) => {
+  const taskListScrollY = useSharedValue(0);
+  const progressStats = useMemo(() => getProgressStats(tasks), [tasks]);
+  const isTaskSelected = dayTasksPageProps.selectedTaskId !== null;
+
+  const handleTaskListScrollOffsetChange = useCallback((offset: number) => {
+    // eslint-disable-next-line react-hooks/immutability
+    taskListScrollY.value = withTiming(offset, {
+      duration: 120,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [taskListScrollY]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
+    taskListScrollY.value = withTiming(0, {
+      duration: 220,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [pageDateKey, taskListScrollY]);
+
+  const progressBarAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: withTiming(isTaskSelected ? 0 : 1, {
+        duration: isTaskSelected ? 260 : 320,
+        easing: Easing.out(Easing.quad),
+      }),
+      transform: [
+        {
+          scale: withTiming(isTaskSelected ? 0.97 : 1, {
+            duration: isTaskSelected ? 420 : 320,
+            easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+          }),
+        },
+      ],
+    };
+  }, [isTaskSelected]);
+
+  return (
+    <View style={[styles.dayPage, { width: dayTasksPageProps.dayWidth }]}>
+      <ReAnimated.View
+        pointerEvents={isTaskSelected ? "none" : "auto"}
+        style={progressBarAnimatedStyle}
+      >
+        <CircularProgressBar
+          progress={progressStats.progress}
+          completedTasks={progressStats.completedTasks}
+          totalTasks={progressStats.totalTasks}
+          completedTaskIds={progressStats.completedTaskIds}
+          scopeKey={pageDateKey}
+          scrollY={taskListScrollY}
+        />
+      </ReAnimated.View>
+
+      <DayTasksPage
+        {...dayTasksPageProps}
+        tasks={tasks}
+        onScrollOffsetChange={handleTaskListScrollOffsetChange}
+      />
     </View>
   );
 };
@@ -257,8 +344,6 @@ export default function Home() {
     }
     initApp();
   }, []);
-
-
 
   // const logStoreState = useCallback(() => {
   //   console.log("Store modifié : ", useStore.getState());
@@ -384,30 +469,6 @@ export default function Home() {
     setLoading(taskQuery.isLoading);
   }, [taskQuery.isLoading]);
 
-  const progress = useMemo(() => {
-    if (currentTasks.length === 0) {
-      return 0;
-    }
-
-    const doneCount = currentTasks.reduce((count: number, task: any) => {
-      return task.done ? count + 1 : count;
-    }, 0);
-
-    return Math.round((doneCount / currentTasks.length) * 100);
-  }, [currentTasks]);
-
-  const progressStats = useMemo(() => {
-    const completedTaskIds = currentTasks
-      .filter((task: any) => task.done)
-      .map((task: any) => task.id);
-
-    return {
-      completedTasks: completedTaskIds.length,
-      totalTasks: currentTasks.length,
-      completedTaskIds,
-    };
-  }, [currentTasks]);
-
   const handleToggleTask = useCallback(async (taskId: number, currentDone: boolean) => {
     void toggleTaskDone(taskId, currentDone);
   }, [toggleTaskDone]);
@@ -462,17 +523,17 @@ export default function Home() {
   const closeSelectedTaskOverlay = useCallback((afterClose?: () => void) => {
     setShouldRenderOverlayContent(false);
     overlayProgress.value = withTiming(0, {
-        duration: 260,
-        easing: Easing.bezier(0.2, 0.8, 0.2, 1),
-      }, (finished) => {
-        if (finished) {
-          runOnJS(setSelectedTaskId)(null);
-          runOnJS(setSelectedTaskLayout)(null);
-          if (afterClose) {
-            runOnJS(afterClose)();
-          }
+      duration: 260,
+      easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+    }, (finished) => {
+      if (finished) {
+        runOnJS(setSelectedTaskId)(null);
+        runOnJS(setSelectedTaskLayout)(null);
+        if (afterClose) {
+          runOnJS(afterClose)();
         }
-      });
+      }
+    });
   }, [overlayProgress]);
 
   const handleTaskPress = useCallback((taskId: number, layout?: TaskItemLayout) => {
@@ -664,7 +725,7 @@ export default function Home() {
     const canReorderPage = isSelectedPage && pageDateKey >= todayKey;
 
     return (
-      <DayTasksPage
+      <DayPage
         colors={colors}
         dayIndex={dayIndex}
         dayWidth={windowWidth}
@@ -678,12 +739,12 @@ export default function Home() {
         isTaskTogglePending={isTaskPending}
         selectedTaskId={selectedTaskId}
         tasks={pageTasks}
+        pageDateKey={pageDateKey}
         isReadOnly={false}
         t={t}
       />
     );
   }, [
-    colors.text,
     colors,
     dateKey,
     handleDragEnd,
@@ -720,14 +781,6 @@ export default function Home() {
               onDateSelect={(date) => changeDate(date)}
               onExpandedChange={setIsCalendarExpanded}
             />
-
-            <NewProgressBar
-              progress={progress}
-              completedTasks={progressStats.completedTasks}
-              totalTasks={progressStats.totalTasks}
-              completedTaskIds={progressStats.completedTaskIds}
-              scopeKey={dateKey}
-            />
           </ReAnimated.View>
 
         </View>
@@ -754,7 +807,7 @@ export default function Home() {
             onScrollBeginDrag={handleHorizontalScrollBeginDrag}
             onScroll={handleHorizontalScroll}
             onMomentumScrollEnd={handleHorizontalMomentumEnd}
-            onScrollToIndexFailed={() => {}}
+            onScrollToIndexFailed={() => { }}
             scrollEnabled={selectedTaskId === null}
             windowSize={5}
             maxToRenderPerBatch={3}
@@ -813,6 +866,8 @@ const styles = StyleSheet.create({
 
   dayPage: {
     flex: 1,
+        display : 'flex',
+    gap : 20,
   },
 
   overlayRoot: {
