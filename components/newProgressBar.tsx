@@ -203,7 +203,6 @@ function NewProgressBar({
 
     const onToggleDetails = () => {
         const nextValue = expandedProgress.value > 0.5 ? 0 : 1;
-        // eslint-disable-next-line react-hooks/immutability
         expandedProgress.value = withTiming(nextValue, {
             duration: nextValue ? 260 : 220,
             easing: Easing.bezier(0.2, 0.8, 0.2, 1),

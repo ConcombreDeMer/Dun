@@ -226,7 +226,6 @@ const DayPage = ({
   const isTaskSelected = dayTasksPageProps.selectedTaskId !== null;
 
   const handleTaskListScrollOffsetChange = useCallback((offset: number) => {
-    // eslint-disable-next-line react-hooks/immutability
     taskListScrollY.value = withTiming(offset, {
       duration: 120,
       easing: Easing.out(Easing.quad),
@@ -234,7 +233,6 @@ const DayPage = ({
   }, [taskListScrollY]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/immutability
     taskListScrollY.value = withTiming(0, {
       duration: 220,
       easing: Easing.out(Easing.quad),

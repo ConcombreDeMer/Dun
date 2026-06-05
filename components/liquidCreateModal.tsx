@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/immutability */
 import { FontContext } from "@/lib/FontContext";
 import { useOptimisticTaskMutations } from "@/lib/useOptimisticTaskMutations";
 import { useStore } from "@/store/store";

@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FontProvider } from "../lib/FontContext";
 import { I18nProvider, useAppTranslation, useI18nReady } from "../lib/i18n";
@@ -215,15 +215,6 @@ function RootLayoutContent() {
             name="stats"
             options={{
               headerShown: false,
-              presentation: "modal",
-              animation: "slide_from_bottom",
-              animationDuration: 200,
-            }}
-          />
-          <Stack.Screen
-            name="create-task-modal"
-            options={{
-              title: t("navigation.createTask"),
               presentation: "modal",
               animation: "slide_from_bottom",
               animationDuration: 200,

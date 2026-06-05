@@ -208,7 +208,6 @@ function CircularProgressBar({
 
     const toggleDetails = () => {
         const nextValue = detailProgress.value > 0.5 ? 0 : 1;
-        // eslint-disable-next-line react-hooks/immutability
         detailProgress.value = withSpring(nextValue, {
             damping: 18,
             stiffness: 160,
