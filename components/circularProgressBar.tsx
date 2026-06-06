@@ -22,7 +22,7 @@ type CircularProgressBarProps = {
     totalTasks: number;
     completedTaskIds?: (number | string)[];
     scopeKey?: string;
-    scrollY?: SharedValue<number>;
+    compactProgress?: SharedValue<number>;
 };
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -44,7 +44,7 @@ function CircularProgressBar({
     totalTasks,
     completedTaskIds = [],
     scopeKey = 'default',
-    scrollY,
+    compactProgress,
 }: CircularProgressBarProps) {
     const { actualTheme, colors } = useTheme();
     const { t } = useAppTranslation();
@@ -55,8 +55,8 @@ function CircularProgressBar({
     const completionPulse = useSharedValue(0);
     const [displayProgress, setDisplayProgress] = useState(clampedProgress);
     const displayProgressRef = useRef(clampedProgress);
-    const fallbackScrollY = useSharedValue(0);
-    const effectiveScrollY = scrollY ?? fallbackScrollY;
+    const fallbackCompactProgress = useSharedValue(0);
+    const effectiveCompactProgress = compactProgress ?? fallbackCompactProgress;
     const seenCompletedTaskIdsRef = useRef(new Set(completedTaskIds.map(String)));
     const previousCompletedIdsRef = useRef(new Set(completedTaskIds.map(String)));
     const previousScopeKeyRef = useRef(scopeKey);
@@ -138,16 +138,17 @@ function CircularProgressBar({
 
     const rootAnimatedStyle = useAnimatedStyle(() => {
         const isOpen = detailProgress.value;
+        const compact = effectiveCompactProgress.value;
 
         return {
-            height: interpolate(effectiveScrollY.value, [0, 180], [210 + isOpen * 10, 132], 'clamp'),
-            marginBottom: interpolate(effectiveScrollY.value, [0, 180], [isOpen * 12, 0], 'clamp'),
-            opacity: interpolate(effectiveScrollY.value, [0, 220], [1, 0.92], 'clamp'),
+            height: interpolate(compact, [0, 1], [210 + isOpen * 10, 132], 'clamp'),
+            marginBottom: interpolate(compact, [0, 1], [isOpen * 12, 0], 'clamp'),
+            opacity: interpolate(compact, [0, 1], [1, 0.92], 'clamp'),
         };
     });
 
     const circleAnimatedStyle = useAnimatedStyle(() => {
-        const scrollScale = interpolate(effectiveScrollY.value, [0, 160], [1, 0.64], 'clamp');
+        const compactScale = interpolate(effectiveCompactProgress.value, [0, 1], [1, 0.64], 'clamp');
         const openedScale = interpolate(detailProgress.value, [0, 1], [1, 0.66]);
 
         return {
@@ -156,7 +157,7 @@ function CircularProgressBar({
                     translateX: interpolate(detailProgress.value, [0, 1], [0, 104]),
                 },
                 {
-                    scale: scrollScale * openedScale + completionPulse.value * 0.025,
+                    scale: compactScale * openedScale + completionPulse.value * 0.025,
                 },
             ],
         };
@@ -266,7 +267,7 @@ function CircularProgressBar({
                 ) : null}
             </Animated.View>
 
-            <AnimatedPressable onPress={toggleDetails} style={[styles.circleWrap, circleAnimatedStyle]}>
+            <AnimatedPressable onPressIn={toggleDetails} style={[styles.circleWrap, circleAnimatedStyle]}>
                 <Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
                     <Circle
                         cx={SIZE / 2}

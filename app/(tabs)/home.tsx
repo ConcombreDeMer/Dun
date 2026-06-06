@@ -28,6 +28,7 @@ const LottieView = require("lottie-react-native").default;
 const DAY_PAGER_SIZE = 20001;
 const DAY_PAGER_CENTER_INDEX = Math.floor(DAY_PAGER_SIZE / 2);
 const DAY_PAGER_INDEXES = Array.from({ length: DAY_PAGER_SIZE }, (_, index) => index);
+const TASK_LIST_COMPACT_SCROLL_THRESHOLD = 8;
 
 const startOfDay = (date: Date) => {
   const normalized = new Date(date);
@@ -59,6 +60,30 @@ const getProgressStats = (tasks: any[]) => {
     completedTasks: completedTaskIds.length,
     totalTasks: tasks.length,
     completedTaskIds,
+  };
+};
+
+const useTaskListCompactProgress = (scopeKey: string) => {
+  const compactProgress = useSharedValue(0);
+
+  const setCompact = useCallback((isCompact: boolean) => {
+    compactProgress.value = withTiming(isCompact ? 1 : 0, {
+      duration: isCompact ? 220 : 260,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [compactProgress]);
+
+  const handleScrollOffsetChange = useCallback((offset: number) => {
+    setCompact(offset > TASK_LIST_COMPACT_SCROLL_THRESHOLD);
+  }, [setCompact]);
+
+  useEffect(() => {
+    setCompact(false);
+  }, [scopeKey, setCompact]);
+
+  return {
+    compactProgress,
+    handleScrollOffsetChange,
   };
 };
 
@@ -221,23 +246,12 @@ const DayPage = ({
   tasks,
   ...dayTasksPageProps
 }: DayPageProps) => {
-  const taskListScrollY = useSharedValue(0);
+  const {
+    compactProgress,
+    handleScrollOffsetChange,
+  } = useTaskListCompactProgress(pageDateKey);
   const progressStats = useMemo(() => getProgressStats(tasks), [tasks]);
   const isTaskSelected = dayTasksPageProps.selectedTaskId !== null;
-
-  const handleTaskListScrollOffsetChange = useCallback((offset: number) => {
-    taskListScrollY.value = withTiming(offset, {
-      duration: 120,
-      easing: Easing.out(Easing.quad),
-    });
-  }, [taskListScrollY]);
-
-  useEffect(() => {
-    taskListScrollY.value = withTiming(0, {
-      duration: 220,
-      easing: Easing.out(Easing.quad),
-    });
-  }, [pageDateKey, taskListScrollY]);
 
   const progressBarAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -269,7 +283,7 @@ const DayPage = ({
             totalTasks={progressStats.totalTasks}
             completedTaskIds={progressStats.completedTaskIds}
             scopeKey={pageDateKey}
-            scrollY={taskListScrollY}
+            compactProgress={compactProgress}
           />
         ) : (
           <NewProgressBar
@@ -285,7 +299,7 @@ const DayPage = ({
       <DayTasksPage
         {...dayTasksPageProps}
         tasks={tasks}
-        onScrollOffsetChange={handleTaskListScrollOffsetChange}
+        onScrollOffsetChange={handleScrollOffsetChange}
       />
     </View>
   );
