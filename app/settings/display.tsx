@@ -4,6 +4,7 @@ import { useFont, type FontSize } from "@/lib/FontContext";
 import { AppLanguage, useAppTranslation } from "@/lib/i18n";
 import { useSubscription } from "@/lib/subscription";
 import { colorThemeOptions, useTheme } from "@/lib/ThemeContext";
+import { useCalendarPreference, type CalendarPreference } from "@/lib/useCalendarPreference";
 import { useProgressBarPreference, type ProgressBarPreference } from "@/lib/useProgressBarPreference";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
@@ -23,6 +24,12 @@ export default function Display() {
     const { theme, colorTheme, colors, setTheme } = useTheme();
     const { fontSize, setFontSize, fontSizes } = useFont();
     const { isPremium } = useSubscription();
+    const {
+        preference: calendarPreference,
+        setPreference: setCalendarPreference,
+        isSaving: isSavingCalendarPreference,
+        error: calendarPreferenceError,
+    } = useCalendarPreference();
     const {
         preference: progressBarPreference,
         setPreference: setProgressBarPreference,
@@ -172,10 +179,21 @@ export default function Display() {
         );
     };
 
-    const renderProgressBarOption = (value: ProgressBarPreference, title: string) => {
-        const isActive = progressBarPreference === value;
-        const isClassicOption = value === 2;
-        const isLocked = isClassicOption && !isPremium;
+    const renderDisplayPreviewOption = ({
+        title,
+        isActive,
+        isSaving,
+        isLocked = false,
+        previewSource,
+        onSelect,
+    }: {
+        title: string;
+        isActive: boolean;
+        isSaving: boolean;
+        isLocked?: boolean;
+        previewSource: any;
+        onSelect: () => void;
+    }) => {
 
         return (
             <SquircleButton
@@ -185,7 +203,7 @@ export default function Display() {
                         backgroundColor: colors.card,
                         borderColor: isActive ? colors.text : colors.border,
                         borderWidth: isActive ? 0.5 : 0,
-                        opacity: isSavingProgressBarPreference && !isActive ? 0.66 : 1,
+                        opacity: isSaving && !isActive ? 0.66 : 1,
                     },
                 ]}
                 onPress={() => {
@@ -194,7 +212,7 @@ export default function Display() {
                         return;
                     }
 
-                    setProgressBarPreference(value);
+                    onSelect();
                 }}
             >
                 {isLocked ? (
@@ -205,9 +223,7 @@ export default function Display() {
                 <View style={styles.progressOptionHeader}>
                     <View style={styles.progressMockupFrame}>
                         <Image
-                            source={value === 1
-                                ? require("@/assets/images/settings/circular.png")
-                                : require("@/assets/images/settings/line.png")}
+                            source={previewSource}
                             style={styles.progressPreviewImage}
                             resizeMode="contain"
                         />
@@ -231,6 +247,33 @@ export default function Display() {
                 </Text>
             </SquircleButton>
         );
+    };
+
+    const renderProgressBarOption = (value: ProgressBarPreference, title: string) => {
+        const isClassicOption = value === 2;
+
+        return renderDisplayPreviewOption({
+            title,
+            isActive: progressBarPreference === value,
+            isSaving: isSavingProgressBarPreference,
+            isLocked: isClassicOption && !isPremium,
+            previewSource: value === 1
+                ? require("@/assets/images/settings/circular.png")
+                : require("@/assets/images/settings/line.png"),
+            onSelect: () => setProgressBarPreference(value),
+        });
+    };
+
+    const renderCalendarOption = (value: CalendarPreference, title: string) => {
+        return renderDisplayPreviewOption({
+            title,
+            isActive: calendarPreference === value,
+            isSaving: isSavingCalendarPreference,
+            previewSource: value === 1
+                ? require("@/assets/images/settings/calendar_slider.png")
+                : require("@/assets/images/settings/calendar_text.png"),
+            onSelect: () => setCalendarPreference(value),
+        });
     };
 
     return (
@@ -308,6 +351,27 @@ export default function Display() {
                     {progressBarPreferenceError ? (
                         <Text style={[styles.errorText, { color: colors.danger ?? '#D94A4A', fontSize: fontSizes.sm }]}>
                             {t("settings.display.progressBar.error")}
+                        </Text>
+                    ) : null}
+                </View>
+
+                <View style={styles.section}>
+                    <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.base }]}>
+                        {t("settings.display.sections.calendar")}
+                    </Text>
+                    <View style={styles.progressOptions}>
+                        {renderCalendarOption(
+                            1,
+                            t("settings.display.calendar.slider.title")
+                        )}
+                        {renderCalendarOption(
+                            2,
+                            t("settings.display.calendar.text.title")
+                        )}
+                    </View>
+                    {calendarPreferenceError ? (
+                        <Text style={[styles.errorText, { color: colors.danger ?? '#D94A4A', fontSize: fontSizes.sm }]}>
+                            {t("settings.display.calendar.error")}
                         </Text>
                     ) : null}
                 </View>

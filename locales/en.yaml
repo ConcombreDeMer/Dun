@@ -56,6 +56,8 @@ settings:
     sections:
       theme: "Theme"
       colorTheme: "Color theme"
+      progressBar: "Progress bar"
+      calendar: "Calendar"
       fontSize: "Text size"
       language: "Language"
     themeOptions:
@@ -66,6 +68,18 @@ settings:
     languages:
       fr: "French"
       en: "English"
+    progressBar:
+      circular:
+        title: "Circular"
+      classic:
+        title: "Classic"
+      error: "The preference could not be saved. Your previous choice has been restored."
+    calendar:
+      slider:
+        title: "Slider"
+      text:
+        title: "Text"
+      error: "The preference could not be saved. Your previous choice has been restored."
     about:
       title: "About"
       message: "Dun - Task Manager\nVersion 1.0.0\n\nA simple and elegant app to manage your daily tasks.\n\n© 2025 Dun. All rights reserved."
@@ -417,6 +431,11 @@ tags:
     name: "Name"
   alerts:
     requiredName: "Tag name is required"
+  limit:
+    counter: "{{count}}/{{limit}} free tags"
+    premium: "Unlimited tags with Dun Plus"
+    reachedTitle: "Free tag limit reached"
+    reachedDescription: "Free accounts can create up to {{limit}} tags. Unlock Dun Plus to create more."
   delete:
     title: "Delete tag"
     message: "Delete the {{name}} tag? It will be removed from linked tasks."

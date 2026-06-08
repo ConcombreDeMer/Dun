@@ -5,12 +5,14 @@ import NewProgressBar from "@/components/newProgressBar";
 import PopUpTask from "@/components/popUpTask";
 import Squircle from "@/components/Squircle";
 import { TaskItem, TaskItemLayout } from "@/components/TaskItem";
+import TextCalendarComponent from "@/components/textCalendar";
 import { toAppDateKey } from "@/lib/date";
 import { useAppTranslation } from "@/lib/i18n";
 import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "@/lib/notificationService";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
+import { useCalendarPreference, type CalendarPreference } from "@/lib/useCalendarPreference";
 import { useProgressBarPreference, type ProgressBarPreference } from "@/lib/useProgressBarPreference";
 import { useToggleTaskDone } from "@/lib/useToggleTaskDone";
 import { useStore } from "@/store/store";
@@ -235,6 +237,35 @@ const DayTasksPage = ({
   );
 };
 
+type HomeCalendarProps = {
+  preference: CalendarPreference;
+  selectedDate: Date;
+  onDateSelect: (date: Date) => void;
+  onExpandedChange: (isExpanded: boolean) => void;
+};
+
+const HomeCalendar = ({
+  preference,
+  selectedDate,
+  onDateSelect,
+  onExpandedChange,
+}: HomeCalendarProps) => {
+  const calendarProps = {
+    initialDate: selectedDate,
+    onDateSelect,
+    onExpandedChange,
+  };
+
+  return preference === 2 ? (
+    <TextCalendarComponent {...calendarProps} />
+  ) : (
+    <CalendarComponent
+      {...calendarProps}
+      slider={true}
+    />
+  );
+};
+
 type DayPageProps = DayTasksPageProps & {
   pageDateKey: string;
   progressBarPreference: ProgressBarPreference;
@@ -328,6 +359,7 @@ export default function Home() {
     errorMessage: t("common.alerts.genericError"),
   });
   const { preference: progressBarPreference } = useProgressBarPreference();
+  const { preference: calendarPreference } = useCalendarPreference();
   const { isPremium } = useSubscription();
   const activeProgressBarPreference: ProgressBarPreference = isPremium ? progressBarPreference : 1;
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
@@ -807,9 +839,9 @@ export default function Home() {
             pointerEvents={selectedTaskId !== null ? "none" : "auto"}
             style={headerAnimatedStyle}
           >
-            <CalendarComponent
-              slider={true}
-              initialDate={selectedDate}
+            <HomeCalendar
+              preference={calendarPreference}
+              selectedDate={selectedDate}
               onDateSelect={(date) => changeDate(date)}
               onExpandedChange={setIsCalendarExpanded}
             />

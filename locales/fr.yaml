@@ -56,6 +56,8 @@ settings:
     sections:
       theme: "Thème"
       colorTheme: "Coloris"
+      progressBar: "Barre de progression"
+      calendar: "Calendrier"
       fontSize: "Taille du texte"
       language: "Langue"
     themeOptions:
@@ -66,6 +68,18 @@ settings:
     languages:
       fr: "Français"
       en: "English"
+    progressBar:
+      circular:
+        title: "Circulaire"
+      classic:
+        title: "Classique"
+      error: "La préférence n'a pas pu être enregistrée. Ton choix précédent a été restauré."
+    calendar:
+      slider:
+        title: "Slider"
+      text:
+        title: "Texte"
+      error: "La préférence n'a pas pu être enregistrée. Ton choix précédent a été restauré."
     about:
       title: "À propos"
       message: "Dun - Gestionnaire de tâches\nVersion 1.0.0\n\nUne application simple et élégante pour gérer vos tâches quotidiennes.\n\n© 2025 Dun. Tous droits réservés."
@@ -417,6 +431,11 @@ tags:
     name: "Nom"
   alerts:
     requiredName: "Le nom du tag est requis"
+  limit:
+    counter: "{{count}}/{{limit}} tags gratuits"
+    premium: "Tags illimités avec Dun Plus"
+    reachedTitle: "Limite de tags atteinte"
+    reachedDescription: "Les comptes gratuits peuvent créer jusqu'à {{limit}} tags. Débloque Dun Plus pour en créer davantage."
   delete:
     title: "Supprimer le tag"
     message: "Supprimer le tag {{name}} ? Il sera retiré des tâches associées."

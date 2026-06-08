@@ -67,9 +67,10 @@ export const resources = {
           "sections": {
             "theme": "Theme",
             "colorTheme": "Color theme",
+            "progressBar": "Progress bar",
+            "calendar": "Calendar",
             "fontSize": "Text size",
-            "language": "Language",
-            "progressBar": "Progress bar"
+            "language": "Language"
           },
           "themeOptions": {
             "light": "Light",
@@ -87,6 +88,15 @@ export const resources = {
             },
             "classic": {
               "title": "Classic"
+            },
+            "error": "The preference could not be saved. Your previous choice has been restored."
+          },
+          "calendar": {
+            "slider": {
+              "title": "Slider"
+            },
+            "text": {
+              "title": "Text"
             },
             "error": "The preference could not be saved. Your previous choice has been restored."
           },
@@ -1016,9 +1026,10 @@ export const resources = {
           "sections": {
             "theme": "Thème",
             "colorTheme": "Coloris",
+            "progressBar": "Barre de progression",
+            "calendar": "Calendrier",
             "fontSize": "Taille du texte",
-            "language": "Langue",
-            "progressBar": "Barre de progression"
+            "language": "Langue"
           },
           "themeOptions": {
             "light": "Clair",
@@ -1036,6 +1047,15 @@ export const resources = {
             },
             "classic": {
               "title": "Classique"
+            },
+            "error": "La préférence n'a pas pu être enregistrée. Ton choix précédent a été restauré."
+          },
+          "calendar": {
+            "slider": {
+              "title": "Slider"
+            },
+            "text": {
+              "title": "Texte"
             },
             "error": "La préférence n'a pas pu être enregistrée. Ton choix précédent a été restauré."
           },
