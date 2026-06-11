@@ -1,0 +1,8 @@
+{
+  "name": "dun-foundation-ai",
+  "version": "0.1.0",
+  "description": "Local Expo module that wraps Apple Foundation Models for Dun.",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "index.ts"
+}

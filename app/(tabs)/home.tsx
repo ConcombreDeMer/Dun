@@ -1,4 +1,5 @@
 import CalendarComponent from "@/components/calendar";
+import AiResponses from "@/components/aiResponses";
 import CircularProgressBar from "@/components/circularProgressBar";
 import CreateModalHost from "@/components/CreateModalHost";
 import NewProgressBar from "@/components/newProgressBar";
@@ -267,11 +268,13 @@ const HomeCalendar = ({
 };
 
 type DayPageProps = DayTasksPageProps & {
+  isActivePage: boolean;
   pageDateKey: string;
   progressBarPreference: ProgressBarPreference;
 };
 
 const DayPage = ({
+  isActivePage,
   pageDateKey,
   progressBarPreference,
   tasks,
@@ -326,6 +329,10 @@ const DayPage = ({
           />
         )}
       </ReAnimated.View>
+
+      {isActivePage ? (
+        <AiResponses dateKey={pageDateKey} tasks={tasks} />
+      ) : null}
 
       <DayTasksPage
         {...dayTasksPageProps}
@@ -801,6 +808,7 @@ export default function Home() {
         isTaskTogglePending={isTaskPending}
         selectedTaskId={selectedTaskId}
         tasks={pageTasks}
+        isActivePage={isSelectedPage}
         pageDateKey={pageDateKey}
         progressBarPreference={activeProgressBarPreference}
         isReadOnly={false}

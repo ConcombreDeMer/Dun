@@ -2,6 +2,7 @@ import CreateModalHost from "@/components/CreateModalHost";
 import HorizontalBarGraph from "@/components/horizontalBarGraph";
 import SecondaryButton from "@/components/secondaryButton";
 import StatsBarGraph from "@/components/statsBarGraph";
+import StatsAiResponses from "@/components/statsAiResponses";
 import StatsCard from "@/components/statsCard";
 import StatsCardCharge from "@/components/statsCardCharge";
 import StatsCardCompletion from "@/components/statsCardCompletion";
@@ -357,6 +358,13 @@ export default function Stats() {
             </Animated.Text>
           )}
         </SquircleButton>
+
+        <StatsAiResponses
+          activeSlide={activeSlide}
+          days={chartDaysData}
+          period={period}
+          preferences={statsPreferences}
+        />
 
         </View>
 

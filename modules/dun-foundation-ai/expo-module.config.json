@@ -1,0 +1,11 @@
+{
+  "platforms": ["apple"],
+  "apple": {
+    "modules": ["DunFoundationAI"],
+    "podspecPath": "ios/DunFoundationAI.podspec"
+  },
+  "ios": {
+    "modules": ["DunFoundationAI"],
+    "podspecPath": "ios/DunFoundationAI.podspec"
+  }
+}
