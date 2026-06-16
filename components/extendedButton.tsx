@@ -9,6 +9,7 @@ type ExtendedButtonProps = {
     children?: ReactNode;
     onPress: () => void;
     disabled?: boolean;
+    pressDisabled?: boolean;
     width?: AnimatedDimension;
     height?: AnimatedDimension;
     borderRadius?: number;
@@ -22,6 +23,7 @@ export default function ExtendedButton({
     children,
     onPress,
     disabled = false,
+    pressDisabled = false,
     width = '80%',
     height = 64,
     borderRadius = 17,
@@ -44,7 +46,7 @@ export default function ExtendedButton({
     return (
         <AnimatedPressable
             onPress={onPress}
-            disabled={disabled}
+            disabled={disabled || pressDisabled}
             style={[styles.button, animatedStyle, disabled && styles.disabled, style]}
         >
             <SquircleView
