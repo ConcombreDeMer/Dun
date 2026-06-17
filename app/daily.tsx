@@ -2,9 +2,10 @@ import DailyCircle from '@/components/dailyCircle';
 import ExtendedButton from '@/components/extendedButton';
 import PrimaryButton from '@/components/primaryButton';
 import { TaskItem } from '@/components/TaskItem';
-import { dailyCompletionDays, dailyMotivation, dailyPendingTasks, dailyStreak, previousDayCompletion, type DailyPendingTask } from '@/lib/dailyMock';
+import { completeDailyReview, deleteDailyPendingTask, getDailyData, postponeDailyPendingTask, setDailyPendingTaskDone, type DailyData, type DailyPendingTask } from '@/lib/daily';
 import { useFont } from '@/lib/FontContext';
 import { Feather } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -12,7 +13,7 @@ import { SquircleView } from 'expo-squircle-view';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DimensionValue, StyleProp, ViewStyle } from 'react-native';
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
     Easing,
@@ -88,13 +89,19 @@ const getStreakIconKey = (streak: number) => {
 export default function DailyScreen() {
     const { colors } = useTheme();
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { width: windowWidth } = useWindowDimensions();
     const [currentStep, setCurrentStep] = useState(1);
     const [isExtendedButtonExpanded, setIsExtendedButtonExpanded] = useState(false);
     const [step2ExitDirection, setStep2ExitDirection] = useState<'previous' | 'next'>('next');
     const [displayedCompletionPercent, setDisplayedCompletionPercent] = useState(0);
-    const [displayedStreak, setDisplayedStreak] = useState(dailyStreak);
-    const [pendingTasks, setPendingTasks] = useState<DailyPendingTask[]>(dailyPendingTasks);
+    const [displayedStreak, setDisplayedStreak] = useState(0);
+    const [dailyData, setDailyData] = useState<DailyData | null>(null);
+    const [isDailyLoading, setIsDailyLoading] = useState(true);
+    const [dailyError, setDailyError] = useState<string | null>(null);
+    const [isCompletingDaily, setIsCompletingDaily] = useState(false);
+    const [pendingTasks, setPendingTasks] = useState<DailyPendingTask[]>([]);
+    const [pendingToggleTaskIds, setPendingToggleTaskIds] = useState<Set<number>>(() => new Set());
     const today = useMemo(() => new Date(), []);
     const moonButtonOpacity = useSharedValue(1);
     const moonButtonScale = useSharedValue(1);
@@ -116,7 +123,11 @@ export default function DailyScreen() {
     const step3DoneButtonScale = useSharedValue(1);
     const { fontSizes } = useFont();
 
-    const previousDayFullDone = false;
+    const previousDayFullDone = dailyData?.previousDayFullDone ?? false;
+    const dailyCompletionDays = dailyData?.completionDays ?? [];
+    const previousDayCompletion = dailyData?.previousDayCompletion ?? { percent: 0, completedTasks: 0, totalTasks: 0 };
+    const dailyStreak = dailyData?.streak ?? 0;
+    const dailyMotivation = dailyData?.motivation ?? { title: '', body: '' };
     const isStep4 = currentStep === 4;
     const currentWeekday = frenchWeekdayAbbreviations[today.getDay()];
     const currentMonth = frenchMonthAbbreviations[today.getMonth()];
@@ -140,17 +151,54 @@ export default function DailyScreen() {
         setPendingTasks((tasks) => tasks.filter((candidate) => candidate.id !== task.id));
     }, []);
 
-    const handleStep2NextPress = useCallback(async () => {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        await wait(stepButtonReleaseDelay);
-        setStep2ExitDirection('next');
-        setIsExtendedButtonExpanded(true);
-        setCurrentStep((step) => step + 1);
-    }, []);
+    const handleDeletePendingTask = useCallback(async (task: { id: number }) => {
+        await deleteDailyPendingTask(task.id);
+        removePendingTask(task);
+        await queryClient.invalidateQueries({ queryKey: ['tasks'] });
+        await queryClient.invalidateQueries({ queryKey: ['days'] });
+    }, [queryClient, removePendingTask]);
 
-    const finishDailyAndExit = useCallback(async () => {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const handlePostponePendingTask = useCallback(async (task: { id: number }, targetDateKey: string) => {
+        await postponeDailyPendingTask(task.id, targetDateKey);
+        removePendingTask(task);
+        await queryClient.invalidateQueries({ queryKey: ['tasks'] });
+        await queryClient.invalidateQueries({ queryKey: ['days'] });
+    }, [queryClient, removePendingTask]);
 
+    const handleTogglePendingTask = useCallback((taskId: number, currentDone: boolean) => {
+        const nextDone = !currentDone;
+
+        setPendingToggleTaskIds((current) => {
+            const next = new Set(current);
+            next.add(taskId);
+            return next;
+        });
+        setPendingTasks((tasks) => tasks.map((task) =>
+            task.id === taskId ? { ...task, done: nextDone } : task
+        ));
+
+        void setDailyPendingTaskDone(taskId, nextDone)
+            .then(async () => {
+                await queryClient.invalidateQueries({ queryKey: ['tasks'] });
+                await queryClient.invalidateQueries({ queryKey: ['days'] });
+            })
+            .catch((error) => {
+                console.error('Erreur lors de la mise à jour de la tâche daily:', error);
+                setPendingTasks((tasks) => tasks.map((task) =>
+                    task.id === taskId ? { ...task, done: currentDone } : task
+                ));
+                Alert.alert('Erreur', "Impossible de mettre à jour la tâche. Réessaie.");
+            })
+            .finally(() => {
+                setPendingToggleTaskIds((current) => {
+                    const next = new Set(current);
+                    next.delete(taskId);
+                    return next;
+                });
+            });
+    }, [queryClient]);
+
+    const closeDailyRoute = useCallback(() => {
         if (router.canGoBack()) {
             router.back();
             return;
@@ -158,6 +206,68 @@ export default function DailyScreen() {
 
         router.replace('/home');
     }, [router]);
+
+    const completeDailyAndExit = useCallback(async () => {
+        setIsCompletingDaily(true);
+
+        try {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            await completeDailyReview();
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+                queryClient.invalidateQueries({ queryKey: ['days'] }),
+            ]);
+            closeDailyRoute();
+        } catch (error) {
+            console.error('Erreur lors de la finalisation du daily:', error);
+            setIsCompletingDaily(false);
+            Alert.alert('Erreur', "Impossible de préparer ta journée. Réessaie.");
+        }
+    }, [closeDailyRoute, queryClient]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadDailyData = async () => {
+            try {
+                setIsDailyLoading(true);
+                setDailyError(null);
+                const nextDailyData = await getDailyData();
+
+                if (!isMounted) {
+                    return;
+                }
+
+                setDailyData(nextDailyData);
+                setPendingTasks(nextDailyData.pendingTasks);
+                setDisplayedStreak(nextDailyData.streak);
+            } catch (error) {
+                console.error('Erreur lors du chargement du daily:', error);
+
+                if (isMounted) {
+                    setDailyError("Impossible de charger ton daily.");
+                }
+            } finally {
+                if (isMounted) {
+                    setIsDailyLoading(false);
+                }
+            }
+        };
+
+        void loadDailyData();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const handleStep2NextPress = useCallback(async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        await wait(stepButtonReleaseDelay);
+        setStep2ExitDirection('next');
+        setIsExtendedButtonExpanded(true);
+        setCurrentStep((step) => step + 1);
+    }, []);
 
     const goToNextStep = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -167,12 +277,7 @@ export default function DailyScreen() {
             return;
         }
 
-        if (router.canGoBack()) {
-            router.back();
-            return;
-        }
-
-        router.replace('/home');
+        await completeDailyAndExit();
     };
 
     const handleStep3DonePress = async () => {
@@ -184,12 +289,7 @@ export default function DailyScreen() {
             return;
         }
 
-        if (router.canGoBack()) {
-            router.back();
-            return;
-        }
-
-        router.replace('/home');
+        await completeDailyAndExit();
     };
 
     const goToPreviousStep = async () => {
@@ -248,7 +348,7 @@ export default function DailyScreen() {
             if (hasCompletedSlider) {
                 step4SliderTranslateX.value = withTiming(step4SliderMaxTranslate, { duration: 180 });
                 extendedButtonPressScale.value = withTiming(1, { duration: 160 });
-                runOnJS(finishDailyAndExit)();
+                runOnJS(completeDailyAndExit)();
                 return;
             }
 
@@ -381,7 +481,7 @@ export default function DailyScreen() {
             clearTimeout(streakScaleStartTimeout);
             clearTimeout(streakTransitionTimeout);
         };
-    }, [animatedPreviousDayProgress, centralProgressScaleY, currentStep, streakContainerScale, streakTargetValue]);
+    }, [animatedPreviousDayProgress, centralProgressScaleY, currentStep, dailyStreak, previousDayCompletion.percent, streakContainerScale, streakTargetValue]);
 
     useAnimatedReaction(
         () => Math.round(animatedPreviousDayProgress.value),
@@ -454,6 +554,19 @@ export default function DailyScreen() {
             transform: [{ translateX: interpolate(sliderProgress, [0, 0.4], [0, -28], 'clamp') }],
         };
     });
+
+    if (isDailyLoading || isCompletingDaily || dailyError || !dailyData) {
+        return (
+            <View style={[styles.container, styles.loadingContainer, { backgroundColor: colors.background }]}>
+                {!dailyError && (
+                    <ActivityIndicator color={colors.text} size="small" />
+                )}
+                <Text style={[styles.loadingText, { color: colors.text }]}>
+                    {dailyError ?? (isCompletingDaily ? 'Préparation de ta journée...' : 'Chargement du daily...')}
+                </Text>
+            </View>
+        );
+    }
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -704,15 +817,16 @@ export default function DailyScreen() {
                                                     item={task}
                                                     drag={() => { }}
                                                     isActive={false}
-                                                    handleToggleTask={() => { }}
+                                                    handleToggleTask={handleTogglePendingTask}
                                                     handleTaskPress={() => { }}
                                                     selectedTaskId={null}
                                                     listHeight={0}
                                                     layoutAnimationKey={pendingTaskListLayoutKey}
                                                     mode="daily"
                                                     isExtendable={false}
-                                                    onDeleteTask={removePendingTask}
-                                                    onMoveTask={removePendingTask}
+                                                    isTogglePending={pendingToggleTaskIds.has(task.id)}
+                                                    onDeleteTask={handleDeletePendingTask}
+                                                    onMoveTask={handlePostponePendingTask}
                                                 />
                                             ))}
                                         </ScrollView>
@@ -785,6 +899,18 @@ export default function DailyScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    loadingContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 14,
+        paddingHorizontal: 32,
+    },
+    loadingText: {
+        fontFamily: 'Satoshi-Medium',
+        fontSize: 18,
+        textAlign: 'center',
+        opacity: 0.58,
     },
     dotsContainer: {
         flexDirection: 'row',
