@@ -1,6 +1,6 @@
 import { SquircleView } from 'expo-squircle-view';
 import { ReactNode, useEffect } from 'react';
-import { DimensionValue, Pressable, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { DimensionValue, GestureResponderEvent, Pressable, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 type AnimatedDimension = number | `${number}%`;
@@ -10,6 +10,8 @@ type ExtendedButtonProps = {
     onPress: () => void;
     disabled?: boolean;
     pressDisabled?: boolean;
+    onPressIn?: (event: GestureResponderEvent) => void;
+    onPressOut?: (event: GestureResponderEvent) => void;
     width?: AnimatedDimension;
     height?: AnimatedDimension;
     borderRadius?: number;
@@ -24,6 +26,8 @@ export default function ExtendedButton({
     onPress,
     disabled = false,
     pressDisabled = false,
+    onPressIn,
+    onPressOut,
     width = '80%',
     height = 64,
     borderRadius = 17,
@@ -46,6 +50,8 @@ export default function ExtendedButton({
     return (
         <AnimatedPressable
             onPress={onPress}
+            onPressIn={onPressIn}
+            onPressOut={onPressOut}
             disabled={disabled || pressDisabled}
             style={[styles.button, animatedStyle, disabled && styles.disabled, style]}
         >

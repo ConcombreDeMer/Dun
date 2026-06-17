@@ -11,7 +11,7 @@ import { useRouter } from 'expo-router';
 import { SquircleView } from 'expo-squircle-view';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { DimensionValue } from 'react-native';
+import type { DimensionValue, StyleProp, ViewStyle } from 'react-native';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -55,6 +55,11 @@ const frenchMonthAbbreviations = ['jan', 'fév', 'mar', 'avr', 'mai', 'jui', 'ju
 const step4SliderHandleWidth = 72;
 const step4SliderHorizontalInset = 4;
 const step4SliderCompletionThreshold = 0.86;
+const stepButtonReleaseDelay = 180;
+
+const wait = (duration: number) => new Promise((resolve) => {
+    setTimeout(resolve, duration);
+});
 
 const getStreakIconSource = (streak: number) => {
     if (streak === 0) {
@@ -99,11 +104,16 @@ export default function DailyScreen() {
     const subIntroTextOpacity = useSharedValue(1);
     const subIntroTextTranslateY = useSharedValue(0);
     const animatedImageContainerSize = useSharedValue(imageContainerSize);
+    const character20Opacity = useSharedValue(0);
+    const character21Opacity = useSharedValue(1);
     const animatedPreviousDayProgress = useSharedValue(0);
     const centralProgressScaleY = useSharedValue(1);
     const streakContainerScale = useSharedValue(1);
     const step4SliderTranslateX = useSharedValue(0);
     const step4SliderDragStartX = useSharedValue(0);
+    const extendedButtonPressScale = useSharedValue(1);
+    const step2NextButtonScale = useSharedValue(1);
+    const step3DoneButtonScale = useSharedValue(1);
     const { fontSizes } = useFont();
 
     const previousDayFullDone = false;
@@ -132,6 +142,7 @@ export default function DailyScreen() {
 
     const handleStep2NextPress = useCallback(async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        await wait(stepButtonReleaseDelay);
         setStep2ExitDirection('next');
         setIsExtendedButtonExpanded(true);
         setCurrentStep((step) => step + 1);
@@ -150,6 +161,23 @@ export default function DailyScreen() {
 
     const goToNextStep = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+        if (currentStep < steps.length) {
+            setCurrentStep((step) => step + 1);
+            return;
+        }
+
+        if (router.canGoBack()) {
+            router.back();
+            return;
+        }
+
+        router.replace('/home');
+    };
+
+    const handleStep3DonePress = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        await wait(stepButtonReleaseDelay);
 
         if (currentStep < steps.length) {
             setCurrentStep((step) => step + 1);
@@ -208,6 +236,7 @@ export default function DailyScreen() {
         .enabled(isStep4)
         .onBegin(() => {
             step4SliderDragStartX.value = step4SliderTranslateX.value;
+            extendedButtonPressScale.value = withTiming(1.05, { duration: 120 });
         })
         .onUpdate((event) => {
             const nextTranslateX = step4SliderDragStartX.value + event.translationX;
@@ -218,11 +247,13 @@ export default function DailyScreen() {
 
             if (hasCompletedSlider) {
                 step4SliderTranslateX.value = withTiming(step4SliderMaxTranslate, { duration: 180 });
+                extendedButtonPressScale.value = withTiming(1, { duration: 160 });
                 runOnJS(finishDailyAndExit)();
                 return;
             }
 
             step4SliderTranslateX.value = withSpring(0);
+            extendedButtonPressScale.value = withTiming(1, { duration: 160 });
         });
 
     const toggleExtendedButtonSize = async () => {
@@ -231,6 +262,34 @@ export default function DailyScreen() {
             setIsExtendedButtonExpanded(true);
             goToNextStep();
         }
+    };
+
+    const handleExtendedButtonPressIn = () => {
+        if (currentStep === 1) {
+            extendedButtonPressScale.value = withTiming(0.95, { duration: 120 });
+        }
+    };
+
+    const handleExtendedButtonPressOut = () => {
+        if (currentStep === 1) {
+            extendedButtonPressScale.value = withTiming(1, { duration: 160 });
+        }
+    };
+
+    const handleStep2NextPressIn = () => {
+        step2NextButtonScale.value = withTiming(0.95, { duration: 120 });
+    };
+
+    const handleStep2NextPressOut = () => {
+        step2NextButtonScale.value = withTiming(1, { duration: 160 });
+    };
+
+    const handleStep3DonePressIn = () => {
+        step3DoneButtonScale.value = withTiming(0.95, { duration: 120 });
+    };
+
+    const handleStep3DonePressOut = () => {
+        step3DoneButtonScale.value = withTiming(1, { duration: 160 });
     };
 
     useEffect(() => {
@@ -251,6 +310,13 @@ export default function DailyScreen() {
             : withDelay(subIntroTextReappearDelay, withTiming(0, { duration: 460 }));
         animatedImageContainerSize.value = withSpring(isExtendedButtonExpanded && !isStep4 ? imageContainerExpandedSize : imageContainerSize);
     }, [animatedImageContainerSize, introTextOpacity, introTextTranslateY, isExtendedButtonExpanded, isStep4, moonButtonOpacity, moonButtonScale, moonButtonWidth, subIntroTextOpacity, subIntroTextTranslateY]);
+
+    useEffect(() => {
+        const shouldShowCharacter21 = currentStep === 1 || isStep4;
+
+        character21Opacity.value = withTiming(shouldShowCharacter21 ? 1 : 0, { duration: 120 });
+        character20Opacity.value = withTiming(shouldShowCharacter21 ? 0 : 1, { duration: 120 });
+    }, [character20Opacity, character21Opacity, currentStep, isStep4]);
 
     useEffect(() => {
         step4SliderTranslateX.value = withTiming(0, { duration: 180 });
@@ -345,6 +411,14 @@ export default function DailyScreen() {
         height: animatedImageContainerSize.value,
     }));
 
+    const character20AnimatedStyle = useAnimatedStyle(() => ({
+        opacity: character20Opacity.value,
+    }));
+
+    const character21AnimatedStyle = useAnimatedStyle(() => ({
+        opacity: character21Opacity.value,
+    }));
+
     const centralProgressFillAnimatedStyle = useAnimatedStyle(() => ({
         width: `${animatedPreviousDayProgress.value}%` as DimensionValue,
         transform: [{ scaleY: centralProgressScaleY.value }],
@@ -352,6 +426,18 @@ export default function DailyScreen() {
 
     const streakContainerAnimatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: streakContainerScale.value }],
+    }));
+
+    const extendedButtonPressAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: extendedButtonPressScale.value }],
+    }));
+
+    const step2NextButtonAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: step2NextButtonScale.value }],
+    }));
+
+    const step3DoneButtonAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: step3DoneButtonScale.value }],
     }));
 
     const step4SliderHandleAnimatedStyle = useAnimatedStyle(() => ({
@@ -384,38 +470,43 @@ export default function DailyScreen() {
             </View>
 
             {currentStep > 1 && (
-                <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Revenir a l'etape precedente"
-                    onPress={goToPreviousStep}
+                <Animated.View
+                    entering={FadeInDown.duration(180)}
+                    exiting={FadeOutDown.duration(120)}
                     style={styles.backButton}
                 >
-                    <SymbolView name="chevron.left" size={48} tintColor="#000000" style={styles.backIcon} />
-                </Pressable>
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Revenir a l'etape precedente"
+                        onPress={goToPreviousStep}
+                        style={styles.backButtonPressable}
+                    >
+                        <SymbolView name="chevron.left" size={48} tintColor="#000000" style={styles.backIcon} />
+                    </Pressable>
+                </Animated.View>
             )}
 
             <View style={styles.introContainer}>
                 <Animated.View
                     style={[styles.imagesContainer, imageContainerAnimatedStyle]}
                 >
-                    {
-                        (currentStep === 1 || isStep4) && (
+                    <View style={styles.characterImageSlot}>
+                        <Animated.View style={[styles.characterImageLayer, character21AnimatedStyle]}>
                             <Image
                                 source={require('@/assets/images/character/21.png')}
                                 style={styles.image}
                                 contentFit="cover"
                             />
-                        )
-                    }
-                    {
-                        currentStep !== 1 && !isStep4 && (
+                        </Animated.View>
+
+                        <Animated.View style={[styles.characterImageLayer, character20AnimatedStyle]}>
                             <Image
                                 source={require('@/assets/images/character/20.png')}
                                 style={styles.image}
                                 contentFit="cover"
                             />
-                        )
-                    }
+                        </Animated.View>
+                    </View>
 
                     <Image
                         source={require('@/assets/images/character/0.png')}
@@ -471,10 +562,13 @@ export default function DailyScreen() {
 
                 <ExtendedButton
                     onPress={toggleExtendedButtonSize}
-                    pressDisabled={currentStep !== 1}
+                    onPressIn={currentStep === 1 ? handleExtendedButtonPressIn : undefined}
+                    onPressOut={currentStep === 1 ? handleExtendedButtonPressOut : undefined}
+                    pressDisabled={currentStep !== 1 && !isStep4}
                     width={extendedButtonWidth}
                     height={extendedButtonHeight}
                     borderRadius={extendedButtonBorderRadius}
+                    style={extendedButtonPressAnimatedStyle as unknown as StyleProp<ViewStyle>}
                     contentStyle={currentStep === 2 || currentStep === 3 || isStep4 ? styles.extendedButtonContentStep2 : undefined}
                 >
                     {
@@ -562,18 +656,22 @@ export default function DailyScreen() {
                                     exiting={step2ExitingAnimation}
                                     style={styles.step2NextButtonWrapper}
                                 >
-                                    <Pressable
-                                        accessibilityRole="button"
-                                        onPress={handleStep2NextPress}
-                                    >
-                                        <SquircleView
-                                            style={styles.step2NextButton}
-                                            cornerSmoothing={100}
-                                            preserveSmoothing
+                                    <Animated.View style={step2NextButtonAnimatedStyle}>
+                                        <Pressable
+                                            accessibilityRole="button"
+                                            onPressIn={handleStep2NextPressIn}
+                                            onPressOut={handleStep2NextPressOut}
+                                            onPress={handleStep2NextPress}
                                         >
-                                            <Text style={styles.step2NextButtonText}>Suivant</Text>
-                                        </SquircleView>
-                                    </Pressable>
+                                            <SquircleView
+                                                style={styles.step2NextButton}
+                                                cornerSmoothing={100}
+                                                preserveSmoothing
+                                            >
+                                                <Text style={styles.step2NextButtonText}>Suivant</Text>
+                                            </SquircleView>
+                                        </Pressable>
+                                    </Animated.View>
                                 </Animated.View>
                             </View>
                         )
@@ -636,18 +734,22 @@ export default function DailyScreen() {
                                     exiting={FadeOut.duration(120)}
                                     style={styles.step3DoneButtonWrapper}
                                 >
-                                    <Pressable
-                                        accessibilityRole="button"
-                                        onPress={goToNextStep}
-                                    >
-                                        <SquircleView
-                                            style={styles.step3DoneButton}
-                                            cornerSmoothing={100}
-                                            preserveSmoothing
+                                    <Animated.View style={step3DoneButtonAnimatedStyle}>
+                                        <Pressable
+                                            accessibilityRole="button"
+                                            onPressIn={handleStep3DonePressIn}
+                                            onPressOut={handleStep3DonePressOut}
+                                            onPress={handleStep3DonePress}
                                         >
-                                            <Text style={styles.step3DoneButtonText}>On est bon !</Text>
-                                        </SquircleView>
-                                    </Pressable>
+                                            <SquircleView
+                                                style={styles.step3DoneButton}
+                                                cornerSmoothing={100}
+                                                preserveSmoothing
+                                            >
+                                                <Text style={styles.step3DoneButtonText}>On est bon !</Text>
+                                            </SquircleView>
+                                        </Pressable>
+                                    </Animated.View>
                                 </Animated.View>
                             </View>
                         )
@@ -701,18 +803,24 @@ const styles = StyleSheet.create({
     },
     backButton: {
         position: 'absolute',
-        top: 58,
-        left: 16,
-        width: 36,
-        height: 36,
+        top: 68,
+        left: 24,
+        width: 26,
+        height: 26,
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 20,
     },
+    backButtonPressable: {
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     backIcon: {
         width: "100%",
         height: "100%",
-        opacity: 0.5,
+        opacity: 0.3,
     },
     introContainer: {
         position: 'absolute',
@@ -727,9 +835,21 @@ const styles = StyleSheet.create({
         width: imageContainerSize,
         height: imageContainerSize,
     },
-    image: {
+    characterImageSlot: {
+        position: 'relative',
         width: "100%",
         height: "80%",
+    },
+    characterImageLayer: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+    },
+    image: {
+        width: "100%",
+        height: "100%",
         alignSelf: 'center',
     },
     image2: {
