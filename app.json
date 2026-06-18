@@ -57,6 +57,7 @@
           "webClientId": "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com"
         }
       ],
+      "./plugins/with-ios-google-modular-headers",
       "expo-web-browser",
       "expo-image",
       "expo-splash-screen",
