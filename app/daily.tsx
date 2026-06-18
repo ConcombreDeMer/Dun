@@ -4,6 +4,7 @@ import PrimaryButton from '@/components/primaryButton';
 import { TaskItem } from '@/components/TaskItem';
 import { completeDailyReview, deleteDailyPendingTask, getDailyData, postponeDailyPendingTask, setDailyPendingTaskDone, type DailyData, type DailyPendingTask } from '@/lib/daily';
 import { useFont } from '@/lib/FontContext';
+import { useAppTranslation } from '@/lib/i18n';
 import { Feather } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
@@ -11,7 +12,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { SquircleView } from 'expo-squircle-view';
 import { SymbolView } from 'expo-symbols';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DimensionValue, StyleProp, ViewStyle } from 'react-native';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -51,8 +52,7 @@ const pendingTaskGap = 10;
 const step3PanelFixedHeight = 20 + 18 + 30 + 18 + 12 + 48;
 const step3EmptyStateHeight = 150;
 const step3ContentEntranceDelay = 400;
-const frenchWeekdayAbbreviations = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
-const frenchMonthAbbreviations = ['jan', 'fév', 'mar', 'avr', 'mai', 'jui', 'jui', 'aoû', 'sep', 'oct', 'nov', 'déc'];
+const step3ContentEntranceDelayStep = 20;
 const step4SliderHandleWidth = 72;
 const step4SliderHorizontalInset = 4;
 const step4SliderCompletionThreshold = 0.86;
@@ -61,6 +61,23 @@ const stepButtonReleaseDelay = 180;
 const wait = (duration: number) => new Promise((resolve) => {
     setTimeout(resolve, duration);
 });
+
+const alphaColor = (color: string, opacity: number) => {
+    if (color.startsWith('#')) {
+        const hex = color.slice(1);
+        const normalizedHex = hex.length >= 6 ? hex.slice(0, 6) : hex;
+        const numericColor = Number.parseInt(normalizedHex, 16);
+
+        if (!Number.isNaN(numericColor)) {
+            const red = (numericColor >> 16) & 255;
+            const green = (numericColor >> 8) & 255;
+            const blue = numericColor & 255;
+            return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
+        }
+    }
+
+    return color;
+};
 
 const getStreakIconSource = (streak: number) => {
     if (streak === 0) {
@@ -87,7 +104,8 @@ const getStreakIconKey = (streak: number) => {
 };
 
 export default function DailyScreen() {
-    const { colors } = useTheme();
+    const { colors, actualTheme } = useTheme();
+    const { t, language } = useAppTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
     const { width: windowWidth } = useWindowDimensions();
@@ -102,6 +120,8 @@ export default function DailyScreen() {
     const [isCompletingDaily, setIsCompletingDaily] = useState(false);
     const [pendingTasks, setPendingTasks] = useState<DailyPendingTask[]>([]);
     const [pendingToggleTaskIds, setPendingToggleTaskIds] = useState<Set<number>>(() => new Set());
+    const [pendingDailyMutationCount, setPendingDailyMutationCount] = useState(0);
+    const pendingDailyMutationsRef = useRef<Set<Promise<void>>>(new Set());
     const today = useMemo(() => new Date(), []);
     const moonButtonOpacity = useSharedValue(1);
     const moonButtonScale = useSharedValue(1);
@@ -123,47 +143,103 @@ export default function DailyScreen() {
     const step3DoneButtonScale = useSharedValue(1);
     const { fontSizes } = useFont();
 
-    const previousDayFullDone = dailyData?.previousDayFullDone ?? false;
     const dailyCompletionDays = dailyData?.completionDays ?? [];
     const previousDayCompletion = dailyData?.previousDayCompletion ?? { percent: 0, completedTasks: 0, totalTasks: 0 };
     const dailyStreak = dailyData?.streak ?? 0;
-    const dailyMotivation = dailyData?.motivation ?? { title: '', body: '' };
+    const dailyMotivation = dailyData?.motivation ?? { titleKey: '', bodyKey: '' };
     const isStep4 = currentStep === 4;
-    const currentWeekday = frenchWeekdayAbbreviations[today.getDay()];
-    const currentMonth = frenchMonthAbbreviations[today.getMonth()];
+    const dateLocale = language === 'fr' ? 'fr-FR' : 'en-US';
+    const currentWeekday = useMemo(
+        () => new Intl.DateTimeFormat(dateLocale, { weekday: 'short' }).format(today).replace('.', '').toLowerCase(),
+        [dateLocale, today]
+    );
+    const currentMonth = useMemo(
+        () => new Intl.DateTimeFormat(dateLocale, { month: 'short' }).format(today).replace('.', '').toLowerCase(),
+        [dateLocale, today]
+    );
     const currentDayNumber = today.getDate();
     const isPreviousDayCompleted = previousDayCompletion.percent >= 100;
     const streakTargetValue = isPreviousDayCompleted ? dailyStreak + 1 : 0;
     const streakIconSource = getStreakIconSource(displayedStreak);
     const streakIconKey = getStreakIconKey(displayedStreak);
     const shouldAnimateStreakChange = displayedStreak !== dailyStreak;
-    const streakTextColor = displayedStreak > 0 ? '#FFA652' : 'rgba(255, 255, 255, 0.42)';
+    const panelBackgroundColor = actualTheme === 'light' ? colors.taskDone : colors.card;
+    const panelTextColor = actualTheme === 'light' ? colors.background : colors.text;
+    const panelTextMutedColor = alphaColor(panelTextColor, 0.58);
+    const panelTextSoftColor = alphaColor(panelTextColor, 0.72);
+    const panelSurfaceColor = colors.button;
+    const panelActionTextColor = colors.text;
+    const progressTrackColor = alphaColor(panelTextColor, 0.18);
+    const progressFillColor = colors.doneSecondary ?? colors.checkboxDone;
+    const streakTextColor = displayedStreak > 0 ? (colors.doneSecondary ?? colors.text) : alphaColor(panelTextColor, 0.42);
+    const introTitleColor = alphaColor(colors.text, 0.7);
+    const introSubtitleColor = alphaColor(colors.text, 0.4);
+    const dateLabelColor = alphaColor(colors.text, 0.28);
+    const dateNumberColor = alphaColor(colors.text, 0.58);
+    const sliderHandleColor = colors.button;
+    const iconOnPanelColor = alphaColor(panelTextColor, 0.58);
     const pendingTaskListLayoutKey = useMemo(
         () => pendingTasks.map((task) => task.id).join('-'),
         [pendingTasks]
     );
+    const hasPendingDailyMutations = pendingDailyMutationCount > 0;
     const steps = useMemo(
-        () => Array.from({ length: previousDayFullDone ? 3 : 4 }, (_, index) => index + 1),
-        [previousDayFullDone]
+        () => Array.from({ length: 4 }, (_, index) => index + 1),
+        []
     );
 
     const removePendingTask = useCallback((task: { id: number }) => {
         setPendingTasks((tasks) => tasks.filter((candidate) => candidate.id !== task.id));
     }, []);
 
+    const refreshDailyData = useCallback(async (syncPendingTasks = false) => {
+        const nextDailyData = await getDailyData();
+        setDailyData(nextDailyData);
+        setDisplayedStreak(nextDailyData.streak);
+
+        if (syncPendingTasks) {
+            setPendingTasks(nextDailyData.pendingTasks);
+        }
+    }, []);
+
+    const runDailyMutation = useCallback(async (mutation: () => Promise<void>) => {
+        setPendingDailyMutationCount((count) => count + 1);
+        const mutationPromise = mutation();
+        pendingDailyMutationsRef.current.add(mutationPromise);
+
+        try {
+            await mutationPromise;
+        } finally {
+            pendingDailyMutationsRef.current.delete(mutationPromise);
+            setPendingDailyMutationCount((count) => Math.max(0, count - 1));
+        }
+    }, []);
+
+    const waitForPendingDailyMutations = useCallback(async () => {
+        while (pendingDailyMutationsRef.current.size > 0) {
+            await Promise.all(Array.from(pendingDailyMutationsRef.current));
+        }
+    }, []);
+
     const handleDeletePendingTask = useCallback(async (task: { id: number }) => {
-        await deleteDailyPendingTask(task.id);
-        removePendingTask(task);
-        await queryClient.invalidateQueries({ queryKey: ['tasks'] });
-        await queryClient.invalidateQueries({ queryKey: ['days'] });
-    }, [queryClient, removePendingTask]);
+        await runDailyMutation(async () => {
+            await deleteDailyPendingTask(task.id);
+            removePendingTask(task);
+            await queryClient.invalidateQueries({ queryKey: ['tasks'] });
+            await queryClient.invalidateQueries({ queryKey: ['days'] });
+            await refreshDailyData(true);
+        });
+    }, [queryClient, refreshDailyData, removePendingTask, runDailyMutation]);
 
     const handlePostponePendingTask = useCallback(async (task: { id: number }, targetDateKey: string) => {
-        await postponeDailyPendingTask(task.id, targetDateKey);
-        removePendingTask(task);
-        await queryClient.invalidateQueries({ queryKey: ['tasks'] });
-        await queryClient.invalidateQueries({ queryKey: ['days'] });
-    }, [queryClient, removePendingTask]);
+        await runDailyMutation(async () => {
+            await postponeDailyPendingTask(task.id, targetDateKey);
+            removePendingTask(task);
+            await queryClient.invalidateQueries({ queryKey: ['tasks'] });
+            await queryClient.invalidateQueries({ queryKey: ['days'] });
+            await refreshDailyData(true);
+        });
+    }, [queryClient, refreshDailyData, removePendingTask, runDailyMutation]);
 
     const handleTogglePendingTask = useCallback((taskId: number, currentDone: boolean) => {
         const nextDone = !currentDone;
@@ -177,17 +253,20 @@ export default function DailyScreen() {
             task.id === taskId ? { ...task, done: nextDone } : task
         ));
 
-        void setDailyPendingTaskDone(taskId, nextDone)
-            .then(async () => {
-                await queryClient.invalidateQueries({ queryKey: ['tasks'] });
-                await queryClient.invalidateQueries({ queryKey: ['days'] });
-            })
+        void runDailyMutation(async () => {
+            await setDailyPendingTaskDone(taskId, nextDone);
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+                queryClient.invalidateQueries({ queryKey: ['days'] }),
+            ]);
+            await refreshDailyData(false);
+        })
             .catch((error) => {
                 console.error('Erreur lors de la mise à jour de la tâche daily:', error);
                 setPendingTasks((tasks) => tasks.map((task) =>
                     task.id === taskId ? { ...task, done: currentDone } : task
                 ));
-                Alert.alert('Erreur', "Impossible de mettre à jour la tâche. Réessaie.");
+                Alert.alert(t('common.alerts.errorTitle'), t('daily.updateTaskError'));
             })
             .finally(() => {
                 setPendingToggleTaskIds((current) => {
@@ -196,7 +275,7 @@ export default function DailyScreen() {
                     return next;
                 });
             });
-    }, [queryClient]);
+    }, [queryClient, refreshDailyData, runDailyMutation, t]);
 
     const closeDailyRoute = useCallback(() => {
         if (router.canGoBack()) {
@@ -221,9 +300,9 @@ export default function DailyScreen() {
         } catch (error) {
             console.error('Erreur lors de la finalisation du daily:', error);
             setIsCompletingDaily(false);
-            Alert.alert('Erreur', "Impossible de préparer ta journée. Réessaie.");
+            Alert.alert(t('common.alerts.errorTitle'), t('daily.prepareError'));
         }
-    }, [closeDailyRoute, queryClient]);
+    }, [closeDailyRoute, queryClient, t]);
 
     useEffect(() => {
         let isMounted = true;
@@ -245,7 +324,7 @@ export default function DailyScreen() {
                 console.error('Erreur lors du chargement du daily:', error);
 
                 if (isMounted) {
-                    setDailyError("Impossible de charger ton daily.");
+                    setDailyError(t('daily.loadError'));
                 }
             } finally {
                 if (isMounted) {
@@ -259,9 +338,16 @@ export default function DailyScreen() {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [t]);
 
-    const handleStep2NextPress = useCallback(async () => {
+    const handleStep2DonePress = useCallback(async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        await waitForPendingDailyMutations();
+        await wait(stepButtonReleaseDelay);
+        setCurrentStep((step) => step + 1);
+    }, [waitForPendingDailyMutations]);
+
+    const handleStep3NextPress = useCallback(async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         await wait(stepButtonReleaseDelay);
         setStep2ExitDirection('next');
@@ -271,18 +357,6 @@ export default function DailyScreen() {
 
     const goToNextStep = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-        if (currentStep < steps.length) {
-            setCurrentStep((step) => step + 1);
-            return;
-        }
-
-        await completeDailyAndExit();
-    };
-
-    const handleStep3DonePress = async () => {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        await wait(stepButtonReleaseDelay);
 
         if (currentStep < steps.length) {
             setCurrentStep((step) => step + 1);
@@ -303,6 +377,7 @@ export default function DailyScreen() {
             setIsExtendedButtonExpanded(false);
         }
         if (currentStep === 3) {
+            setStep2ExitDirection('previous');
             setIsExtendedButtonExpanded(true);
         }
         setCurrentStep((step) => step - 1);
@@ -318,11 +393,11 @@ export default function DailyScreen() {
         ? pendingTasks.length * pendingTaskEstimatedHeight + Math.max(0, pendingTasks.length - 1) * pendingTaskGap
         : step3EmptyStateHeight;
     const shouldShowPendingTasksScrollIndicator = pendingTasks.length > 0 && step3TaskListHeight > step3MaxListHeight;
-    const step3AdaptiveHeight = 12+ Math.min(
+    const step3AdaptiveHeight = 12 + Math.min(
         step3MaxHeight,
         step3PanelFixedHeight + Math.min(step3TaskListHeight, step3MaxListHeight)
     );
-    const extendedButtonExpandedHeight = currentStep === 3
+    const extendedButtonExpandedHeight = currentStep === 2
         ? step3AdaptiveHeight
         : isStep4
             ? extendedButtonBaseHeight
@@ -423,7 +498,7 @@ export default function DailyScreen() {
     }, [currentStep, step4SliderTranslateX]);
 
     useEffect(() => {
-        if (currentStep !== 2) {
+        if (currentStep !== 3) {
             animatedPreviousDayProgress.value = 0;
             streakContainerScale.value = 1;
             setDisplayedCompletionPercent(0);
@@ -561,8 +636,8 @@ export default function DailyScreen() {
                 {!dailyError && (
                     <ActivityIndicator color={colors.text} size="small" />
                 )}
-                <Text style={[styles.loadingText, { color: colors.text }]}>
-                    {dailyError ?? (isCompletingDaily ? 'Préparation de ta journée...' : 'Chargement du daily...')}
+                <Text style={[styles.loadingText, { color: colors.text, fontSize: fontSizes.lg }]}>
+                    {dailyError ?? (isCompletingDaily ? t('daily.preparing') : t('daily.loading'))}
                 </Text>
             </View>
         );
@@ -576,7 +651,7 @@ export default function DailyScreen() {
                         key={step}
                         style={[
                             styles.dot,
-                            { backgroundColor: currentStep === step ? colors.text : colors.textSecondary || '#C4C4C4' },
+                            { backgroundColor: currentStep === step ? colors.text : colors.textSecondary },
                         ]}
                     />
                 ))}
@@ -590,11 +665,11 @@ export default function DailyScreen() {
                 >
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="Revenir a l'etape precedente"
+                        accessibilityLabel={t('common.actions.back')}
                         onPress={goToPreviousStep}
                         style={styles.backButtonPressable}
                     >
-                        <SymbolView name="chevron.left" size={48} tintColor="#000000" style={styles.backIcon} />
+                        <SymbolView name="chevron.left" size={48} tintColor={colors.text} style={styles.backIcon} />
                     </Pressable>
                 </Animated.View>
             )}
@@ -604,6 +679,8 @@ export default function DailyScreen() {
                     style={[styles.imagesContainer, imageContainerAnimatedStyle]}
                 >
                     <View style={styles.characterImageSlot}>
+
+
                         <Animated.View style={[styles.characterImageLayer, character21AnimatedStyle]}>
                             <Image
                                 source={require('@/assets/images/character/21.png')}
@@ -635,15 +712,15 @@ export default function DailyScreen() {
                     }}
                 >
                     <Animated.Text
-                        style={[styles.introText, introTextAnimatedStyle, { fontSize: fontSizes['6xl'], }]}
+                        style={[styles.introText, introTextAnimatedStyle, { color: introTitleColor, fontSize: fontSizes['6xl'], }]}
                     >
-                        Salut Yanis !
+                        {t('daily.intro.title')}
                     </Animated.Text>
 
                     <Animated.Text
-                        style={[styles.subIntroText, subIntroTextAnimatedStyle, { fontSize: fontSizes['3xl'], }]}
+                        style={[styles.subIntroText, subIntroTextAnimatedStyle, { color: introSubtitleColor, fontSize: fontSizes['3xl'], }]}
                     >
-                        Prêt pour cette nouvelle journée ?
+                        {t('daily.intro.subtitle')}
                     </Animated.Text>
                 </View>
             </View>
@@ -651,10 +728,10 @@ export default function DailyScreen() {
             {isStep4 && (
                 <View style={styles.step4DateContainer}>
                     <View style={styles.step4DateLabels}>
-                        <Text style={styles.step4DateLabel}>{currentWeekday}.</Text>
-                        <Text style={styles.step4DateLabel}>{currentMonth}.</Text>
+                        <Text style={[styles.step4DateLabel, { color: dateLabelColor, fontSize: fontSizes['5xl'], lineHeight: fontSizes['5xl'] + 1 }]}>{currentWeekday}.</Text>
+                        <Text style={[styles.step4DateLabel, { color: dateLabelColor, fontSize: fontSizes['5xl'], lineHeight: fontSizes['5xl'] + 1 }]}>{currentMonth}.</Text>
                     </View>
-                    <Text style={styles.step4DateNumber}>{currentDayNumber}</Text>
+                    <Text style={[styles.step4DateNumber, { color: dateNumberColor, fontSize: fontSizes['7xl'] + 34, lineHeight: fontSizes['7xl'] + 38 }]}>{currentDayNumber}</Text>
                 </View>
             )}
 
@@ -681,16 +758,17 @@ export default function DailyScreen() {
                     width={extendedButtonWidth}
                     height={extendedButtonHeight}
                     borderRadius={extendedButtonBorderRadius}
+                    backgroundColor={"#353535"}
                     style={extendedButtonPressAnimatedStyle as unknown as StyleProp<ViewStyle>}
                     contentStyle={currentStep === 2 || currentStep === 3 || isStep4 ? styles.extendedButtonContentStep2 : undefined}
                 >
                     {
                         currentStep === 1 && (
-                            <Text style={styles.extendedButtonText}>{currentStep < steps.length ? "Prêt !" : "Terminer"}</Text>
+                            <Text style={[styles.extendedButtonText, { color: panelActionTextColor, fontSize: fontSizes['3xl'] }]}>{currentStep < steps.length ? t('daily.actions.ready') : t('daily.actions.finish')}</Text>
                         )
                     }
                     {
-                        currentStep === 2 && (
+                        currentStep === 3 && (
                             <View style={styles.step2Content}>
                                 <Animated.View
                                     exiting={step2ExitingAnimation}
@@ -712,7 +790,7 @@ export default function DailyScreen() {
                                     style={styles.centralProgressBlock}
                                 >
                                     <View style={styles.step2MetricsRow}>
-                                        <Text style={styles.completionPercent}>{displayedCompletionPercent}%</Text>
+                                        <Text style={[styles.completionPercent, { color: panelTextColor, fontSize: fontSizes['5xl'] }]}>{displayedCompletionPercent}%</Text>
                                         <Animated.View style={[styles.streakContainer, streakContainerAnimatedStyle]}>
                                             <View style={styles.streakTextSlot}>
                                                 <Animated.Text
@@ -722,7 +800,7 @@ export default function DailyScreen() {
                                                     style={[
                                                         styles.streakText,
                                                         styles.streakTextLayer,
-                                                        { color: streakTextColor },
+                                                        { color: streakTextColor, fontSize: fontSizes['3xl'], lineHeight: fontSizes['3xl'] + 6 },
                                                     ]}
                                                 >
                                                     {displayedStreak}
@@ -745,10 +823,11 @@ export default function DailyScreen() {
                                         </Animated.View>
                                     </View>
 
-                                    <View style={styles.progressTrack}>
+                                    <View style={[styles.progressTrack, { backgroundColor: progressTrackColor }]}>
                                         <Animated.View
                                             style={[
                                                 styles.progressFill,
+                                                { backgroundColor: progressFillColor },
                                                 centralProgressFillAnimatedStyle,
                                             ]}
                                         />
@@ -760,8 +839,8 @@ export default function DailyScreen() {
                                     exiting={step2ExitingAnimation}
                                     style={styles.motivationBlock}
                                 >
-                                    <Text style={styles.motivationTitle}>{dailyMotivation.title}</Text>
-                                    <Text style={styles.motivationBody}>{dailyMotivation.body}</Text>
+                                    <Text style={[styles.motivationTitle, { color: panelTextMutedColor, fontSize: fontSizes.xl }]}>{dailyMotivation.titleKey ? t(dailyMotivation.titleKey) : ''}</Text>
+                                    <Text style={[styles.motivationBody, { color: panelTextSoftColor, fontSize: fontSizes.lg, lineHeight: fontSizes.lg + 4 }]}>{dailyMotivation.bodyKey ? t(dailyMotivation.bodyKey, dailyMotivation.values) : ''}</Text>
                                 </Animated.View>
 
                                 <Animated.View
@@ -774,14 +853,14 @@ export default function DailyScreen() {
                                             accessibilityRole="button"
                                             onPressIn={handleStep2NextPressIn}
                                             onPressOut={handleStep2NextPressOut}
-                                            onPress={handleStep2NextPress}
+                                            onPress={handleStep3NextPress}
                                         >
                                             <SquircleView
-                                                style={styles.step2NextButton}
+                                                style={[styles.step2NextButton, { backgroundColor: "#ffffff21" }]}
                                                 cornerSmoothing={100}
                                                 preserveSmoothing
                                             >
-                                                <Text style={styles.step2NextButtonText}>Suivant</Text>
+                                                <Text style={[styles.step2NextButtonText, { color: panelActionTextColor, fontSize: fontSizes.lg }]}>{t('daily.actions.next')}</Text>
                                             </SquircleView>
                                         </Pressable>
                                     </Animated.View>
@@ -790,19 +869,19 @@ export default function DailyScreen() {
                         )
                     }
                     {
-                        currentStep === 3 && (
+                        currentStep === 2 && (
                             <View style={styles.step3Content}>
                                 <Animated.Text
-                                    entering={FadeInDown.delay(200)}
+                                    entering={FadeInDown.delay(step3ContentEntranceDelay)}
                                     exiting={FadeOut.duration(120)}
-                                    style={styles.step3Title}
+                                    style={[styles.step3Title, { color: panelTextMutedColor, fontSize: fontSizes['2xl'], lineHeight: fontSizes['2xl'] + 8 }]}
                                 >
-                                    Tes tâches en <Text style={styles.step3TitleStrong}>suspens...</Text>
+                                    {t('daily.pending.titlePrefix')} <Text style={[styles.step3TitleStrong, { color: panelTextColor }]}>{t('daily.pending.titleStrong')}</Text>
                                 </Animated.Text>
 
                                 {pendingTasks.length > 0 ? (
                                     <Animated.View
-                                        entering={FadeInDown.delay(220)}
+                                        entering={FadeInDown.delay(step3ContentEntranceDelay + step3ContentEntranceDelayStep)}
                                         exiting={FadeOut.duration(120)}
                                         style={styles.pendingTasksScrollWrapper}
                                     >
@@ -833,18 +912,18 @@ export default function DailyScreen() {
                                     </Animated.View>
                                 ) : (
                                     <Animated.View
-                                        entering={FadeInDown.delay(240).duration(260)}
+                                        entering={FadeInDown.delay(step3ContentEntranceDelay + step3ContentEntranceDelayStep * 2).duration(260)}
                                         exiting={FadeOut.duration(120)}
                                         style={styles.step3EmptyState}
                                     >
-                                        <View style={styles.step3EmptyIconCircle}>
-                                            <Feather name="check" size={72} color="rgba(255, 255, 255, 0.58)" strokeWidth={1.8} />
+                                        <View style={[styles.step3EmptyIconCircle, { borderColor: alphaColor(panelTextColor, 0.42) }]}>
+                                            <Feather name="check" size={72} color={panelTextMutedColor} strokeWidth={1.8} />
                                         </View>
                                     </Animated.View>
                                 )}
 
                                 <Animated.View
-                                    entering={FadeInDown.delay(260)}
+                                    entering={FadeInDown.delay(step3ContentEntranceDelay + step3ContentEntranceDelayStep * 3)}
                                     exiting={FadeOut.duration(120)}
                                     style={styles.step3DoneButtonWrapper}
                                 >
@@ -853,14 +932,18 @@ export default function DailyScreen() {
                                             accessibilityRole="button"
                                             onPressIn={handleStep3DonePressIn}
                                             onPressOut={handleStep3DonePressOut}
-                                            onPress={handleStep3DonePress}
+                                            onPress={handleStep2DonePress}
                                         >
                                             <SquircleView
-                                                style={styles.step3DoneButton}
+                                                style={[styles.step3DoneButton, { backgroundColor: "#ffffff21" }]}
                                                 cornerSmoothing={100}
                                                 preserveSmoothing
                                             >
-                                                <Text style={styles.step3DoneButtonText}>On est bon !</Text>
+                                                {hasPendingDailyMutations ? (
+                                                    <ActivityIndicator color={panelActionTextColor} size="small" />
+                                                ) : (
+                                                    <Text style={[styles.step3DoneButtonText, { color: panelActionTextColor, fontSize: fontSizes.lg }]}>{t('daily.actions.done')}</Text>
+                                                )}
                                             </SquircleView>
                                         </Pressable>
                                     </Animated.View>
@@ -871,18 +954,18 @@ export default function DailyScreen() {
                     {
                         isStep4 && (
                             <View style={styles.step4Slider}>
-                                <Animated.Text style={[styles.step4SliderText, step4SliderTextAnimatedStyle]}>
-                                    Lancer la journée
+                                <Animated.Text style={[styles.step4SliderText, { color: panelActionTextColor, fontSize: fontSizes['2xl'] }, step4SliderTextAnimatedStyle]}>
+                                    {t('daily.actions.startDay')}
                                 </Animated.Text>
 
                                 <GestureDetector gesture={step4SliderGesture}>
                                     <Animated.View style={[styles.step4SliderHandleWrapper, step4SliderHandleAnimatedStyle]}>
                                         <SquircleView
-                                            style={styles.step4SliderHandle}
+                                            style={[styles.step4SliderHandle, { backgroundColor: "#ffffff21" }]}
                                             cornerSmoothing={100}
                                             preserveSmoothing
                                         >
-                                            <Feather name="chevrons-right" size={36} color="rgba(255, 255, 255, 0.56)" strokeWidth={2.2} />
+                                            <Feather name="chevrons-right" size={36} color={iconOnPanelColor} strokeWidth={2.2} />
                                         </SquircleView>
                                     </Animated.View>
                                 </GestureDetector>
@@ -908,7 +991,6 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         fontFamily: 'Satoshi-Medium',
-        fontSize: 18,
         textAlign: 'center',
         opacity: 0.58,
     },
@@ -972,11 +1054,14 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
         left: 0,
+
     },
     image: {
         width: "100%",
         height: "100%",
         alignSelf: 'center',
+        filter: 'blur(5px)',
+
     },
     image2: {
         width: "100%",
@@ -987,13 +1072,9 @@ const styles = StyleSheet.create({
 
     introText: {
         fontFamily: 'Satoshi-Bold',
-        color: '#0000009a',
-        opacity: 0.7,
     },
     subIntroText: {
         fontFamily: 'Satoshi-Bold',
-        color: '#00000062',
-        opacity: 0.4,
     },
     step4DateContainer: {
         position: 'absolute',
@@ -1011,17 +1092,11 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     step4DateLabel: {
-        color: 'rgba(0, 0, 0, 0.28)',
         fontFamily: 'Satoshi-Bold',
-        fontSize: 46,
-        lineHeight: 43,
         letterSpacing: 0,
     },
     step4DateNumber: {
-        color: 'rgba(0, 0, 0, 0.58)',
         fontFamily: 'Satoshi-Bold',
-        fontSize: 92,
-        lineHeight: 96,
         letterSpacing: 0,
     },
     screen: {
@@ -1043,9 +1118,7 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-start',
     },
     extendedButtonText: {
-        color: '#FFFFFF',
         fontFamily: 'Satoshi-Medium',
-        fontSize: 24,
     },
     step2Content: {
         flex: 1,
@@ -1059,7 +1132,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'flex-start',
         marginBottom: 42,
-        gap : 4,
+        gap: 4,
         alignSelf: 'center',
     },
     centralProgressBlock: {
@@ -1072,16 +1145,11 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     completionPercent: {
-        color: '#FFFFFF',
         fontFamily: 'Satoshi-Medium',
-        fontSize: 42,
         letterSpacing: 0,
     },
     streakText: {
-        color: '#FFA652',
         fontFamily: 'Satoshi-Medium',
-        fontSize: 24,
-        lineHeight: 30,
         textAlign: 'right',
     },
     streakContainer: {
@@ -1123,27 +1191,20 @@ const styles = StyleSheet.create({
         width: '100%',
         height: 13,
         borderRadius: 7,
-        backgroundColor: 'rgba(255, 255, 255, 0.18)',
         marginBottom: 42,
     },
     progressFill: {
         height: '100%',
         borderRadius: 7,
-        backgroundColor: '#70C48E',
     },
     motivationBlock: {
         gap: 2,
     },
     motivationTitle: {
-        color: 'rgba(255, 255, 255, 0.56)',
         fontFamily: 'Satoshi-Medium',
-        fontSize: 19,
     },
     motivationBody: {
-        color: 'rgba(255, 255, 255, 0.72)',
         fontFamily: 'Satoshi-Medium',
-        fontSize: 18,
-        lineHeight: 22,
     },
     step2NextButtonWrapper: {
         marginTop: 'auto',
@@ -1153,12 +1214,9 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgb(95, 95, 95)',
     },
     step2NextButtonText: {
-        color: '#FFFFFF',
         fontFamily: 'Satoshi-Medium',
-        fontSize: 18,
     },
     step3Content: {
         flex: 1,
@@ -1168,14 +1226,10 @@ const styles = StyleSheet.create({
         paddingBottom: 18,
     },
     step3Title: {
-        color: 'rgba(255, 255, 255, 0.58)',
         fontFamily: 'Satoshi-Medium',
-        fontSize: 22,
-        lineHeight: 30,
         marginBottom: 18,
     },
     step3TitleStrong: {
-        color: '#FFFFFF',
         fontFamily: 'Satoshi-Bold',
     },
     pendingTasksList: {
@@ -1199,7 +1253,6 @@ const styles = StyleSheet.create({
         height: 120,
         borderRadius: 60,
         borderWidth: 5,
-        borderColor: 'rgba(255, 255, 255, 0.42)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -1212,12 +1265,9 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgb(95, 95, 95)',
     },
     step3DoneButtonText: {
-        color: '#FFFFFF',
         fontFamily: 'Satoshi-Medium',
-        fontSize: 18,
     },
     step4Slider: {
         flex: 1,
@@ -1241,16 +1291,13 @@ const styles = StyleSheet.create({
     step4SliderHandle: {
         flex: 1,
         borderRadius: 14,
-        backgroundColor: 'rgb(87, 87, 87)',
         alignItems: 'center',
         justifyContent: 'center',
     },
     step4SliderText: {
-        color: '#FFFFFF',
         fontFamily: 'Satoshi-Regular',
-        fontSize: 20,
         textAlign: 'center',
-        paddingLeft : 70,
+        paddingLeft: 70,
         zIndex: 1,
     },
 });

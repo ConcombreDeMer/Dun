@@ -22,7 +22,6 @@ export type DailyPendingTask = {
 };
 
 export type DailyData = {
-  previousDayFullDone: boolean;
   completionDays: DailyCompletionDay[];
   previousDayCompletion: {
     percent: number;
@@ -31,8 +30,9 @@ export type DailyData = {
   };
   streak: number;
   motivation: {
-    title: string;
-    body: string;
+    titleKey: string;
+    bodyKey: string;
+    values?: Record<string, number>;
   };
   pendingTasks: DailyPendingTask[];
 };
@@ -42,6 +42,8 @@ type DaySnapshot = {
   total: number | null;
   done_count: number | null;
 };
+
+type DailyMotivation = DailyData["motivation"];
 
 const frenchWeekdayAbbreviations = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 
@@ -88,24 +90,26 @@ const getDayLabel = (dateKey: string) => {
   return frenchWeekdayAbbreviations[new Date(year, month - 1, day).getDay()];
 };
 
-const buildMotivation = (completedTasks: number, totalTasks: number) => {
+const buildMotivation = (completedTasks: number, totalTasks: number): DailyMotivation => {
   if (totalTasks === 0) {
     return {
-      title: "Nouvelle page !",
-      body: "Hier etait calme. Tu peux demarrer frais aujourd'hui.",
+      titleKey: "daily.motivation.empty.title",
+      bodyKey: "daily.motivation.empty.body",
     };
   }
 
   if (completedTasks >= totalTasks) {
     return {
-      title: "Felicitations !",
-      body: `Tu as complete tes ${totalTasks} taches d'hier.`,
+      titleKey: "daily.motivation.complete.title",
+      bodyKey: "daily.motivation.complete.body",
+      values: { totalTasks },
     };
   }
 
   return {
-    title: "Belle avance !",
-    body: `Tu as complete ${completedTasks} de tes ${totalTasks} taches d'hier.`,
+    titleKey: "daily.motivation.partial.title",
+    bodyKey: "daily.motivation.partial.body",
+    values: { completedTasks, totalTasks },
   };
 };
 
@@ -175,7 +179,6 @@ export const getDailyData = async (): Promise<DailyData> => {
   const previousDayPercent = getDayPercent(previousDay);
 
   return {
-    previousDayFullDone: previousDayPercent >= 100,
     completionDays,
     previousDayCompletion: {
       percent: previousDayPercent,

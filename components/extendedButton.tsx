@@ -15,6 +15,7 @@ type ExtendedButtonProps = {
     width?: AnimatedDimension;
     height?: AnimatedDimension;
     borderRadius?: number;
+    backgroundColor: string;
     style?: StyleProp<ViewStyle>;
     contentStyle?: StyleProp<ViewStyle>;
 };
@@ -31,6 +32,7 @@ export default function ExtendedButton({
     width = '80%',
     height = 64,
     borderRadius = 17,
+    backgroundColor,
     style,
     contentStyle,
 }: ExtendedButtonProps) {
@@ -56,17 +58,11 @@ export default function ExtendedButton({
             style={[styles.button, animatedStyle, disabled && styles.disabled, style]}
         >
             <SquircleView
-                style={[styles.squircle, { borderRadius }]}
+                style={[styles.squircle, { borderRadius, backgroundColor }]}
                 cornerSmoothing={100}
                 enabledIOSAnimation
                 preserveSmoothing
             >
-                {/* <LinearGradient
-                    colors={['#484848', '#171717']}
-                    style={StyleSheet.absoluteFill}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                /> */}
                 <View style={[styles.content, contentStyle]}>{children}</View>
             </SquircleView>
         </AnimatedPressable>
@@ -81,7 +77,6 @@ const styles = StyleSheet.create({
         flex: 1,
         borderRadius: 17,
         overflow: 'hidden',
-        backgroundColor: '#353535',
     },
     disabled: {
         opacity: 0.5,
