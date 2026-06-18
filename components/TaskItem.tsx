@@ -71,6 +71,7 @@ interface TaskItemProps {
     done: boolean;
     description: string;
     date?: string;
+    late_days?: number | null;
     delay_count?: number | null;
     late_adjusted_at?: string | null;
     resolved_at?: string | null;
@@ -150,6 +151,7 @@ export const TaskItem = ({
   const mutedTaskColor = blendColors(colors.task, colors.background, 0.5);
   const mutedTextColor = blendColors(colors.text, colors.background, 0.5);
   const itemTagIds = item.tagIds ?? item.Task_Tags?.map((tag) => tag.tag_id) ?? [];
+  const displayedLateDays = item.late_days ?? item.delay_count;
   const itemTags = itemTagIds.reduce<{ id: string; color: string }[]>((visibleTags, tagId) => {
     const tag = tags.find((candidate) => candidate.id === tagId);
     return tag ? [...visibleTags, { id: tag.id, color: tag.color }] : visibleTags;
@@ -571,11 +573,11 @@ export const TaskItem = ({
                 {item.name}
               </Animated.Text>
 
-              {(item.delay_count || item.late_adjusted_at) ? (
+              {(displayedLateDays || item.late_adjusted_at) ? (
                 <View style={styles.taskBadges}>
-                  {item.delay_count ? (
+                  {displayedLateDays ? (
                     <Text style={[styles.taskBadgeText, { color: colors.textSecondary }]}>
-                      {t("task.delayBadge", { count: item.delay_count })}
+                      {t("task.delayBadge", { count: displayedLateDays })}
                     </Text>
                   ) : null}
 

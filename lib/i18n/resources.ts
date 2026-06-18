@@ -473,8 +473,42 @@ export const resources = {
         }
       },
       "daily": {
+        "loading": "Loading daily...",
+        "preparing": "Preparing your day...",
+        "loadError": "Unable to load your daily.",
+        "updateTaskError": "Unable to update the task. Try again.",
+        "prepareError": "Unable to prepare your day. Try again.",
         "fallbackUser": "User",
         "morning": "Good morning",
+        "intro": {
+          "title": "Hi Yanis!",
+          "subtitle": "Ready for a new day?"
+        },
+        "actions": {
+          "ready": "Ready!",
+          "finish": "Finish",
+          "next": "Next",
+          "done": "Looks good!",
+          "startDay": "Start the day"
+        },
+        "pending": {
+          "titlePrefix": "Your tasks on",
+          "titleStrong": "hold..."
+        },
+        "motivation": {
+          "empty": {
+            "title": "Fresh page!",
+            "body": "Yesterday was quiet. You can start fresh today."
+          },
+          "complete": {
+            "title": "Congratulations!",
+            "body": "You completed your {{totalTasks}} tasks yesterday."
+          },
+          "partial": {
+            "title": "Nice progress!",
+            "body": "You completed {{completedTasks}} of your {{totalTasks}} tasks yesterday."
+          }
+        },
         "readyQuestion": "Ready to plan your day?",
         "ready": "I'm ready!",
         "rest": "Rest",
@@ -1432,8 +1466,42 @@ export const resources = {
         }
       },
       "daily": {
+        "loading": "Chargement du daily...",
+        "preparing": "Préparation de ta journée...",
+        "loadError": "Impossible de charger ton daily.",
+        "updateTaskError": "Impossible de mettre à jour la tâche. Réessaie.",
+        "prepareError": "Impossible de préparer ta journée. Réessaie.",
         "fallbackUser": "Utilisateur",
         "morning": "Bonjour",
+        "intro": {
+          "title": "Salut Yanis !",
+          "subtitle": "Prêt pour cette nouvelle journée ?"
+        },
+        "actions": {
+          "ready": "Prêt !",
+          "finish": "Terminer",
+          "next": "Suivant",
+          "done": "On est bon !",
+          "startDay": "Lancer la journée"
+        },
+        "pending": {
+          "titlePrefix": "Tes tâches en",
+          "titleStrong": "suspens..."
+        },
+        "motivation": {
+          "empty": {
+            "title": "Nouvelle page !",
+            "body": "Hier était calme. Tu peux démarrer frais aujourd'hui."
+          },
+          "complete": {
+            "title": "Félicitations !",
+            "body": "Tu as complété tes {{totalTasks}} tâches d'hier."
+          },
+          "partial": {
+            "title": "Belle avance !",
+            "body": "Tu as complété {{completedTasks}} de tes {{totalTasks}} tâches d'hier."
+          }
+        },
         "readyQuestion": "Prêt à préparer ta journée ?",
         "ready": "J'suis prêt !",
         "rest": "Repos",

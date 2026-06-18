@@ -367,8 +367,35 @@ createTask:
   buttons:
     confirm: "Confirm"
 daily:
+  loading: "Loading daily..."
+  preparing: "Preparing your day..."
+  loadError: "Unable to load your daily."
+  updateTaskError: "Unable to update the task. Try again."
+  prepareError: "Unable to prepare your day. Try again."
   fallbackUser: "User"
   morning: "Good morning"
+  intro:
+    title: "Hi Yanis!"
+    subtitle: "Ready for a new day?"
+  actions:
+    ready: "Ready!"
+    finish: "Finish"
+    next: "Next"
+    done: "Looks good!"
+    startDay: "Start the day"
+  pending:
+    titlePrefix: "Your tasks on"
+    titleStrong: "hold..."
+  motivation:
+    empty:
+      title: "Fresh page!"
+      body: "Yesterday was quiet. You can start fresh today."
+    complete:
+      title: "Congratulations!"
+      body: "You completed your {{totalTasks}} tasks yesterday."
+    partial:
+      title: "Nice progress!"
+      body: "You completed {{completedTasks}} of your {{totalTasks}} tasks yesterday."
   readyQuestion: "Ready to plan your day?"
   ready: "I'm ready!"
   rest: "Rest"

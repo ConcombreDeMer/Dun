@@ -119,7 +119,7 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
                     name={image}
                     style={{ width: 24, height: 24, alignSelf: 'center' }}
                     type="palette"
-                    tintColor={colors.buttonText}
+                    tintColor={colors.text}
                 />
             }
             {(size === 'L' || size === 'M' || size === 'S') && title && <Text style={getTextStyle()}>{title}</Text>}
