@@ -67,15 +67,15 @@ export const lightColors: Colors = {
 };
 
 export const darkColors: Colors = {
-    background: '#1a1a1a',
-    text: '#ffffff',
+    background: '#121212',
+    text: '#E0E0E0',
     textSecondary: '#b3b3b3',
     border: '#333333',
     input: '#2a2a2a',
     inputPlaceholder: '#666666',
     card: '#2a2a2a',
     button: '#343434ff',
-    buttonText: '#abababff', // to use for darkmode icon aswell
+    buttonText: 'rgb(230, 230, 230)', // to use for darkmode icon aswell
     danger: '#ff5252',
     dangerText: '#ff5252',
     icon: '#ffffff',

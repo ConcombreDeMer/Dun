@@ -5,6 +5,7 @@ import { TaskItem } from '@/components/TaskItem';
 import { completeDailyReview, deleteDailyPendingTask, getDailyData, postponeDailyPendingTask, setDailyPendingTaskDone, type DailyData, type DailyPendingTask } from '@/lib/daily';
 import { useFont } from '@/lib/FontContext';
 import { useAppTranslation } from '@/lib/i18n';
+import { getCharacterImageSource } from '@/lib/imageHelper';
 import { Feather } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
@@ -171,7 +172,12 @@ export default function DailyScreen() {
     const panelActionTextColor = colors.text;
     const progressTrackColor = alphaColor(panelTextColor, 0.18);
     const progressFillColor = colors.doneSecondary ?? colors.checkboxDone;
-    const streakTextColor = displayedStreak > 0 ? (colors.doneSecondary ?? colors.text) : alphaColor(panelTextColor, 0.42);
+    const streakOrangeTextColor = actualTheme === 'dark' ? '#FFB86C' : '#F07A24';
+    const streakTextColor = displayedStreak === 0
+        ? alphaColor(panelTextColor, 0.42)
+        : displayedStreak >= 1
+            ? streakOrangeTextColor
+            : panelTextColor;
     const introTitleColor = alphaColor(colors.text, 0.7);
     const introSubtitleColor = alphaColor(colors.text, 0.4);
     const dateLabelColor = alphaColor(colors.text, 0.28);
@@ -683,7 +689,7 @@ export default function DailyScreen() {
 
                         <Animated.View style={[styles.characterImageLayer, character21AnimatedStyle]}>
                             <Image
-                                source={require('@/assets/images/character/21.png')}
+                                source={getCharacterImageSource('21', actualTheme)}
                                 style={styles.image}
                                 contentFit="cover"
                             />
@@ -691,7 +697,7 @@ export default function DailyScreen() {
 
                         <Animated.View style={[styles.characterImageLayer, character20AnimatedStyle]}>
                             <Image
-                                source={require('@/assets/images/character/20.png')}
+                                source={getCharacterImageSource('20', actualTheme)}
                                 style={styles.image}
                                 contentFit="cover"
                             />
@@ -699,7 +705,7 @@ export default function DailyScreen() {
                     </View>
 
                     <Image
-                        source={require('@/assets/images/character/0.png')}
+                        source={getCharacterImageSource('0', actualTheme)}
                         style={styles.image2}
                         resizeMode="contain"
                     />
@@ -764,7 +770,7 @@ export default function DailyScreen() {
                 >
                     {
                         currentStep === 1 && (
-                            <Text style={[styles.extendedButtonText, { color: panelActionTextColor, fontSize: fontSizes['3xl'] }]}>{currentStep < steps.length ? t('daily.actions.ready') : t('daily.actions.finish')}</Text>
+                            <Text style={[styles.extendedButtonText, { color: colors.buttonText, fontSize: fontSizes['3xl'] }]}>{currentStep < steps.length ? t('daily.actions.ready') : t('daily.actions.finish')}</Text>
                         )
                     }
                     {
@@ -860,7 +866,7 @@ export default function DailyScreen() {
                                                 cornerSmoothing={100}
                                                 preserveSmoothing
                                             >
-                                                <Text style={[styles.step2NextButtonText, { color: panelActionTextColor, fontSize: fontSizes.lg }]}>{t('daily.actions.next')}</Text>
+                                                <Text style={[styles.step2NextButtonText, { color: colors.buttonText, fontSize: fontSizes.lg }]}>{t('daily.actions.next')}</Text>
                                             </SquircleView>
                                         </Pressable>
                                     </Animated.View>
@@ -942,7 +948,7 @@ export default function DailyScreen() {
                                                 {hasPendingDailyMutations ? (
                                                     <ActivityIndicator color={panelActionTextColor} size="small" />
                                                 ) : (
-                                                    <Text style={[styles.step3DoneButtonText, { color: panelActionTextColor, fontSize: fontSizes.lg }]}>{t('daily.actions.done')}</Text>
+                                                    <Text style={[styles.step3DoneButtonText, { color: colors.buttonText, fontSize: fontSizes.lg }]}>{t('daily.actions.done')}</Text>
                                                 )}
                                             </SquircleView>
                                         </Pressable>
@@ -954,7 +960,7 @@ export default function DailyScreen() {
                     {
                         isStep4 && (
                             <View style={styles.step4Slider}>
-                                <Animated.Text style={[styles.step4SliderText, { color: panelActionTextColor, fontSize: fontSizes['2xl'] }, step4SliderTextAnimatedStyle]}>
+                                <Animated.Text style={[styles.step4SliderText, { color: colors.buttonText, fontSize: fontSizes['2xl'] }, step4SliderTextAnimatedStyle]}>
                                     {t('daily.actions.startDay')}
                                 </Animated.Text>
 

@@ -135,7 +135,7 @@ const DayCell = memo(({
                 style={[
                     styles.dayText,
                     {
-                        color: isSelected ? "black" : "rgba(255, 255, 255, 0.8)",
+                        color: isSelected ? "white" : "rgba(255, 255, 255, 0.8)",
                         fontWeight: isToday ? "bold" : "normal",
                         fontSize: fontSizes.lg,
                     },
@@ -172,11 +172,13 @@ const SliderDayCell = memo(({
     isSelected,
     isToday,
     colors,
+    actualTheme,
     taskInfo,
     onPress,
     getDayName,
     fontSizes
 }: any) => {
+    const sliderLabelColor = actualTheme === 'dark' ? 'rgba(255, 255, 255, 0.72)' : colors.button;
 
     return (
         <SquircleButton
@@ -194,7 +196,7 @@ const SliderDayCell = memo(({
             ]}
             onPress={onPress}
         >
-            <Text style={[styles.sliderDayName, { color: colors.button, fontSize: fontSizes.sm }]}>
+            <Text style={[styles.sliderDayName, { color: isSelected ? colors.button : sliderLabelColor, fontSize: fontSizes.sm }]}>
                 {getDayName(date.getDay())}
             </Text>
             <Text
@@ -223,6 +225,7 @@ const SliderDayCell = memo(({
         prevProps.isSelected === nextProps.isSelected &&
         prevProps.isToday === nextProps.isToday &&
         prevProps.colors === nextProps.colors &&
+        prevProps.actualTheme === nextProps.actualTheme &&
         prevProps.taskInfo === nextProps.taskInfo &&
         prevProps.fontSizes === nextProps.fontSizes
     );
@@ -235,7 +238,7 @@ export default function CalendarComponent({
     initialDate,
     onExpandedChange,
 }: CalendarProps) {
-    const { colors, theme } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
     const { t, language } = useAppTranslation();
     const locale = language === "en" ? "en-US" : "fr-FR";
@@ -656,7 +659,7 @@ export default function CalendarComponent({
                 />
             );
         });
-    }, [calendarDays, currentMonth, selectedDate, colors, taskIndicatorByDay, fontSizes, handleDateSelect]);
+    }, [calendarDays, currentMonth, selectedDate, colors, actualTheme, taskIndicatorByDay, fontSizes, handleDateSelect]);
 
     return (
 
@@ -688,6 +691,7 @@ export default function CalendarComponent({
                                         isSelected={isSelected}
                                         isToday={isToday}
                                         colors={colors}
+                                        actualTheme={actualTheme}
                                         taskInfo={taskIndicatorByDay[dayKey]}
                                         fontSizes={fontSizes}
                                         onPress={() => handleDateSelect(date)}

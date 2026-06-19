@@ -15,7 +15,7 @@ interface StatsCardProps {
 export default function StatsCardCharge({ image, title, value, loading }: StatsCardProps) {
 
     const router = useRouter();
-    const { colors } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
 
     const analyzeChargeColor = () => {
@@ -46,7 +46,7 @@ export default function StatsCardCharge({ image, title, value, loading }: StatsC
         <SquircleButton
             style={[styles.container, { borderColor: analyzeChargeColor(), backgroundColor: colors.card }]}
             onPress={handleExplicationPress}>
-            <Image source={image} style={styles.image} />
+            <Image source={image} style={actualTheme === 'light' ? styles.lightModeImage : styles.image} />
             <Text style={[styles.title, { color: colors.text, opacity: 0.7, fontSize: fontSizes.lg }]}>{title}</Text>
 
             {
@@ -78,6 +78,14 @@ const styles = StyleSheet.create({
         boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',
     },
     image: {
+        width: 48,
+        height: 48,
+        resizeMode: 'contain',
+        position: 'absolute',
+        top: 10,
+        left: 10,
+    },
+    lightModeImage: {
         width: 48,
         height: 48,
         resizeMode: 'contain',

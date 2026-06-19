@@ -14,7 +14,7 @@ interface StatsCardProps {
 
 export default function StatsCardCompletion({ image, title, value, loading }: StatsCardProps) {
 
-    const { colors } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
 
     const analyzeCompletionColor = () => {
@@ -41,7 +41,7 @@ export default function StatsCardCompletion({ image, title, value, loading }: St
         <SquircleButton style={[styles.container, { borderColor: analyzeCompletionColor(), backgroundColor: colors.card }]}
             onPress={handleCompletionPress}
         >
-            <Image source={image} style={styles.image} />
+            <Image source={image} style={actualTheme === 'light' ? styles.lightModeImage : styles.image} />
             <Text style={[styles.title, { color: colors.text, opacity: 0.7, fontSize: fontSizes.lg }]}>{title}</Text>
 
             {
@@ -74,6 +74,14 @@ const styles = StyleSheet.create({
         boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',
     },
     image: {
+        width: 48,
+        height: 48,
+        resizeMode: 'contain',
+        position: 'absolute',
+        top: 10,
+        left: 10,
+    },
+    lightModeImage: {
         width: 48,
         height: 48,
         resizeMode: 'contain',

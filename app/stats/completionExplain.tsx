@@ -1,5 +1,6 @@
 import { useTheme } from '@/lib/ThemeContext';
 import { useAppTranslation } from '@/lib/i18n';
+import { getStatsImageSource } from '@/lib/imageHelper';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 const mixHexColors = (from: string, to: string, amount: number) => {
@@ -26,7 +27,7 @@ const mixHexColors = (from: string, to: string, amount: number) => {
 };
 
 export default function CompletionExplain() {
-    const { colors } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { t } = useAppTranslation();
     const bullets = t('stats.completionExplain.bullets', { returnObjects: true }) as string[];
     const levels = t('stats.completionExplain.levels', { returnObjects: true }) as { range: string; description: string }[];
@@ -51,8 +52,17 @@ export default function CompletionExplain() {
         textSecondary: {
             color: mixHexColors(colors.textSecondary, colors.text, 0.45),
         },
+        surface: {
+            backgroundColor: mixHexColors(colors.background, colors.card, 0.32),
+        },
         bullet: {
             borderColor: colors.border,
+        },
+        handler: {
+            backgroundColor: colors.border,
+        },
+        divider: {
+            borderTopColor: colors.border,
         },
     };
 
@@ -60,13 +70,11 @@ export default function CompletionExplain() {
         <ScrollView style={[styles.container, dynamicStyles.container]}>
             {/* Header */}
             <View style={[styles.header, dynamicStyles.header]}>
-                <View
-                    style={styles.handler}
-                ></View>
+                <View style={[styles.handler, dynamicStyles.handler]} />
                 
                 <View style={styles.headerContent}>
                     <Image
-                        source={require('@/assets/images/stats/completion.png')}
+                        source={getStatsImageSource('completion', actualTheme)}
                         style={styles.headerImage}
                     />
                     <Text style={[styles.title, dynamicStyles.text]}>{t('stats.completionExplain.title')}</Text>
@@ -95,7 +103,7 @@ export default function CompletionExplain() {
                 <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.completionExplain.interpretationTitle')}</Text>
 
                 {levels.map((level, index) => (
-                    <View style={styles.levelBox} key={level.range}>
+                    <View style={[styles.levelBox, dynamicStyles.surface]} key={level.range}>
                         <View style={[styles.levelDot, { backgroundColor: ['#FF4C4C', '#ffcd6fff', '#74ca77ff', '#00CC00'][index] }]} />
                         <View style={styles.levelContent}>
                             <Text style={[styles.levelTitle, dynamicStyles.text]}>{level.range}</Text>
@@ -110,7 +118,7 @@ export default function CompletionExplain() {
                 <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.completionExplain.meaningTitle')}</Text>
 
                 {meanings.map((meaning) => (
-                    <View style={styles.meaningBox} key={meaning.title}>
+                    <View style={[styles.meaningBox, dynamicStyles.surface]} key={meaning.title}>
                         <Text style={[styles.meaningNumber, dynamicStyles.text]}>{meaning.emoji}</Text>
                         <View style={styles.meaningContent}>
                             <Text style={[styles.meaningTitle, dynamicStyles.text]}>{meaning.title}</Text>
@@ -125,9 +133,9 @@ export default function CompletionExplain() {
                 <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.completionExplain.exampleTitle')}</Text>
                 
                 <Text style={[styles.exampleSubtitle, dynamicStyles.text]}>{t('stats.completionExplain.exampleSubtitle')}</Text>
-                <View style={styles.exampleBox}>
+                <View style={[styles.exampleBox, dynamicStyles.surface]}>
                     {exampleLines.map((line, index) => (
-                        <Text key={line} style={index === exampleLines.length - 1 ? [styles.exampleResult, dynamicStyles.text] : [styles.exampleLabel, dynamicStyles.textSecondary]}>{line}</Text>
+                        <Text key={line} style={index === exampleLines.length - 1 ? [styles.exampleResult, dynamicStyles.text, dynamicStyles.divider] : [styles.exampleLabel, dynamicStyles.textSecondary]}>{line}</Text>
                     ))}
                 </View>
             </View>
@@ -136,7 +144,7 @@ export default function CompletionExplain() {
             <View style={[styles.card, dynamicStyles.card]}>
                 <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.completionExplain.tipsTitle')}</Text>
                 {tips.map((tip) => (
-                    <View style={styles.tipBox} key={tip.title}>
+                    <View style={[styles.tipBox, dynamicStyles.surface]} key={tip.title}>
                         <Text style={[styles.tipTitle, dynamicStyles.text]}>{tip.title}</Text>
                         <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>{tip.description}</Text>
                     </View>
@@ -169,7 +177,6 @@ const styles = StyleSheet.create({
         width: 40,
         height: 5,
         borderRadius: 3,
-        backgroundColor: 'rgba(0, 0, 0, 0.1)',
         position: 'absolute',
         top: 10,
     },
@@ -245,7 +252,6 @@ const styles = StyleSheet.create({
     /* Level Boxes */
     levelBox: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 16,
         padding: 15,
         marginBottom: 12,
@@ -279,7 +285,6 @@ const styles = StyleSheet.create({
     /* Meaning Boxes */
     meaningBox: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 16,
         padding: 15,
         marginBottom: 12,
@@ -317,7 +322,6 @@ const styles = StyleSheet.create({
     },
 
     exampleBox: {
-        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 16,
         padding: 15,
         gap: 6,
@@ -335,12 +339,10 @@ const styles = StyleSheet.create({
         marginTop: 5,
         paddingTop: 8,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(0, 0, 0, 0.1)',
     },
 
     /* Tip Boxes */
     tipBox: {
-        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 16,
         padding: 15,
         marginBottom: 12,

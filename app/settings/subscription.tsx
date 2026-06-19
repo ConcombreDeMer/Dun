@@ -6,6 +6,7 @@ import SecondaryButton from '@/components/secondaryButton';
 import SettingItem from '@/components/settingItem';
 import SwitchItem from '@/components/switchItem';
 import { useFont } from '@/lib/FontContext';
+import { getCharacterImageSource } from '@/lib/imageHelper';
 import { useAppTranslation } from '@/lib/i18n';
 import { useSubscription } from '@/lib/subscription';
 import { useTheme } from '@/lib/ThemeContext';
@@ -16,7 +17,7 @@ import { useMemo, useState } from 'react';
 import { Image, Keyboard, Text, TouchableWithoutFeedback, View } from 'react-native';
 
 export default function Subscription() {
-    const { colors } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
     const { t } = useAppTranslation();
     const [showCancelModal, setShowCancelModal] = useState(false);
@@ -183,7 +184,7 @@ export default function Subscription() {
 
 
                                 <Image
-                                    source={require("@/assets/images/character/16.png")}
+                                    source={getCharacterImageSource('16', actualTheme)}
                                     style={{
                                         position: "relative",
                                         height: 120,

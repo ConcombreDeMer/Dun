@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { SFSymbol, SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
 import SquircleView from "react-native-fast-squircle";
@@ -19,7 +18,7 @@ interface PrimaryButtonProps {
 }
 
 export default function PrimaryButton({ title, onPress, disabled = false, image = '', size = 'L', style, type, width, height }: PrimaryButtonProps) {
-    const { colors, theme } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
 
     const getButtonStyle = () => {
@@ -44,7 +43,7 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
         if (type === 'danger') {
             baseStyle.backgroundColor = '#F7C1C1';
         } else if (type === 'reverse') {
-            baseStyle.backgroundColor = colors.background;
+            baseStyle.backgroundColor = actualTheme === 'dark' ? 'rgba(255, 255, 255, 0.2)' : colors.background;
             baseStyle.borderWidth = 1;
             baseStyle.borderColor = colors.actionButton;
         }
@@ -63,7 +62,7 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
 
     const getTextStyle = () => {
         let baseTextStyle: any = {
-            color: colors.buttonText,
+            color: actualTheme === 'dark' ? colors.text : colors.buttonText,
             fontSize: fontSizes['3xl'],
             fontFamily: 'Satoshi-Medium',
         };
@@ -71,7 +70,7 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
         if (type === 'danger') {
             baseTextStyle.color = '#A10606';
         } else if (type === 'reverse') {
-            baseTextStyle.color = colors.actionButton;
+            baseTextStyle.color = actualTheme === 'dark' ? colors.textSecondary : colors.actionButton;
         }
 
         return baseTextStyle;
@@ -92,7 +91,7 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
 
             </Pressable>
 
-            {
+            {/* {
                 type !== 'danger' && type !== 'reverse' &&  (
 
                     <LinearGradient
@@ -109,7 +108,7 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
                         end={{ x: 1, y: 1 }}
                     />
                 )
-            }
+            } */}
 
 
 

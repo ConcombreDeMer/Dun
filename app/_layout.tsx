@@ -1,9 +1,10 @@
 import { Session } from "@supabase/supabase-js";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
-import { Stack, usePathname, useRouter } from "expo-router";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider as NavigationThemeProvider, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useMemo, useState } from "react";
+import { Appearance } from "react-native";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FontProvider } from "../lib/FontContext";
 import { I18nProvider, useAppTranslation, useI18nReady } from "../lib/i18n";
@@ -32,7 +33,7 @@ const getQueryClient = () => {
 };
 
 function RootLayoutContent() {
-  const { colors, isLoading } = useTheme();
+  const { colors, actualTheme, isLoading } = useTheme();
   const { t } = useAppTranslation();
   const isI18nReady = useI18nReady();
   const router = useRouter();
@@ -49,6 +50,11 @@ function RootLayoutContent() {
   });
 
   const queryClient = useMemo(() => getQueryClient(), []);
+  const navigationTheme = actualTheme === "dark" ? DarkTheme : DefaultTheme;
+
+  useEffect(() => {
+    Appearance.setColorScheme(actualTheme);
+  }, [actualTheme]);
 
   // Détection du premier lancement quotidien (seulement si l'utilisateur est bien connecté)
 
@@ -167,78 +173,80 @@ function RootLayoutContent() {
       >
 
       </View> */}
-        <Stack
-          screenOptions={{
-            headerStyle: {
-              backgroundColor: colors.background,
-            },
-            headerTintColor: colors.text,
-            headerTitleStyle: {
-              fontWeight: "bold",
-              fontSize: 18,
-              color: colors.text,
-            },
-            headerShown: false,
-          }}
-        >
-          <Stack.Screen
-            name="index"
-            options={{
+        <NavigationThemeProvider value={navigationTheme}>
+          <Stack
+            screenOptions={{
+              headerStyle: {
+                backgroundColor: colors.background,
+              },
+              headerTintColor: colors.text,
+              headerTitleStyle: {
+                fontWeight: "bold",
+                fontSize: 18,
+                color: colors.text,
+              },
               headerShown: false,
             }}
-          />
-          <Stack.Screen
-            name="(tabs)"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="onboarding"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="auth/callback"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="settings"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="stats"
-            options={{
-              headerShown: false,
-              presentation: "modal",
-              animation: "slide_from_bottom",
-              animationDuration: 200,
-            }}
-          />
-          <Stack.Screen
-            name="daily"
-            options={{
-              title: t("navigation.daily"),
-              presentation: "fullScreenModal",
-              headerShown: false,
-              animation: "fade",
-            }}
-          />
-          <Stack.Screen
-            name="rest"
-            options={{
-              title: t("navigation.rest"),
-              presentation: "fullScreenModal",
-              headerShown: false,
-              animation: "slide_from_bottom",
-            }}
-          />
-        </Stack>
+          >
+            <Stack.Screen
+              name="index"
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="(tabs)"
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="onboarding"
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="auth/callback"
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="settings"
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="stats"
+              options={{
+                headerShown: false,
+                presentation: "modal",
+                animation: "slide_from_bottom",
+                animationDuration: 200,
+              }}
+            />
+            <Stack.Screen
+              name="daily"
+              options={{
+                title: t("navigation.daily"),
+                presentation: "fullScreenModal",
+                headerShown: false,
+                animation: "fade",
+              }}
+            />
+            <Stack.Screen
+              name="rest"
+              options={{
+                title: t("navigation.rest"),
+                presentation: "fullScreenModal",
+                headerShown: false,
+                animation: "slide_from_bottom",
+              }}
+            />
+          </Stack>
+        </NavigationThemeProvider>
       </SubscriptionProvider>
     </QueryClientProvider>
   );

@@ -6,6 +6,7 @@ import Squircle from "@/components/Squircle";
 import SwitchItem from "@/components/switchItem";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
+import { getCharacterImageSource } from "@/lib/imageHelper";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
 import * as Haptics from 'expo-haptics';
@@ -26,7 +27,7 @@ import Purchases from "react-native-purchases";
 
 export default function Settings() {
     const router = useRouter();
-    const { theme, toggleTheme, colors } = useTheme();
+    const { theme, toggleTheme, colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
     const { t } = useAppTranslation();
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -343,7 +344,7 @@ export default function Settings() {
 
 
                             <Image
-                                source={require("@/assets/images/character/16.png")}
+                                source={getCharacterImageSource('16', actualTheme)}
                                 style={{
                                     height: '90%',
                                     aspectRatio: 1,
@@ -370,7 +371,7 @@ export default function Settings() {
 
                         <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%' }}>
                             <Image
-                                source={require('@/assets/images/character/19.png')}
+                                source={getCharacterImageSource('19', actualTheme)}
                                 style={{ width: 120, height: 120 }}
                                 resizeMode="contain"
                             />

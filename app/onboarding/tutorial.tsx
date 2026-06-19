@@ -7,11 +7,12 @@ import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Animated, Easing, InputAccessoryView, Keyboard, Text, TextInput, View } from "react-native";
 import { useAppTranslation } from "../../lib/i18n";
+import { getCharacterImageSource } from "../../lib/imageHelper";
 import { useTheme } from "../../lib/ThemeContext";
 
 
 export default function Tutorial() {
-    const { colors } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { t } = useAppTranslation();
     const router = useRouter();
     const simpleInputRef = useRef<TextInput>(null);
@@ -118,37 +119,37 @@ export default function Tutorial() {
         {
             page: '0',
             text: '',
-            image: require('../../assets/images/character/10.png'),
+            image: getCharacterImageSource('10', actualTheme),
         },
         {
             page: '1',
             text: t("onboarding.tutorial.pages.1"),
-            image: require('../../assets/images/character/10.png'),
+            image: getCharacterImageSource('10', actualTheme),
         },
         {
             page: '2',
             text: t("onboarding.tutorial.pages.2"),
-            image: require('../../assets/images/character/10.png'),
+            image: getCharacterImageSource('10', actualTheme),
         },
         {
             page: '3',
             text: t("onboarding.tutorial.pages.3"),
-            image: require('../../assets/images/character/11.png'),
+            image: getCharacterImageSource('11', actualTheme),
         },
         {
             page: '4',
             text: t("onboarding.tutorial.pages.4"),
-            image: require('../../assets/images/character/2.png'),
+            image: getCharacterImageSource('2', actualTheme),
         },
         {
             page: '5',
             text: t("onboarding.tutorial.pages.5"),
-            image: require('../../assets/images/character/12.png'),
+            image: getCharacterImageSource('12', actualTheme),
         },
         {
             page: '6',
             text: t("onboarding.tutorial.pages.6"),
-            image: require('../../assets/images/character/13.png'),
+            image: getCharacterImageSource('13', actualTheme),
         },
     ];
 
@@ -265,7 +266,7 @@ export default function Tutorial() {
                     />
 
                     <Image
-                        source={require('../../assets/images/character/0.png')}
+                        source={getCharacterImageSource('0', actualTheme)}
                         style={{ width: 200, height: 50 }}
                         contentFit="contain"
                     />

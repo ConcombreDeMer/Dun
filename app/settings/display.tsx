@@ -1,5 +1,6 @@
 import Headline from "@/components/headline";
 import SecondaryButton from "@/components/secondaryButton";
+import SelectionCheckmark from "@/components/SelectionCheckmark";
 import { useFont, type FontSize } from "@/lib/FontContext";
 import { AppLanguage, useAppTranslation } from "@/lib/i18n";
 import { useSubscription } from "@/lib/subscription";
@@ -48,8 +49,6 @@ export default function Display() {
     const renderThemePreviewBox = (previewTheme: 'light' | 'dark' | 'system', title: string) => {
         const isActive = theme === previewTheme;
         const colors_temp = previewTheme === 'light' ? { bg: '#ffffff', text: '#000000' } : previewTheme === 'dark' ? { bg: '#1a1a1a', text: '#ffffff' } : { bg: '#e6e6e6', text: '#3d3d3d' };
-        const borderColor = isActive ? colors.text : colors.border;
-        const borderWidth = isActive ? 2 : 1;
 
         return (
             <SquircleButton
@@ -57,8 +56,8 @@ export default function Display() {
                     styles.themePreview,
                     {
                         backgroundColor: colors_temp.bg,
-                        borderColor,
-                        borderWidth,
+                        borderColor: isActive ? colors.text : colors.border,
+                        borderWidth: isActive ? 0.5 : 0,
                     },
                 ]}
                 onPress={() => {
@@ -106,9 +105,7 @@ export default function Display() {
                     </Text>
                 </View>
                 {isActive && (
-                    <View style={[styles.checkmark, { backgroundColor: colors.text }]}>
-                        <Text style={[styles.checkmarkIcon, { color: colors.background }]}>✓</Text>
-                    </View>
+                    <SelectionCheckmark />
                 )}
             </SquircleButton>
         );
@@ -127,18 +124,21 @@ export default function Display() {
                 style={[
                     styles.optionButton,
                     {
-                        backgroundColor: isActive ? colors.button : colors.card,
-                        borderColor: isActive ? colors.button : colors.border,
-                        borderWidth: 1,
+                        backgroundColor: colors.card,
+                        borderColor: isActive ? colors.text : colors.border,
+                        borderWidth: isActive ? 0.5 : 0,
                     },
                 ]}
                 onPress={() => setFontSize(size)}
             >
+                {isActive ? (
+                    <SelectionCheckmark />
+                ) : null}
                 <Text
                     style={[
                         styles.optionLabel,
                         {
-                            color: isActive ? colors.buttonText : colors.text,
+                            color: colors.text,
                             fontSize: sizeMap[size],
                         },
                     ]}
@@ -157,18 +157,21 @@ export default function Display() {
                 style={[
                     styles.languageButton,
                     {
-                        backgroundColor: isActive ? colors.button : colors.card,
-                        borderColor: isActive ? colors.button : colors.border,
-                        borderWidth: 1,
+                        backgroundColor: colors.card,
+                        borderColor: isActive ? colors.text : colors.border,
+                        borderWidth: isActive ? 0.5 : 0,
                     },
                 ]}
                 onPress={() => setLanguage(value)}
             >
+                {isActive ? (
+                    <SelectionCheckmark />
+                ) : null}
                 <Text
                     style={[
                         styles.languageLabel,
                         {
-                            color: isActive ? colors.buttonText : colors.text,
+                            color: colors.text,
                             fontSize: fontSizes.base,
                         },
                     ]}
@@ -220,6 +223,9 @@ export default function Display() {
                         <SymbolView name="plus" size={15} weight="bold" tintColor="#2C2405" />
                     </View>
                 ) : null}
+                {isActive ? (
+                    <SelectionCheckmark />
+                ) : null}
                 <View style={styles.progressOptionHeader}>
                     <View style={styles.progressMockupFrame}>
                         <Image
@@ -228,11 +234,6 @@ export default function Display() {
                             resizeMode="contain"
                         />
                     </View>
-                    {isActive ? (
-                        <View style={[styles.progressCheckmark, { backgroundColor: colors.text }]}>
-                            <Text style={[styles.progressCheckmarkIcon, { color: colors.background }]}>✓</Text>
-                        </View>
-                    ) : null}
                 </View>
                 <Text
                     style={[
@@ -531,6 +532,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         gap: 16,
+        position: "relative",
     },
 
     colorRowTitle: {
@@ -590,41 +592,8 @@ const styles = StyleSheet.create({
         textAlign: "center",
     },
 
-    progressCheckmark: {
-        position: "absolute",
-        top: 0,
-        right: 0,
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-
-    progressCheckmarkIcon: {
-        fontWeight: "bold",
-        fontSize: 13,
-    },
-
     errorText: {
         fontFamily: "Satoshi-Medium",
-    },
-
-    checkmark: {
-        position: "absolute",
-        top: 8,
-        right: 8,
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: "#000",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-
-    checkmarkIcon: {
-        color: "#fff",
-        fontWeight: "bold",
     },
 
     optionGroup: {
@@ -641,6 +610,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         paddingHorizontal: 16,
+        position: "relative",
     },
     languageLabel: {
         fontFamily: "Satoshi-Medium",
@@ -654,6 +624,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         height: 50,
+        position: "relative",
     },
 
     optionLabel: {

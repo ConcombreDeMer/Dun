@@ -25,6 +25,7 @@ import {
 } from "react-native";
 import Animated, { FadeInUp, FadeOutUp, SlideInDown, SlideOutDown, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useFont } from "@/lib/FontContext";
+import { getCharacterImageSource } from "@/lib/imageHelper";
 import { useAppTranslation } from "@/lib/i18n";
 import { deleteUserAccount, supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
@@ -38,7 +39,7 @@ interface UserData {
 
 export default function Account() {
     const router = useRouter();
-    const { theme, colors } = useTheme();
+    const { theme, colors, actualTheme } = useTheme();
     const { t } = useAppTranslation();
     const [isLoading, setIsLoading] = useState(true);
     const [isDeletingAccount, setIsDeletingAccount] = useState(false);
@@ -508,7 +509,7 @@ export default function Account() {
                                     }}
                                 >
                                     <Image
-                                        source={require('@/assets/images/character/7.png')}
+                                        source={getCharacterImageSource('7', actualTheme)}
                                         style={{ width: 120, height: 120 }}
                                         resizeMode="contain"
                                     />
@@ -576,7 +577,7 @@ export default function Account() {
                                         />
                                     </View>
                                     <Image
-                                        source={require('@/assets/images/character/8.png')}
+                                        source={getCharacterImageSource('8', actualTheme)}
                                         style={{ width: 120, height: 120 }}
                                         resizeMode="contain"
                                     />
@@ -641,7 +642,7 @@ export default function Account() {
                                         />
                                     </View>
                                     <Image
-                                        source={require('@/assets/images/character/6.png')}
+                                        source={getCharacterImageSource('6', actualTheme)}
                                         style={{ width: 150, height: 150 }}
                                         resizeMode="contain"
                                     />
@@ -699,7 +700,7 @@ export default function Account() {
                             <Animated.View style={[{ display: 'flex', gap: 20, alignItems: 'center', width: '90%', height: '100%', justifyContent: 'space-between', position: 'absolute' }, passPage1AnimatedStyle]}>
                                 <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%' }}>
                                     <Image
-                                        source={require('@/assets/images/character/7.png')}
+                                        source={getCharacterImageSource('7', actualTheme)}
                                         style={{ width: 120, height: 120 }}
                                         resizeMode="contain"
                                     />
@@ -731,7 +732,7 @@ export default function Account() {
                             <Animated.View style={[{ display: 'flex', gap: 20, alignItems: 'center', width: '90%', height: 400, justifyContent: 'space-around', position: 'absolute' }, passPage2AnimatedStyle]}>
                                 <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%' }}>
                                     <Image
-                                        source={require('@/assets/images/character/6.png')}
+                                        source={getCharacterImageSource('6', actualTheme)}
                                         style={{ width: 150, height: 150 }}
                                         resizeMode="contain"
                                     />

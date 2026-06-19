@@ -1,4 +1,5 @@
 import PopUpContainer from '@/components/popUpContainer';
+import { getCharacterImageSource } from '@/lib/imageHelper';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
@@ -15,7 +16,7 @@ import { useTheme } from '../lib/ThemeContext';
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function RestScreen() {
-    const { colors } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
     const { t, language } = useAppTranslation();
     const router = useRouter();
@@ -92,7 +93,7 @@ export default function RestScreen() {
                     {/* Illustration */}
                     <View style={styles.imageContainer}>
                         <Image
-                            source={require('@/assets/images/character/19.png')}
+                            source={getCharacterImageSource('19', actualTheme)}
                             style={styles.image}
                             resizeMode="contain"
                         />
@@ -204,7 +205,7 @@ export default function RestScreen() {
 
                         <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%' }}>
                             <Image
-                                source={require('@/assets/images/character/18.png')}
+                                source={getCharacterImageSource('18', actualTheme)}
                                 style={{ width: 120, height: 120 }}
                                 resizeMode="contain"
                             />

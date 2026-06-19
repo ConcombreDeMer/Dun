@@ -1,7 +1,7 @@
 import PrimaryButton from '@/components/primaryButton';
 import SimpleInput from '@/components/textInput';
 import { useFont } from '@/lib/FontContext';
-import { getImageSource } from '@/lib/imageHelper';
+import { getCharacterImageSource, getImageSource } from '@/lib/imageHelper';
 import * as Haptics from "expo-haptics";
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -293,7 +293,7 @@ export default function Register() {
               exiting={FadeOutDown.springify().duration(500)}
             >
               <Image
-                source={require('@/assets/images/character/8.png')}
+                source={getCharacterImageSource('8', actualTheme)}
                 style={styles.characterImage}
                 resizeMode="contain"
               />
@@ -346,7 +346,7 @@ export default function Register() {
               exiting={FadeOutDown.springify().duration(500)}
             >
               <Image
-                source={require('@/assets/images/character/7.png')}
+                source={getCharacterImageSource('7', actualTheme)}
                 style={styles.characterImage}
                 resizeMode="contain"
               />

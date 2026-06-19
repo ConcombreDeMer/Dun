@@ -1,5 +1,6 @@
 import Headline from "@/components/headline";
 import SecondaryButton from "@/components/secondaryButton";
+import SelectionCheckmark from "@/components/SelectionCheckmark";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
@@ -49,7 +50,7 @@ export default function ColorSettings() {
                                 {
                                     backgroundColor: previewColors.card,
                                     borderColor: isActive ? colors.text : colors.border,
-                                    borderWidth: isActive ? 2 : 1,
+                                    borderWidth: isActive ? 0.5 : 0,
                                 },
                             ]}
                             onPress={() => {
@@ -66,6 +67,9 @@ export default function ColorSettings() {
                                     <SymbolView name="plus" size={15} weight="bold" tintColor="#2C2405" />
                                 </View>
                             )}
+                            {isActive ? (
+                                <SelectionCheckmark />
+                            ) : null}
                             <View
                                 style={[
                                     styles.preview,
@@ -116,12 +120,6 @@ export default function ColorSettings() {
                                         {t(option.descriptionKey)}
                                     </Text>
                                 </View>
-
-                                {isActive && (
-                                    <View style={styles.checkmark}>
-                                        <Text style={styles.checkmarkIcon}>✓</Text>
-                                    </View>
-                                )}
                             </View>
                         </SquircleButton>
                     );
@@ -228,17 +226,4 @@ const styles = StyleSheet.create({
         fontFamily: "Satoshi-Regular",
     },
 
-    checkmark: {
-        width: 28,
-        height: 28,
-        borderRadius: 999,
-        backgroundColor: "#000",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-
-    checkmarkIcon: {
-        color: "#fff",
-        fontWeight: "bold",
-    },
 });

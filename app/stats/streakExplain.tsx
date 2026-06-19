@@ -1,10 +1,31 @@
 import { useTheme } from '@/lib/ThemeContext';
 import { useAppTranslation } from '@/lib/i18n';
-import { useRouter } from 'expo-router';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+const mixHexColors = (from: string, to: string, amount: number) => {
+    const parseHex = (hex: string) => {
+        const cleanHex = hex.replace('#', '').slice(0, 6);
+        const value = parseInt(cleanHex, 16);
+
+        return {
+            r: (value >> 16) & 255,
+            g: (value >> 8) & 255,
+            b: value & 255,
+        };
+    };
+
+    const fromRgb = parseHex(from);
+    const toRgb = parseHex(to);
+    const mixed = {
+        r: Math.round(fromRgb.r + (toRgb.r - fromRgb.r) * amount),
+        g: Math.round(fromRgb.g + (toRgb.g - fromRgb.g) * amount),
+        b: Math.round(fromRgb.b + (toRgb.b - fromRgb.b) * amount),
+    };
+
+    return `#${mixed.r.toString(16).padStart(2, '0')}${mixed.g.toString(16).padStart(2, '0')}${mixed.b.toString(16).padStart(2, '0')}`;
+};
+
 export default function StreakExplain() {
-    const router = useRouter();
     const { colors } = useTheme();
     const { t } = useAppTranslation();
     const bullets = t('stats.streakExplain.bullets', { returnObjects: true }) as string[];
@@ -15,23 +36,32 @@ export default function StreakExplain() {
 
     const dynamicStyles = {
         container: {
-            backgroundColor: colors.background,
+            backgroundColor: colors.card,
         },
         header: {
-            backgroundColor: colors.background,
+            backgroundColor: colors.card,
         },
         card: {
-            backgroundColor: colors.card,
+            backgroundColor: mixHexColors(colors.background, colors.card, 0.45),
             borderColor: colors.border,
         },
         text: {
             color: colors.text,
         },
         textSecondary: {
-            color: colors.textSecondary,
+            color: mixHexColors(colors.textSecondary, colors.text, 0.45),
+        },
+        surface: {
+            backgroundColor: mixHexColors(colors.background, colors.card, 0.32),
         },
         bullet: {
             borderColor: colors.border,
+        },
+        handler: {
+            backgroundColor: colors.border,
+        },
+        divider: {
+            borderTopColor: colors.border,
         },
     };
 
@@ -39,9 +69,7 @@ export default function StreakExplain() {
         <ScrollView style={[styles.container, dynamicStyles.container]}>
             {/* Header */}
             <View style={[styles.header, dynamicStyles.header]}>
-                <View
-                    style={styles.handler}
-                ></View>
+                <View style={[styles.handler, dynamicStyles.handler]} />
                 
                 <View style={styles.headerContent}>
                     <Image
@@ -73,7 +101,7 @@ export default function StreakExplain() {
             <View style={[styles.card, dynamicStyles.card]}>
                 <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.streakExplain.conditionsTitle')}</Text>
                 {conditions.map((condition, index) => (
-                    <View style={styles.conditionBox} key={condition.title}>
+                    <View style={[styles.conditionBox, dynamicStyles.surface]} key={condition.title}>
                         <Text style={[styles.conditionNumber, dynamicStyles.text]}>{index + 1}</Text>
                         <View style={styles.conditionContent}>
                             <Text style={[styles.conditionTitle, dynamicStyles.text]}>{condition.title}</Text>
@@ -86,13 +114,13 @@ export default function StreakExplain() {
             {/* Example */}
             <View style={[styles.card, dynamicStyles.card]}>
                 <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.streakExplain.exampleTitle')}</Text>
-                <View style={styles.exampleBox}>
+                <View style={[styles.exampleBox, dynamicStyles.surface]}>
                     {exampleSuccess.map((line) => (
                         <Text key={line} style={[styles.exampleLabel, dynamicStyles.text]}>{line}</Text>
                     ))}
                 </View>
 
-                <View style={styles.exampleBox}>
+                <View style={[styles.exampleBox, dynamicStyles.surface]}>
                     {exampleFail.map((line, index) => (
                         <Text key={line} style={index === 2 ? [styles.exampleLabelFail, dynamicStyles.textSecondary] : [styles.exampleLabel, dynamicStyles.text]}>{line}</Text>
                     ))}
@@ -103,7 +131,7 @@ export default function StreakExplain() {
             <View style={[styles.card, dynamicStyles.card]}>
                 <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.streakExplain.tipsTitle')}</Text>
                 {tips.map((tip) => (
-                    <View style={styles.tipBox} key={tip.title}>
+                    <View style={[styles.tipBox, dynamicStyles.surface]} key={tip.title}>
                         <Text style={[styles.tipTitle, dynamicStyles.text]}>{tip.title}</Text>
                         <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>{tip.description}</Text>
                     </View>
@@ -137,7 +165,6 @@ const styles = StyleSheet.create({
         width: 40,
         height: 5,
         borderRadius: 3,
-        backgroundColor: 'rgba(0, 0, 0, 0.1)',
         position: 'absolute',
         top: 10,
     },
@@ -218,7 +245,6 @@ const styles = StyleSheet.create({
     /* Condition Boxes */
     conditionBox: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 16,
         padding: 15,
         marginBottom: 12,
@@ -250,7 +276,6 @@ const styles = StyleSheet.create({
 
     /* Example Boxes */
     exampleBox: {
-        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 16,
         padding: 15,
         marginBottom: 15,
@@ -275,12 +300,10 @@ const styles = StyleSheet.create({
         marginTop: 5,
         paddingTop: 8,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(0, 0, 0, 0.1)',
     },
 
     /* Tip Boxes */
     tipBox: {
-        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 16,
         padding: 15,
         marginBottom: 12,

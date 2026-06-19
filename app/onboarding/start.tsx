@@ -20,13 +20,14 @@ import Animated, {
     withSpring
 } from 'react-native-reanimated';
 import { useAppTranslation } from '../../lib/i18n';
+import { getCharacterImageSource } from '../../lib/imageHelper';
 import { useTheme } from '../../lib/ThemeContext';
 import { supabase } from '../../lib/supabase';
 
 
 export default function StartScreen() {
     const router = useRouter();
-    const { colors, theme } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { t } = useAppTranslation();
     const styles = createStyles(colors);
     const LottieView = require("lottie-react-native").default;
@@ -174,7 +175,7 @@ export default function StartScreen() {
                     exiting={FadeOutDown.springify().duration(500)}
                 >
                     <Image
-                        source={require('@/assets/images/character/1.png')}
+                        source={getCharacterImageSource('1', actualTheme)}
                         style={styles.characterImage}
                         resizeMode="contain"
                     />
@@ -186,7 +187,7 @@ export default function StartScreen() {
                     exiting={FadeOutDown.springify().duration(500)}
                 >
                     <Image
-                        source={require('@/assets/images/character/0.png')}
+                        source={getCharacterImageSource('0', actualTheme)}
                         style={styles.characterImage}
                         resizeMode="contain"
                     />

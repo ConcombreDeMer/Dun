@@ -87,8 +87,9 @@ const TextCalendarDay = memo(({
     taskInfo?: TaskIndicatorState;
     onPress: () => void;
 }) => {
-    const { colors } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
+    const outsideMonthColor = actualTheme === 'dark' ? 'rgba(255, 255, 255, 0.56)' : colors.textSecondary;
 
     return (
         <Pressable
@@ -107,10 +108,10 @@ const TextCalendarDay = memo(({
                         color: isSelected
                             ? colors.background
                             : isOutsideMonth
-                                ? colors.textSecondary
+                                ? outsideMonthColor
                                 : colors.text,
                         fontSize: fontSizes.sm,
-                        opacity: isOutsideMonth && !isSelected ? 0.45 : 1,
+                        opacity: isOutsideMonth && !isSelected && actualTheme !== 'dark' ? 0.45 : 1,
                     },
                 ]}
             >
@@ -140,7 +141,7 @@ export default function TextCalendarComponent({
     initialDate,
     onExpandedChange,
 }: TextCalendarProps) {
-    const { colors, theme } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
     const { t, language } = useAppTranslation();
     const locale = language === "en" ? "en-US" : "fr-FR";
@@ -356,7 +357,7 @@ export default function TextCalendarComponent({
         transform: [{ scale: interpolate(pressProgress.value, [0, 1], [1, 0.985]) }],
     }));
 
-    const isDark = theme === "dark";
+    const isDark = actualTheme === "dark";
     const panelColor = isDark ? colors.card : "rgba(255, 255, 255, 0.62)";
     const mutedSurface = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.045)";
 

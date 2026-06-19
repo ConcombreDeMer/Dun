@@ -1,7 +1,9 @@
 import Squircle from "@/components/Squircle";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
+import { getCharacterImageSource } from "@/lib/imageHelper";
 import { useSubscription } from "@/lib/subscription";
+import { useTheme } from "@/lib/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
@@ -19,6 +21,7 @@ import {
 
 export default function Premium() {
     const router = useRouter();
+    const { actualTheme } = useTheme();
     const { fontSizes } = useFont();
     const { t } = useAppTranslation();
     const [selectedPlan, setSelectedPlan] = useState<'annual' | 'monthly'>('annual');
@@ -116,7 +119,7 @@ export default function Premium() {
 
                 <View style={styles.characterContainer}>
                     <Image
-                        source={require('@/assets/images/character/16.png')}
+                        source={getCharacterImageSource('16', actualTheme)}
                         style={styles.characterImage}
                         resizeMode="contain"
                     />

@@ -10,6 +10,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { useAppTranslation } from "@/lib/i18n";
 import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "@/lib/notificationService";
 import { supabase } from "@/lib/supabase";
+import { useTheme } from "@/lib/ThemeContext";
 import { useStore } from "@/store/store";
 
 
@@ -18,6 +19,7 @@ export default function NotificationsSettings() {
     const store = useStore();
     const router = useRouter();
     const { t } = useAppTranslation();
+    const { colors } = useTheme();
     const [isLoading, setIsLoading] = useState(true);
 
 
@@ -157,7 +159,7 @@ export default function NotificationsSettings() {
     return (
 
         <View
-            style={styles.container}
+            style={[styles.container, { backgroundColor: colors.background }]}
         >
             <View
                 style={{
@@ -180,7 +182,7 @@ export default function NotificationsSettings() {
                 style={{
                     paddingHorizontal: 20,
                     paddingBottom: 15,
-                    backgroundColor: "#ffffff",
+                    backgroundColor: colors.card,
                     borderRadius: 20,
                     width: '90%',
                     alignSelf: 'center',
@@ -202,7 +204,7 @@ export default function NotificationsSettings() {
                         preserveSmoothing={true} // false matches figma, true has more rounding
                         style={{
                             width: '100%',
-                            backgroundColor: "#F5F5F5",
+                            backgroundColor: colors.input,
                             borderRadius: 15,
                             paddingVertical: 8,
                             paddingLeft: 24,
@@ -215,7 +217,7 @@ export default function NotificationsSettings() {
                         }}
                     >
                         <Text
-                            style={{ color: "#333", fontSize: 16, fontFamily: 'Satoshi-Regular' }}
+                            style={{ color: colors.text, fontSize: 16, fontFamily: 'Satoshi-Regular' }}
                         >
                             {t("settings.notifications.time")}
                         </Text>
@@ -237,7 +239,7 @@ export default function NotificationsSettings() {
                                 inputWidth={80}
                                 style={{ textAlign: 'center' }}
                             />
-                            <Text>
+                            <Text style={{ color: colors.text }}>
                                 :
                             </Text>
                             <SimpleInput
@@ -262,7 +264,7 @@ export default function NotificationsSettings() {
                 style={{
                     paddingHorizontal: 20,
                     paddingBottom: 15,
-                    backgroundColor: "#ffffff",
+                    backgroundColor: colors.card,
                     borderRadius: 20,
                     width: '90%',
                     alignSelf: 'center',
@@ -283,7 +285,7 @@ export default function NotificationsSettings() {
                         preserveSmoothing={true}
                         style={{
                             width: '100%',
-                            backgroundColor: "#F5F5F5",
+                            backgroundColor: colors.input,
                             borderRadius: 15,
                             paddingTop: 12,
                             paddingBottom: 12,
@@ -298,7 +300,7 @@ export default function NotificationsSettings() {
                             justifyContent: 'space-between',
                             marginBottom: 8,
                         }}>
-                            <Text style={{ color: "#333", fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
+                            <Text style={{ color: colors.text, fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
                                 {t("settings.notifications.delay")}
                             </Text>
 
@@ -310,7 +312,7 @@ export default function NotificationsSettings() {
                                 returnKeyType="done"
                                 isLoading={isLoading}
                                 inputWidth={120}
-                                style={{ textAlign: 'center', backgroundColor: '#e5e5e5' }}
+                                style={{ textAlign: 'center' }}
                             />
                         </View>
                         
@@ -319,7 +321,7 @@ export default function NotificationsSettings() {
                             alignItems: "center",
                             justifyContent: 'space-between',
                         }}>
-                            <Text style={{ color: "#333", fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
+                            <Text style={{ color: colors.text, fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
                                 {t("settings.notifications.repetitions")}
                             </Text>
 
@@ -331,14 +333,14 @@ export default function NotificationsSettings() {
                                 returnKeyType="done"
                                 isLoading={isLoading}
                                 inputWidth={120}
-                                style={{ textAlign: 'center', backgroundColor: '#e5e5e5' }}
+                                style={{ textAlign: 'center' }}
                             />
                         </View>
                     </SquircleView>
                 </View>
 
                 <Text style={{
-                    color: "#999999",
+                    color: colors.textSecondary,
                     fontSize: 14,
                     lineHeight: 20,
                     marginTop: 15,
@@ -353,7 +355,7 @@ export default function NotificationsSettings() {
             <SquircleView
                 style={{
                     paddingHorizontal: 20,
-                    backgroundColor: "#ffffff",
+                    backgroundColor: colors.card,
                     borderRadius: 20,
                     width: '90%',
                     alignSelf: 'center',
@@ -385,5 +387,6 @@ export default function NotificationsSettings() {
 
 const styles = StyleSheet.create({
     container: {
+        flex: 1,
     },
 });

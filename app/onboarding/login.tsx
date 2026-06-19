@@ -20,13 +20,14 @@ import Animated, {
     FadeOutDown
 } from 'react-native-reanimated';
 import { useAppTranslation } from '../../lib/i18n';
+import { getCharacterImageSource } from '../../lib/imageHelper';
 import { useTheme } from '../../lib/ThemeContext';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../store/store';
 
 export default function LoginScreen() {
     const router = useRouter();
-    const { colors, theme } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { t } = useAppTranslation();
 
     const [email, setEmail] = useState('');
@@ -238,7 +239,7 @@ export default function LoginScreen() {
                         height: "100%",
                         alignSelf: 'center',
                     }}
-                    source={require('../../assets/images/character/3.png')}
+                    source={getCharacterImageSource('3', actualTheme)}
                     contentFit="contain"
                 />
             </Animated.View>

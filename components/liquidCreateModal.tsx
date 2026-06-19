@@ -46,12 +46,17 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
   const hasFocusedInputRef = useRef(false);
   const shouldOpenDetailsAfterDismissRef = useRef(false);
   const successResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { colors } = useTheme();
+  const { colors, actualTheme } = useTheme();
   const { fontSizes } = React.useContext(FontContext)!;
   const { t } = useAppTranslation();
   const { createTaskOptimistically } = useOptimisticTaskMutations();
   const selectedDate = useStore((state) => state.selectedDate) || new Date();
   const selectedDateKey = toAppDateKey(selectedDate);
+  const createActionGradientColors =
+    actualTheme === "dark"
+      ? (["rgba(255, 255, 255, 0.92)", "rgba(255, 255, 255, 0.68)"] as const)
+      : (["#484848", "#171717"] as const);
+  const createActionContentColor = actualTheme === "dark" ? "#181818" : colors.buttonText;
 
   const requestClose = React.useCallback(() => {
     if (didRequestCloseRef.current) {
@@ -382,7 +387,7 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
                     style={styles.createAction}
                   >
                     <LinearGradient
-                      colors={["#484848", "#171717"]}
+                      colors={createActionGradientColors}
                       end={{ x: 1, y: 1 }}
                       start={{ x: 0, y: 0 }}
                       style={StyleSheet.absoluteFill}
@@ -403,10 +408,10 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
                         createDefaultContentStyle,
                       ]}
                     >
-                      <Text style={[styles.createText, { color: colors.buttonText, fontSize: fontSizes.base }]}>
+                      <Text style={[styles.createText, { color: createActionContentColor, fontSize: fontSizes.base }]}>
                         {t("common.actions.create")}
                       </Text>
-                      <SymbolView name="plus" size={18} tintColor={colors.buttonText} />
+                      <SymbolView name="plus" size={18} tintColor={createActionContentColor} />
                     </ReAnimated.View>
                     <ReAnimated.View
                       style={[
@@ -415,7 +420,7 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
                         createLoadingContentStyle,
                       ]}
                     >
-                      <ActivityIndicator color={colors.buttonText} size="small" />
+                      <ActivityIndicator color={createActionContentColor} size="small" />
                     </ReAnimated.View>
                     <ReAnimated.View
                       style={[
@@ -424,10 +429,10 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
                         createSuccessContentStyle,
                       ]}
                     >
-                      <Text style={[styles.createText, { color: colors.buttonText, fontSize: fontSizes.base }]}>
+                      <Text style={[styles.createText, { color: createActionContentColor, fontSize: fontSizes.base }]}>
                         {t("createModal.created")}
                       </Text>
-                      <SymbolView name="checkmark" size={18} tintColor={colors.buttonText} />
+                      <SymbolView name="checkmark" size={18} tintColor={createActionContentColor} />
                     </ReAnimated.View>
                   </Pressable>
                 </ReAnimated.View>

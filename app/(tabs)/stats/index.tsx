@@ -17,6 +17,7 @@ import {
   StatsPeriod,
   toDateKey,
 } from "@/lib/calculateStats";
+import { getStatsImageSource } from "@/lib/imageHelper";
 import { useAppTranslation } from "@/lib/i18n";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
@@ -51,7 +52,7 @@ type Slide = {
 };
 
 export default function Stats() {
-  const { colors } = useTheme();
+  const { colors, actualTheme } = useTheme();
   const { t } = useAppTranslation();
   const router = useRouter();
   const { canUseAdvancedStats } = useSubscription();
@@ -301,13 +302,13 @@ export default function Stats() {
         >
         <View style={styles.cardsRow}>
           <StatsCard
-            image={require('@/assets/images/stats/done.png')}
+            image={getStatsImageSource('done', actualTheme)}
             title={t('stats.general.cards.tasksDone')}
             value={displayedStats.totalDoneCount.toString()}
             loading={displayedLoadingState}
           />
           <StatsCard
-            image={require('@/assets/images/stats/perfect.png')}
+            image={getStatsImageSource('perfect', actualTheme)}
             title={t('stats.general.cards.perfectDays')}
             value={displayedStats.perfectDaysCount.toString()}
             loading={displayedLoadingState}
@@ -315,13 +316,13 @@ export default function Stats() {
         </View>
         <View style={styles.cardsRow}>
           <StatsCardCompletion
-            image={require('@/assets/images/stats/completion.png')}
+            image={getStatsImageSource('completion', actualTheme)}
             title={t('stats.general.cards.completion')}
             value={displayedStats.completion}
             loading={displayedLoadingState}
           />
           <StatsCardCharge
-            image={require('@/assets/images/stats/charge.png')}
+            image={getStatsImageSource('charge', actualTheme)}
             title={t('stats.general.cards.charge')}
             value={displayedStats.charge.toString()}
             loading={displayedLoadingState}

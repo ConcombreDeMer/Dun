@@ -1,5 +1,6 @@
 import { useTheme } from '@/lib/ThemeContext';
 import { useAppTranslation } from '@/lib/i18n';
+import { getStatsImageSource } from '@/lib/imageHelper';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 const mixHexColors = (from: string, to: string, amount: number) => {
@@ -26,7 +27,7 @@ const mixHexColors = (from: string, to: string, amount: number) => {
 };
 
 export default function ChargeExplain() {
-    const { colors } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { t } = useAppTranslation();
     const bullets = t('stats.chargeExplain.bullets', { returnObjects: true }) as string[];
     const levels = t('stats.chargeExplain.levels', { returnObjects: true }) as { title: string; description: string }[];
@@ -51,8 +52,17 @@ export default function ChargeExplain() {
         textSecondary: {
             color: mixHexColors(colors.textSecondary, colors.text, 0.45),
         },
+        surface: {
+            backgroundColor: mixHexColors(colors.background, colors.card, 0.32),
+        },
         bullet: {
             borderColor: colors.border,
+        },
+        handler: {
+            backgroundColor: colors.border,
+        },
+        divider: {
+            borderTopColor: colors.border,
         },
     };
 
@@ -60,13 +70,11 @@ export default function ChargeExplain() {
         <ScrollView style={[styles.container, dynamicStyles.container]}>
             {/* Header */}
             <View style={[styles.header, dynamicStyles.header]}>
-                <View
-                    style={styles.handler}
-                ></View>
+                <View style={[styles.handler, dynamicStyles.handler]} />
                 
                 <View style={styles.headerContent}>
                     <Image
-                        source={require('@/assets/images/stats/charge.png')}
+                        source={getStatsImageSource('charge', actualTheme)}
                         style={styles.headerImage}
                     />
                     <Text style={[styles.title, dynamicStyles.text]}>{t('stats.chargeExplain.title')}</Text>
@@ -95,7 +103,7 @@ export default function ChargeExplain() {
                 <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.chargeExplain.levelsTitle')}</Text>
 
                 {levels.map((level, index) => (
-                    <View style={styles.chargeBox} key={level.title}>
+                    <View style={[styles.chargeBox, dynamicStyles.surface]} key={level.title}>
                         <View style={[styles.chargeDot, { backgroundColor: ['#FF4C4C', '#ffcd6fff', '#74ca77ff'][index] }]} />
                         <View style={styles.chargeContent}>
                             <Text style={[styles.chargeLevel, dynamicStyles.text]}>{level.title}</Text>
@@ -110,7 +118,7 @@ export default function ChargeExplain() {
                 <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.chargeExplain.interpretationTitle')}</Text>
 
                 {interpretations.map((item) => (
-                    <View style={styles.interpretBox} key={item.title}>
+                    <View style={[styles.interpretBox, dynamicStyles.surface]} key={item.title}>
                         <Text style={[styles.interpretNumber, dynamicStyles.text]}>{item.emoji}</Text>
                         <View style={styles.interpretContent}>
                             <Text style={[styles.interpretTitle, dynamicStyles.text]}>{item.title}</Text>
@@ -125,9 +133,9 @@ export default function ChargeExplain() {
                 <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.chargeExplain.exampleTitle')}</Text>
                 
                 <Text style={[styles.exampleSubtitle, dynamicStyles.text]}>{t('stats.chargeExplain.exampleSubtitle')}</Text>
-                <View style={styles.exampleBox}>
+                <View style={[styles.exampleBox, dynamicStyles.surface]}>
                     {exampleLines.map((line, index) => (
-                        <Text key={line} style={index === exampleLines.length - 1 ? [styles.exampleResult, dynamicStyles.text] : [styles.exampleLabel, dynamicStyles.textSecondary]}>{line}</Text>
+                        <Text key={line} style={index === exampleLines.length - 1 ? [styles.exampleResult, dynamicStyles.text, dynamicStyles.divider] : [styles.exampleLabel, dynamicStyles.textSecondary]}>{line}</Text>
                     ))}
                 </View>
             </View>
@@ -136,7 +144,7 @@ export default function ChargeExplain() {
             <View style={[styles.card, dynamicStyles.card]}>
                 <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.chargeExplain.tipsTitle')}</Text>
                 {tips.map((tip) => (
-                    <View style={styles.tipBox} key={tip.title}>
+                    <View style={[styles.tipBox, dynamicStyles.surface]} key={tip.title}>
                         <Text style={[styles.tipTitle, dynamicStyles.text]}>{tip.title}</Text>
                         <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>{tip.description}</Text>
                     </View>
@@ -170,7 +178,6 @@ const styles = StyleSheet.create({
         width: 40,
         height: 5,
         borderRadius: 3,
-        backgroundColor: 'rgba(0, 0, 0, 0.1)',
         position: 'absolute',
         top: 10,
     },
@@ -246,7 +253,6 @@ const styles = StyleSheet.create({
     /* Charge Boxes */
     chargeBox: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 16,
         padding: 15,
         marginBottom: 12,
@@ -280,7 +286,6 @@ const styles = StyleSheet.create({
     /* Interpretation Boxes */
     interpretBox: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 16,
         padding: 15,
         marginBottom: 12,
@@ -318,7 +323,6 @@ const styles = StyleSheet.create({
     },
 
     exampleBox: {
-        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 16,
         padding: 15,
         gap: 6,
@@ -336,12 +340,10 @@ const styles = StyleSheet.create({
         marginTop: 5,
         paddingTop: 8,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(0, 0, 0, 0.1)',
     },
 
     /* Tip Boxes */
     tipBox: {
-        backgroundColor: 'rgba(0, 0, 0, 0.03)',
         borderRadius: 16,
         padding: 15,
         marginBottom: 12,
