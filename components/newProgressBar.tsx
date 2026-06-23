@@ -55,15 +55,15 @@ function NewProgressBar({
 
     const palette = useMemo(() => {
         const isDark = actualTheme === 'dark';
-        const fill = isDark ? '#7DAA76' : '#5F8F62';
-        const fillEnd = isDark ? '#5E8F63' : '#3F7448';
+        const fill = isDark ? '#42E690' : '#08E18B';
+        const fillGlow = isDark ? '#5CFFAD' : '#13F4A0';
 
         return {
             fill,
-            fillEnd,
-            track: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.09)',
-            accentSoft: isDark ? '#314539' : '#E3F4E9',
-            icon: isDark ? '#DCEED8' : '#2F6B42',
+            fillEnd: fillGlow,
+            track: isDark ? 'rgba(92, 255, 173, 0.13)' : 'rgba(8, 225, 139, 0.13)',
+            accentSoft: isDark ? 'rgba(92, 255, 173, 0.13)' : 'rgba(8, 225, 139, 0.13)',
+            icon: fill,
         };
     }, [actualTheme]);
 
@@ -264,11 +264,11 @@ function NewProgressBar({
                             pointerEvents="none"
                             style={[
                                 styles.glowFill,
-                                { backgroundColor: palette.fill, shadowColor: palette.fillEnd},
+                                { backgroundColor: palette.fill, shadowColor: palette.fillEnd },
                                 glowFillStyle,
                             ]}
                         />
-                        <View style={[styles.track, { backgroundColor: palette.track }]}>
+                        <View style={[styles.track, { backgroundColor: colors.checkbox }]}>
                             <Animated.View
                                 style={[
                                     styles.fill,
@@ -322,14 +322,14 @@ function NewProgressBar({
                                 </Text>
                             </View>
 
-                            <View style={styles.divider} />
+                            {/* <View style={styles.divider} /> */}
 
-                            <Text
+                            {/* <Text
                                 numberOfLines={1}
                                 style={[styles.statusText, { color: colors.textSecondary, fontSize: fontSizes.base }]}
                             >
                                 {dayStatus}
-                            </Text>
+                            </Text> */}
                         </View>
                     </View>
                 </Animated.View>

@@ -217,36 +217,30 @@ export default function TagsSettings() {
           </Squircle>
         ))}
 
-        {!isLoading ? (
+        {!isLoading && !isPremium ? (
           <View style={styles.limitSection}>
             <View style={styles.limitHeader}>
               <Text style={[styles.limitLabel, { color: colors.text, fontSize: fontSizes.base }]}>
-                {isPremium
-                  ? t("tags.limit.premium")
-                  : t("tags.limit.counter", { count: Math.min(tags.length, FREE_TAG_LIMIT), limit: FREE_TAG_LIMIT })}
+                {t("tags.limit.counter", { count: Math.min(tags.length, FREE_TAG_LIMIT), limit: FREE_TAG_LIMIT })}
               </Text>
-              {!isPremium ? (
-                <View style={[styles.limitBadge, { backgroundColor: isTagLimitReached ? "#F4BA00" : colors.card, borderColor: colors.border }]}>
-                  <Text style={[styles.limitBadgeText, { color: isTagLimitReached ? "#2C2405" : colors.textSecondary, fontSize: fontSizes.sm }]}>
-                    {tags.length}/{FREE_TAG_LIMIT}
-                  </Text>
-                </View>
-              ) : null}
+              <View style={[styles.limitBadge, { backgroundColor: isTagLimitReached ? "#F4BA00" : colors.card, borderColor: colors.border }]}>
+                <Text style={[styles.limitBadgeText, { color: isTagLimitReached ? "#2C2405" : colors.textSecondary, fontSize: fontSizes.sm }]}>
+                  {tags.length}/{FREE_TAG_LIMIT}
+                </Text>
+              </View>
             </View>
 
-            {!isPremium ? (
-              <View style={[styles.limitTrack, { backgroundColor: colors.border }]}>
-                <View
-                  style={[
-                    styles.limitTrackFill,
-                    {
-                      backgroundColor: isTagLimitReached ? "#F4BA00" : colors.text,
-                      width: `${Math.min(100, (tags.length / FREE_TAG_LIMIT) * 100)}%`,
-                    },
-                  ]}
-                />
-              </View>
-            ) : null}
+            <View style={[styles.limitTrack, { backgroundColor: colors.border }]}>
+              <View
+                style={[
+                  styles.limitTrackFill,
+                  {
+                    backgroundColor: isTagLimitReached ? "#F4BA00" : colors.text,
+                    width: `${Math.min(100, (tags.length / FREE_TAG_LIMIT) * 100)}%`,
+                  },
+                ]}
+              />
+            </View>
 
             {isTagLimitReached ? (
               <View style={[styles.limitNotice, { backgroundColor: colors.card, borderColor: colors.border }]}>

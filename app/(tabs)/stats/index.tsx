@@ -17,8 +17,9 @@ import {
   StatsPeriod,
   toDateKey,
 } from "@/lib/calculateStats";
-import { getStatsImageSource } from "@/lib/imageHelper";
+import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
+import { getStatsImageSource } from "@/lib/imageHelper";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { getTagUsageStats, TAG_USAGE_STATS_QUERY_KEY } from "@/lib/tags";
@@ -32,6 +33,7 @@ import { SymbolView } from "expo-symbols";
 import { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated from 'react-native-reanimated';
+
 
 interface StatsData {
   completion: string;
@@ -52,6 +54,7 @@ type Slide = {
 };
 
 export default function Stats() {
+  const { fontSizes } = useFont();
   const { colors, actualTheme } = useTheme();
   const { t } = useAppTranslation();
   const router = useRouter();
@@ -297,67 +300,67 @@ export default function Stats() {
             justifyContent: 'center',
             alignItems: 'center',
             gap: 10,
-            marginVertical: 10,
+            marginVertical: 20,
           }}
         >
-        <View style={styles.cardsRow}>
-          <StatsCard
-            image={getStatsImageSource('done', actualTheme)}
-            title={t('stats.general.cards.tasksDone')}
-            value={displayedStats.totalDoneCount.toString()}
-            loading={displayedLoadingState}
-          />
-          <StatsCard
-            image={getStatsImageSource('perfect', actualTheme)}
-            title={t('stats.general.cards.perfectDays')}
-            value={displayedStats.perfectDaysCount.toString()}
-            loading={displayedLoadingState}
-          />
-        </View>
-        <View style={styles.cardsRow}>
-          <StatsCardCompletion
-            image={getStatsImageSource('completion', actualTheme)}
-            title={t('stats.general.cards.completion')}
-            value={displayedStats.completion}
-            loading={displayedLoadingState}
-          />
-          <StatsCardCharge
-            image={getStatsImageSource('charge', actualTheme)}
-            title={t('stats.general.cards.charge')}
-            value={displayedStats.charge.toString()}
-            loading={displayedLoadingState}
-          />
-        </View>
-        <SquircleButton
-          activeOpacity={0.82}
-          cornerSmoothing={100}
-          onPress={() => router.push("/stats/adjustmentExplain")}
-          preserveSmoothing
-          style={[styles.adjustmentMetric, { backgroundColor: colors.card, borderColor: colors.border }]}
-        >
-          <View style={[styles.adjustmentIcon, { backgroundColor: colors.background }]}>
-            <SymbolView name="arrow.triangle.2.circlepath" size={23} tintColor={colors.textSecondary} />
-          </View>
-          <View style={styles.adjustmentTextGroup}>
-            <Text style={[styles.adjustmentTitle, { color: colors.text }]}>
-              {t('stats.general.cards.lateAdjustmentRate')}
-            </Text>
-            <Text style={[styles.adjustmentSubtitle, { color: colors.textSecondary }]}>
-              {t('stats.general.cards.lateAdjustmentCount', { count: displayedStats.lateAdjustedTasksCount })}
-            </Text>
-          </View>
-          {displayedLoadingState ? (
-            <Animated.Text
-              style={[styles.adjustmentValue, { color: colors.text }]}
+          <View style={styles.cardsRow}>
+            <StatsCard
+              image={getStatsImageSource('done', actualTheme)}
+              title={t('stats.general.cards.tasksDone')}
+              value={displayedStats.totalDoneCount.toString()}
+              loading={displayedLoadingState}
             />
-          ) : (
-            <Animated.Text
-              style={[styles.adjustmentValue, { color: colors.text }]}
-            >
-              {displayedStats.lateAdjustmentRate}
-            </Animated.Text>
-          )}
-        </SquircleButton>
+            <StatsCard
+              image={getStatsImageSource('perfect', actualTheme)}
+              title={t('stats.general.cards.perfectDays')}
+              value={displayedStats.perfectDaysCount.toString()}
+              loading={displayedLoadingState}
+            />
+          </View>
+          <View style={styles.cardsRow}>
+            <StatsCardCompletion
+              image={getStatsImageSource('completion', actualTheme)}
+              title={t('stats.general.cards.completion')}
+              value={displayedStats.completion}
+              loading={displayedLoadingState}
+            />
+            <StatsCardCharge
+              image={getStatsImageSource('charge', actualTheme)}
+              title={t('stats.general.cards.charge')}
+              value={displayedStats.charge.toString()}
+              loading={displayedLoadingState}
+            />
+          </View>
+          <SquircleButton
+            activeOpacity={0.82}
+            cornerSmoothing={100}
+            onPress={() => router.push("/stats/adjustmentExplain")}
+            preserveSmoothing
+            style={[styles.adjustmentMetric, { backgroundColor: colors.card, borderColor: colors.border }]}
+          >
+            <View style={[styles.adjustmentIcon, { backgroundColor: colors.background }]}>
+              <SymbolView name="arrow.triangle.2.circlepath" size={23} tintColor={colors.textSecondary} />
+            </View>
+            <View style={styles.adjustmentTextGroup}>
+              <Text style={[styles.adjustmentTitle, { color: colors.text, fontSize: fontSizes.lg }]}>
+                {t('stats.general.cards.lateAdjustmentRate')}
+              </Text>
+              <Text style={[styles.adjustmentSubtitle, { color: colors.textSecondary }]}>
+                {t('stats.general.cards.lateAdjustmentCount', { count: displayedStats.lateAdjustedTasksCount })}
+              </Text>
+            </View>
+            {displayedLoadingState ? (
+              <Animated.Text
+                style={[styles.adjustmentValue, { color: colors.text, fontSize: fontSizes['3xl'] }]}
+              />
+            ) : (
+              <Animated.Text
+                style={[styles.adjustmentValue, { color: colors.text, fontSize: fontSizes['3xl'] }]}
+              >
+                {displayedStats.lateAdjustmentRate}
+              </Animated.Text>
+            )}
+          </SquircleButton>
 
         </View>
 
@@ -443,6 +446,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     width: "90%",
+    marginTop: 20,
   },
   adjustmentIcon: {
     alignItems: "center",
@@ -456,17 +460,17 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   adjustmentTitle: {
-    fontFamily: "Satoshi-Bold",
-    fontSize: 16,
+    fontFamily: "Satoshi-Medium",
+    opacity: 0.7,
   },
   adjustmentSubtitle: {
     fontFamily: "Satoshi-Regular",
     fontSize: 12,
     marginTop: 2,
+    opacity: 0.7,
   },
   adjustmentValue: {
     fontFamily: "Satoshi-Bold",
-    fontSize: 28,
   },
   premiumStatsCard: {
     alignItems: "center",

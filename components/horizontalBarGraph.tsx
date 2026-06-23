@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     borderRadius: 30,
     borderWidth: 1,
-    marginTop: 2,
+    marginTop: 20,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },

@@ -2,9 +2,11 @@ import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, Animated as RNAnimated, StyleSheet, Text, View } from "react-native";
+import { Pressable, Animated as RNAnimated, Easing as RNEasing, StyleSheet, Text, View } from "react-native";
 import ReAnimated, {
     Easing,
+    FadeInDown,
+    FadeOutUp,
     interpolate,
     useAnimatedStyle,
     useSharedValue,
@@ -15,6 +17,7 @@ import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
+import Squircle from "./Squircle";
 
 interface TextCalendarProps {
     onDateSelect?: (date: Date) => void;
@@ -62,15 +65,17 @@ const isSameMonth = (date1: Date, date2: Date): boolean => (
 const getMonthStart = (date: Date): Date => new Date(date.getFullYear(), date.getMonth(), 1);
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
-const getReadableDate = (date: Date, locale: string) => {
-    const formatted = date.toLocaleDateString(locale, {
+const getReadableDateParts = (date: Date, locale: string) => ({
+    weekday: capitalize(date.toLocaleDateString(locale, {
         weekday: "long",
+    })),
+    day: date.toLocaleDateString(locale, {
         day: "numeric",
+    }),
+    month: capitalize(date.toLocaleDateString(locale, {
         month: "long",
-    });
-
-    return capitalize(formatted);
-};
+    })),
+});
 
 const TextCalendarDay = memo(({
     date,
@@ -87,17 +92,16 @@ const TextCalendarDay = memo(({
     taskInfo?: TaskIndicatorState;
     onPress: () => void;
 }) => {
-    const { colors, actualTheme } = useTheme();
+    const { colors } = useTheme();
     const { fontSizes } = useFont();
-    const outsideMonthColor = actualTheme === 'dark' ? 'rgba(255, 255, 255, 0.56)' : colors.textSecondary;
 
     return (
         <Pressable
             onPress={onPress}
             style={({ pressed }) => [
                 styles.dayCell,
-                isSelected && { backgroundColor: colors.text },
-                isToday && !isSelected && { borderColor: colors.text, borderWidth: 1 },
+                isSelected && { backgroundColor: colors.checkboxDone },
+                isToday && !isSelected && { borderColor: "rgba(255, 255, 255, 0.5)", borderWidth: 1 },
                 pressed && styles.dayCellPressed,
             ]}
         >
@@ -106,12 +110,12 @@ const TextCalendarDay = memo(({
                     styles.dayNumber,
                     {
                         color: isSelected
-                            ? colors.background
+                            ? colors.card
                             : isOutsideMonth
-                                ? outsideMonthColor
-                                : colors.text,
+                                ? "rgba(255, 255, 255, 0.35)"
+                                : "rgba(255, 255, 255, 0.8)",
                         fontSize: fontSizes.sm,
-                        opacity: isOutsideMonth && !isSelected && actualTheme !== 'dark' ? 0.45 : 1,
+                        fontWeight: isToday ? "bold" : "normal",
                     },
                 ]}
             >
@@ -151,9 +155,11 @@ export default function TextCalendarComponent({
     const layoutHeight = useRef(new RNAnimated.Value(0)).current;
     const onExpandedChangeRef = useRef(onExpandedChange);
     const didStartLayoutAnimationRef = useRef(false);
+    const didStartDateAnimationRef = useRef(false);
     const expandedProgress = useSharedValue(0);
     const todayProgress = useSharedValue(0);
     const pressProgress = useSharedValue(0);
+    const dateChangeProgress = useSharedValue(1);
 
     const getDays = async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -288,7 +294,10 @@ export default function TextCalendarComponent({
 
         const animation = RNAnimated.timing(layoutHeight, {
             toValue: isExpanded ? expandedHeight : 0,
-            duration: isExpanded ? 320 : 240,
+            duration: isExpanded ? 380 : 280,
+            easing: isExpanded
+                ? RNEasing.out(RNEasing.cubic)
+                : RNEasing.inOut(RNEasing.cubic),
             useNativeDriver: false,
         });
 
@@ -305,7 +314,22 @@ export default function TextCalendarComponent({
         return `${capitalize(month)} ${currentMonth.getFullYear()}`;
     }, [currentMonth, locale]);
 
-    const selectedDateLabel = useMemo(() => getReadableDate(selectedDate, locale), [locale, selectedDate]);
+    const selectedDateParts = useMemo(() => getReadableDateParts(selectedDate, locale), [locale, selectedDate]);
+    const selectedDateKey = useMemo(() => getDayKey(selectedDate), [selectedDate]);
+
+    useEffect(() => {
+        if (!didStartDateAnimationRef.current) {
+            didStartDateAnimationRef.current = true;
+            dateChangeProgress.value = 1;
+            return;
+        }
+
+        dateChangeProgress.value = 0;
+        dateChangeProgress.value = withTiming(1, {
+            duration: 220,
+            easing: Easing.out(Easing.cubic),
+        });
+    }, [dateChangeProgress, selectedDateKey]);
 
     const handleDateSelect = useCallback(async (date: Date) => {
         await Haptics.selectionAsync();
@@ -347,6 +371,14 @@ export default function TextCalendarComponent({
         transform: [{ rotate: `${interpolate(expandedProgress.value, [0, 1], [0, 180])}deg` }],
     }));
 
+    const chevronDateAnimatedStyle = useAnimatedStyle(() => ({
+        opacity: interpolate(dateChangeProgress.value, [0, 1], [0, 1]),
+        transform: [
+            { translateY: interpolate(dateChangeProgress.value, [0, 1], [8, 0]) },
+            { scale: interpolate(dateChangeProgress.value, [0, 1], [0.96, 1]) },
+        ],
+    }));
+
     const todayAnimatedStyle = useAnimatedStyle(() => ({
         width: todayProgress.value * 38,
         opacity: todayProgress.value,
@@ -358,8 +390,12 @@ export default function TextCalendarComponent({
     }));
 
     const isDark = actualTheme === "dark";
-    const panelColor = isDark ? colors.card : "rgba(255, 255, 255, 0.62)";
-    const mutedSurface = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.045)";
+    const panelColor = "#353535ff";
+    const todayButtonSurface = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.045)";
+    const expandedButtonSurface = "transparent";
+    const expandedTextColor = "white";
+    const expandedMutedTextColor = "rgba(255, 255, 255, 0.6)";
+    const expandedIconColor = "rgba(255, 255, 255, 0.7)";
 
     return (
         <View style={styles.container}>
@@ -375,15 +411,42 @@ export default function TextCalendarComponent({
                     style={styles.titlePressable}
                 >
                     <ReAnimated.View style={[styles.titleRow, titlePressAnimatedStyle]}>
-                        <Text
-                            numberOfLines={1}
-                            adjustsFontSizeToFit
-                            style={[styles.title, { color: colors.text, fontSize: fontSizes["3xl"] }]}
-                        >
-                            {selectedDateLabel}
-                        </Text>
-                        <ReAnimated.View style={[styles.chevron, chevronAnimatedStyle]}>
-                            <Feather name="chevron-down" size={22} color={colors.textSecondary} strokeWidth={2.4} />
+                        <View style={styles.dateTitle}>
+                            <ReAnimated.Text
+                                key={`weekday-${selectedDateKey}`}
+                                entering={FadeInDown.delay(70).duration(220).easing(Easing.out(Easing.cubic))}
+                                exiting={FadeOutUp.duration(140).easing(Easing.in(Easing.quad))}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                style={[styles.title, styles.titleWeekday, { color: colors.text, fontSize: fontSizes["3xl"] }]}
+                            >
+                                {selectedDateParts.weekday}
+                            </ReAnimated.Text>
+                            <ReAnimated.Text
+                                key={`day-${selectedDateKey}`}
+                                entering={FadeInDown.delay(70).duration(220).easing(Easing.out(Easing.cubic))}
+                                exiting={FadeOutUp.duration(140).easing(Easing.in(Easing.quad))}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                style={[styles.title, styles.titleDay, { color: colors.text, fontSize: fontSizes["3xl"] }]}
+                            >
+                                {selectedDateParts.day}
+                            </ReAnimated.Text>
+                            <ReAnimated.Text
+                                key={`month-${selectedDateKey}`}
+                                entering={FadeInDown.delay(70).duration(220).easing(Easing.out(Easing.cubic))}
+                                exiting={FadeOutUp.duration(140).easing(Easing.in(Easing.quad))}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                style={[styles.title, styles.titleMonth, { color: colors.text, fontSize: fontSizes["3xl"] }]}
+                            >
+                                {selectedDateParts.month}
+                            </ReAnimated.Text>
+                        </View>
+                        <ReAnimated.View style={[styles.chevron, chevronDateAnimatedStyle]}>
+                            <ReAnimated.View style={[styles.chevronIcon, chevronAnimatedStyle]}>
+                                <Feather name="chevron-down" size={22} color={colors.textSecondary} strokeWidth={2.4} />
+                            </ReAnimated.View>
                         </ReAnimated.View>
                     </ReAnimated.View>
                 </Pressable>
@@ -394,7 +457,7 @@ export default function TextCalendarComponent({
                         onPress={goToToday}
                         style={({ pressed }) => [
                             styles.todayIconButton,
-                            { backgroundColor: mutedSurface },
+                            { backgroundColor: todayButtonSurface },
                             pressed && styles.todayPillPressed,
                         ]}
                     >
@@ -408,22 +471,22 @@ export default function TextCalendarComponent({
                 style={[styles.expandedClip, { height: layoutHeight }]}
             >
                 <ReAnimated.View style={contentAnimatedStyle}>
-                    <View style={[styles.panel, { backgroundColor: panelColor, borderColor: colors.border }]}>
-                        <View style={styles.monthHeader}>
+                    <Squircle style={[styles.panel, { backgroundColor: panelColor, borderColor: "rgba(255, 255, 255, 0.2)" }]}>
+                        <View style={[styles.monthHeader, { borderBottomColor: "rgba(255, 255, 255, 0.2)" }]}>
                             <Pressable
                                 onPress={previousMonth}
-                                style={({ pressed }) => [styles.monthButton, { backgroundColor: mutedSurface }, pressed && styles.monthButtonPressed]}
+                                style={({ pressed }) => [styles.monthButton, { backgroundColor: expandedButtonSurface }, pressed && styles.monthButtonPressed]}
                             >
-                                <Feather name="chevron-left" size={18} color={colors.text} strokeWidth={2.3} />
+                                <Feather name="chevron-left" size={18} color={expandedIconColor} strokeWidth={2.3} />
                             </Pressable>
-                            <Text style={[styles.monthTitle, { color: colors.text, fontSize: fontSizes.base }]}>
+                            <Text style={[styles.monthTitle, { color: expandedTextColor, fontSize: fontSizes.base }]}>
                                 {monthTitle}
                             </Text>
                             <Pressable
                                 onPress={nextMonth}
-                                style={({ pressed }) => [styles.monthButton, { backgroundColor: mutedSurface }, pressed && styles.monthButtonPressed]}
+                                style={({ pressed }) => [styles.monthButton, { backgroundColor: expandedButtonSurface }, pressed && styles.monthButtonPressed]}
                             >
-                                <Feather name="chevron-right" size={18} color={colors.text} strokeWidth={2.3} />
+                                <Feather name="chevron-right" size={18} color={expandedIconColor} strokeWidth={2.3} />
                             </Pressable>
                         </View>
 
@@ -431,7 +494,7 @@ export default function TextCalendarComponent({
                             {weekDays.map((day, index) => (
                                 <Text
                                     key={`${day}-${index}`}
-                                    style={[styles.weekdayText, { color: colors.textSecondary, fontSize: fontSizes.xs }]}
+                                    style={[styles.weekdayText, { color: expandedMutedTextColor, fontSize: fontSizes.xs }]}
                                 >
                                     {day}
                                 </Text>
@@ -458,7 +521,7 @@ export default function TextCalendarComponent({
                                 </View>
                             ))}
                         </View>
-                    </View>
+                    </Squircle>
                 </ReAnimated.View>
             </RNAnimated.View>
         </View>
@@ -488,12 +551,33 @@ const styles = StyleSheet.create({
         maxWidth: "100%",
         minHeight: 42,
     },
+    dateTitle: {
+        alignItems: "center",
+        flexDirection: "row",
+        flexShrink: 1,
+        gap: 6,
+        minWidth: 0,
+    },
     title: {
         flexShrink: 1,
-        fontFamily: "Satoshi-Black",
         letterSpacing: 0,
     },
+    titleWeekday: {
+        fontFamily: 'Satoshi-Bold'
+    },
+    titleDay: {
+        fontFamily: 'Satoshi-Bold'
+    },
+    titleMonth: {
+        fontFamily: 'Satoshi-Bold'
+    },
     chevron: {
+        alignItems: "center",
+        height: 28,
+        justifyContent: "center",
+        width: 28,
+    },
+    chevronIcon: {
         alignItems: "center",
         height: 28,
         justifyContent: "center",
@@ -532,6 +616,7 @@ const styles = StyleSheet.create({
     },
     monthHeader: {
         alignItems: "center",
+        borderBottomWidth: 1,
         flexDirection: "row",
         height: CALENDAR_HEADER_HEIGHT,
         justifyContent: "space-between",

@@ -145,9 +145,9 @@ export const TaskItem = ({
   const itemOpacity = useSharedValue(1);
   const isSelected = selectedTaskId === item.id;
   const isHidden = selectedTaskId !== null && !isSelected;
-  const checkboxDoneBackground = actualTheme === 'dark' ? '#314539' : '#E3F4E9';
-  const checkboxDoneBorder = actualTheme === 'dark' ? '#5A9B73' : '#74BE8C';
-  const checkboxDoneIcon = actualTheme === 'dark' ? '#89BE9B' : '#4E9C68';
+  const checkboxDoneBackground = actualTheme === 'dark' ? 'rgba(92, 255, 173, 0.13)' : 'rgba(8, 225, 139, 0.13)';
+  const checkboxDoneBorder = actualTheme === 'dark' ? '#42E690' : '#08E18B';
+  const checkboxDoneIcon = actualTheme === 'dark' ? '#42E690' : '#08E18B';
   const mutedTaskColor = blendColors(colors.task, colors.background, 0.5);
   const mutedTextColor = blendColors(colors.text, colors.background, 0.5);
   const itemTagIds = item.tagIds ?? item.Task_Tags?.map((tag) => tag.tag_id) ?? [];

@@ -1,4 +1,3 @@
-import { useFont } from "@/lib/FontContext";
 import {
   CalculatedStats,
   DEFAULT_STATS_PREFERENCES,
@@ -11,12 +10,13 @@ import {
   normalizeDate,
   toDateKey,
 } from "@/lib/calculateStats";
+import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStore } from "@/store/store";
 import { useQueryClient } from "@tanstack/react-query";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptic from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -820,7 +820,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "center",
     borderRadius: 30,
-    marginTop: 2,
     overflow: "hidden",
     paddingBottom: 16,
     paddingTop: 14,

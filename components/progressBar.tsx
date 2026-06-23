@@ -1,4 +1,4 @@
-import React, { memo, useEffect } from 'react';
+import React, { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
     Easing,
@@ -14,10 +14,18 @@ type ProgressBarProps = {
 };
 
 function ProgressBar({ progress }: ProgressBarProps) {
-    const { colors } = useTheme();
+    const { actualTheme, colors } = useTheme();
     const { fontSizes } = useFont();
     const clampedProgress = Math.max(0, Math.min(100, Math.round(progress)));
     const animatedProgress = useSharedValue(clampedProgress);
+    const palette = useMemo(() => {
+        const isDark = actualTheme === 'dark';
+
+        return {
+            fill: isDark ? '#42E690' : '#08E18B',
+            track: isDark ? 'rgba(92, 255, 173, 0.13)' : 'rgba(8, 225, 139, 0.13)',
+        };
+    }, [actualTheme]);
 
     useEffect(() => {
         animatedProgress.value = withTiming(clampedProgress, {
@@ -34,11 +42,11 @@ function ProgressBar({ progress }: ProgressBarProps) {
 
     return (
         <View style={styles.root}>
-            <View style={[styles.track, { backgroundColor: colors.task, borderColor: colors.border }]}>
+            <View style={[styles.track, { backgroundColor: palette.track, borderColor: colors.border }]}>
                 <Animated.View
                     style={[
                         styles.fill,
-                        { backgroundColor: colors.text },
+                        { backgroundColor: palette.fill },
                         fillStyle,
                     ]}
                 />
