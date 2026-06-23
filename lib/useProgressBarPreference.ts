@@ -87,6 +87,7 @@ export const useProgressBarPreference = () => {
     setPreference: mutation.mutate,
     isSaving: mutation.isPending,
     isLoading: preferenceQuery.isLoading,
+    isPreferenceLoaded: preferenceQuery.data !== undefined,
     error: mutation.error ?? preferenceQuery.error,
   };
 };

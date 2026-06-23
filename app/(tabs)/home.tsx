@@ -238,7 +238,7 @@ const DayTasksPage = ({
 };
 
 type HomeCalendarProps = {
-  preference: CalendarPreference;
+  preference: CalendarPreference | null;
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
   onExpandedChange: (isExpanded: boolean) => void;
@@ -256,6 +256,10 @@ const HomeCalendar = ({
     onExpandedChange,
   };
 
+  if (!preference) {
+    return null;
+  }
+
   return preference === 2 ? (
     <TextCalendarComponent {...calendarProps} />
   ) : (
@@ -268,7 +272,7 @@ const HomeCalendar = ({
 
 type DayPageProps = DayTasksPageProps & {
   pageDateKey: string;
-  progressBarPreference: ProgressBarPreference;
+  progressBarPreference: ProgressBarPreference | null;
 };
 
 const DayPage = ({
@@ -303,29 +307,31 @@ const DayPage = ({
 
   return (
     <View style={[styles.dayPage, { width: dayTasksPageProps.dayWidth }]}>
-      <ReAnimated.View
-        pointerEvents={isTaskSelected ? "none" : "auto"}
-        style={progressBarAnimatedStyle}
-      >
-        {progressBarPreference === 1 ? (
-          <CircularProgressBar
-            progress={progressStats.progress}
-            completedTasks={progressStats.completedTasks}
-            totalTasks={progressStats.totalTasks}
-            completedTaskIds={progressStats.completedTaskIds}
-            scopeKey={pageDateKey}
-            compactProgress={compactProgress}
-          />
-        ) : (
-          <NewProgressBar
-            progress={progressStats.progress}
-            completedTasks={progressStats.completedTasks}
-            totalTasks={progressStats.totalTasks}
-            completedTaskIds={progressStats.completedTaskIds}
-            scopeKey={pageDateKey}
-          />
-        )}
-      </ReAnimated.View>
+      {progressBarPreference ? (
+        <ReAnimated.View
+          pointerEvents={isTaskSelected ? "none" : "auto"}
+          style={progressBarAnimatedStyle}
+        >
+          {progressBarPreference === 1 ? (
+            <CircularProgressBar
+              progress={progressStats.progress}
+              completedTasks={progressStats.completedTasks}
+              totalTasks={progressStats.totalTasks}
+              completedTaskIds={progressStats.completedTaskIds}
+              scopeKey={pageDateKey}
+              compactProgress={compactProgress}
+            />
+          ) : (
+            <NewProgressBar
+              progress={progressStats.progress}
+              completedTasks={progressStats.completedTasks}
+              totalTasks={progressStats.totalTasks}
+              completedTaskIds={progressStats.completedTaskIds}
+              scopeKey={pageDateKey}
+            />
+          )}
+        </ReAnimated.View>
+      ) : null}
 
       <DayTasksPage
         {...dayTasksPageProps}
@@ -358,10 +364,27 @@ export default function Home() {
     errorTitle: t("common.alerts.errorTitle"),
     errorMessage: t("common.alerts.genericError"),
   });
-  const { preference: progressBarPreference } = useProgressBarPreference();
-  const { preference: calendarPreference } = useCalendarPreference();
-  const { isPremium } = useSubscription();
-  const activeProgressBarPreference: ProgressBarPreference = isPremium ? progressBarPreference : 1;
+  const {
+    preference: progressBarPreference,
+    isLoading: isProgressBarPreferenceLoading,
+    isPreferenceLoaded: isProgressBarPreferenceLoaded,
+  } = useProgressBarPreference();
+  const {
+    preference: calendarPreference,
+    isLoading: isCalendarPreferenceLoading,
+    isPreferenceLoaded: isCalendarPreferenceLoaded,
+  } = useCalendarPreference();
+  const { isPremium, isLoading: isSubscriptionLoading } = useSubscription();
+  const activeCalendarPreference: CalendarPreference | null = isCalendarPreferenceLoading || !isCalendarPreferenceLoaded
+    ? null
+    : calendarPreference;
+  const activeProgressBarPreference: ProgressBarPreference | null = isSubscriptionLoading
+    ? null
+    : isPremium
+      ? isProgressBarPreferenceLoading || !isProgressBarPreferenceLoaded
+        ? null
+        : progressBarPreference
+      : 1;
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
   const overlayProgress = useSharedValue(0);
   const horizontalListRef = useRef<FlatList<number>>(null);
@@ -840,7 +863,7 @@ export default function Home() {
             style={headerAnimatedStyle}
           >
             <HomeCalendar
-              preference={calendarPreference}
+              preference={activeCalendarPreference}
               selectedDate={selectedDate}
               onDateSelect={(date) => changeDate(date)}
               onExpandedChange={setIsCalendarExpanded}
