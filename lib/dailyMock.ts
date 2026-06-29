@@ -14,6 +14,8 @@ export type DailyPendingTask = {
     resolved_at?: string | null;
 };
 
+export const dailyUserName = 'Lucas';
+
 export const previousDayCompletion = {
     percent: 100,
     completedTasks: 10,

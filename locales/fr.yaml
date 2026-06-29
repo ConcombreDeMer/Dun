@@ -375,7 +375,7 @@ daily:
   fallbackUser: "Utilisateur"
   morning: "Bonjour"
   intro:
-    title: "Salut Yanis !"
+    title: "Salut {{name}} !"
     subtitle: "Prêt pour cette nouvelle journée ?"
   actions:
     ready: "Prêt !"

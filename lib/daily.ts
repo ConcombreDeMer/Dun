@@ -22,6 +22,7 @@ export type DailyPendingTask = {
 };
 
 export type DailyData = {
+  userName: string | null;
   completionDays: DailyCompletionDay[];
   previousDayCompletion: {
     percent: number;
@@ -132,7 +133,16 @@ export const getDailyData = async (): Promise<DailyData> => {
   const firstCompletionDayKey = addDays(todayKey, -7);
   const streakLookupStartKey = addDays(todayKey, -365);
 
-  const [{ data: days, error: daysError }, { data: pendingTasks, error: pendingTasksError }] = await Promise.all([
+  const [
+    { data: profile, error: profileError },
+    { data: days, error: daysError },
+    { data: pendingTasks, error: pendingTasksError },
+  ] = await Promise.all([
+    supabase
+      .from("Profiles")
+      .select("name")
+      .eq("id", userId)
+      .single(),
     supabase
       .from("Days")
       .select("date, total, done_count")
@@ -150,6 +160,10 @@ export const getDailyData = async (): Promise<DailyData> => {
       .order("date", { ascending: false })
       .order("order", { ascending: false }),
   ]);
+
+  if (profileError) {
+    throw new Error(profileError.message);
+  }
 
   if (daysError) {
     throw new Error(daysError.message);
@@ -179,6 +193,7 @@ export const getDailyData = async (): Promise<DailyData> => {
   const previousDayPercent = getDayPercent(previousDay);
 
   return {
+    userName: profile?.name?.trim() || null,
     completionDays,
     previousDayCompletion: {
       percent: previousDayPercent,

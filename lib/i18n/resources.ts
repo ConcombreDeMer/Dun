@@ -481,7 +481,7 @@ export const resources = {
         "fallbackUser": "User",
         "morning": "Good morning",
         "intro": {
-          "title": "Hi Yanis!",
+          "title": "Hi {{name}}!",
           "subtitle": "Ready for a new day?"
         },
         "actions": {
@@ -1474,7 +1474,7 @@ export const resources = {
         "fallbackUser": "Utilisateur",
         "morning": "Bonjour",
         "intro": {
-          "title": "Salut Yanis !",
+          "title": "Salut {{name}} !",
           "subtitle": "Prêt pour cette nouvelle journée ?"
         },
         "actions": {

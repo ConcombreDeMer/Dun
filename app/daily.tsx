@@ -3,6 +3,7 @@ import ExtendedButton from '@/components/extendedButton';
 import PrimaryButton from '@/components/primaryButton';
 import { TaskItem } from '@/components/TaskItem';
 import { completeDailyReview, deleteDailyPendingTask, getDailyData, postponeDailyPendingTask, setDailyPendingTaskDone, type DailyData, type DailyPendingTask } from '@/lib/daily';
+import { dailyCompletionDays as mockDailyCompletionDays, dailyMotivation as mockDailyMotivation, dailyPendingTasks as mockDailyPendingTasks, dailyStreak as mockDailyStreak, dailyUserName as mockDailyUserName, previousDayCompletion as mockPreviousDayCompletion } from '@/lib/dailyMock';
 import { useFont } from '@/lib/FontContext';
 import { useAppTranslation } from '@/lib/i18n';
 import { getCharacterImageSource } from '@/lib/imageHelper';
@@ -58,6 +59,28 @@ const step4SliderHandleWidth = 72;
 const step4SliderHorizontalInset = 4;
 const step4SliderCompletionThreshold = 0.86;
 const stepButtonReleaseDelay = 180;
+const useMock = false;
+
+type DailyScreenData = Omit<DailyData, 'motivation'> & {
+    motivation: DailyData['motivation'] & {
+        title?: string;
+        body?: string;
+    };
+};
+
+const getMockDailyData = (): DailyScreenData => ({
+    userName: mockDailyUserName,
+    completionDays: mockDailyCompletionDays.map((day) => ({ ...day })),
+    previousDayCompletion: { ...mockPreviousDayCompletion },
+    streak: mockDailyStreak,
+    motivation: {
+        titleKey: '',
+        bodyKey: '',
+        title: mockDailyMotivation.title,
+        body: mockDailyMotivation.body,
+    },
+    pendingTasks: mockDailyPendingTasks.map((task) => ({ ...task })),
+});
 
 const wait = (duration: number) => new Promise((resolve) => {
     setTimeout(resolve, duration);
@@ -115,7 +138,7 @@ export default function DailyScreen() {
     const [step2ExitDirection, setStep2ExitDirection] = useState<'previous' | 'next'>('next');
     const [displayedCompletionPercent, setDisplayedCompletionPercent] = useState(0);
     const [displayedStreak, setDisplayedStreak] = useState(0);
-    const [dailyData, setDailyData] = useState<DailyData | null>(null);
+    const [dailyData, setDailyData] = useState<DailyScreenData | null>(null);
     const [isDailyLoading, setIsDailyLoading] = useState(true);
     const [dailyError, setDailyError] = useState<string | null>(null);
     const [isCompletingDaily, setIsCompletingDaily] = useState(false);
@@ -171,7 +194,7 @@ export default function DailyScreen() {
     const panelSurfaceColor = colors.button;
     const panelActionTextColor = colors.text;
     const progressTrackColor = alphaColor(panelTextColor, 0.18);
-    const progressFillColor = colors.doneSecondary ?? colors.checkboxDone;
+    const progressFillColor = '#70D895';
     const streakOrangeTextColor = actualTheme === 'dark' ? '#FFB86C' : '#F07A24';
     const streakTextColor = displayedStreak === 0
         ? alphaColor(panelTextColor, 0.42)
@@ -184,6 +207,7 @@ export default function DailyScreen() {
     const dateNumberColor = alphaColor(colors.text, 0.58);
     const sliderHandleColor = colors.button;
     const iconOnPanelColor = alphaColor(panelTextColor, 0.58);
+    const introTitle = t('daily.intro.title', { name: dailyData?.userName || t('daily.fallbackUser') });
     const pendingTaskListLayoutKey = useMemo(
         () => pendingTasks.map((task) => task.id).join('-'),
         [pendingTasks]
@@ -199,7 +223,7 @@ export default function DailyScreen() {
     }, []);
 
     const refreshDailyData = useCallback(async (syncPendingTasks = false) => {
-        const nextDailyData = await getDailyData();
+        const nextDailyData = useMock ? getMockDailyData() : await getDailyData();
         setDailyData(nextDailyData);
         setDisplayedStreak(nextDailyData.streak);
 
@@ -229,6 +253,11 @@ export default function DailyScreen() {
 
     const handleDeletePendingTask = useCallback(async (task: { id: number }) => {
         await runDailyMutation(async () => {
+            if (useMock) {
+                removePendingTask(task);
+                return;
+            }
+
             await deleteDailyPendingTask(task.id);
             removePendingTask(task);
             await queryClient.invalidateQueries({ queryKey: ['tasks'] });
@@ -239,6 +268,11 @@ export default function DailyScreen() {
 
     const handlePostponePendingTask = useCallback(async (task: { id: number }, targetDateKey: string) => {
         await runDailyMutation(async () => {
+            if (useMock) {
+                removePendingTask(task);
+                return;
+            }
+
             await postponeDailyPendingTask(task.id, targetDateKey);
             removePendingTask(task);
             await queryClient.invalidateQueries({ queryKey: ['tasks'] });
@@ -260,6 +294,10 @@ export default function DailyScreen() {
         ));
 
         void runDailyMutation(async () => {
+            if (useMock) {
+                return;
+            }
+
             await setDailyPendingTaskDone(taskId, nextDone);
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: ['tasks'] }),
@@ -297,6 +335,12 @@ export default function DailyScreen() {
 
         try {
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+            if (useMock) {
+                closeDailyRoute();
+                return;
+            }
+
             await completeDailyReview();
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: ['tasks'] }),
@@ -317,7 +361,7 @@ export default function DailyScreen() {
             try {
                 setIsDailyLoading(true);
                 setDailyError(null);
-                const nextDailyData = await getDailyData();
+                const nextDailyData = useMock ? getMockDailyData() : await getDailyData();
 
                 if (!isMounted) {
                     return;
@@ -712,15 +756,15 @@ export default function DailyScreen() {
                 </Animated.View>
 
                 <View
-                    style={{
-                        paddingHorizontal: 42,
-                        marginTop: 100,
-                    }}
+                    style={styles.introTextContainer}
                 >
                     <Animated.Text
                         style={[styles.introText, introTextAnimatedStyle, { color: introTitleColor, fontSize: fontSizes['6xl'], }]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.78}
                     >
-                        {t('daily.intro.title')}
+                        {introTitle}
                     </Animated.Text>
 
                     <Animated.Text
@@ -845,8 +889,8 @@ export default function DailyScreen() {
                                     exiting={step2ExitingAnimation}
                                     style={styles.motivationBlock}
                                 >
-                                    <Text style={[styles.motivationTitle, { color: panelTextMutedColor, fontSize: fontSizes.xl }]}>{dailyMotivation.titleKey ? t(dailyMotivation.titleKey) : ''}</Text>
-                                    <Text style={[styles.motivationBody, { color: panelTextSoftColor, fontSize: fontSizes.lg, lineHeight: fontSizes.lg + 4 }]}>{dailyMotivation.bodyKey ? t(dailyMotivation.bodyKey, dailyMotivation.values) : ''}</Text>
+                                    <Text style={[styles.motivationTitle, { color: panelTextMutedColor, fontSize: fontSizes.xl }]}>{dailyMotivation.titleKey ? t(dailyMotivation.titleKey) : dailyMotivation.title ?? ''}</Text>
+                                    <Text style={[styles.motivationBody, { color: panelTextSoftColor, fontSize: fontSizes.lg, lineHeight: fontSizes.lg + 4 }]}>{dailyMotivation.bodyKey ? t(dailyMotivation.bodyKey, dailyMotivation.values) : dailyMotivation.body ?? ''}</Text>
                                 </Animated.View>
 
                                 <Animated.View
@@ -1078,9 +1122,17 @@ const styles = StyleSheet.create({
 
     introText: {
         fontFamily: 'Satoshi-Bold',
+        textAlign: 'left',
+    },
+    introTextContainer: {
+        width: '100%',
+        alignItems: 'flex-start',
+        marginTop: 100,
+        paddingHorizontal: 24,
     },
     subIntroText: {
         fontFamily: 'Satoshi-Bold',
+        textAlign: 'left',
     },
     step4DateContainer: {
         position: 'absolute',
