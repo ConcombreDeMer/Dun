@@ -4,16 +4,21 @@ import { supabase } from "./supabase";
 export type ProgressBarPreference = 1 | 2;
 
 export const PROGRESS_BAR_PREFERENCE_QUERY_KEY = ["profile", "custom_progressbar"] as const;
+export const DEFAULT_PROGRESS_BAR_PREFERENCE: ProgressBarPreference = 2;
 
 const normalizeProgressBarPreference = (value: unknown): ProgressBarPreference => {
-  return value === 2 ? 2 : 1;
+  if (value === 1 || value === 2) {
+    return value;
+  }
+
+  return DEFAULT_PROGRESS_BAR_PREFERENCE;
 };
 
 const fetchProgressBarPreference = async (): Promise<ProgressBarPreference> => {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return 1;
+    return DEFAULT_PROGRESS_BAR_PREFERENCE;
   }
 
   const { data, error } = await supabase
@@ -56,7 +61,7 @@ export const useProgressBarPreference = () => {
     gcTime: 1000 * 60 * 60,
   });
 
-  const preference = preferenceQuery.data ?? 1;
+  const preference = preferenceQuery.data ?? DEFAULT_PROGRESS_BAR_PREFERENCE;
 
   const mutation = useMutation({
     mutationFn: saveProgressBarPreference,
@@ -74,7 +79,7 @@ export const useProgressBarPreference = () => {
     onError: (_error, _nextPreference, context) => {
       queryClient.setQueryData(
         PROGRESS_BAR_PREFERENCE_QUERY_KEY,
-        context?.previousPreference ?? 1
+        context?.previousPreference ?? DEFAULT_PROGRESS_BAR_PREFERENCE
       );
     },
     onSettled: () => {

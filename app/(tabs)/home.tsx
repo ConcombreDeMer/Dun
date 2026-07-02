@@ -13,7 +13,7 @@ import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
 import { useCalendarPreference, type CalendarPreference } from "@/lib/useCalendarPreference";
-import { useProgressBarPreference, type ProgressBarPreference } from "@/lib/useProgressBarPreference";
+import { DEFAULT_PROGRESS_BAR_PREFERENCE, useProgressBarPreference, type ProgressBarPreference } from "@/lib/useProgressBarPreference";
 import { useToggleTaskDone } from "@/lib/useToggleTaskDone";
 import { useStore } from "@/store/store";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -366,8 +366,11 @@ export default function Home() {
   });
   const {
     preference: progressBarPreference,
+    setPreference: setProgressBarPreference,
+    isSaving: isSavingProgressBarPreference,
     isLoading: isProgressBarPreferenceLoading,
     isPreferenceLoaded: isProgressBarPreferenceLoaded,
+    error: progressBarPreferenceError,
   } = useProgressBarPreference();
   const {
     preference: calendarPreference,
@@ -384,12 +387,35 @@ export default function Home() {
       ? isProgressBarPreferenceLoading || !isProgressBarPreferenceLoaded
         ? null
         : progressBarPreference
-      : 1;
+      : DEFAULT_PROGRESS_BAR_PREFERENCE;
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
   const overlayProgress = useSharedValue(0);
   const horizontalListRef = useRef<FlatList<number>>(null);
   const lastHapticPageIndexRef = useRef(DAY_PAGER_CENTER_INDEX);
   const isProgrammaticHorizontalScrollRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      isSubscriptionLoading ||
+      !isProgressBarPreferenceLoaded ||
+      isSavingProgressBarPreference ||
+      progressBarPreferenceError ||
+      isPremium ||
+      progressBarPreference !== 1
+    ) {
+      return;
+    }
+
+    setProgressBarPreference(DEFAULT_PROGRESS_BAR_PREFERENCE);
+  }, [
+    isPremium,
+    isProgressBarPreferenceLoaded,
+    isSavingProgressBarPreference,
+    isSubscriptionLoading,
+    progressBarPreference,
+    progressBarPreferenceError,
+    setProgressBarPreference,
+  ]);
 
   useEffect(() => {
     const initApp = async () => {

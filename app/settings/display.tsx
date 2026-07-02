@@ -6,10 +6,11 @@ import { AppLanguage, useAppTranslation } from "@/lib/i18n";
 import { useSubscription } from "@/lib/subscription";
 import { colorThemeOptions, useTheme } from "@/lib/ThemeContext";
 import { useCalendarPreference, type CalendarPreference } from "@/lib/useCalendarPreference";
-import { useProgressBarPreference, type ProgressBarPreference } from "@/lib/useProgressBarPreference";
+import { DEFAULT_PROGRESS_BAR_PREFERENCE, useProgressBarPreference, type ProgressBarPreference } from "@/lib/useProgressBarPreference";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
+import { useEffect } from "react";
 import {
     Alert,
     Image,
@@ -24,7 +25,7 @@ export default function Display() {
     const { t, language, setLanguage, supportedLanguages } = useAppTranslation();
     const { theme, colorTheme, colors, setTheme } = useTheme();
     const { fontSize, setFontSize, fontSizes } = useFont();
-    const { isPremium } = useSubscription();
+    const { isPremium, isLoading: isSubscriptionLoading } = useSubscription();
     const {
         preference: calendarPreference,
         setPreference: setCalendarPreference,
@@ -35,9 +36,36 @@ export default function Display() {
         preference: progressBarPreference,
         setPreference: setProgressBarPreference,
         isSaving: isSavingProgressBarPreference,
+        isPreferenceLoaded: isProgressBarPreferenceLoaded,
         error: progressBarPreferenceError,
     } = useProgressBarPreference();
     const activeColorTheme = colorThemeOptions.find((option) => option.id === colorTheme) ?? colorThemeOptions[0];
+    const effectiveProgressBarPreference = isPremium
+        ? progressBarPreference
+        : DEFAULT_PROGRESS_BAR_PREFERENCE;
+
+    useEffect(() => {
+        if (
+            isSubscriptionLoading ||
+            !isProgressBarPreferenceLoaded ||
+            isSavingProgressBarPreference ||
+            progressBarPreferenceError ||
+            isPremium ||
+            progressBarPreference !== 1
+        ) {
+            return;
+        }
+
+        setProgressBarPreference(DEFAULT_PROGRESS_BAR_PREFERENCE);
+    }, [
+        isPremium,
+        isProgressBarPreferenceLoaded,
+        isSavingProgressBarPreference,
+        isSubscriptionLoading,
+        progressBarPreference,
+        progressBarPreferenceError,
+        setProgressBarPreference,
+    ]);
 
     const handleAbout = () => {
         Alert.alert(
@@ -251,13 +279,13 @@ export default function Display() {
     };
 
     const renderProgressBarOption = (value: ProgressBarPreference, title: string) => {
-        const isClassicOption = value === 2;
+        const isCircularOption = value === 1;
 
         return renderDisplayPreviewOption({
             title,
-            isActive: progressBarPreference === value,
+            isActive: effectiveProgressBarPreference === value,
             isSaving: isSavingProgressBarPreference,
-            isLocked: isClassicOption && !isPremium,
+            isLocked: isCircularOption && !isPremium,
             previewSource: value === 1
                 ? require("@/assets/images/settings/circular.png")
                 : require("@/assets/images/settings/line.png"),
@@ -341,12 +369,12 @@ export default function Display() {
                     </Text>
                     <View style={styles.progressOptions}>
                         {renderProgressBarOption(
-                            1,
-                            t("settings.display.progressBar.circular.title")
-                        )}
-                        {renderProgressBarOption(
                             2,
                             t("settings.display.progressBar.classic.title")
+                        )}
+                        {renderProgressBarOption(
+                            1,
+                            t("settings.display.progressBar.circular.title")
                         )}
                     </View>
                     {progressBarPreferenceError ? (
