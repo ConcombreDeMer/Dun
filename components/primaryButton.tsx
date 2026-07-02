@@ -1,5 +1,5 @@
 import { SFSymbol, SymbolView } from 'expo-symbols';
-import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import { Pressable, Text, ViewStyle } from 'react-native';
 import SquircleView from "react-native-fast-squircle";
 import { useFont } from "../lib/FontContext";
 import { useTheme } from "../lib/ThemeContext";
@@ -20,6 +20,18 @@ interface PrimaryButtonProps {
 export default function PrimaryButton({ title, onPress, disabled = false, image = '', size = 'L', style, type, width, height }: PrimaryButtonProps) {
     const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
+
+    const getContentColor = () => {
+        if (type === 'danger') {
+            return '#A10606';
+        }
+
+        if (type === 'reverse') {
+            return actualTheme === 'dark' ? colors.textSecondary : colors.actionButton;
+        }
+
+        return colors.buttonText;
+    };
 
     const getButtonStyle = () => {
         let baseStyle: any = {
@@ -62,16 +74,10 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
 
     const getTextStyle = () => {
         let baseTextStyle: any = {
-            color: actualTheme === 'dark' ? colors.text : colors.buttonText,
+            color: getContentColor(),
             fontSize: fontSizes['3xl'],
             fontFamily: 'Satoshi-Medium',
         };
-
-        if (type === 'danger') {
-            baseTextStyle.color = '#A10606';
-        } else if (type === 'reverse') {
-            baseTextStyle.color = actualTheme === 'dark' ? colors.textSecondary : colors.actionButton;
-        }
 
         return baseTextStyle;
     };
@@ -117,13 +123,11 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
                 <SymbolView
                     name={image}
                     style={{ width: 24, height: 24, alignSelf: 'center' }}
-                    type="palette"
-                    tintColor={colors.text}
+                    type="monochrome"
+                    tintColor={getContentColor()}
                 />
             }
             {(size === 'L' || size === 'M' || size === 'S') && title && <Text style={getTextStyle()}>{title}</Text>}
         </SquircleView>
     );
 }
-
-const styles = StyleSheet.create({});
