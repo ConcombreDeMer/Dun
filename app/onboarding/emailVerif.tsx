@@ -1,6 +1,9 @@
 import { getImageSource } from '@/lib/imageHelper';
+import PrimaryButton from '@/components/primaryButton';
+import Squircle from '@/components/Squircle';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import React, { useEffect, useState } from 'react';
 import {
     Image,
@@ -9,7 +12,6 @@ import {
     SafeAreaView,
     StyleSheet,
     Text,
-    TouchableOpacity,
     View
 } from 'react-native';
 import Animated, {
@@ -18,6 +20,7 @@ import Animated, {
     FadeOutDown,
     ZoomIn
 } from 'react-native-reanimated';
+import { useFont } from '../../lib/FontContext';
 import { useAppTranslation } from '../../lib/i18n';
 import { useTheme } from '../../lib/ThemeContext';
 import { supabase } from '../../lib/supabase';
@@ -26,6 +29,7 @@ export default function EmailVerificationScreen() {
     const router = useRouter();
     const { colors, actualTheme } = useTheme();
     const { t } = useAppTranslation();
+    const { fontSizes } = useFont();
     const { email } = useLocalSearchParams<{ email: string }>();
 
     const [loading, setLoading] = useState(false);
@@ -128,7 +132,7 @@ export default function EmailVerificationScreen() {
         }
     };
 
-    const styles = createStyles(colors);
+    const styles = createStyles(colors, fontSizes);
 
     if (isVerified) {
         return (
@@ -168,8 +172,6 @@ export default function EmailVerificationScreen() {
             onPress={() => Keyboard.dismiss()}
         >
             <SafeAreaView style={styles.safeArea}>
-                {/* Header */}
-
                 <Animated.View
                     style={styles.header}
                     entering={FadeInUp.delay(200).duration(600)}>
@@ -181,56 +183,38 @@ export default function EmailVerificationScreen() {
                     </Text>
                 </Animated.View>
 
-                {/* Content */}
-                <View style={styles.content}>
+                <Animated.View
+                    entering={FadeInUp.springify().delay(500).duration(800)}
+                    style={styles.content}
+                >
+                    <Squircle style={[styles.verificationCard, { backgroundColor: colors.card }]}>
+                        <View style={[styles.iconSurface, { backgroundColor: colors.background }]}>
+                            <SymbolView name="envelope.badge" size={34} tintColor={colors.textSecondary} />
+                        </View>
 
-                    {/* Email Address */}
+                        <View style={styles.emailGroup}>
+                            <Text style={[styles.emailLabel, { color: colors.textSecondary }]}>
+                                {t('onboarding.emailVerification.sentTo')}
+                            </Text>
+                            <Text numberOfLines={2} style={[styles.emailValue, { color: colors.text }]}>
+                                {email}
+                            </Text>
+                        </View>
 
-                    <View style={styles.email}>
-
-                        <Animated.Text
-                            entering={FadeInUp.springify().delay(1000).duration(1000)}
-                            style={[styles.emailText, {
-                                color: colors.actionButton, fontWeight: '300',
-                            }]}
-                        >
-                            <Text>{t('onboarding.emailVerification.sentTo')}</Text>
-                        </Animated.Text>
-
-                        <Animated.Text
-                            entering={FadeInUp.springify().delay(1000).duration(1000)}
-                            style={[styles.emailText, {
-                                color: colors.actionButton, fontWeight: '600',
-                            }]}
-                        >
-                            {email}
-                        </Animated.Text>
-
-                    </View>
-
-                    {/* Instructions */}
-                    <Animated.View
-                        entering={FadeInUp.springify().delay(1000).duration(1000)}
-                        style={styles.instructionsContainer}
-                    >
                         <Text style={[styles.instructions, { color: colors.textSecondary }]}>
                             {t('onboarding.emailVerification.instructions')}
                         </Text>
-                    </Animated.View>
 
-                    {/* Timer */}
-                    <Animated.View
-                        entering={FadeInUp.springify().delay(1000).duration(1000)}
-                        style={[styles.timerContainer, { backgroundColor: colors.task, borderColor: colors.border }]}
-                    >
-                        <Text style={[styles.timerLabel, { color: colors.textSecondary }]}>
-                            {t('onboarding.emailVerification.expiresIn')}
-                        </Text>
-                        <Text style={[styles.timer, { color: colors.actionButton }]}>
-                            {formatTime(timeLeft)}
-                        </Text>
-                    </Animated.View>
-                </View>
+                        <View style={[styles.timerContainer, { backgroundColor: colors.background }]}>
+                            <Text style={[styles.timerLabel, { color: colors.textSecondary }]}>
+                                {t('onboarding.emailVerification.expiresIn')}
+                            </Text>
+                            <Text style={[styles.timer, { color: colors.text }]}>
+                                {formatTime(timeLeft)}
+                            </Text>
+                        </View>
+                    </Squircle>
+                </Animated.View>
 
 
                 <Animated.View
@@ -239,62 +223,43 @@ export default function EmailVerificationScreen() {
                     exiting={FadeOutDown.springify().delay(100).duration(500)}
 
                 >
-
-                    <TouchableOpacity
-                        style={[styles.primaryButton, { backgroundColor: colors.actionButton }]}
+                    <PrimaryButton
+                        title={t('onboarding.emailVerification.checked')}
                         onPress={checkEmailVerification}
-                    >
-                        <Text style={[styles.primaryButtonText, { color: colors.buttonText }]}>
-                            {t('onboarding.emailVerification.checked')}
-                        </Text>
-                    </TouchableOpacity>
+                    />
 
 
                     {retrySuccess !== '' && (
-                        <Animated.Text
+                        <Animated.View
                             entering={FadeInDown.springify()}
                             exiting={FadeOutDown.springify()}
-                            style={[styles.successMessage, { color: '#4CAF50' }]}
+                            style={[styles.statusMessage, { backgroundColor: '#DFF4E5' }]}
                         >
-                            {retrySuccess}
-                        </Animated.Text>
+                            <Text style={[styles.statusMessageText, { color: '#2D7A45' }]}>
+                                {retrySuccess}
+                            </Text>
+                        </Animated.View>
                     )}
 
                     {retryError !== '' && (
-                        <Animated.Text
+                        <Animated.View
                             entering={FadeInDown.springify()}
-                            style={[styles.errorMessage, { color: colors.actionButton }]}
+                            style={[styles.statusMessage, { backgroundColor: '#F7C1C1' }]}
                         >
-                            {retryError}
-                            {retryWaitTime > 0 && ` ${retryWaitTime}s`}
-                        </Animated.Text>
+                            <Text style={[styles.statusMessageText, { color: '#A10606' }]}>
+                                {retryError}
+                                {retryWaitTime > 0 && ` ${retryWaitTime}s`}
+                            </Text>
+                        </Animated.View>
                     )}
 
-                    <TouchableOpacity
-                        style={[
-                            styles.secondaryButton,
-                            {
-                                borderColor: loading || retryWaitTime > 0 ? colors.border : colors.border,
-                                borderWidth: 1.5,
-                                opacity: loading || retryWaitTime > 0 ? 0.5 : 1,
-                            },
-                        ]}
+                    <PrimaryButton
+                        title={t('onboarding.emailVerification.resend')}
+                        type="reverse"
                         onPress={resendVerificationEmail}
                         disabled={loading || retryWaitTime > 0}
-                    >
+                    />
 
-                        {/* ici */}
-                        <Text style={[
-                            styles.secondaryButtonText,
-                            {
-                                color: loading || retryWaitTime > 0 ? colors.textSecondary : colors.text
-                            }
-                        ]}>
-                            {t('onboarding.emailVerification.resend')}
-                        </Text>
-                    </TouchableOpacity>
-
-                    {/* Footer Info */}
                     <Text style={[styles.footerInfo, { color: colors.textSecondary }]}>
                         {t('onboarding.emailVerification.spam')}
                     </Text>
@@ -304,7 +269,7 @@ export default function EmailVerificationScreen() {
     );
 }
 
-const createStyles = (colors: any) =>
+const createStyles = (colors: any, fontSizes: any) =>
     StyleSheet.create({
         container: {
             flex: 1,
@@ -317,16 +282,17 @@ const createStyles = (colors: any) =>
             position: 'absolute',
             top: 80,
             left: 20,
+            right: 20,
             alignItems: 'flex-start',
         },
 
         title: {
-            fontSize: 55,
+            fontSize: fontSizes['6xl'],
             fontFamily: 'Satoshi-Black',
         },
 
         subtitle: {
-            fontSize: 26,
+            fontSize: fontSizes['2xl'],
             marginLeft: 5,
             marginTop: -10,
             fontFamily: 'Satoshi-Regular',
@@ -337,58 +303,62 @@ const createStyles = (colors: any) =>
             justifyContent: 'center',
             alignItems: 'center',
             marginBottom: 100,
+            paddingHorizontal: 20,
+            width: '100%',
         },
-
-        email: {
-            marginBottom: 20,
+        verificationCard: {
+            alignItems: 'center',
+            borderRadius: 30,
+            gap: 18,
+            paddingHorizontal: 22,
+            paddingVertical: 24,
+            maxWidth: 420,
+            width: '100%',
+            boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',
         },
-
-        emailText: {
-            fontSize: 16,
+        iconSurface: {
+            alignItems: 'center',
+            borderRadius: 28,
+            height: 56,
+            justifyContent: 'center',
+            width: 56,
+        },
+        emailGroup: {
+            alignItems: 'center',
+            gap: 6,
+            width: '100%',
+        },
+        emailLabel: {
+            fontFamily: 'Satoshi-Medium',
+            fontSize: fontSizes.sm,
             textAlign: 'center',
-            marginBottom: 5,
         },
-        instructionsContainer: {
-            backgroundColor: colors.task,
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 24,
-            borderWidth: 1,
-            borderColor: colors.border,
+        emailValue: {
+            fontFamily: 'Satoshi-Bold',
+            fontSize: fontSizes.lg,
+            textAlign: 'center',
         },
         instructions: {
-            fontSize: 13,
-            fontWeight: '400',
-            lineHeight: 20,
+            fontFamily: 'Satoshi-Regular',
+            fontSize: fontSizes.base,
+            lineHeight: fontSizes.base + 6,
+            textAlign: 'center',
         },
         timerContainer: {
-            borderRadius: 12,
-            padding: 16,
             alignItems: 'center',
-            borderWidth: 1,
-            marginBottom: 40,
+            borderRadius: 18,
+            paddingHorizontal: 18,
+            paddingVertical: 14,
+            width: '100%',
         },
         timerLabel: {
-            fontSize: 12,
-            fontWeight: '500',
+            fontFamily: 'Satoshi-Medium',
+            fontSize: fontSizes.xs,
             marginBottom: 8,
         },
         timer: {
-            fontSize: 32,
-            fontWeight: '700',
-            fontFamily: 'monospace',
-        },
-        footer: {
-            gap: 12,
-            paddingBottom: 20,
-            width: '80%',
-            alignSelf: 'center',
-        },
-
-        infoText: {
-            fontSize: 12,
-            textAlign: 'center',
-            marginTop: 8,
+            fontSize: fontSizes['4xl'],
+            fontFamily: 'Satoshi-Bold',
         },
         successContainer: {
             flex: 1,
@@ -403,14 +373,14 @@ const createStyles = (colors: any) =>
             height: 100,
         },
         successTitle: {
-            fontSize: 28,
-            fontWeight: '700',
+            fontSize: fontSizes['4xl'],
+            fontFamily: 'Satoshi-Bold',
             marginBottom: 8,
             textAlign: 'center',
         },
         successSubtitle: {
-            fontSize: 16,
-            fontWeight: '400',
+            fontSize: fontSizes.base,
+            fontFamily: 'Satoshi-Regular',
             textAlign: 'center',
         },
         buttonSection: {
@@ -422,69 +392,24 @@ const createStyles = (colors: any) =>
             alignSelf: 'center',
             display: 'flex',
             flexDirection: 'column',
-        },
-        pin: {
-            alignSelf: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingHorizontal: 10,
-            paddingVertical: 5,
-            borderRadius: 20,
-            position: 'absolute',
-            top: -10,
-            right: 0,
-            zIndex: 2,
-            backgroundColor: colors.input,
-            borderColor: colors.border,
-            borderWidth: 1,
-
-        },
-        primaryButton: {
-            paddingVertical: 16,
-            borderRadius: 50,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: 12,
-            borderColor: colors.actionButton,
-            borderWidth: 1.5
-        },
-        primaryButtonText: {
-            fontSize: 16,
-            fontWeight: '600',
-        },
-        secondaryButton: {
-            paddingVertical: 16,
-            borderRadius: 50,
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 2,
-            backgroundColor: colors.task,
-        },
-        secondaryButtonText: {
-            fontSize: 16,
-            fontWeight: '600',
+            gap: 12,
         },
         footerInfo: {
-            fontSize: 12,
+            fontSize: fontSizes.xs,
+            fontFamily: 'Satoshi-Regular',
+            lineHeight: fontSizes.xs + 5,
             textAlign: 'center',
             width: '100%',
-            marginTop: 20,
+            marginTop: 6,
         },
-        errorMessage: {
-            fontSize: 13,
-            fontWeight: '500',
-            textAlign: 'center',
-            marginBottom: 12,
-            paddingHorizontal: 12,
-            zIndex: 1,
+        statusMessage: {
+            borderRadius: 16,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
         },
-        successMessage: {
-            fontSize: 13,
-            fontWeight: '500',
+        statusMessageText: {
+            fontFamily: 'Satoshi-Medium',
+            fontSize: fontSizes.sm,
             textAlign: 'center',
-            marginBottom: 12,
-            paddingHorizontal: 12,
-            zIndex: 1,
         },
     });
