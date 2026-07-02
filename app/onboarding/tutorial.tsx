@@ -239,6 +239,7 @@ export default function Tutorial() {
                                     color: colors.text,
                                     fontSize: 16,
                                     fontFamily: 'Satoshi-Regular',
+                                    marginLeft: 4,
                                 }}
                             >
                                 <Text style={{ fontFamily: 'Satoshi-Bold' }}>{name} !</Text>
