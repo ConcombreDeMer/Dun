@@ -5,12 +5,13 @@ import { useTheme } from "@/lib/ThemeContext";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, Animated as RNAnimated, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import Squircle from "./Squircle";
 
 type HorizontalBarGraphProps = {
   data: TagUsageStat[];
@@ -133,16 +134,22 @@ export default function HorizontalBarGraph({
   const [containerHeight, setContainerHeight] = useState<number | null>(null);
   const [visibleData, setVisibleData] = useState(data);
   const [exitingTagIds, setExitingTagIds] = useState<string[]>([]);
-  const [animatedHeight] = useState(() => new RNAnimated.Value(0));
+  const animatedHeight = useSharedValue(0);
   const visibleDataRef = useRef(data);
   const maxTotal = useMemo(() => Math.max(...visibleData.map((item) => item.total), 0), [visibleData]);
+
+  const animatedContainerStyle = useAnimatedStyle(() => {
+    return {
+      height: animatedHeight.value,
+    };
+  });
 
   const handleContentLayout = useCallback((height: number) => {
     const nextHeight = Math.ceil(height);
 
     setContainerHeight((currentHeight) => {
       if (currentHeight === null) {
-        animatedHeight.setValue(nextHeight);
+        animatedHeight.value = nextHeight;
         return nextHeight;
       }
 
@@ -150,11 +157,7 @@ export default function HorizontalBarGraph({
         return currentHeight;
       }
 
-      RNAnimated.timing(animatedHeight, {
-        toValue: nextHeight,
-        duration: 165,
-        useNativeDriver: false,
-      }).start();
+      animatedHeight.value = withTiming(nextHeight, { duration: 165 });
 
       return nextHeight;
     });
@@ -169,11 +172,7 @@ export default function HorizontalBarGraph({
       }
 
       const nextHeight = Math.max(currentHeight + delta, 0);
-      RNAnimated.timing(animatedHeight, {
-        toValue: nextHeight,
-        duration: 140,
-        useNativeDriver: false,
-      }).start();
+      animatedHeight.value = withTiming(nextHeight, { duration: 140 });
 
       return nextHeight;
     });
@@ -248,11 +247,11 @@ export default function HorizontalBarGraph({
   }, [data]);
 
   return (
-    <RNAnimated.View
+    <Squircle
       style={[
         styles.container,
         { backgroundColor: colors.card, borderColor: colors.border },
-        containerHeight !== null ? { height: animatedHeight } : null,
+        containerHeight !== null ? animatedContainerStyle : null,
       ]}
     >
       <View
@@ -313,7 +312,7 @@ export default function HorizontalBarGraph({
         </View>
       )}
       </View>
-    </RNAnimated.View>
+    </Squircle>
   );
 }
 
