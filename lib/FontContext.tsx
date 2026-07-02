@@ -3,6 +3,7 @@ import React, { createContext, ReactNode, useEffect, useState } from 'react';
 import { supabase } from './supabase';
 
 export type FontSize = 'small' | 'medium' | 'large';
+export const DEFAULT_FONT_SIZE: FontSize = 'small';
 
 export interface FontSizes {
     [key: string]: number;
@@ -65,7 +66,7 @@ interface FontProviderProps {
 }
 
 export const FontProvider: React.FC<FontProviderProps> = ({ children }) => {
-    const [fontSize, setFontSize] = useState<FontSize>('small');
+    const [fontSize, setFontSize] = useState<FontSize>(DEFAULT_FONT_SIZE);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -74,6 +75,10 @@ export const FontProvider: React.FC<FontProviderProps> = ({ children }) => {
 
     const loadFontSize = async () => {
         try {
+            const isValidFontSize = (value: unknown): value is FontSize => {
+                return value === 'small' || value === 'medium' || value === 'large';
+            };
+
             // Vérifier si l'utilisateur est connecté
             const { data: { user } } = await supabase.auth.getUser();
             
@@ -89,21 +94,28 @@ export const FontProvider: React.FC<FontProviderProps> = ({ children }) => {
                     console.error('Erreur lors du chargement de la taille de font depuis Supabase:', error);
                 }
                 
-                if (data && (data.display_font === 'small' || data.display_font === 'medium' || data.display_font === 'large')) {
-                    setFontSize(data.display_font as FontSize);
+                if (isValidFontSize(data?.display_font)) {
+                    setFontSize(data.display_font);
                     setIsLoading(false);
                     return;
                 }
+
+                setFontSize(DEFAULT_FONT_SIZE);
+                await AsyncStorage.setItem('fontSize', DEFAULT_FONT_SIZE);
+                setIsLoading(false);
+                return;
             }
             
             // Sinon, charger depuis AsyncStorage
             const savedFontSize = await AsyncStorage.getItem('fontSize');
-            if (savedFontSize === 'small' || savedFontSize === 'medium' || savedFontSize === 'large') {
-                setFontSize(savedFontSize as FontSize);
+            if (isValidFontSize(savedFontSize)) {
+                setFontSize(savedFontSize);
+            } else {
+                setFontSize(DEFAULT_FONT_SIZE);
             }
         } catch (error) {
             console.error('Erreur lors du chargement de la taille de font:', error);
-            setFontSize('medium');
+            setFontSize(DEFAULT_FONT_SIZE);
         } finally {
             setIsLoading(false);
         }
