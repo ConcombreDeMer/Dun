@@ -25,6 +25,7 @@ import {
 } from "react-native";
 import Animated, { FadeInUp, FadeOutUp, SlideInDown, SlideOutDown, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useFont } from "@/lib/FontContext";
+import { clearStoredExportData } from "@/lib/exportData";
 import { getCharacterImageSource } from "@/lib/imageHelper";
 import { useAppTranslation } from "@/lib/i18n";
 import { deleteUserAccount, supabase } from "@/lib/supabase";
@@ -426,6 +427,12 @@ export default function Account() {
 
     const handleLogout = useCallback(async () => {
         try {
+            try {
+                await clearStoredExportData();
+            } catch (exportError) {
+                console.error("Erreur lors du nettoyage de l'export local : ", exportError);
+            }
+
             const { error } = await supabase.auth.signOut();
             if (error) {
                 console.error("Erreur lors de la déconnexion : " + error.message);
@@ -457,6 +464,11 @@ export default function Account() {
                         setIsDeletingAccount(true);
                         try {
                             await deleteUserAccount();
+                            try {
+                                await clearStoredExportData();
+                            } catch (exportError) {
+                                console.error("Erreur lors du nettoyage de l'export local : ", exportError);
+                            }
                             Alert.alert(t("common.alerts.successTitle"), t("settings.account.deleteAccount.success"), [
                                 {
                                     text: "OK",
@@ -481,6 +493,23 @@ export default function Account() {
             ]
         );
     }, [queryClient, router]);
+
+    const handleExportData = useCallback(() => {
+        Alert.alert(
+            t("settings.account.exportData.confirmTitle"),
+            t("settings.account.exportData.confirmMessage"),
+            [
+                {
+                    text: t("common.actions.cancel"),
+                    style: "cancel",
+                },
+                {
+                    text: t("common.actions.confirm"),
+                    onPress: () => router.push("/settings/ExportData"),
+                },
+            ]
+        );
+    }, [router, t]);
 
 
     return (
@@ -831,6 +860,7 @@ export default function Account() {
                     >
                         <NavItem title={t("settings.account.resetPassword")} onPress={() => setShowPasswordModal(true)} transparent />
                         <NavItem title={t("settings.account.changeEmail")} onPress={() => setShowModal(true)} transparent />
+                        <NavItem title={t("settings.account.exportData.action")} onPress={handleExportData} transparent />
                         {newEmail.length > 0 &&
 
                             <Squircle

@@ -225,6 +225,28 @@ settings:
       changeEmail: "Une erreur est survenue lors du changement d'email."
       resetPassword: "Une erreur est survenue lors de l'envoi de l'email de réinitialisation."
       deleteAccount: "Une erreur est survenue lors de la suppression du compte. Veuillez réessayer."
+    exportData:
+      action: "Exporter mes données"
+      confirmTitle: "Exporter vos données ?"
+      confirmMessage: "Un fichier JSON contenant les données liées à votre compte va être généré."
+      fileName: "Export des données Dun"
+      shareMessage: "Voici votre export de données Dun."
+      headline:
+        title: "Export"
+        subtitle: "de vos données"
+      loadingTitle: "Préparation de l'export"
+      loadingDescription: "Nous récupérons les données de votre compte. Cela peut prendre quelques secondes."
+      successTitle: "Export terminé"
+      successDescription: "Votre fichier JSON est prêt à être téléchargé."
+      cancelledTitle: "Export annulé"
+      cancelledDescription: "La demande d'export a été interrompue."
+      errorTitle: "Export impossible"
+      errorDescription: "Une erreur est survenue pendant la récupération de vos données."
+      download: "Télécharger"
+      retry: "Réessayer"
+      errors:
+        export: "Une erreur est survenue pendant l'export de vos données."
+        download: "Impossible de télécharger le fichier JSON."
     deleteAccount:
       title: "Supprimer le compte"
       message: "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible et supprimera toutes vos données."

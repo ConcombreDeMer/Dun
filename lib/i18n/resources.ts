@@ -306,6 +306,31 @@ export const resources = {
             "resetPassword": "An error occurred while sending the password reset email.",
             "deleteAccount": "An error occurred while deleting the account. Please try again."
           },
+          "exportData": {
+            "action": "Export my data",
+            "confirmTitle": "Export your data?",
+            "confirmMessage": "A JSON file containing the data linked to your account will be generated.",
+            "fileName": "Dun data export",
+            "shareMessage": "Here is your Dun data export.",
+            "headline": {
+              "title": "Export",
+              "subtitle": "your data"
+            },
+            "loadingTitle": "Preparing export",
+            "loadingDescription": "We are collecting your account data. This may take a few seconds.",
+            "successTitle": "Export complete",
+            "successDescription": "Your JSON file is ready to download.",
+            "cancelledTitle": "Export cancelled",
+            "cancelledDescription": "The export request was interrupted.",
+            "errorTitle": "Export unavailable",
+            "errorDescription": "An error occurred while retrieving your data.",
+            "download": "Download",
+            "retry": "Try again",
+            "errors": {
+              "export": "An error occurred while exporting your data.",
+              "download": "Unable to download the JSON file."
+            }
+          },
           "deleteAccount": {
             "title": "Delete account",
             "message": "Are you sure you want to delete your account? This action is irreversible and will remove all your data.",
@@ -1298,6 +1323,31 @@ export const resources = {
             "changeEmail": "Une erreur est survenue lors du changement d'email.",
             "resetPassword": "Une erreur est survenue lors de l'envoi de l'email de réinitialisation.",
             "deleteAccount": "Une erreur est survenue lors de la suppression du compte. Veuillez réessayer."
+          },
+          "exportData": {
+            "action": "Exporter mes données",
+            "confirmTitle": "Exporter vos données ?",
+            "confirmMessage": "Un fichier JSON contenant les données liées à votre compte va être généré.",
+            "fileName": "Export des données Dun",
+            "shareMessage": "Voici votre export de données Dun.",
+            "headline": {
+              "title": "Export",
+              "subtitle": "de vos données"
+            },
+            "loadingTitle": "Préparation de l'export",
+            "loadingDescription": "Nous récupérons les données de votre compte. Cela peut prendre quelques secondes.",
+            "successTitle": "Export terminé",
+            "successDescription": "Votre fichier JSON est prêt à être téléchargé.",
+            "cancelledTitle": "Export annulé",
+            "cancelledDescription": "La demande d'export a été interrompue.",
+            "errorTitle": "Export impossible",
+            "errorDescription": "Une erreur est survenue pendant la récupération de vos données.",
+            "download": "Télécharger",
+            "retry": "Réessayer",
+            "errors": {
+              "export": "Une erreur est survenue pendant l'export de vos données.",
+              "download": "Impossible de télécharger le fichier JSON."
+            }
           },
           "deleteAccount": {
             "title": "Supprimer le compte",
