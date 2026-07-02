@@ -38,7 +38,7 @@ export default function StatsCardCompletion({ image, title, value, loading }: St
     }
 
     return (
-        <SquircleButton style={[styles.container, { borderColor: colors.border, backgroundColor: colors.card }]}
+        <SquircleButton style={[styles.container, { backgroundColor: colors.card }]}
             onPress={handleCompletionPress}
         >
             <Image source={image} style={actualTheme === 'light' ? styles.lightModeImage : styles.image} />
@@ -68,7 +68,6 @@ const styles = StyleSheet.create({
         width: '48.5%',
         height: '100%',
         borderRadius: 20,
-        borderWidth: 1,
         padding: 15,
         gap: 8,
         boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',

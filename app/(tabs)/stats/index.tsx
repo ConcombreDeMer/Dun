@@ -447,6 +447,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     width: "90%",
     marginTop: 20,
+    boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',
   },
   adjustmentIcon: {
     alignItems: "center",

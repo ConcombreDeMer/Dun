@@ -827,6 +827,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.08,
     shadowRadius: 18,
+    boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',
     width: "90%",
   },
   topBar: {

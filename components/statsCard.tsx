@@ -28,7 +28,7 @@ export default function StatsCardCharge({ image, title, value, loading }: StatsC
 
     return (
         <Squircle
-            style={[styles.container, { borderColor: colors.border, backgroundColor: colors.card }]}
+            style={[styles.container, { backgroundColor: colors.card }]}
         >
             <Image source={image} style={actualTheme === 'light' ? styles.lightModeImage : styles.image} />
             <Text style={[styles.title, { color: colors.text, opacity: 0.7, fontSize: fontSizes.lg }]}>{title}</Text>
@@ -57,7 +57,6 @@ const styles = StyleSheet.create({
         width: '48.5%',
         height: '100%',
         borderRadius: 20,
-        borderWidth: 1,
         padding: 15,
         gap: 8,
         boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',
