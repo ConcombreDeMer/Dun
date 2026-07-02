@@ -12,7 +12,7 @@ import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyRemin
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
-import { useCalendarPreference, type CalendarPreference } from "@/lib/useCalendarPreference";
+import { DEFAULT_CALENDAR_PREFERENCE, useCalendarPreference, type CalendarPreference } from "@/lib/useCalendarPreference";
 import { DEFAULT_PROGRESS_BAR_PREFERENCE, useProgressBarPreference, type ProgressBarPreference } from "@/lib/useProgressBarPreference";
 import { useToggleTaskDone } from "@/lib/useToggleTaskDone";
 import { useStore } from "@/store/store";
@@ -374,13 +374,20 @@ export default function Home() {
   } = useProgressBarPreference();
   const {
     preference: calendarPreference,
+    setPreference: setCalendarPreference,
+    isSaving: isSavingCalendarPreference,
     isLoading: isCalendarPreferenceLoading,
     isPreferenceLoaded: isCalendarPreferenceLoaded,
+    error: calendarPreferenceError,
   } = useCalendarPreference();
   const { isPremium, isLoading: isSubscriptionLoading } = useSubscription();
-  const activeCalendarPreference: CalendarPreference | null = isCalendarPreferenceLoading || !isCalendarPreferenceLoaded
+  const activeCalendarPreference: CalendarPreference | null = isSubscriptionLoading
     ? null
-    : calendarPreference;
+    : isPremium
+      ? isCalendarPreferenceLoading || !isCalendarPreferenceLoaded
+        ? null
+        : calendarPreference
+      : DEFAULT_CALENDAR_PREFERENCE;
   const activeProgressBarPreference: ProgressBarPreference | null = isSubscriptionLoading
     ? null
     : isPremium
@@ -393,6 +400,29 @@ export default function Home() {
   const horizontalListRef = useRef<FlatList<number>>(null);
   const lastHapticPageIndexRef = useRef(DAY_PAGER_CENTER_INDEX);
   const isProgrammaticHorizontalScrollRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      isSubscriptionLoading ||
+      !isCalendarPreferenceLoaded ||
+      isSavingCalendarPreference ||
+      calendarPreferenceError ||
+      isPremium ||
+      calendarPreference !== 2
+    ) {
+      return;
+    }
+
+    setCalendarPreference(DEFAULT_CALENDAR_PREFERENCE);
+  }, [
+    calendarPreference,
+    calendarPreferenceError,
+    isCalendarPreferenceLoaded,
+    isPremium,
+    isSavingCalendarPreference,
+    isSubscriptionLoading,
+    setCalendarPreference,
+  ]);
 
   useEffect(() => {
     if (

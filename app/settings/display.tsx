@@ -5,7 +5,7 @@ import { useFont, type FontSize } from "@/lib/FontContext";
 import { AppLanguage, useAppTranslation } from "@/lib/i18n";
 import { useSubscription } from "@/lib/subscription";
 import { colorThemeOptions, useTheme } from "@/lib/ThemeContext";
-import { useCalendarPreference, type CalendarPreference } from "@/lib/useCalendarPreference";
+import { DEFAULT_CALENDAR_PREFERENCE, useCalendarPreference, type CalendarPreference } from "@/lib/useCalendarPreference";
 import { DEFAULT_PROGRESS_BAR_PREFERENCE, useProgressBarPreference, type ProgressBarPreference } from "@/lib/useProgressBarPreference";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
@@ -30,6 +30,7 @@ export default function Display() {
         preference: calendarPreference,
         setPreference: setCalendarPreference,
         isSaving: isSavingCalendarPreference,
+        isPreferenceLoaded: isCalendarPreferenceLoaded,
         error: calendarPreferenceError,
     } = useCalendarPreference();
     const {
@@ -40,9 +41,35 @@ export default function Display() {
         error: progressBarPreferenceError,
     } = useProgressBarPreference();
     const activeColorTheme = colorThemeOptions.find((option) => option.id === colorTheme) ?? colorThemeOptions[0];
+    const effectiveCalendarPreference = isPremium
+        ? calendarPreference
+        : DEFAULT_CALENDAR_PREFERENCE;
     const effectiveProgressBarPreference = isPremium
         ? progressBarPreference
         : DEFAULT_PROGRESS_BAR_PREFERENCE;
+
+    useEffect(() => {
+        if (
+            isSubscriptionLoading ||
+            !isCalendarPreferenceLoaded ||
+            isSavingCalendarPreference ||
+            calendarPreferenceError ||
+            isPremium ||
+            calendarPreference !== 2
+        ) {
+            return;
+        }
+
+        setCalendarPreference(DEFAULT_CALENDAR_PREFERENCE);
+    }, [
+        calendarPreference,
+        calendarPreferenceError,
+        isCalendarPreferenceLoaded,
+        isPremium,
+        isSavingCalendarPreference,
+        isSubscriptionLoading,
+        setCalendarPreference,
+    ]);
 
     useEffect(() => {
         if (
@@ -294,10 +321,13 @@ export default function Display() {
     };
 
     const renderCalendarOption = (value: CalendarPreference, title: string) => {
+        const isTextOption = value === 2;
+
         return renderDisplayPreviewOption({
             title,
-            isActive: calendarPreference === value,
+            isActive: effectiveCalendarPreference === value,
             isSaving: isSavingCalendarPreference,
+            isLocked: isTextOption && !isPremium,
             previewSource: value === 1
                 ? require("@/assets/images/settings/calendar_slider.png")
                 : require("@/assets/images/settings/calendar_text.png"),

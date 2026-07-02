@@ -96,7 +96,7 @@ export const resources = {
               "title": "Slider"
             },
             "text": {
-              "title": "Text"
+              "title": "Compact"
             },
             "error": "The preference could not be saved. Your previous choice has been restored."
           },
@@ -1114,7 +1114,7 @@ export const resources = {
               "title": "Slider"
             },
             "text": {
-              "title": "Texte"
+              "title": "Compact"
             },
             "error": "La préférence n'a pas pu être enregistrée. Ton choix précédent a été restauré."
           },

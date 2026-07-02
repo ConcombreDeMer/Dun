@@ -78,7 +78,7 @@ settings:
       slider:
         title: "Slider"
       text:
-        title: "Text"
+        title: "Compact"
       error: "The preference could not be saved. Your previous choice has been restored."
     about:
       title: "About"

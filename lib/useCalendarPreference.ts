@@ -4,16 +4,21 @@ import { supabase } from "./supabase";
 export type CalendarPreference = 1 | 2;
 
 export const CALENDAR_PREFERENCE_QUERY_KEY = ["profile", "custom_calendar"] as const;
+export const DEFAULT_CALENDAR_PREFERENCE: CalendarPreference = 1;
 
 const normalizeCalendarPreference = (value: unknown): CalendarPreference => {
-  return value === 2 ? 2 : 1;
+  if (value === 1 || value === 2) {
+    return value;
+  }
+
+  return DEFAULT_CALENDAR_PREFERENCE;
 };
 
 const fetchCalendarPreference = async (): Promise<CalendarPreference> => {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return 1;
+    return DEFAULT_CALENDAR_PREFERENCE;
   }
 
   const { data, error } = await supabase
@@ -56,7 +61,7 @@ export const useCalendarPreference = () => {
     gcTime: 1000 * 60 * 60,
   });
 
-  const preference = preferenceQuery.data ?? 1;
+  const preference = preferenceQuery.data ?? DEFAULT_CALENDAR_PREFERENCE;
 
   const mutation = useMutation({
     mutationFn: saveCalendarPreference,
@@ -74,7 +79,7 @@ export const useCalendarPreference = () => {
     onError: (_error, _nextPreference, context) => {
       queryClient.setQueryData(
         CALENDAR_PREFERENCE_QUERY_KEY,
-        context?.previousPreference ?? 1
+        context?.previousPreference ?? DEFAULT_CALENDAR_PREFERENCE
       );
     },
     onSettled: () => {
