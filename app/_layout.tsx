@@ -12,6 +12,27 @@ import { syncRevenueCatUser } from "../lib/revenuecat";
 import { SubscriptionProvider } from "../lib/subscription";
 import { supabase } from "../lib/supabase";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://22e24a375245f570d6a9c3e6ebfb71af@o4511662072594432.ingest.de.sentry.io/4511662116896848',
+
+  environment: __DEV__ ? 'development' : 'production',
+  sendDefaultPii: false,
+  enableLogs: __DEV__,
+
+  replaysSessionSampleRate: __DEV__ ? 0.1 : 0.02,
+  replaysOnErrorSampleRate: 1,
+  integrations: [Sentry.mobileReplayIntegration()],
+
+  beforeSend(event) {
+    if (event.user) {
+      event.user = event.user.id ? { id: event.user.id } : undefined;
+    }
+
+    return event;
+  },
+});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -51,6 +72,15 @@ function RootLayoutContent() {
 
   const queryClient = useMemo(() => getQueryClient(), []);
   const navigationTheme = actualTheme === "dark" ? DarkTheme : DefaultTheme;
+
+  useEffect(() => {
+    Sentry.setUser(session?.user?.id ? { id: session.user.id } : null);
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    Sentry.setTag("route", pathname ?? "unknown");
+    Sentry.setTag("theme", actualTheme);
+  }, [actualTheme, pathname]);
 
   useEffect(() => {
     Appearance.setColorScheme(actualTheme);
@@ -251,7 +281,7 @@ function RootLayoutContent() {
     </QueryClientProvider>
   );
 }
-export default function RootLayout() {
+export default Sentry.wrap(function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
@@ -263,4 +293,4 @@ export default function RootLayout() {
       </ThemeProvider>
     </GestureHandlerRootView>
   );
-}
+});
