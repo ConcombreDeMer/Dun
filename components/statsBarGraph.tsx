@@ -59,6 +59,8 @@ type BarData = {
 type Slide = {
   bars: BarData[];
   periodLabel: string;
+  rangeEnd: string;
+  rangeStart: string;
   id: string;
   summary: {
     done: number;
@@ -78,6 +80,7 @@ type ChartPalette = {
 
 const CHART_HEIGHT = 168;
 const MIN_BAR_HEIGHT = 12;
+const Y_AXIS_WIDTH = 34;
 
 const getWeekStart = (date: Date): Date => {
   const d = normalizeDate(date);
@@ -88,13 +91,6 @@ const getWeekStart = (date: Date): Date => {
 };
 
 const clampDone = (done: number, total: number) => Math.min(Math.max(done, 0), Math.max(total, 0));
-
-const getPeriodName = (period: Period, t: (key: string) => string) => {
-  if (period === "Par semaine") return t("stats.general.period.week");
-  if (period === "Par mois") return t("stats.general.period.month");
-  if (period === "Par année") return t("stats.general.period.year");
-  return t("stats.general.period.global");
-};
 
 const createBar = (
   days: StatsDay[],
@@ -140,6 +136,21 @@ const buildSlideStats = (days: StatsDay[], preferences: StatsPreferences, today:
       completion: Number.parseInt(stats.completion, 10) || 0,
     },
   };
+};
+
+const formatDateRangeLabel = (start: string, end: string, locale: string, language: string) => {
+  const startDate = normalizeDate(new Date(start));
+  const endDate = normalizeDate(new Date(end));
+  const includeYear = startDate.getFullYear() !== endDate.getFullYear();
+  const dateOptions: Intl.DateTimeFormatOptions = includeYear
+    ? { day: "numeric", month: "short", year: "numeric" }
+    : { day: "numeric", month: "short" };
+  const formattedStart = startDate.toLocaleDateString(locale, dateOptions);
+  const formattedEnd = endDate.toLocaleDateString(locale, dateOptions);
+
+  return language === "en"
+    ? `From ${formattedStart} to ${formattedEnd}`
+    : `Du ${formattedStart} au ${formattedEnd}`;
 };
 
 const buildWeekSlides = (
@@ -188,6 +199,8 @@ const buildWeekSlides = (
         start: weekStart.toLocaleDateString(locale, { day: "numeric", month: "short" }),
         end: weekEnd.toLocaleDateString(locale, { day: "numeric", month: "short" }),
       }),
+      rangeEnd: weekEnd.toISOString(),
+      rangeStart: weekStart.toISOString(),
       ...calculated,
     };
   });
@@ -239,6 +252,8 @@ const buildMonthSlides = (
       id: `month-${target.getFullYear()}-${target.getMonth()}`,
       bars,
       periodLabel: t("stats.chart.monthOf", { month: month.charAt(0).toUpperCase() + month.slice(1) }),
+      rangeEnd: monthEnd.toISOString(),
+      rangeStart: target.toISOString(),
       ...calculated,
     });
   }
@@ -286,6 +301,8 @@ const buildYearSlides = (
       id: `year-${year}`,
       bars,
       periodLabel: year.toString(),
+      rangeEnd: new Date(year, maxMonth + 1, 0).toISOString(),
+      rangeStart: new Date(year, 0, 1).toISOString(),
       ...calculated,
     });
   }
@@ -343,6 +360,8 @@ const buildGlobalSlides = (
       id: `global-${year}`,
       bars,
       periodLabel: year.toString(),
+      rangeEnd: new Date(year, endMonth + 1, 0).toISOString(),
+      rangeStart: new Date(year, startMonth, 1).toISOString(),
       ...calculated,
     });
   }
@@ -429,7 +448,9 @@ const ChartSlide = memo(function ChartSlide({
   fontSizes,
   itemWidth,
   onPressBar,
+  onToggleOpenDayOnPress,
   opensDayOnPress,
+  language,
 }: {
   slide: Slide;
   colors: any;
@@ -437,7 +458,9 @@ const ChartSlide = memo(function ChartSlide({
   fontSizes: Record<string, number>;
   itemWidth: number;
   onPressBar: (bar: BarData) => void;
+  onToggleOpenDayOnPress: () => void;
   opensDayOnPress: boolean;
+  language: string;
 }) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(() => getDefaultSelectedBarIndex(slide.bars));
 
@@ -452,12 +475,14 @@ const ChartSlide = memo(function ChartSlide({
   const selectedBar = selectedIndex === null ? undefined : slide.bars[selectedIndex];
   const maxTotal = Math.max(1, ...slide.bars.map((bar) => bar.total));
   const chartWidth = itemWidth - 40;
-  const barSlotWidth = Math.max(28, chartWidth / Math.max(slide.bars.length, 1));
+  const graphWidth = Math.max(1, chartWidth - Y_AXIS_WIDTH);
+  const barSlotWidth = Math.max(28, graphWidth / Math.max(slide.bars.length, 1));
   const barWidth = Math.min(34, Math.max(16, barSlotWidth * 0.46));
+  const scaleValues = [maxTotal, Math.round(maxTotal / 2), 0];
   const tooltipLeft = selectedIndex === null
-    ? 8
+    ? Y_AXIS_WIDTH + 8
     : Math.min(
-      Math.max(8, selectedIndex * barSlotWidth + barSlotWidth / 2 - 48),
+      Math.max(Y_AXIS_WIDTH + 8, Y_AXIS_WIDTH + selectedIndex * barSlotWidth + barSlotWidth / 2 - 48),
       Math.max(8, chartWidth - 104)
     );
 
@@ -470,22 +495,63 @@ const ChartSlide = memo(function ChartSlide({
     <View style={[styles.slide, { width: itemWidth }]}>
       <View style={styles.slideHeader}>
         <View>
-          <Text style={[styles.kicker, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>
-            {slide.periodLabel}
-          </Text>
           <Text style={[styles.title, { color: colors.text, fontSize: fontSizes["3xl"] }]}>
             {slide.summary.done}/{slide.summary.total}
           </Text>
         </View>
-        <View style={[styles.scorePill, { backgroundColor: colors.input }]}>
-          <Text style={[styles.scoreText, { color: colors.text, fontSize: fontSizes.sm }]}>
-            {slide.summary.completion}%
-          </Text>
+        <View style={styles.scoreControls}>
+          <Pressable
+            accessibilityRole="switch"
+            accessibilityState={{ checked: opensDayOnPress }}
+            accessibilityLabel={language === "en" ? "Open day on bar tap" : "Ouvrir le jour au toucher"}
+            onPress={onToggleOpenDayOnPress}
+            style={[
+              styles.redirectToggle,
+              {
+                backgroundColor: opensDayOnPress ? colors.text : colors.input,
+              },
+            ]}
+          >
+            <SymbolView
+              name="calendar"
+              size={14}
+              tintColor={opensDayOnPress ? colors.card : colors.textSecondary}
+            />
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.redirectToggleText,
+                {
+                  color: opensDayOnPress ? colors.card : colors.textSecondary,
+                  fontSize: fontSizes.xs,
+                },
+              ]}
+            >
+              {language === "en" ? "Open" : "Ouvrir"}
+            </Text>
+          </Pressable>
+          <View style={[styles.scorePill, { backgroundColor: colors.input }]}>
+            <Text style={[styles.scoreText, { color: colors.text, fontSize: fontSizes.sm }]}>
+              {slide.summary.completion}%
+            </Text>
+          </View>
         </View>
       </View>
 
       <View style={[styles.chartArea, { width: chartWidth }]}>
-        <View style={styles.gridLayer} pointerEvents="none">
+        <View style={styles.yAxis} pointerEvents="none">
+          {scaleValues.map((value, index) => (
+            <Text
+              key={`${slide.id}-scale-${index}`}
+              numberOfLines={1}
+              style={[styles.yAxisLabel, { color: colors.textSecondary, fontSize: fontSizes.xs }]}
+            >
+              {value}
+            </Text>
+          ))}
+        </View>
+
+        <View style={[styles.gridLayer, { left: Y_AXIS_WIDTH }]} pointerEvents="none">
           <View style={[styles.gridLine, { backgroundColor: palette.grid }]} />
           <View style={[styles.gridLine, { backgroundColor: palette.grid }]} />
           <View style={[styles.gridLine, { backgroundColor: palette.grid }]} />
@@ -507,12 +573,12 @@ const ChartSlide = memo(function ChartSlide({
           </Animated.View>
         )}
 
-        <View style={styles.barsRow}>
+        <View style={[styles.barsRow, { marginLeft: Y_AXIS_WIDTH, width: graphWidth }]}>
           {slide.bars.map((bar, index) => {
             const totalHeight = bar.total > 0
               ? Math.max(MIN_BAR_HEIGHT, (bar.total / maxTotal) * CHART_HEIGHT)
               : MIN_BAR_HEIGHT;
-            const doneHeight = bar.total > 0
+            const doneHeight = bar.total > 0 && bar.done > 0
               ? Math.max(4, (bar.done / bar.total) * totalHeight)
               : 0;
             const isSelected = index === selectedIndex;
@@ -536,18 +602,16 @@ const ChartSlide = memo(function ChartSlide({
                   ]}
                 >
                   {isSelected && <View style={[styles.barGlow, { backgroundColor: palette.accentSoft }]} />}
-                  {bar.total > 0 && (
+                  {bar.done > 0 && (
                     <LinearGradient
-                      colors={bar.isCurrent || isSelected
-                        ? [palette.accentSoft, palette.accent]
-                        : [colors.textSecondary, colors.text]}
+                      colors={[palette.accent, palette.accent]}
                       start={{ x: 0.5, y: 0 }}
                       end={{ x: 0.5, y: 1 }}
                       style={[
                         styles.barFill,
                         {
                           height: doneHeight,
-                          opacity: bar.isCurrent || isSelected ? 1 : 0.74,
+                          opacity: 1,
                         },
                       ]}
                     />
@@ -588,27 +652,24 @@ export default function StatsBarGraph({
   onSlideChange,
 }: StatsBarGraphProps) {
   const { width: screenWidth } = useWindowDimensions();
-  const { colors } = useTheme();
+  const { actualTheme, colors } = useTheme();
   const { fontSizes } = useFont();
   const { t, language } = useAppTranslation();
   const locale = language === "en" ? "en-US" : "fr-FR";
   const palette = useMemo<ChartPalette>(() => {
-    const accent = colors.doneSecondary || colors.actionButton || colors.text;
+    const checkboxDoneBorder = actualTheme === "dark" ? "#42E690" : "#08E18B";
+    const totalBarColor = actualTheme === "dark" ? "#4A4A4A" : "#D8D8D8";
     return {
-      accent,
-      accentSoft: colors.donePrimary || colors.checkbox || colors.border,
-      track: colors.input || colors.border,
+      accent: checkboxDoneBorder,
+      accentSoft: totalBarColor,
+      track: totalBarColor,
       mutedTrack: colors.border || colors.input,
       grid: colors.border || "rgba(120, 120, 120, 0.16)",
     };
   }, [
-    colors.actionButton,
+    actualTheme,
     colors.border,
-    colors.checkbox,
-    colors.donePrimary,
-    colors.doneSecondary,
     colors.input,
-    colors.text,
   ]);
   const queryClient = useQueryClient();
   const setSelectedDate = useStore((state: { setSelectedDate: (date: Date) => void }) => state.setSelectedDate);
@@ -699,47 +760,28 @@ export default function StatsBarGraph({
       fontSizes={fontSizes}
       itemWidth={itemWidth}
       onPressBar={handlePressBar}
+      onToggleOpenDayOnPress={toggleOpenDayOnPress}
       opensDayOnPress={opensDayOnPress}
+      language={language}
     />
-  ), [colors, fontSizes, handlePressBar, itemWidth, opensDayOnPress, palette]);
+  ), [colors, fontSizes, handlePressBar, itemWidth, language, opensDayOnPress, palette, toggleOpenDayOnPress]);
+
+  const activeSlide = displayedSlides[activeIndex];
+  const activeRangeLabel = activeSlide
+    ? formatDateRangeLabel(activeSlide.rangeStart, activeSlide.rangeEnd, locale, language)
+    : "";
 
   return (
     <Squircle style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.topBar}>
-        <Text style={[styles.periodName, { color: colors.text, fontSize: fontSizes.base }]}>
-          {getPeriodName(period, t)}
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          style={[styles.periodName, { color: colors.text, fontSize: fontSizes.lg }]}
+        >
+          {activeRangeLabel}
         </Text>
         <View style={styles.timelineControls}>
-          <Pressable
-            accessibilityRole="switch"
-            accessibilityState={{ checked: opensDayOnPress }}
-            accessibilityLabel={language === "en" ? "Open day on bar tap" : "Ouvrir le jour au toucher"}
-            onPress={toggleOpenDayOnPress}
-            style={[
-              styles.redirectToggle,
-              {
-                backgroundColor: opensDayOnPress ? colors.text : colors.input,
-              },
-            ]}
-          >
-            <SymbolView
-              name="calendar"
-              size={14}
-              tintColor={opensDayOnPress ? colors.card : colors.textSecondary}
-            />
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.redirectToggleText,
-                {
-                  color: opensDayOnPress ? colors.card : colors.textSecondary,
-                  fontSize: fontSizes.xs,
-                },
-              ]}
-            >
-              {language === "en" ? "Open" : "Ouvrir"}
-            </Text>
-          </Pressable>
           <Pressable
             accessibilityRole="button"
             disabled={activeIndex === 0 || isLoadingSlides}
@@ -838,7 +880,9 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   periodName: {
-    fontFamily: "Satoshi-Bold",
+    flex: 1,
+    fontFamily: "Satoshi-Medium",
+    marginRight: 12,
   },
   timelineControls: {
     alignItems: "center",
@@ -924,9 +968,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingTop: 14,
   },
-  kicker: {
-    fontFamily: "Satoshi-Medium",
-    marginBottom: 2,
+  scoreControls: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
   },
   title: {
     fontFamily: "Satoshi-Bold",
@@ -949,9 +994,20 @@ const styles = StyleSheet.create({
     bottom: 42,
     height: CHART_HEIGHT,
     justifyContent: "space-between",
-    left: 0,
     position: "absolute",
     right: 0,
+  },
+  yAxis: {
+    bottom: 42,
+    height: CHART_HEIGHT,
+    justifyContent: "space-between",
+    left: 0,
+    position: "absolute",
+    width: Y_AXIS_WIDTH,
+  },
+  yAxisLabel: {
+    fontFamily: "Satoshi-Bold",
+    textAlign: "left",
   },
   gridLine: {
     height: StyleSheet.hairlineWidth,

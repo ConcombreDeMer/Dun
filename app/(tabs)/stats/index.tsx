@@ -1,10 +1,11 @@
 import CreateModalHost from "@/components/CreateModalHost";
 import HorizontalBarGraph from "@/components/horizontalBarGraph";
-import SecondaryButton from "@/components/secondaryButton";
 import StatsBarGraph from "@/components/statsBarGraph";
 import StatsCard from "@/components/statsCard";
 import StatsCardCharge from "@/components/statsCardCharge";
 import StatsCardCompletion from "@/components/statsCardCompletion";
+import StatsInfoButton from "@/components/StatsInfoButton";
+import StatsPeriodMenu from "@/components/StatsPeriodMenu";
 import StatsPreferencesModal from "@/components/StatsPreferencesModal";
 import StatsStreak from "@/components/statsStreak";
 import {
@@ -22,7 +23,7 @@ import { useAppTranslation } from "@/lib/i18n";
 import { getStatsImageSource } from "@/lib/imageHelper";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
-import { getTagUsageStats, TAG_USAGE_STATS_QUERY_KEY } from "@/lib/tags";
+import { getTagUsageStats, TAG_USAGE_STATS_QUERY_KEY, TagUsageBucket } from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStatsPreferences } from "@/lib/useStatsPreferences";
 import { useQuery } from "@tanstack/react-query";
@@ -45,6 +46,7 @@ type Slide = {
   bars: {
     stacks: { value: number; color: string; marginBottom?: number }[];
     label: string;
+    caption?: string;
     date: string;
     days?: StatsDay[];
   }[];
@@ -196,6 +198,21 @@ export default function Stats() {
       .sort();
   }, [activeSlide, statsPreferences]);
 
+  const tagUsageBuckets = useMemo<TagUsageBucket[] | null>(() => {
+    if (!activeSlide) {
+      return null;
+    }
+
+    return activeSlide.bars.map((bar, index) => ({
+      id: `${activeSlide.id}-${index}`,
+      label: bar.label,
+      dateKeys: filterStatsDays(bar.days ?? [], statsPreferences)
+        .map((day) => day.date.slice(0, 10))
+        .filter(Boolean)
+        .sort(),
+    }));
+  }, [activeSlide, statsPreferences]);
+
   const tagStatsDateRange = useMemo(() => {
     const dates = includedTagStatsDateKeys;
 
@@ -213,6 +230,10 @@ export default function Stats() {
     () => includedTagStatsDateKeys?.join("|") ?? "no-slide",
     [includedTagStatsDateKeys]
   );
+  const tagUsageBucketsQueryPart = useMemo(
+    () => tagUsageBuckets?.map((bucket) => `${bucket.id}:${bucket.dateKeys.join(",")}`).join("|") ?? "no-buckets",
+    [tagUsageBuckets]
+  );
 
   const tagUsageStatsQuery = useQuery({
     queryKey: [
@@ -220,19 +241,21 @@ export default function Stats() {
       tagStatsDateRange.startDateKey,
       tagStatsDateRange.endDateKey,
       tagStatsDateKeysQueryPart,
+      tagUsageBucketsQueryPart,
       showUnusedTags,
     ],
     queryFn: () => getTagUsageStats({
+      buckets: tagUsageBuckets ?? [],
       startDateKey: tagStatsDateRange.startDateKey,
       endDateKey: tagStatsDateRange.endDateKey,
       includedDateKeys: includedTagStatsDateKeys ?? [],
       includeUnused: showUnusedTags,
     }),
-    enabled: !!activeSlide,
+    enabled: !!activeSlide && !!tagUsageBuckets,
     placeholderData: (previousData) => previousData,
   });
 
-  const periodOptions: StatsPeriod[] = ['Par semaine', 'Par mois', 'Par année', 'Global'];
+  const periodOptions: StatsPeriod[] = ['Par semaine', 'Par mois', 'Par année'];
   const displayedLoadingState = canUseAdvancedStats ? loadingState : daysQuery.isLoading;
 
   const getDisplayedPeriod = (period: string) => {
@@ -259,11 +282,9 @@ export default function Stats() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View
-        style={{ position: 'absolute', top: 70, right: 20, zIndex: 10 }}
+        style={{ position: 'absolute', top: 70, right: 30, zIndex: 10, }}
       >
-        <SecondaryButton
-          image='slider.horizontal.3'
-          imageSize={27}
+        <StatsInfoButton
           onPress={showInfoPopUp ? () => setShowInfoPopUp(false) : () => setShowInfoPopUp(true)}
         />
       </View>
@@ -272,11 +293,7 @@ export default function Stats() {
         isVisible={showInfoPopUp}
         isPreferencePending={isPreferencePending}
         preferences={statsPreferences}
-        period={period}
-        periodOptions={periodOptions}
-        getDisplayedPeriod={getDisplayedPeriod}
         onPreferenceChange={setPreferenceOptimistically}
-        onPeriodChange={handlePeriodSelect}
         showUnusedTags={showUnusedTags}
         onShowUnusedTagsChange={handleShowUnusedTagsChange}
         onClose={() => setShowInfoPopUp(false)}
@@ -285,7 +302,7 @@ export default function Stats() {
       {/* Scrollable content */}
       <Animated.ScrollView
         style={{ width: '100%' }}
-        contentContainerStyle={{ alignItems: 'center', paddingBottom: 200, display: 'flex', gap: 10 }}
+        contentContainerStyle={{ alignItems: 'center', display: 'flex' }}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topContainer}>
@@ -299,74 +316,27 @@ export default function Stats() {
             flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
-            gap: 10,
-            marginVertical: 20,
+            marginBottom: 200,
           }}
         >
-          <View style={styles.cardsRow}>
-            <StatsCard
-              image={getStatsImageSource('done', actualTheme)}
-              title={t('stats.general.cards.tasksDone')}
-              value={displayedStats.totalDoneCount.toString()}
-              loading={displayedLoadingState}
-            />
-            <StatsCard
-              image={getStatsImageSource('perfect', actualTheme)}
-              title={t('stats.general.cards.perfectDays')}
-              value={displayedStats.perfectDaysCount.toString()}
-              loading={displayedLoadingState}
+          <View style={styles.periodPickerContainer}>
+            <StatsPeriodMenu
+              period={period}
+              periodOptions={periodOptions}
+              getDisplayedPeriod={getDisplayedPeriod}
+              onPeriodChange={handlePeriodSelect}
             />
           </View>
-          <View style={styles.cardsRow}>
-            <StatsCardCompletion
-              image={getStatsImageSource('completion', actualTheme)}
-              title={t('stats.general.cards.completion')}
-              value={displayedStats.completion}
-              loading={displayedLoadingState}
-            />
-            <StatsCardCharge
-              image={getStatsImageSource('charge', actualTheme)}
-              title={t('stats.general.cards.charge')}
-              value={displayedStats.charge.toString()}
-              loading={displayedLoadingState}
-            />
-          </View>
-          <SquircleButton
-            activeOpacity={0.82}
-            cornerSmoothing={100}
-            onPress={() => router.push("/stats/adjustmentExplain")}
-            preserveSmoothing
-            style={[styles.adjustmentMetric, { backgroundColor: colors.card, borderColor: colors.border }]}
+          <View
+            style={{
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 10,
+            }}
           >
-            <View style={[styles.adjustmentIcon, { backgroundColor: colors.background }]}>
-              <SymbolView name="arrow.triangle.2.circlepath" size={23} tintColor={colors.textSecondary} />
-            </View>
-            <View style={styles.adjustmentTextGroup}>
-              <Text style={[styles.adjustmentTitle, { color: colors.text, fontSize: fontSizes.lg }]}>
-                {t('stats.general.cards.lateAdjustmentRate')}
-              </Text>
-              <Text style={[styles.adjustmentSubtitle, { color: colors.textSecondary }]}>
-                {t('stats.general.cards.lateAdjustmentCount', { count: displayedStats.lateAdjustedTasksCount })}
-              </Text>
-            </View>
-            {displayedLoadingState ? (
-              <Animated.Text
-                style={[styles.adjustmentValue, { color: colors.text, fontSize: fontSizes['3xl'] }]}
-              />
-            ) : (
-              <Animated.Text
-                style={[styles.adjustmentValue, { color: colors.text, fontSize: fontSizes['3xl'] }]}
-              >
-                {displayedStats.lateAdjustmentRate}
-              </Animated.Text>
-            )}
-          </SquircleButton>
-
-        </View>
-
-
-        {canUseAdvancedStats ? (
-          <>
             <StatsBarGraph
               daysData={chartDaysData}
               period={period}
@@ -374,33 +344,116 @@ export default function Stats() {
               onSlideChange={handleSlideChange}
             />
 
-            <HorizontalBarGraph
-              data={tagUsageStatsQuery.data ?? []}
-              isLoading={!activeSlide || tagUsageStatsQuery.isLoading}
-              periodLabel={activeSlide?.periodLabel ?? getDisplayedPeriod(period)}
-            />
-          </>
-        ) : (
-          <View style={[styles.premiumStatsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.premiumIcon}>
-              <SymbolView name="chart.bar.xaxis" size={30} tintColor="#F4BA00" />
-            </View>
-            <Text style={[styles.premiumTitle, { color: colors.text }]}>
-              {t("stats.general.premium.title")}
-            </Text>
-            <Text style={[styles.premiumMessage, { color: colors.textSecondary }]}>
-              {t("stats.general.premium.message")}
-            </Text>
-            <TouchableOpacity
-              style={styles.premiumButton}
-              onPress={() => router.push("/settings/premium")}
+            <View
+              style={{
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 10,
+                marginVertical: 10,
+              }}
             >
-              <Text style={styles.premiumButtonText}>
-                {t("stats.general.premium.cta")}
-              </Text>
-            </TouchableOpacity>
+              <View style={styles.cardsRow}>
+                <StatsCard
+                  image={getStatsImageSource('done', actualTheme)}
+                  title={t('stats.general.cards.tasksDone')}
+                  value={displayedStats.totalDoneCount.toString()}
+                  loading={displayedLoadingState}
+                />
+                <StatsCard
+                  image={getStatsImageSource('perfect', actualTheme)}
+                  title={t('stats.general.cards.perfectDays')}
+                  value={displayedStats.perfectDaysCount.toString()}
+                  loading={displayedLoadingState}
+                />
+              </View>
+              <View style={styles.cardsRow}>
+                <StatsCardCompletion
+                  image={getStatsImageSource('completion', actualTheme)}
+                  title={t('stats.general.cards.completion')}
+                  value={displayedStats.completion}
+                  loading={displayedLoadingState}
+                />
+                <StatsCardCharge
+                  image={getStatsImageSource('charge', actualTheme)}
+                  title={t('stats.general.cards.charge')}
+                  value={displayedStats.charge.toString()}
+                  loading={displayedLoadingState}
+                />
+              </View>
+              <SquircleButton
+                activeOpacity={0.82}
+                cornerSmoothing={100}
+                onPress={() => router.push("/stats/adjustmentExplain")}
+                preserveSmoothing
+                style={[styles.adjustmentMetric, { backgroundColor: colors.card, borderColor: colors.border }]}
+              >
+                <View style={[styles.adjustmentIcon, { backgroundColor: colors.background }]}>
+                  <SymbolView name="arrow.triangle.2.circlepath" size={23} tintColor={colors.textSecondary} />
+                </View>
+                <View style={styles.adjustmentTextGroup}>
+                  <Text style={[styles.adjustmentTitle, { color: colors.text, fontSize: fontSizes.lg }]}>
+                    {t('stats.general.cards.lateAdjustmentRate')}
+                  </Text>
+                  <Text style={[styles.adjustmentSubtitle, { color: colors.textSecondary }]}>
+                    {t('stats.general.cards.lateAdjustmentCount', { count: displayedStats.lateAdjustedTasksCount })}
+                  </Text>
+                </View>
+                {displayedLoadingState ? (
+                  <Animated.Text
+                    style={[styles.adjustmentValue, { color: colors.text, fontSize: fontSizes['3xl'] }]}
+                  />
+                ) : (
+                  <Animated.Text
+                    style={[styles.adjustmentValue, { color: colors.text, fontSize: fontSizes['3xl'] }]}
+                  >
+                    {displayedStats.lateAdjustmentRate}
+                  </Animated.Text>
+                )}
+              </SquircleButton>
+            </View>
+            {canUseAdvancedStats ? (
+              <>
+                {/* <StatsBarGraph
+                daysData={chartDaysData}
+                period={period}
+                statsPreferences={statsPreferences}
+                onSlideChange={handleSlideChange}
+              /> */}
+
+                <HorizontalBarGraph
+                  data={tagUsageStatsQuery.data ?? []}
+                  isLoading={!activeSlide || tagUsageStatsQuery.isLoading}
+                  periodLabel={activeSlide?.periodLabel ?? getDisplayedPeriod(period)}
+                />
+              </>
+            ) : (
+              <View style={[styles.premiumStatsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={styles.premiumIcon}>
+                  <SymbolView name="chart.bar.xaxis" size={30} tintColor="#F4BA00" />
+                </View>
+                <Text style={[styles.premiumTitle, { color: colors.text }]}>
+                  {t("stats.general.premium.title")}
+                </Text>
+                <Text style={[styles.premiumMessage, { color: colors.textSecondary }]}>
+                  {t("stats.general.premium.message")}
+                </Text>
+                <TouchableOpacity
+                  style={styles.premiumButton}
+                  onPress={() => router.push("/settings/premium")}
+                >
+                  <Text style={styles.premiumButtonText}>
+                    {t("stats.general.premium.cta")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
-        )}
+        </View>
+
+
       </Animated.ScrollView>
       <CreateModalHost activePath="/stats" />
     </View>
@@ -426,6 +479,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '90%',
     gap: 10,
+    marginBottom: 10,
   },
 
   cardsRow: {
@@ -436,18 +490,21 @@ const styles = StyleSheet.create({
     width: '90%',
     height: 100,
   },
+  periodPickerContainer: {
+    marginBottom: 10,
+    width: "90%",
+  },
   adjustmentMetric: {
     alignItems: "center",
     borderRadius: 20,
     borderWidth: 1,
     flexDirection: "row",
-    gap: 12,
     minHeight: 76,
     paddingHorizontal: 16,
     paddingVertical: 12,
     width: "90%",
-    marginTop: 20,
     boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',
+    gap: 4,
   },
   adjustmentIcon: {
     alignItems: "center",

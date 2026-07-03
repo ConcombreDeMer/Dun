@@ -1,16 +1,19 @@
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
-import { TagUsageStat } from "@/lib/tags";
+import { TagUsagePoint, TagUsageStat } from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import Svg, {
+  Circle,
+  Defs,
+  G,
+  Path,
+  Stop,
+  LinearGradient as SvgLinearGradient,
+} from "react-native-svg";
 import Squircle from "./Squircle";
 
 type HorizontalBarGraphProps = {
@@ -19,106 +22,92 @@ type HorizontalBarGraphProps = {
   periodLabel: string;
 };
 
-type RowProps = {
-  item: TagUsageStat;
-  isExiting?: boolean;
-  maxTotal: number;
-  isSelected: boolean;
-  onPress: () => void;
+type ChartPoint = {
+  x: number;
+  y: number;
+  value: number;
 };
 
-const BarRow = memo(function BarRow({ item, isExiting = false, isSelected, maxTotal, onPress }: RowProps) {
+const CHART_HEIGHT = 176;
+const MIN_LINE_TOP_PADDING = 12;
+const Y_AXIS_WIDTH = 34;
+
+const buildLinePath = (points: ChartPoint[]) => {
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+
+  return points.reduce((path, point, index) => {
+    if (index === 0) return `M ${point.x} ${point.y}`;
+
+    const previous = points[index - 1];
+    const controlX = previous.x + (point.x - previous.x) / 2;
+    return `${path} C ${controlX} ${previous.y}, ${controlX} ${point.y}, ${point.x} ${point.y}`;
+  }, "");
+};
+
+const buildAreaPath = (points: ChartPoint[], height: number) => {
+  if (points.length === 0) return "";
+
+  const firstPoint = points[0];
+  const lastPoint = points[points.length - 1];
+
+  return `${buildLinePath(points)} L ${lastPoint.x} ${height} L ${firstPoint.x} ${height} Z`;
+};
+
+const getChartPoints = (
+  points: TagUsagePoint[],
+  width: number,
+  maxValue: number,
+  animationProgress: number
+): ChartPoint[] => {
+  if (points.length === 0) return [];
+
+  return points.map((point, index) => {
+    const x = points.length === 1 ? width / 2 : (index / (points.length - 1)) * width;
+    const targetY = CHART_HEIGHT - (point.total / Math.max(maxValue, 1)) * (CHART_HEIGHT - MIN_LINE_TOP_PADDING);
+    const y = CHART_HEIGHT - (CHART_HEIGHT - targetY) * animationProgress;
+
+    return { x, y, value: point.total };
+  });
+};
+
+const TagLegendRow = memo(function TagLegendRow({
+  item,
+  isDimmed,
+  isSelected,
+  onPress,
+}: {
+  item: TagUsageStat;
+  isDimmed: boolean;
+  isSelected: boolean;
+  onPress: () => void;
+}) {
   const { colors } = useTheme();
   const { fontSizes } = useFont();
-  const rowProgress = useSharedValue(0);
-  const totalProgress = useSharedValue(0);
-  const doneProgress = useSharedValue(0);
-  const detailProgress = useSharedValue(isSelected ? 1 : 0);
-  const totalWidth = maxTotal > 0 ? item.total / maxTotal : 0;
-  const doneWidth = item.total > 0 ? item.done / maxTotal : 0;
-
-  useEffect(() => {
-    rowProgress.value = withTiming(isExiting ? 0 : 1, { duration: 150 });
-  }, [isExiting, rowProgress]);
-
-  useEffect(() => {
-    totalProgress.value = withTiming(totalWidth, { duration: 520 });
-    doneProgress.value = withTiming(doneWidth, { duration: 620 });
-  }, [doneProgress, doneWidth, totalProgress, totalWidth]);
-
-  useEffect(() => {
-    detailProgress.value = withTiming(isSelected ? 1 : 0, { duration: 180 });
-  }, [detailProgress, isSelected]);
-
-  const totalStyle = useAnimatedStyle(() => ({
-    width: `${Math.max(totalProgress.value * 100, item.total > 0 ? 4 : 0)}%`,
-  }));
-
-  const doneStyle = useAnimatedStyle(() => ({
-    width: `${Math.max(doneProgress.value * 100, item.done > 0 ? 4 : 0)}%`,
-  }));
-
-  const detailStyle = useAnimatedStyle(() => ({
-    height: detailProgress.value * 18,
-    opacity: detailProgress.value,
-    transform: [{ scale: 0.96 + detailProgress.value * 0.04 }],
-  }));
-
-  const rowStyle = useAnimatedStyle(() => ({
-    opacity: rowProgress.value,
-    transform: [{ scale: 0.97 + rowProgress.value * 0.03 }],
-  }));
 
   return (
-    <Animated.View style={rowStyle}>
-      <Pressable
-        onPress={onPress}
-        style={({ pressed }) => [
-          styles.row,
-          {
-            backgroundColor: isSelected ? colors.input : "transparent",
-            opacity: pressed ? 0.72 : 1,
-          },
-        ]}
-      >
-        <View style={styles.rowTop}>
-          <View style={styles.labelWrap}>
-            <View style={[styles.colorDot, { backgroundColor: item.color }]} />
-            <Text numberOfLines={1} style={[styles.label, { color: colors.text, fontSize: fontSizes.sm }]}>
-              {item.name}
-            </Text>
-          </View>
-          <Text style={[styles.value, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>
-            {item.done}/{item.total}
-          </Text>
-        </View>
-
-        <View style={[styles.track, { backgroundColor: colors.input }]}>
-          <Animated.View
-            style={[
-              styles.totalBar,
-              { backgroundColor: item.color, opacity: 0.26 },
-              totalStyle,
-            ]}
-          />
-          <Animated.View
-            style={[
-              styles.doneBar,
-              { backgroundColor: item.color },
-              doneStyle,
-            ]}
-          />
-        </View>
-
-        <Animated.View style={[styles.detailWrap, detailStyle]}>
-          <Text style={[styles.detail, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>
-            {item.total > 0
-              ? `${Math.round((item.done / item.total) * 100)}%`
-              : "0%"}
-          </Text>
-        </Animated.View>
-      </Pressable>
-    </Animated.View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: isSelected }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.legendRow,
+        {
+          backgroundColor: isSelected ? colors.input : "transparent",
+          opacity: pressed ? 0.72 : isDimmed ? 0.44 : 1,
+        },
+      ]}
+    >
+      <View style={styles.legendNameWrap}>
+        <View style={[styles.colorDot, { backgroundColor: item.color }]} />
+        <Text numberOfLines={1} style={[styles.label, { color: colors.text, fontSize: fontSizes.sm }]}>
+          {item.name}
+        </Text>
+      </View>
+      <Text style={[styles.value, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>
+        {item.done}/{item.total}
+      </Text>
+    </Pressable>
   );
 });
 
@@ -127,190 +116,208 @@ export default function HorizontalBarGraph({
   isLoading = false,
   periodLabel,
 }: HorizontalBarGraphProps) {
+  const { width: screenWidth } = useWindowDimensions();
   const { colors } = useTheme();
   const { fontSizes } = useFont();
   const { t } = useAppTranslation();
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
-  const [containerHeight, setContainerHeight] = useState<number | null>(null);
-  const [visibleData, setVisibleData] = useState(data);
-  const [exitingTagIds, setExitingTagIds] = useState<string[]>([]);
-  const animatedHeight = useSharedValue(0);
-  const visibleDataRef = useRef(data);
-  const maxTotal = useMemo(() => Math.max(...visibleData.map((item) => item.total), 0), [visibleData]);
-
-  const animatedContainerStyle = useAnimatedStyle(() => {
-    return {
-      height: animatedHeight.value,
-    };
-  });
-
-  const handleContentLayout = useCallback((height: number) => {
-    const nextHeight = Math.ceil(height);
-
-    setContainerHeight((currentHeight) => {
-      if (currentHeight === null) {
-        animatedHeight.value = nextHeight;
-        return nextHeight;
-      }
-
-      if (Math.abs(currentHeight - nextHeight) < 1) {
-        return currentHeight;
-      }
-
-      animatedHeight.value = withTiming(nextHeight, { duration: 165 });
-
-      return nextHeight;
-    });
-  }, [animatedHeight]);
-
-  const animateContainerDelta = useCallback((delta: number) => {
-    if (!delta) return;
-
-    setContainerHeight((currentHeight) => {
-      if (currentHeight === null) {
-        return currentHeight;
-      }
-
-      const nextHeight = Math.max(currentHeight + delta, 0);
-      animatedHeight.value = withTiming(nextHeight, { duration: 140 });
-
-      return nextHeight;
-    });
-  }, [animatedHeight]);
-
-  const handlePressRow = useCallback(async (tagId: string) => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedTagId((current) => {
-      const next = current === tagId ? null : tagId;
-
-      if (!current && next) {
-        animateContainerDelta(18);
-      } else if (current && !next) {
-        animateContainerDelta(-18);
-      }
-
-      return next;
-    });
-  }, [animateContainerDelta]);
+  const [lineAnimationProgress, setLineAnimationProgress] = useState(0);
+  const chartWidth = Math.max(1, Math.min(screenWidth * 0.9, 520) - 36);
+  const graphWidth = Math.max(1, chartWidth - Y_AXIS_WIDTH);
+  const axisPoints = data.find((item) => item.points?.length)?.points ?? [];
+  const maxValue = useMemo(
+    () => Math.max(1, ...data.flatMap((item) => (item.points ?? []).map((point) => point.total))),
+    [data]
+  );
+  const scaleValues = useMemo(() => [maxValue, Math.round(maxValue / 2), 0], [maxValue]);
 
   useEffect(() => {
-    if (!selectedTagId || visibleData.some((item) => item.tagId === selectedTagId)) {
+    if (isLoading || data.length === 0) {
+      setLineAnimationProgress(0);
       return;
     }
 
-    const timer = setTimeout(() => {
-      setSelectedTagId(null);
-      animateContainerDelta(-18);
-    }, 0);
+    let frameId = 0;
+    const duration = 680;
+    const startedAt = Date.now();
 
-    return () => clearTimeout(timer);
-  }, [animateContainerDelta, selectedTagId, visibleData]);
+    const animate = () => {
+      const elapsed = Date.now() - startedAt;
+      const progress = Math.min(elapsed / duration, 1);
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
 
-  useEffect(() => {
-    const currentVisible = visibleDataRef.current;
-    const nextById = new Map(data.map((item) => [item.tagId, item]));
-    const currentIds = new Set(currentVisible.map((item) => item.tagId));
-    const removedIds = currentVisible
-      .filter((item) => !nextById.has(item.tagId))
-      .map((item) => item.tagId);
+      setLineAnimationProgress(easedProgress);
 
-    const nextVisible = [
-      ...currentVisible.map((item) => nextById.get(item.tagId) ?? item),
-      ...data.filter((item) => !currentIds.has(item.tagId)),
-    ];
-
-    const startTimer = setTimeout(() => {
-      if (removedIds.length === 0) {
-        visibleDataRef.current = data;
-        setVisibleData(data);
-        setExitingTagIds([]);
-        return;
+      if (progress < 1) {
+        frameId = requestAnimationFrame(animate);
       }
-
-      visibleDataRef.current = nextVisible;
-      setVisibleData(nextVisible);
-      setExitingTagIds(removedIds);
-    }, 0);
-
-    const removeTimer = removedIds.length > 0
-      ? setTimeout(() => {
-        visibleDataRef.current = data;
-        setVisibleData(data);
-        setExitingTagIds([]);
-      }, 155)
-      : undefined;
-
-    return () => {
-      clearTimeout(startTimer);
-      if (removeTimer) clearTimeout(removeTimer);
     };
-  }, [data]);
+
+    setLineAnimationProgress(0);
+    frameId = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(frameId);
+  }, [data, isLoading]);
+
+  const chartLines = useMemo(() => data.map((item, index) => {
+    const points = getChartPoints(item.points ?? [], graphWidth, maxValue, lineAnimationProgress);
+
+    return {
+      item,
+      areaPath: buildAreaPath(points, CHART_HEIGHT),
+      gradientId: `tagGradient-${item.tagId.replace(/[^a-zA-Z0-9_-]/g, "-")}-${index}`,
+      linePath: buildLinePath(points),
+      points,
+    };
+  }), [data, graphWidth, lineAnimationProgress, maxValue]);
+
+  const handlePressTag = useCallback(async (tagId: string) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedTagId((current) => current === tagId ? null : tagId);
+  }, []);
 
   return (
-    <Squircle
-      style={[
-        styles.container,
-        { backgroundColor: colors.card, borderColor: colors.border },
-        containerHeight !== null ? animatedContainerStyle : null,
-      ]}
-    >
-      <View
-        onLayout={(event) => handleContentLayout(event.nativeEvent.layout.height)}
-        style={styles.content}
-      >
-      <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.title, { color: colors.text, fontSize: fontSizes.base }]}>
-            {t("stats.general.tags.title")}
-          </Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>
-            {periodLabel}
-          </Text>
-        </View>
+    <Squircle style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.title, { color: colors.text, fontSize: fontSizes.base }]}>
+              {t("stats.general.tags.title")}
+            </Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>
+              {periodLabel}
+            </Text>
+          </View>
 
-        <SymbolView name="tag" size={28} tintColor={colors.textSecondary} />
-      </View>
-
-      <View style={styles.legend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendLine, { backgroundColor: colors.text, opacity: 0.28 }]} />
-          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>
-            {t("stats.general.tags.total")}
-          </Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendLine, { backgroundColor: colors.text }]} />
-          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>
-            {t("stats.general.tags.done")}
-          </Text>
-        </View>
-      </View>
-
-      {isLoading ? (
-        <View style={styles.state}>
-          <ActivityIndicator color={colors.text} />
-        </View>
-      ) : visibleData.length === 0 ? (
-        <View style={styles.state}>
           <SymbolView name="tag" size={28} tintColor={colors.textSecondary} />
-          <Text style={[styles.emptyText, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>
-            {t("stats.general.tags.empty")}
-          </Text>
         </View>
-      ) : (
-        <View style={styles.rows}>
-          {visibleData.map((item) => (
-            <BarRow
-              key={item.tagId}
-              item={item}
-              isExiting={exitingTagIds.includes(item.tagId)}
-              maxTotal={maxTotal}
-              isSelected={selectedTagId === item.tagId}
-              onPress={() => handlePressRow(item.tagId)}
-            />
-          ))}
-        </View>
-      )}
+
+        {isLoading ? (
+          <View style={styles.state}>
+            <ActivityIndicator color={colors.text} />
+          </View>
+        ) : data.length === 0 ? (
+          <View style={styles.state}>
+            <SymbolView name="tag" size={28} tintColor={colors.textSecondary} />
+            <Text style={[styles.emptyText, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>
+              {t("stats.general.tags.empty")}
+            </Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.chartWrap}>
+              <View style={styles.yAxis} pointerEvents="none">
+                {scaleValues.map((value, index) => (
+                  <Text
+                    key={`tag-scale-${index}`}
+                    numberOfLines={1}
+                    style={[styles.yAxisLabel, { color: colors.textSecondary, fontSize: fontSizes.xs }]}
+                  >
+                    {value}
+                  </Text>
+                ))}
+              </View>
+
+              <View style={[styles.gridLayer, { left: Y_AXIS_WIDTH }]} pointerEvents="none">
+                <View style={[styles.gridLine, { backgroundColor: colors.border }]} />
+                <View style={[styles.gridLine, { backgroundColor: colors.border }]} />
+                <View style={[styles.gridLine, { backgroundColor: colors.border }]} />
+              </View>
+
+              <Svg width={graphWidth} height={CHART_HEIGHT} style={[styles.chartSvg, { left: Y_AXIS_WIDTH }]}>
+                <Defs>
+                  {chartLines.map(({ gradientId, item }) => (
+                    <SvgLinearGradient key={gradientId} id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                      <Stop offset="0" stopColor={item.color} stopOpacity="0.24" />
+                      <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0.02" />
+                    </SvgLinearGradient>
+                  ))}
+                </Defs>
+
+                {chartLines.map(({ areaPath, gradientId, item }) => {
+                  const isDimmed = Boolean(selectedTagId && selectedTagId !== item.tagId);
+                  return areaPath.length > 0 ? (
+                    <Path
+                      key={`${item.tagId}-area`}
+                      d={areaPath}
+                      fill={`url(#${gradientId})`}
+                      opacity={isDimmed ? 0.12 : 1}
+                    />
+                  ) : null;
+                })}
+
+                {chartLines.map(({ item, linePath, points }) => {
+                  const isSelected = selectedTagId === item.tagId;
+                  const isDimmed = Boolean(selectedTagId && !isSelected);
+                  const lastPoint = points[points.length - 1];
+
+                  return linePath.length > 0 ? (
+                    <G key={item.tagId}>
+                      <Path
+                        d={linePath}
+                        fill="none"
+                        stroke={item.color}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={isSelected ? 3.4 : 2.4}
+                        opacity={isDimmed ? 0.24 : 0.92}
+                      />
+                      {lastPoint && !isDimmed && (
+                        <Circle
+                          cx={lastPoint.x}
+                          cy={lastPoint.y}
+                          r={isSelected ? 4.8 : 3.6}
+                          fill={item.color}
+                        />
+                      )}
+                    </G>
+                  ) : null;
+                })}
+              </Svg>
+            </View>
+
+            <View style={[styles.axisLabels, { marginLeft: Y_AXIS_WIDTH, width: graphWidth }]}>
+              {axisPoints.map((point, index) => {
+                return (
+                  <View
+                    key={`${point.id}-${index}`}
+                    style={[
+                      styles.axisLabelSlot,
+                      { width: `${100 / Math.max(axisPoints.length, 1)}%` },
+                    ]}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.62}
+                      style={[
+                        styles.axisLabel,
+                        {
+                          color: colors.textSecondary,
+                          fontSize: fontSizes.xs,
+                        },
+                      ]}
+                    >
+                      {point.label}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+
+            <View style={styles.legendRows}>
+              {data.map((item) => (
+                <TagLegendRow
+                  key={item.tagId}
+                  item={item}
+                  isSelected={selectedTagId === item.tagId}
+                  isDimmed={Boolean(selectedTagId && selectedTagId !== item.tagId)}
+                  onPress={() => handlePressTag(item.tagId)}
+                />
+              ))}
+            </View>
+          </>
+        )}
       </View>
     </Squircle>
   );
@@ -321,13 +328,12 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     borderRadius: 30,
     borderWidth: 1,
-    marginTop: 20,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.08,
     shadowRadius: 18,
-    boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',
+    boxShadow: "0px 6px 10px rgba(0, 0, 0, 0.1)",
     width: "90%",
   },
   content: {
@@ -347,40 +353,68 @@ const styles = StyleSheet.create({
     fontFamily: "Satoshi-Medium",
     marginTop: 2,
   },
-  legend: {
-    flexDirection: "row",
-    gap: 14,
-    marginTop: 14,
+  chartWrap: {
+    height: CHART_HEIGHT,
+    marginTop: 18,
+    position: "relative",
   },
-  legendItem: {
+  chartSvg: {
+    position: "absolute",
+    top: 0,
+  },
+  gridLayer: {
+    bottom: 0,
+    height: CHART_HEIGHT,
+    justifyContent: "space-between",
+    position: "absolute",
+    right: 0,
+    top: 0,
+  },
+  yAxis: {
+    height: CHART_HEIGHT,
+    justifyContent: "space-between",
+    left: 0,
+    position: "absolute",
+    top: 0,
+    width: Y_AXIS_WIDTH,
+  },
+  yAxisLabel: {
+    fontFamily: "Satoshi-Bold",
+    textAlign: "left",
+  },
+  gridLine: {
+    height: StyleSheet.hairlineWidth,
+    opacity: 0.72,
+    width: "100%",
+  },
+  axisLabels: {
+    flexDirection: "row",
+    height: 18,
+    marginTop: 8,
+  },
+  axisLabelSlot: {
     alignItems: "center",
-    flexDirection: "row",
-    gap: 6,
+    justifyContent: "center",
+    minWidth: 0,
   },
-  legendLine: {
-    borderRadius: 999,
-    height: 8,
-    width: 18,
-  },
-  legendText: {
+  axisLabel: {
     fontFamily: "Satoshi-Medium",
+    textAlign: "center",
+    width: "100%",
   },
-  rows: {
-    gap: 10,
+  legendRows: {
+    gap: 6,
     marginTop: 14,
   },
-  row: {
-    borderRadius: 16,
-    gap: 7,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-  },
-  rowTop: {
+  legendRow: {
     alignItems: "center",
+    borderRadius: 14,
     flexDirection: "row",
     justifyContent: "space-between",
+    minHeight: 36,
+    paddingHorizontal: 8,
   },
-  labelWrap: {
+  legendNameWrap: {
     alignItems: "center",
     flex: 1,
     flexDirection: "row",
@@ -400,38 +434,11 @@ const styles = StyleSheet.create({
     fontFamily: "Satoshi-Bold",
     marginLeft: 10,
   },
-  track: {
-    borderRadius: 999,
-    height: 18,
-    overflow: "hidden",
-    position: "relative",
-  },
-  totalBar: {
-    borderRadius: 999,
-    bottom: 3,
-    left: 0,
-    position: "absolute",
-    top: 3,
-  },
-  doneBar: {
-    borderRadius: 999,
-    bottom: 6,
-    left: 0,
-    position: "absolute",
-    top: 6,
-  },
-  detail: {
-    fontFamily: "Satoshi-Medium",
-    textAlign: "right",
-  },
-  detailWrap: {
-    overflow: "hidden",
-  },
   state: {
     alignItems: "center",
     gap: 8,
-    minHeight: 116,
     justifyContent: "center",
+    minHeight: 180,
   },
   emptyText: {
     fontFamily: "Satoshi-Medium",

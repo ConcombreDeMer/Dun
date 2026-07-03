@@ -17,6 +17,20 @@ export type TagUsageStat = {
   color: string;
   total: number;
   done: number;
+  points?: TagUsagePoint[];
+};
+
+export type TagUsagePoint = {
+  id: string;
+  label: string;
+  total: number;
+  done: number;
+};
+
+export type TagUsageBucket = {
+  id: string;
+  label: string;
+  dateKeys: string[];
 };
 
 type TaskTagUsageRow = {
@@ -77,11 +91,13 @@ export const getTaskTagIds = async (taskId: number, userId?: string) => {
 };
 
 export const getTagUsageStats = async ({
+  buckets,
   endDateKey,
   includedDateKeys,
   includeUnused = false,
   startDateKey,
 }: {
+  buckets?: TagUsageBucket[] | null;
   endDateKey?: string | null;
   includedDateKeys?: string[] | null;
   includeUnused?: boolean;
@@ -89,8 +105,24 @@ export const getTagUsageStats = async ({
 } = {}) => {
   const userId = await getUserId();
   const tags = await getTags();
-  const usageByTagId = new Map(tags.map((tag) => [tag.id, { done: 0, total: 0 }]));
+  const usageByTagId = new Map(tags.map((tag) => [tag.id, {
+    done: 0,
+    total: 0,
+    points: (buckets ?? []).map((bucket) => ({
+      id: bucket.id,
+      label: bucket.label,
+      done: 0,
+      total: 0,
+    })),
+  }]));
   const includedDateKeySet = includedDateKeys ? new Set(includedDateKeys) : null;
+  const bucketIndexByDateKey = new Map<string, number>();
+
+  for (const [index, bucket] of (buckets ?? []).entries()) {
+    for (const dateKey of bucket.dateKeys) {
+      bucketIndexByDateKey.set(dateKey, index);
+    }
+  }
 
   const { data, error } = await supabase
     .from("Task_Tags")
@@ -127,11 +159,17 @@ export const getTagUsageStats = async ({
 
     usage.total += 1;
     usage.done += task.done ? 1 : 0;
+
+    const bucketIndex = bucketIndexByDateKey.get(taskDateKey);
+    if (bucketIndex !== undefined && usage.points[bucketIndex]) {
+      usage.points[bucketIndex].total += 1;
+      usage.points[bucketIndex].done += task.done ? 1 : 0;
+    }
   }
 
   return tags
     .map<TagUsageStat>((tag) => {
-      const usage = usageByTagId.get(tag.id) ?? { done: 0, total: 0 };
+      const usage = usageByTagId.get(tag.id) ?? { done: 0, total: 0, points: [] };
 
       return {
         tagId: tag.id,
@@ -139,6 +177,7 @@ export const getTagUsageStats = async ({
         color: tag.color,
         total: usage.total,
         done: usage.done,
+        points: usage.points,
       };
     })
     .filter((tag) => includeUnused || tag.total > 0)
