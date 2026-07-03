@@ -23,17 +23,19 @@ import { useAppTranslation } from "@/lib/i18n";
 import { getStatsImageSource } from "@/lib/imageHelper";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
-import { getTagUsageStats, TAG_USAGE_STATS_QUERY_KEY, TagUsageBucket } from "@/lib/tags";
+import { buildTagUsageStats, getTagUsageSourceData, TAG_USAGE_STATS_QUERY_KEY, TagUsageBucket } from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStatsPreferences } from "@/lib/useStatsPreferences";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useMemo, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated from 'react-native-reanimated';
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 
 interface StatsData {
@@ -55,10 +57,29 @@ type Slide = {
   stats: CalculatedStats;
 };
 
+const withAlpha = (color: string, alpha: number) => {
+  const normalizedAlpha = Math.round(Math.min(Math.max(alpha, 0), 1) * 255)
+    .toString(16)
+    .padStart(2, "0");
+
+  if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+    return `${color}${normalizedAlpha}`;
+  }
+
+  if (/^#[0-9a-fA-F]{3}$/.test(color)) {
+    const [, r, g, b] = color;
+    return `#${r}${r}${g}${g}${b}${b}${normalizedAlpha}`;
+  }
+
+  return color;
+};
+
+
 export default function Stats() {
   const { fontSizes } = useFont();
   const { colors, actualTheme } = useTheme();
   const { t } = useAppTranslation();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { canUseAdvancedStats } = useSubscription();
   const [showInfoPopUp, setShowInfoPopUp] = useState(false);
@@ -226,67 +247,80 @@ export default function Stats() {
     };
   }, [includedTagStatsDateKeys]);
 
-  const tagStatsDateKeysQueryPart = useMemo(
-    () => includedTagStatsDateKeys?.join("|") ?? "no-slide",
-    [includedTagStatsDateKeys]
-  );
-  const tagUsageBucketsQueryPart = useMemo(
-    () => tagUsageBuckets?.map((bucket) => `${bucket.id}:${bucket.dateKeys.join(",")}`).join("|") ?? "no-buckets",
-    [tagUsageBuckets]
-  );
+  const tagUsageSourceQuery = useQuery({
+    enabled: canUseAdvancedStats,
+    queryKey: [...TAG_USAGE_STATS_QUERY_KEY, "source"],
+    queryFn: () => getTagUsageSourceData(),
+    staleTime: 1000 * 60 * 5,
+  });
 
-  const tagUsageStatsQuery = useQuery({
-    queryKey: [
-      ...TAG_USAGE_STATS_QUERY_KEY,
-      tagStatsDateRange.startDateKey,
-      tagStatsDateRange.endDateKey,
-      tagStatsDateKeysQueryPart,
-      tagUsageBucketsQueryPart,
-      showUnusedTags,
-    ],
-    queryFn: () => getTagUsageStats({
+  const tagUsageStats = useMemo(() => {
+    if (!activeSlide || !tagUsageBuckets || !tagUsageSourceQuery.data) {
+      return [];
+    }
+
+    return buildTagUsageStats({
       buckets: tagUsageBuckets ?? [],
       startDateKey: tagStatsDateRange.startDateKey,
       endDateKey: tagStatsDateRange.endDateKey,
       includedDateKeys: includedTagStatsDateKeys ?? [],
       includeUnused: showUnusedTags,
-    }),
-    enabled: !!activeSlide && !!tagUsageBuckets,
-    placeholderData: (previousData) => previousData,
-  });
+      sourceData: tagUsageSourceQuery.data,
+    });
+  }, [
+    activeSlide,
+    includedTagStatsDateKeys,
+    showUnusedTags,
+    tagStatsDateRange.endDateKey,
+    tagStatsDateRange.startDateKey,
+    tagUsageBuckets,
+    tagUsageSourceQuery.data,
+  ]);
 
-  const periodOptions: StatsPeriod[] = ['Par semaine', 'Par mois', 'Par année'];
+  const periodOptions = useMemo<StatsPeriod[]>(() => ['Par semaine', 'Par mois', 'Par année'], []);
   const displayedLoadingState = canUseAdvancedStats ? loadingState : daysQuery.isLoading;
+  const topContentPadding = insets.top + 12;
+  const topScrimHeight = insets.top + 44;
+  const topScrimColors = useMemo(
+    () => [
+      colors.background,
+      withAlpha(colors.background, 0.9),
+      withAlpha(colors.background, 0),
+    ] as const,
+    [colors.background]
+  );
 
-  const getDisplayedPeriod = (period: string) => {
+  const getDisplayedPeriod = useCallback((period: string) => {
     if (period === 'Par semaine') return t('stats.general.period.week');
     if (period === 'Par mois') return t('stats.general.period.month');
     if (period === 'Par année') return t('stats.general.period.year');
     return t('stats.general.period.global');
-  };
+  }, [t]);
 
-  const handlePeriodSelect = async (selectedPeriod: StatsPeriod) => {
+  const handlePeriodSelect = useCallback(async (selectedPeriod: StatsPeriod) => {
+    if (selectedPeriod === period) {
+      return;
+    }
+
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setPeriod(selectedPeriod);
-    setSlideStats(null);
-    setActiveSlide(null);
     console.log('Période sélectionnée :', selectedPeriod);
-    setLoadingState(selectedPeriod !== 'Global');
-  };
+  }, [period]);
 
-  const handleShowUnusedTagsChange = async (value: boolean) => {
+  const handleShowUnusedTagsChange = useCallback(async (value: boolean) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowUnusedTags(value);
-  };
+  }, []);
+
+  const toggleInfoPopup = useCallback(() => {
+    setShowInfoPopUp((current) => !current);
+  }, []);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View
         style={{ position: 'absolute', top: 70, right: 30, zIndex: 10, }}
       >
-        <StatsInfoButton
-          onPress={showInfoPopUp ? () => setShowInfoPopUp(false) : () => setShowInfoPopUp(true)}
-        />
       </View>
 
       <StatsPreferencesModal
@@ -299,162 +333,134 @@ export default function Stats() {
         onClose={() => setShowInfoPopUp(false)}
       />
 
-      {/* Scrollable content */}
-      <Animated.ScrollView
-        style={{ width: '100%' }}
-        contentContainerStyle={{ alignItems: 'center', display: 'flex' }}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[styles.listContent, { paddingTop: topContentPadding }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.topContainer}>
+        {/* <View style={styles.topContainer}>
           <StatsStreak value={streak.toString()} />
+        </View> */}
+        <View style={styles.periodPickerContainer}>
+          <StatsPeriodMenu
+            period={period}
+            periodOptions={periodOptions}
+            getDisplayedPeriod={getDisplayedPeriod}
+            onPeriodChange={handlePeriodSelect}
+          />
+
+          <StatsInfoButton
+            onPress={toggleInfoPopup}
+          />
         </View>
 
-        <View
-          style={{
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginBottom: 200,
-          }}
-        >
-          <View style={styles.periodPickerContainer}>
-            <StatsPeriodMenu
-              period={period}
-              periodOptions={periodOptions}
-              getDisplayedPeriod={getDisplayedPeriod}
-              onPeriodChange={handlePeriodSelect}
-            />
-          </View>
-          <View
-            style={{
-              width: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: 10,
-            }}
-          >
-            <StatsBarGraph
-              daysData={chartDaysData}
-              period={period}
-              statsPreferences={statsPreferences}
-              onSlideChange={handleSlideChange}
-            />
+        <View style={styles.overviewSection}>
+          <StatsBarGraph
+            daysData={chartDaysData}
+            period={period}
+            statsPreferences={statsPreferences}
+            onSlideChange={handleSlideChange}
+          />
 
-            <View
-              style={{
-                width: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: 10,
-                marginVertical: 10,
-              }}
-            >
-              <View style={styles.cardsRow}>
-                <StatsCard
-                  image={getStatsImageSource('done', actualTheme)}
-                  title={t('stats.general.cards.tasksDone')}
-                  value={displayedStats.totalDoneCount.toString()}
-                  loading={displayedLoadingState}
-                />
-                <StatsCard
-                  image={getStatsImageSource('perfect', actualTheme)}
-                  title={t('stats.general.cards.perfectDays')}
-                  value={displayedStats.perfectDaysCount.toString()}
-                  loading={displayedLoadingState}
-                />
-              </View>
-              <View style={styles.cardsRow}>
-                <StatsCardCompletion
-                  image={getStatsImageSource('completion', actualTheme)}
-                  title={t('stats.general.cards.completion')}
-                  value={displayedStats.completion}
-                  loading={displayedLoadingState}
-                />
-                <StatsCardCharge
-                  image={getStatsImageSource('charge', actualTheme)}
-                  title={t('stats.general.cards.charge')}
-                  value={displayedStats.charge.toString()}
-                  loading={displayedLoadingState}
-                />
-              </View>
-              <SquircleButton
-                activeOpacity={0.82}
-                cornerSmoothing={100}
-                onPress={() => router.push("/stats/adjustmentExplain")}
-                preserveSmoothing
-                style={[styles.adjustmentMetric, { backgroundColor: colors.card, borderColor: colors.border }]}
-              >
-                <View style={[styles.adjustmentIcon, { backgroundColor: colors.background }]}>
-                  <SymbolView name="arrow.triangle.2.circlepath" size={23} tintColor={colors.textSecondary} />
-                </View>
-                <View style={styles.adjustmentTextGroup}>
-                  <Text style={[styles.adjustmentTitle, { color: colors.text, fontSize: fontSizes.lg }]}>
-                    {t('stats.general.cards.lateAdjustmentRate')}
-                  </Text>
-                  <Text style={[styles.adjustmentSubtitle, { color: colors.textSecondary }]}>
-                    {t('stats.general.cards.lateAdjustmentCount', { count: displayedStats.lateAdjustedTasksCount })}
-                  </Text>
-                </View>
-                {displayedLoadingState ? (
-                  <Animated.Text
-                    style={[styles.adjustmentValue, { color: colors.text, fontSize: fontSizes['3xl'] }]}
-                  />
-                ) : (
-                  <Animated.Text
-                    style={[styles.adjustmentValue, { color: colors.text, fontSize: fontSizes['3xl'] }]}
-                  >
-                    {displayedStats.lateAdjustmentRate}
-                  </Animated.Text>
-                )}
-              </SquircleButton>
+
+
+          <View style={styles.cardsContainer}>
+          <StatsStreak value={streak.toString()} />
+            <View style={styles.cardsRow}>
+              <StatsCard
+                image={getStatsImageSource('done', actualTheme)}
+                title={t('stats.general.cards.tasksDone')}
+                value={displayedStats.totalDoneCount.toString()}
+                loading={displayedLoadingState}
+              />
+              <StatsCard
+                image={getStatsImageSource('perfect', actualTheme)}
+                title={t('stats.general.cards.perfectDays')}
+                value={displayedStats.perfectDaysCount.toString()}
+                loading={displayedLoadingState}
+              />
             </View>
-            {canUseAdvancedStats ? (
-              <>
-                {/* <StatsBarGraph
-                daysData={chartDaysData}
-                period={period}
-                statsPreferences={statsPreferences}
-                onSlideChange={handleSlideChange}
-              /> */}
-
-                <HorizontalBarGraph
-                  data={tagUsageStatsQuery.data ?? []}
-                  isLoading={!activeSlide || tagUsageStatsQuery.isLoading}
-                  periodLabel={activeSlide?.periodLabel ?? getDisplayedPeriod(period)}
-                />
-              </>
-            ) : (
-              <View style={[styles.premiumStatsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <View style={styles.premiumIcon}>
-                  <SymbolView name="chart.bar.xaxis" size={30} tintColor="#F4BA00" />
-                </View>
-                <Text style={[styles.premiumTitle, { color: colors.text }]}>
-                  {t("stats.general.premium.title")}
-                </Text>
-                <Text style={[styles.premiumMessage, { color: colors.textSecondary }]}>
-                  {t("stats.general.premium.message")}
-                </Text>
-                <TouchableOpacity
-                  style={styles.premiumButton}
-                  onPress={() => router.push("/settings/premium")}
-                >
-                  <Text style={styles.premiumButtonText}>
-                    {t("stats.general.premium.cta")}
-                  </Text>
-                </TouchableOpacity>
+            <View style={styles.cardsRow}>
+              <StatsCardCompletion
+                image={getStatsImageSource('completion', actualTheme)}
+                title={t('stats.general.cards.completion')}
+                value={displayedStats.completion}
+                loading={displayedLoadingState}
+              />
+              <StatsCardCharge
+                image={getStatsImageSource('charge', actualTheme)}
+                title={t('stats.general.cards.charge')}
+                value={displayedStats.charge.toString()}
+                loading={displayedLoadingState}
+              />
+            </View>
+            <SquircleButton
+              activeOpacity={0.82}
+              cornerSmoothing={100}
+              onPress={() => router.push("/stats/adjustmentExplain")}
+              preserveSmoothing
+              style={[styles.adjustmentMetric, { backgroundColor: colors.card, borderColor: colors.border }]}
+            >
+              <View style={[styles.adjustmentIcon, { backgroundColor: colors.background }]}>
+                <SymbolView name="arrow.triangle.2.circlepath" size={23} tintColor={colors.textSecondary} />
               </View>
-            )}
+              <View style={styles.adjustmentTextGroup}>
+                <Text style={[styles.adjustmentTitle, { color: colors.text, fontSize: fontSizes.lg }]}>
+                  {t('stats.general.cards.lateAdjustmentRate')}
+                </Text>
+                <Text style={[styles.adjustmentSubtitle, { color: colors.textSecondary }]}>
+                  {t('stats.general.cards.lateAdjustmentCount', { count: displayedStats.lateAdjustedTasksCount })}
+                </Text>
+              </View>
+              {displayedLoadingState ? (
+                <Animated.Text
+                  style={[styles.adjustmentValue, { color: colors.text, fontSize: fontSizes['3xl'] }]}
+                />
+              ) : (
+                <Animated.Text
+                  style={[styles.adjustmentValue, { color: colors.text, fontSize: fontSizes['3xl'] }]}
+                >
+                  {displayedStats.lateAdjustmentRate}
+                </Animated.Text>
+              )}
+            </SquircleButton>
           </View>
+
+          {canUseAdvancedStats ? (
+            <HorizontalBarGraph
+              data={tagUsageStats}
+              isLoading={!activeSlide || tagUsageSourceQuery.isLoading}
+              periodLabel={activeSlide?.periodLabel ?? getDisplayedPeriod(period)}
+            />
+          ) : (
+            <View style={[styles.premiumStatsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.premiumIcon}>
+                <SymbolView name="chart.bar.xaxis" size={30} tintColor="#F4BA00" />
+              </View>
+              <Text style={[styles.premiumTitle, { color: colors.text }]}>
+                {t("stats.general.premium.title")}
+              </Text>
+              <Text style={[styles.premiumMessage, { color: colors.textSecondary }]}>
+                {t("stats.general.premium.message")}
+              </Text>
+              <TouchableOpacity
+                style={styles.premiumButton}
+                onPress={() => router.push("/settings/premium")}
+              >
+                <Text style={styles.premiumButtonText}>
+                  {t("stats.general.premium.cta")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
-
-
-      </Animated.ScrollView>
+      </ScrollView>
+      <LinearGradient
+        pointerEvents="none"
+        colors={topScrimColors}
+        locations={[0, 0.58, 1]}
+        style={[styles.topScrim, { height: topScrimHeight }]}
+      />
       <CreateModalHost activePath="/stats" />
     </View>
   );
@@ -469,7 +475,9 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
     height: '100%',
-    paddingTop: 70,
+  },
+  scrollView: {
+    width: '100%',
   },
 
   topContainer: {
@@ -481,6 +489,28 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 10,
   },
+  listContent: {
+    alignItems: "center",
+    paddingBottom: 200,
+  },
+  topScrim: {
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
+    zIndex: 4,
+  },
+  overviewSection: {
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+  },
+  cardsContainer: {
+    alignItems: "center",
+    gap: 10,
+    marginVertical: 10,
+    width: "100%",
+  },
 
   cardsRow: {
     display: 'flex',
@@ -491,8 +521,14 @@ const styles = StyleSheet.create({
     height: 100,
   },
   periodPickerContainer: {
+    marginTop: 20,
     marginBottom: 10,
     width: "90%",
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    // backgroundColor: "red",
   },
   adjustmentMetric: {
     alignItems: "center",

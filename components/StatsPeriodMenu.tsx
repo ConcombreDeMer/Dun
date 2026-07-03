@@ -1,6 +1,7 @@
 import { StatsPeriod } from "@/lib/calculateStats";
 import { useFont } from "@/lib/FontContext";
 import { useTheme } from "@/lib/ThemeContext";
+import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type StatsPeriodMenuProps = {
@@ -10,7 +11,7 @@ type StatsPeriodMenuProps = {
   onPeriodChange: (period: StatsPeriod) => void;
 };
 
-export default function StatsPeriodMenu({
+export default memo(function StatsPeriodMenu({
   period,
   periodOptions,
   getDisplayedPeriod,
@@ -53,14 +54,13 @@ export default function StatsPeriodMenu({
       })}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     borderRadius: 18,
     flexDirection: "row",
-    width: "100%",
   },
   option: {
     alignItems: "center",

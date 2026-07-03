@@ -1,16 +1,17 @@
 import { Host } from "@expo/ui";
 import { Button } from "@expo/ui/swift-ui";
 import { buttonStyle, containerShape, controlSize, frame, labelStyle, shapes } from "@expo/ui/swift-ui/modifiers";
+import { memo } from "react";
 import { StyleSheet, View } from "react-native";
 
 type StatsInfoButtonProps = {
   onPress: () => void;
 };
 
-export default function StatsInfoButton({ onPress }: StatsInfoButtonProps) {
+export default memo(function StatsInfoButton({ onPress }: StatsInfoButtonProps) {
   return (
     <View style={styles.container}>
-      <Host matchContents>
+      <Host matchContents ignoreSafeArea="all">
         <Button
           label="Options"
           systemImage="slider.horizontal.3"
@@ -26,7 +27,7 @@ export default function StatsInfoButton({ onPress }: StatsInfoButtonProps) {
       </Host>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

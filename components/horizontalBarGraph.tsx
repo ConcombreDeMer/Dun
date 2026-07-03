@@ -6,6 +6,7 @@ import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import Svg, {
   Circle,
   Defs,
@@ -57,15 +58,13 @@ const buildAreaPath = (points: ChartPoint[], height: number) => {
 const getChartPoints = (
   points: TagUsagePoint[],
   width: number,
-  maxValue: number,
-  animationProgress: number
+  maxValue: number
 ): ChartPoint[] => {
   if (points.length === 0) return [];
 
   return points.map((point, index) => {
     const x = points.length === 1 ? width / 2 : (index / (points.length - 1)) * width;
-    const targetY = CHART_HEIGHT - (point.total / Math.max(maxValue, 1)) * (CHART_HEIGHT - MIN_LINE_TOP_PADDING);
-    const y = CHART_HEIGHT - (CHART_HEIGHT - targetY) * animationProgress;
+    const y = CHART_HEIGHT - (point.total / Math.max(maxValue, 1)) * (CHART_HEIGHT - MIN_LINE_TOP_PADDING);
 
     return { x, y, value: point.total };
   });
@@ -111,7 +110,7 @@ const TagLegendRow = memo(function TagLegendRow({
   );
 });
 
-export default function HorizontalBarGraph({
+export default memo(function HorizontalBarGraph({
   data,
   isLoading = false,
   periodLabel,
@@ -121,7 +120,7 @@ export default function HorizontalBarGraph({
   const { fontSizes } = useFont();
   const { t } = useAppTranslation();
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
-  const [lineAnimationProgress, setLineAnimationProgress] = useState(0);
+  const lineAnimationProgress = useSharedValue(1);
   const chartWidth = Math.max(1, Math.min(screenWidth * 0.9, 520) - 36);
   const graphWidth = Math.max(1, chartWidth - Y_AXIS_WIDTH);
   const axisPoints = data.find((item) => item.points?.length)?.points ?? [];
@@ -133,34 +132,24 @@ export default function HorizontalBarGraph({
 
   useEffect(() => {
     if (isLoading || data.length === 0) {
-      setLineAnimationProgress(0);
+      lineAnimationProgress.value = 0;
       return;
     }
 
-    let frameId = 0;
-    const duration = 680;
-    const startedAt = Date.now();
+    lineAnimationProgress.value = 0;
+    lineAnimationProgress.value = withTiming(1, {
+      duration: 680,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [data, isLoading, lineAnimationProgress]);
 
-    const animate = () => {
-      const elapsed = Date.now() - startedAt;
-      const progress = Math.min(elapsed / duration, 1);
-      const easedProgress = 1 - Math.pow(1 - progress, 3);
-
-      setLineAnimationProgress(easedProgress);
-
-      if (progress < 1) {
-        frameId = requestAnimationFrame(animate);
-      }
-    };
-
-    setLineAnimationProgress(0);
-    frameId = requestAnimationFrame(animate);
-
-    return () => cancelAnimationFrame(frameId);
-  }, [data, isLoading]);
+  const lineRevealStyle = useAnimatedStyle(() => ({
+    opacity: lineAnimationProgress.value,
+    transform: [{ translateY: (1 - lineAnimationProgress.value) * CHART_HEIGHT }],
+  }));
 
   const chartLines = useMemo(() => data.map((item, index) => {
-    const points = getChartPoints(item.points ?? [], graphWidth, maxValue, lineAnimationProgress);
+    const points = getChartPoints(item.points ?? [], graphWidth, maxValue);
 
     return {
       item,
@@ -169,7 +158,7 @@ export default function HorizontalBarGraph({
       linePath: buildLinePath(points),
       points,
     };
-  }), [data, graphWidth, lineAnimationProgress, maxValue]);
+  }), [data, graphWidth, maxValue]);
 
   const handlePressTag = useCallback(async (tagId: string) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -224,56 +213,58 @@ export default function HorizontalBarGraph({
                 <View style={[styles.gridLine, { backgroundColor: colors.border }]} />
               </View>
 
-              <Svg width={graphWidth} height={CHART_HEIGHT} style={[styles.chartSvg, { left: Y_AXIS_WIDTH }]}>
-                <Defs>
-                  {chartLines.map(({ gradientId, item }) => (
-                    <SvgLinearGradient key={gradientId} id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                      <Stop offset="0" stopColor={item.color} stopOpacity="0.24" />
-                      <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0.02" />
-                    </SvgLinearGradient>
-                  ))}
-                </Defs>
+              <Animated.View style={[styles.chartSvg, { left: Y_AXIS_WIDTH }, lineRevealStyle]}>
+                <Svg width={graphWidth} height={CHART_HEIGHT}>
+                  <Defs>
+                    {chartLines.map(({ gradientId, item }) => (
+                      <SvgLinearGradient key={gradientId} id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                        <Stop offset="0" stopColor={item.color} stopOpacity="0.24" />
+                        <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0.02" />
+                      </SvgLinearGradient>
+                    ))}
+                  </Defs>
 
-                {chartLines.map(({ areaPath, gradientId, item }) => {
-                  const isDimmed = Boolean(selectedTagId && selectedTagId !== item.tagId);
-                  return areaPath.length > 0 ? (
-                    <Path
-                      key={`${item.tagId}-area`}
-                      d={areaPath}
-                      fill={`url(#${gradientId})`}
-                      opacity={isDimmed ? 0.12 : 1}
-                    />
-                  ) : null;
-                })}
-
-                {chartLines.map(({ item, linePath, points }) => {
-                  const isSelected = selectedTagId === item.tagId;
-                  const isDimmed = Boolean(selectedTagId && !isSelected);
-                  const lastPoint = points[points.length - 1];
-
-                  return linePath.length > 0 ? (
-                    <G key={item.tagId}>
+                  {chartLines.map(({ areaPath, gradientId, item }) => {
+                    const isDimmed = Boolean(selectedTagId && selectedTagId !== item.tagId);
+                    return areaPath.length > 0 ? (
                       <Path
-                        d={linePath}
-                        fill="none"
-                        stroke={item.color}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={isSelected ? 3.4 : 2.4}
-                        opacity={isDimmed ? 0.24 : 0.92}
+                        key={`${item.tagId}-area`}
+                        d={areaPath}
+                        fill={`url(#${gradientId})`}
+                        opacity={isDimmed ? 0.12 : 1}
                       />
-                      {lastPoint && !isDimmed && (
-                        <Circle
-                          cx={lastPoint.x}
-                          cy={lastPoint.y}
-                          r={isSelected ? 4.8 : 3.6}
-                          fill={item.color}
+                    ) : null;
+                  })}
+
+                  {chartLines.map(({ item, linePath, points }) => {
+                    const isSelected = selectedTagId === item.tagId;
+                    const isDimmed = Boolean(selectedTagId && !isSelected);
+                    const lastPoint = points[points.length - 1];
+
+                    return linePath.length > 0 ? (
+                      <G key={item.tagId}>
+                        <Path
+                          d={linePath}
+                          fill="none"
+                          stroke={item.color}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={isSelected ? 3.4 : 2.4}
+                          opacity={isDimmed ? 0.24 : 0.92}
                         />
-                      )}
-                    </G>
-                  ) : null;
-                })}
-              </Svg>
+                        {lastPoint && !isDimmed && (
+                          <Circle
+                            cx={lastPoint.x}
+                            cy={lastPoint.y}
+                            r={isSelected ? 4.8 : 3.6}
+                            fill={item.color}
+                          />
+                        )}
+                      </G>
+                    ) : null;
+                  })}
+                </Svg>
+              </Animated.View>
             </View>
 
             <View style={[styles.axisLabels, { marginLeft: Y_AXIS_WIDTH, width: graphWidth }]}>
@@ -321,7 +312,7 @@ export default function HorizontalBarGraph({
       </View>
     </Squircle>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -356,6 +347,7 @@ const styles = StyleSheet.create({
   chartWrap: {
     height: CHART_HEIGHT,
     marginTop: 18,
+    overflow: "hidden",
     position: "relative",
   },
   chartSvg: {

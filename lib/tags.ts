@@ -33,6 +33,17 @@ export type TagUsageBucket = {
   dateKeys: string[];
 };
 
+export type TagUsageSourceRow = {
+  date: string;
+  done: boolean;
+  tagId: string;
+};
+
+export type TagUsageSourceData = {
+  rows: TagUsageSourceRow[];
+  tags: Tag[];
+};
+
 type TaskTagUsageRow = {
   tag_id: string;
   Tasks?: {
@@ -90,21 +101,70 @@ export const getTaskTagIds = async (taskId: number, userId?: string) => {
   return (data ?? []).map((item) => item.tag_id as string);
 };
 
-export const getTagUsageStats = async ({
+export const getTagUsageSourceData = async ({
+  endDateKey,
+  startDateKey,
+}: {
+  endDateKey?: string | null;
+  startDateKey?: string | null;
+} = {}): Promise<TagUsageSourceData> => {
+  const userId = await getUserId();
+  const tags = await getTags();
+  const tagIds = new Set(tags.map((tag) => tag.id));
+  const rows: TagUsageSourceRow[] = [];
+
+  const { data, error } = await supabase
+    .from("Task_Tags")
+    .select("tag_id, Tasks(id, done, date)")
+    .eq("user_id", userId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  for (const row of (data ?? []) as unknown as TaskTagUsageRow[]) {
+    const task = Array.isArray(row.Tasks) ? row.Tasks[0] : row.Tasks;
+
+    if (!task?.date || !tagIds.has(row.tag_id)) {
+      continue;
+    }
+
+    const taskDateKey = task.date.slice(0, 10);
+
+    if (startDateKey && taskDateKey < startDateKey) {
+      continue;
+    }
+
+    if (endDateKey && taskDateKey > endDateKey) {
+      continue;
+    }
+
+    rows.push({
+      date: taskDateKey,
+      done: Boolean(task.done),
+      tagId: row.tag_id,
+    });
+  }
+
+  return { rows, tags };
+};
+
+export const buildTagUsageStats = ({
   buckets,
   endDateKey,
   includedDateKeys,
   includeUnused = false,
+  sourceData,
   startDateKey,
 }: {
   buckets?: TagUsageBucket[] | null;
   endDateKey?: string | null;
   includedDateKeys?: string[] | null;
   includeUnused?: boolean;
+  sourceData: TagUsageSourceData;
   startDateKey?: string | null;
-} = {}) => {
-  const userId = await getUserId();
-  const tags = await getTags();
+}) => {
+  const { rows, tags } = sourceData;
   const usageByTagId = new Map(tags.map((tag) => [tag.id, {
     done: 0,
     total: 0,
@@ -124,46 +184,33 @@ export const getTagUsageStats = async ({
     }
   }
 
-  const { data, error } = await supabase
-    .from("Task_Tags")
-    .select("tag_id, Tasks(id, done, date)")
-    .eq("user_id", userId);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  for (const row of (data ?? []) as unknown as TaskTagUsageRow[]) {
-    const task = Array.isArray(row.Tasks) ? row.Tasks[0] : row.Tasks;
-
-    if (!task?.date || !usageByTagId.has(row.tag_id)) {
+  for (const row of rows) {
+    if (!usageByTagId.has(row.tagId)) {
       continue;
     }
 
-    const taskDateKey = task.date.slice(0, 10);
-
-    if (includedDateKeySet && !includedDateKeySet.has(taskDateKey)) {
+    if (includedDateKeySet && !includedDateKeySet.has(row.date)) {
       continue;
     }
 
-    if (startDateKey && taskDateKey < startDateKey) {
+    if (startDateKey && row.date < startDateKey) {
       continue;
     }
 
-    if (endDateKey && taskDateKey > endDateKey) {
+    if (endDateKey && row.date > endDateKey) {
       continue;
     }
 
-    const usage = usageByTagId.get(row.tag_id);
+    const usage = usageByTagId.get(row.tagId);
     if (!usage) continue;
 
     usage.total += 1;
-    usage.done += task.done ? 1 : 0;
+    usage.done += row.done ? 1 : 0;
 
-    const bucketIndex = bucketIndexByDateKey.get(taskDateKey);
+    const bucketIndex = bucketIndexByDateKey.get(row.date);
     if (bucketIndex !== undefined && usage.points[bucketIndex]) {
       usage.points[bucketIndex].total += 1;
-      usage.points[bucketIndex].done += task.done ? 1 : 0;
+      usage.points[bucketIndex].done += row.done ? 1 : 0;
     }
   }
 
@@ -182,6 +229,31 @@ export const getTagUsageStats = async ({
     })
     .filter((tag) => includeUnused || tag.total > 0)
     .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+};
+
+export const getTagUsageStats = async ({
+  buckets,
+  endDateKey,
+  includedDateKeys,
+  includeUnused = false,
+  startDateKey,
+}: {
+  buckets?: TagUsageBucket[] | null;
+  endDateKey?: string | null;
+  includedDateKeys?: string[] | null;
+  includeUnused?: boolean;
+  startDateKey?: string | null;
+} = {}) => {
+  const sourceData = await getTagUsageSourceData({ endDateKey, startDateKey });
+
+  return buildTagUsageStats({
+    buckets,
+    endDateKey,
+    includedDateKeys,
+    includeUnused,
+    sourceData,
+    startDateKey,
+  });
 };
 
 export const createTag = async ({ name, color }: { name: string; color: string }) => {

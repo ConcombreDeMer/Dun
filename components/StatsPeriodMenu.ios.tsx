@@ -1,8 +1,9 @@
+import { StatsPeriod } from "@/lib/calculateStats";
+import { useTheme } from "@/lib/ThemeContext";
 import { Host } from "@expo/ui";
 import { Picker, Text } from "@expo/ui/swift-ui";
 import { frame, pickerStyle, tag, tint } from "@expo/ui/swift-ui/modifiers";
-import { StatsPeriod } from "@/lib/calculateStats";
-import { useTheme } from "@/lib/ThemeContext";
+import { memo } from "react";
 import { StyleSheet, View } from "react-native";
 
 type StatsPeriodMenuProps = {
@@ -12,7 +13,7 @@ type StatsPeriodMenuProps = {
   onPeriodChange: (period: StatsPeriod) => void;
 };
 
-export default function StatsPeriodMenu({
+export default memo(function StatsPeriodMenu({
   period,
   periodOptions,
   getDisplayedPeriod,
@@ -22,7 +23,7 @@ export default function StatsPeriodMenu({
 
   return (
     <View style={styles.container}>
-      <Host matchContents>
+      <Host matchContents ignoreSafeArea="all">
         <Picker<StatsPeriod>
           label="Période"
           selection={period}
@@ -46,12 +47,12 @@ export default function StatsPeriodMenu({
       </Host>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     minHeight: 42,
-    width: "100%",
+    // width: "100%",
   },
 });

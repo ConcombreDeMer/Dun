@@ -2,6 +2,7 @@ import { useFont } from "@/lib/FontContext";
 import { useTheme } from "@/lib/ThemeContext";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
+import { memo } from "react";
 import { Image, StyleSheet, Text } from "react-native";
 import Animated, { FadeInLeft, FadeOut } from "react-native-reanimated";
 
@@ -12,7 +13,7 @@ interface StatsCardProps {
     loading?: boolean;
 }
 
-export default function StatsCardCharge({ image, title, value, loading }: StatsCardProps) {
+export default memo(function StatsCardCharge({ image, title, value, loading }: StatsCardProps) {
 
     const router = useRouter();
     const { colors, actualTheme } = useTheme();
@@ -57,12 +58,13 @@ export default function StatsCardCharge({ image, title, value, loading }: StatsC
 
             {
                 !loading && value && (<Animated.Text
+                    key={`value-${value}`}
                     entering={FadeInLeft.springify()}
                     style={[styles.value, { color: colors.text, fontSize: fontSizes['3xl'] }]}>{value}</Animated.Text>)
             }
         </SquircleButton>
     );
-}
+});
 
 const styles = StyleSheet.create({
     container: {

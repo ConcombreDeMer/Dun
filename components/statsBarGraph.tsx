@@ -21,7 +21,6 @@ import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   StyleSheet,
@@ -29,7 +28,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
+import Animated, { FadeIn, LinearTransition } from "react-native-reanimated";
 import Squircle from "./Squircle";
 
 interface StatsBarGraphProps {
@@ -58,6 +57,7 @@ type BarData = {
 
 type Slide = {
   bars: BarData[];
+  granularity: "day" | "week" | "month";
   periodLabel: string;
   rangeEnd: string;
   rangeStart: string;
@@ -195,6 +195,7 @@ const buildWeekSlides = (
     return {
       id: `week-${weekStart.toISOString()}`,
       bars,
+      granularity: "day",
       periodLabel: t("stats.chart.weekRange", {
         start: weekStart.toLocaleDateString(locale, { day: "numeric", month: "short" }),
         end: weekEnd.toLocaleDateString(locale, { day: "numeric", month: "short" }),
@@ -251,6 +252,7 @@ const buildMonthSlides = (
     slides.push({
       id: `month-${target.getFullYear()}-${target.getMonth()}`,
       bars,
+      granularity: "week",
       periodLabel: t("stats.chart.monthOf", { month: month.charAt(0).toUpperCase() + month.slice(1) }),
       rangeEnd: monthEnd.toISOString(),
       rangeStart: target.toISOString(),
@@ -300,6 +302,7 @@ const buildYearSlides = (
     slides.push({
       id: `year-${year}`,
       bars,
+      granularity: "month",
       periodLabel: year.toString(),
       rangeEnd: new Date(year, maxMonth + 1, 0).toISOString(),
       rangeStart: new Date(year, 0, 1).toISOString(),
@@ -359,6 +362,7 @@ const buildGlobalSlides = (
     slides.push({
       id: `global-${year}`,
       bars,
+      granularity: "month",
       periodLabel: year.toString(),
       rangeEnd: new Date(year, endMonth + 1, 0).toISOString(),
       rangeStart: new Date(year, startMonth, 1).toISOString(),
@@ -394,33 +398,6 @@ const transformDaysDataByPeriod = (
 
   return buildGlobalSlides(daysData || [], palette, locale, today, statsPreferences);
 };
-
-const ChartSkeleton = memo(function ChartSkeleton({ colors, palette, itemWidth }: { colors: any; palette: ChartPalette; itemWidth: number }) {
-  return (
-    <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)} style={[styles.stateContainer, { width: itemWidth }]}>
-      <View style={styles.skeletonHeader}>
-        <View style={[styles.skeletonLine, { width: 132, backgroundColor: palette.track }]} />
-        <ActivityIndicator color={colors.text} />
-      </View>
-      <View style={styles.skeletonBars}>
-        {Array.from({ length: 7 }, (_, index) => (
-          <View key={index} style={styles.skeletonBarWrap}>
-            <View
-              style={[
-                styles.skeletonBar,
-                {
-                  height: 56 + (index % 4) * 22,
-                  backgroundColor: index === 4 ? palette.accentSoft : palette.track,
-                },
-              ]}
-            />
-            <View style={[styles.skeletonLabel, { backgroundColor: palette.mutedTrack }]} />
-          </View>
-        ))}
-      </View>
-    </Animated.View>
-  );
-});
 
 const EmptyState = memo(function EmptyState({ colors, itemWidth, text }: { colors: any; itemWidth: number; text: string }) {
   return (
@@ -476,9 +453,13 @@ const ChartSlide = memo(function ChartSlide({
   const maxTotal = Math.max(1, ...slide.bars.map((bar) => bar.total));
   const chartWidth = itemWidth - 40;
   const graphWidth = Math.max(1, chartWidth - Y_AXIS_WIDTH);
-  const barSlotWidth = Math.max(28, graphWidth / Math.max(slide.bars.length, 1));
-  const barWidth = Math.min(34, Math.max(16, barSlotWidth * 0.46));
-  const scaleValues = [maxTotal, Math.round(maxTotal / 2), 0];
+  const barsCount = Math.max(slide.bars.length, 1);
+  const barSlotWidth = graphWidth / barsCount;
+  const isMonthlyTimeline = slide.granularity === "month";
+  const barWidth = isMonthlyTimeline
+    ? Math.min(18, Math.max(7, barSlotWidth * 0.36))
+    : Math.min(34, Math.max(16, barSlotWidth * 0.46));
+  const scaleValues = [maxTotal, maxTotal <= 1 ? 0.5 : Math.round(maxTotal / 2), 0];
   const tooltipLeft = selectedIndex === null
     ? Y_AXIS_WIDTH + 8
     : Math.min(
@@ -645,7 +626,7 @@ const ChartSlide = memo(function ChartSlide({
   );
 });
 
-export default function StatsBarGraph({
+export default memo(function StatsBarGraph({
   daysData,
   period,
   statsPreferences = DEFAULT_STATS_PREFERENCES,
@@ -676,8 +657,10 @@ export default function StatsBarGraph({
   const flatListRef = useRef<FlatList<Slide>>(null);
   const onSlideChangeRef = useRef(onSlideChange);
   const itemWidth = Math.min(screenWidth * 0.9, 520);
-  const [isLoadingSlides, setIsLoadingSlides] = useState(true);
-  const [displayedSlides, setDisplayedSlides] = useState<Slide[]>([]);
+  const displayedSlides = useMemo(
+    () => transformDaysDataByPeriod(daysData || [], period, palette, locale, t, statsPreferences),
+    [daysData, period, palette, locale, t, statsPreferences]
+  );
   const [activeIndex, setActiveIndex] = useState(0);
   const [opensDayOnPress, setOpensDayOnPress] = useState(false);
 
@@ -686,38 +669,17 @@ export default function StatsBarGraph({
   }, [onSlideChange]);
 
   useEffect(() => {
-    let isMounted = true;
-    const loadingTimeoutId = setTimeout(() => {
-      if (isMounted) {
-        setIsLoadingSlides(true);
-      }
-    }, 120);
+    const nextIndex = Math.max(0, displayedSlides.length - 1);
+    setActiveIndex(nextIndex);
 
-    const computeTimeoutId = setTimeout(() => {
-      const nextSlides = transformDaysDataByPeriod(daysData || [], period, palette, locale, t, statsPreferences);
-      if (!isMounted) return;
+    if (displayedSlides[nextIndex]) {
+      onSlideChangeRef.current?.(displayedSlides[nextIndex]);
+    }
 
-      clearTimeout(loadingTimeoutId);
-      const nextIndex = Math.max(0, nextSlides.length - 1);
-      setDisplayedSlides(nextSlides);
-      setActiveIndex(nextIndex);
-      setIsLoadingSlides(false);
-
-      if (nextSlides[nextIndex]) {
-        onSlideChangeRef.current?.(nextSlides[nextIndex]);
-      }
-
-      requestAnimationFrame(() => {
-        flatListRef.current?.scrollToIndex({ index: nextIndex, animated: false });
-      });
-    }, 0);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(loadingTimeoutId);
-      clearTimeout(computeTimeoutId);
-    };
-  }, [daysData, period, palette, locale, t, statsPreferences]);
+    requestAnimationFrame(() => {
+      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: false });
+    });
+  }, [displayedSlides]);
 
   const handlePressBar = useCallback(async (bar: BarData) => {
     await Haptic.impactAsync(opensDayOnPress ? Haptic.ImpactFeedbackStyle.Medium : Haptic.ImpactFeedbackStyle.Light);
@@ -784,26 +746,24 @@ export default function StatsBarGraph({
         <View style={styles.timelineControls}>
           <Pressable
             accessibilityRole="button"
-            disabled={activeIndex === 0 || isLoadingSlides}
+            disabled={activeIndex === 0}
             onPress={() => goToSlide(activeIndex - 1)}
-            style={[styles.iconButton, { backgroundColor: colors.input, opacity: activeIndex === 0 || isLoadingSlides ? 0.42 : 1 }]}
+            style={[styles.iconButton, { backgroundColor: colors.input, opacity: activeIndex === 0 ? 0.42 : 1 }]}
           >
             <SymbolView name="chevron.left" size={15} tintColor={colors.text} />
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            disabled={activeIndex >= displayedSlides.length - 1 || isLoadingSlides}
+            disabled={activeIndex >= displayedSlides.length - 1}
             onPress={() => goToSlide(activeIndex + 1)}
-            style={[styles.iconButton, { backgroundColor: colors.input, opacity: activeIndex >= displayedSlides.length - 1 || isLoadingSlides ? 0.42 : 1 }]}
+            style={[styles.iconButton, { backgroundColor: colors.input, opacity: activeIndex >= displayedSlides.length - 1 ? 0.42 : 1 }]}
           >
             <SymbolView name="chevron.right" size={15} tintColor={colors.text} />
           </Pressable>
         </View>
       </View>
 
-      {isLoadingSlides ? (
-        <ChartSkeleton colors={colors} palette={palette} itemWidth={itemWidth} />
-      ) : displayedSlides.length === 0 ? (
+      {displayedSlides.length === 0 ? (
         <EmptyState colors={colors} itemWidth={itemWidth} text={t("stats.chart.empty")} />
       ) : (
         <>
@@ -855,7 +815,7 @@ export default function StatsBarGraph({
       )}
     </Squircle>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -960,6 +920,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   slide: {
+    overflow: "hidden",
     paddingHorizontal: 20,
   },
   slideHeader: {
