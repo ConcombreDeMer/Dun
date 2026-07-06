@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useAuthUserId } from "./AuthSessionContext";
 import { supabase } from "./supabase";
 
 export type ProgressBarPreference = 1 | 2;
@@ -52,11 +54,14 @@ const saveProgressBarPreference = async (preference: ProgressBarPreference) => {
 };
 
 export const useProgressBarPreference = () => {
+  const userId = useAuthUserId();
   const queryClient = useQueryClient();
+  const queryKey = useMemo(() => [...PROGRESS_BAR_PREFERENCE_QUERY_KEY, userId] as const, [userId]);
 
   const preferenceQuery = useQuery({
-    queryKey: PROGRESS_BAR_PREFERENCE_QUERY_KEY,
+    queryKey,
     queryFn: fetchProgressBarPreference,
+    enabled: !!userId,
     staleTime: 1000 * 60 * 30,
     gcTime: 1000 * 60 * 60,
   });
@@ -66,24 +71,24 @@ export const useProgressBarPreference = () => {
   const mutation = useMutation({
     mutationFn: saveProgressBarPreference,
     onMutate: async (nextPreference) => {
-      await queryClient.cancelQueries({ queryKey: PROGRESS_BAR_PREFERENCE_QUERY_KEY });
+      await queryClient.cancelQueries({ queryKey });
 
       const previousPreference = queryClient.getQueryData<ProgressBarPreference>(
-        PROGRESS_BAR_PREFERENCE_QUERY_KEY
+        queryKey
       );
 
-      queryClient.setQueryData(PROGRESS_BAR_PREFERENCE_QUERY_KEY, nextPreference);
+      queryClient.setQueryData(queryKey, nextPreference);
 
       return { previousPreference };
     },
     onError: (_error, _nextPreference, context) => {
       queryClient.setQueryData(
-        PROGRESS_BAR_PREFERENCE_QUERY_KEY,
+        queryKey,
         context?.previousPreference ?? DEFAULT_PROGRESS_BAR_PREFERENCE
       );
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: PROGRESS_BAR_PREFERENCE_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey });
     },
   });
 

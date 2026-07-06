@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { Alert, Dimensions, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Swipeable } from 'react-native-gesture-handler';
 import Animated, { Easing, interpolateColor, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import { useAuthUserId } from "../lib/AuthSessionContext";
 import { toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
@@ -113,9 +114,11 @@ export const TaskItem = ({
   const { actualTheme, colors } = useTheme();
   const { fontSizes } = useFont();
   const { t } = useAppTranslation();
+  const userId = useAuthUserId();
   const { data: tags = [] } = useQuery({
-    queryKey: TAGS_QUERY_KEY,
+    queryKey: [...TAGS_QUERY_KEY, userId],
     queryFn: getTags,
+    enabled: !!userId,
   });
   const dotScale = useSharedValue(item.done ? 1 : 0);
   const rowOpacity = useSharedValue(1);

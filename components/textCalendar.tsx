@@ -13,6 +13,7 @@ import ReAnimated, {
     withSpring,
     withTiming,
 } from "react-native-reanimated";
+import { useAuthUserId } from "../lib/AuthSessionContext";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import { supabase } from "../lib/supabase";
@@ -160,6 +161,7 @@ export default function TextCalendarComponent({
     const todayProgress = useSharedValue(0);
     const pressProgress = useSharedValue(0);
     const dateChangeProgress = useSharedValue(1);
+    const userId = useAuthUserId();
 
     const getDays = async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -183,8 +185,9 @@ export default function TextCalendarComponent({
     };
 
     const daysQuery = useQuery({
-        queryKey: ["days"],
+        queryKey: ["days", userId],
         queryFn: getDays,
+        enabled: !!userId,
         gcTime: 1000 * 60 * 5,
         staleTime: 1000 * 60,
     });

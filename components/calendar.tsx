@@ -17,6 +17,7 @@ import Animated, {
     useSharedValue,
     withSpring,
 } from "react-native-reanimated";
+import { useAuthUserId } from "../lib/AuthSessionContext";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import { supabase } from "../lib/supabase";
@@ -260,6 +261,7 @@ export default function CalendarComponent({
     const isExpandedRef = useRef(false);
     const calendarHeightRef = useRef(0);
     const isInitialScrollRef = useRef(true); // Track si c'est le premier scroll
+    const userId = useAuthUserId();
 
     // Animation pour la hauteur du bouton "Retour à aujourd'hui"
     const todayButtonHeightValue = useSharedValue(0);
@@ -290,8 +292,9 @@ export default function CalendarComponent({
     }
 
     const daysQuery = useQuery({
-        queryKey: ['days'],
+        queryKey: ['days', userId],
         queryFn: getDays,
+        enabled: !!userId,
         gcTime: 1000 * 60 * 5,
         staleTime: 1000 * 60 * 1,
     });

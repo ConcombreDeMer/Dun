@@ -3,6 +3,7 @@ import PrimaryButton from "@/components/primaryButton";
 import SecondaryButton from "@/components/secondaryButton";
 import SimpleInput from "@/components/textInput";
 import Squircle from "@/components/Squircle";
+import { useAuthUserId } from "@/lib/AuthSessionContext";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { useSubscription } from "@/lib/subscription";
@@ -27,6 +28,7 @@ export default function TagsSettings() {
   const { fontSizes } = useFont();
   const { t } = useAppTranslation();
   const { isPremium } = useSubscription();
+  const userId = useAuthUserId();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [name, setName] = useState("");
@@ -34,8 +36,9 @@ export default function TagsSettings() {
   const isEditing = !!editingTag;
 
   const { data: tags = [], isLoading } = useQuery({
-    queryKey: TAGS_QUERY_KEY,
+    queryKey: [...TAGS_QUERY_KEY, userId],
     queryFn: getTags,
+    enabled: !!userId,
   });
   const isTagLimitReached = !isPremium && tags.length >= FREE_TAG_LIMIT;
 
