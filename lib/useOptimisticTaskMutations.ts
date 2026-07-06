@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUserId } from "./AuthSessionContext";
 import { isPastAppDateKey, toAppDateKey } from "./date";
+import { DAYS_QUERY_KEY } from "./daysQueryKeys";
 import { TAG_USAGE_STATS_QUERY_KEY } from "./tags";
 import { createTask, deleteTask, moveTaskDate, resolveOverdueTask } from "./tasks";
 
@@ -104,7 +105,6 @@ export const useOptimisticTaskMutations = () => {
   const userId = useAuthUserId();
   const queryClient = useQueryClient();
   const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
-  const daysQueryKey = useMemo(() => ["days", userId] as const, [userId]);
   const invalidateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const [pendingCreateIds, setPendingCreateIds] = useState<Set<number>>(() => new Set());
@@ -118,10 +118,10 @@ export const useOptimisticTaskMutations = () => {
 
     invalidateTimeoutRef.current = setTimeout(() => {
       queryClient.invalidateQueries({ queryKey: tasksQueryKey });
-      queryClient.invalidateQueries({ queryKey: daysQueryKey });
+      queryClient.invalidateQueries({ queryKey: [DAYS_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
     }, 350);
-  }, [daysQueryKey, queryClient, tasksQueryKey]);
+  }, [queryClient, tasksQueryKey]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -354,7 +354,6 @@ export const useOptimisticOverdueTaskMutations = () => {
   const userId = useAuthUserId();
   const queryClient = useQueryClient();
   const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
-  const daysQueryKey = useMemo(() => ["days", userId] as const, [userId]);
   const invalidateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(() => new Set());
@@ -366,9 +365,9 @@ export const useOptimisticOverdueTaskMutations = () => {
 
     invalidateTimeoutRef.current = setTimeout(() => {
       queryClient.invalidateQueries({ queryKey: tasksQueryKey });
-      queryClient.invalidateQueries({ queryKey: daysQueryKey });
+      queryClient.invalidateQueries({ queryKey: [DAYS_QUERY_KEY] });
     }, 350);
-  }, [daysQueryKey, queryClient, tasksQueryKey]);
+  }, [queryClient, tasksQueryKey]);
 
   useEffect(() => {
     isMountedRef.current = true;
