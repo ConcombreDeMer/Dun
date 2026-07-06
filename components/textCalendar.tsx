@@ -14,6 +14,7 @@ import ReAnimated, {
     withTiming,
 } from "react-native-reanimated";
 import { useAuthUserId } from "../lib/AuthSessionContext";
+import { calendarDaysQueryKey } from "../lib/daysQueryKeys";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import { supabase } from "../lib/supabase";
@@ -185,7 +186,7 @@ export default function TextCalendarComponent({
     };
 
     const daysQuery = useQuery({
-        queryKey: ["days", userId],
+        queryKey: calendarDaysQueryKey(userId),
         queryFn: getDays,
         enabled: !!userId,
         gcTime: 1000 * 60 * 5,

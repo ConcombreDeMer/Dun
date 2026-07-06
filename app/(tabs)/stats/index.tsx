@@ -20,6 +20,7 @@ import {
   StatsPeriod,
   toDateKey,
 } from "@/lib/calculateStats";
+import { statsDaysQueryKey } from "@/lib/daysQueryKeys";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { getStatsImageSource } from "@/lib/imageHelper";
@@ -208,7 +209,7 @@ export default function Stats() {
   };
 
   const daysQuery = useQuery({
-    queryKey: ['days', userId],
+    queryKey: statsDaysQueryKey(userId),
     queryFn: getDays,
     enabled: !!userId,
   });
