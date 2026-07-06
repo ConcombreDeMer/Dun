@@ -12,6 +12,7 @@ import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyRemin
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
+import { fetchTaskList, type TaskListItem } from "@/lib/tasks";
 import { DEFAULT_CALENDAR_PREFERENCE, useCalendarPreference, type CalendarPreference } from "@/lib/useCalendarPreference";
 import { DEFAULT_PROGRESS_BAR_PREFERENCE, useProgressBarPreference, type ProgressBarPreference } from "@/lib/useProgressBarPreference";
 import { useToggleTaskDone } from "@/lib/useToggleTaskDone";
@@ -540,33 +541,7 @@ export default function Home() {
   }, [dateKey, storedDate]);
 
   const getTasks = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return [];
-    }
-
-    const { data, error } = await supabase
-      .from("Tasks")
-      .select("id, name, description, done, order, date, created_at, completed_at, resolved_at, resolution, carried_from_id, delay_count, late_adjusted_at, Task_Tags(tag_id)")
-      .eq("user_id", user.id)
-      .order("order", { ascending: false });
-    if (error) {
-      console.error('Erreur lors de la récupération des tâches:', error);
-      return [];
-    }
-
-    const cachedTasks = queryClient.getQueryData<any[]>(['tasks']) ?? [];
-    const clientKeysByTaskId = new Map(
-      cachedTasks
-        .filter((task: any) => task.id > 0 && task.clientKey)
-        .map((task: any) => [task.id, task.clientKey])
-    );
-
-    return (data ?? []).map((task: any) => {
-      const clientKey = clientKeysByTaskId.get(task.id);
-      return clientKey ? { ...task, clientKey } : task;
-    });
+    return fetchTaskList(queryClient.getQueryData<TaskListItem[]>(['tasks']) ?? []);
   }
 
   const taskQuery = useQuery({

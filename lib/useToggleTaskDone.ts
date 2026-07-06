@@ -79,6 +79,10 @@ export const useToggleTaskDone = ({
       return next;
     });
 
+    await Promise.all(
+      queryKeys.map((queryKey) => queryClient.cancelQueries({ queryKey }))
+    );
+
     queryKeys.forEach((queryKey) => {
       queryClient.setQueryData(queryKey, (current: unknown) =>
         updateTaskInCache(current, taskId, nextDone)

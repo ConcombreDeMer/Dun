@@ -3,10 +3,10 @@ import PopUpTask from "@/components/popUpTask";
 import Squircle from "@/components/Squircle";
 import { TaskItem, TaskItemLayout } from "@/components/TaskItem";
 import { useAppTranslation } from "@/lib/i18n";
-import { supabase } from "@/lib/supabase";
+import { fetchTaskList, type TaskListItem } from "@/lib/tasks";
 import { useTheme } from "@/lib/ThemeContext";
 import { useToggleTaskDone } from "@/lib/useToggleTaskDone";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -16,27 +16,6 @@ import ReAnimated, { Easing, interpolate, runOnJS, useAnimatedStyle, useSharedVa
 
 const getTaskRenderKey = (task: any) => task.clientKey ?? task.id;
 
-const getTasks = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return [];
-  }
-
-  const { data, error } = await supabase
-    .from("Tasks")
-    .select("id, name, description, done, order, date, created_at, completed_at, resolved_at, resolution, carried_from_id, delay_count, late_adjusted_at, Task_Tags(tag_id)")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Erreur lors de la récupération des tâches:", error);
-    return [];
-  }
-
-  return data ?? [];
-};
-
 export default function Box() {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { colors, theme } = useTheme();
@@ -45,6 +24,7 @@ export default function Box() {
   const [selectedTaskLayout, setSelectedTaskLayout] = useState<TaskItemLayout | null>(null);
   const [shouldRenderOverlayContent, setShouldRenderOverlayContent] = useState(false);
   const overlayProgress = useSharedValue(0);
+  const queryClient = useQueryClient();
   const taskToggleQueryKeys = useMemo(() => [["tasks"]], []);
   const { isTaskPending, toggleTaskDone } = useToggleTaskDone({
     queryKeys: taskToggleQueryKeys,
@@ -54,7 +34,7 @@ export default function Box() {
 
   const taskQuery = useQuery({
     queryKey: ["tasks"],
-    queryFn: getTasks,
+    queryFn: () => fetchTaskList(queryClient.getQueryData<TaskListItem[]>(["tasks"]) ?? []),
     gcTime: 1000 * 60 * 30,
     staleTime: 1000 * 60 * 15,
   });

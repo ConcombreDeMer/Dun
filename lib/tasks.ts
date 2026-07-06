@@ -2,6 +2,24 @@ import { toAppDateKey } from "./date";
 import { supabase } from "./supabase";
 import { copyTaskTags, setTaskTags } from "./tags";
 
+export type TaskListItem = {
+  id: number;
+  clientKey?: string;
+  name: string;
+  description: string;
+  done: boolean;
+  order: number;
+  date: string | null;
+  created_at?: string | null;
+  completed_at?: string | null;
+  resolved_at?: string | null;
+  resolution?: string | null;
+  carried_from_id?: number | null;
+  delay_count?: number | null;
+  late_adjusted_at?: string | null;
+  Task_Tags?: { tag_id: string }[];
+};
+
 export type TaskDraftUpdate = {
   name: string;
   description: string;
@@ -19,6 +37,8 @@ type LateAdjustableTask = {
   late_adjusted_at?: string | null;
   resolved_at?: string | null;
 };
+
+const TASK_LIST_SELECT = "id, name, description, done, order, date, created_at, completed_at, resolved_at, resolution, carried_from_id, delay_count, late_adjusted_at, Task_Tags(tag_id)";
 
 const getUserId = async () => {
   const { data: { user } } = await supabase.auth.getUser();
@@ -38,6 +58,43 @@ const isPastDateKey = (dateKey: string, todayKey = getTodayKey()) => {
 
 const getLateAdjustmentTimestamp = (task: LateAdjustableTask, now: string) => {
   return task.resolved_at && !task.late_adjusted_at ? now : undefined;
+};
+
+const hydrateTaskClientKeys = (
+  serverTasks: TaskListItem[],
+  cachedTasks: TaskListItem[] = []
+) => {
+  const clientKeysByTaskId = new Map(
+    cachedTasks
+      .filter((task) => task.id > 0 && task.clientKey)
+      .map((task) => [task.id, task.clientKey])
+  );
+
+  return serverTasks.map((task) => {
+    const clientKey = clientKeysByTaskId.get(task.id);
+    return clientKey ? { ...task, clientKey } : task;
+  });
+};
+
+export const fetchTaskList = async (cachedTasks: TaskListItem[] = []) => {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("Tasks")
+    .select(TASK_LIST_SELECT)
+    .eq("user_id", user.id)
+    .order("order", { ascending: false });
+
+  if (error) {
+    console.error("Erreur lors de la récupération des tâches:", error);
+    return [];
+  }
+
+  return hydrateTaskClientKeys((data ?? []) as TaskListItem[], cachedTasks);
 };
 
 export const markTaskLateAdjustedIfResolved = async (taskId: number, userId?: string) => {
@@ -143,7 +200,11 @@ export const createTask = async ({
   }
 
   if (tagIds.length) {
-    await setTaskTags(data.id as number, tagIds, userId);
+    try {
+      await setTaskTags(data.id as number, tagIds, userId);
+    } catch (error) {
+      console.error("Erreur lors de l'association des tags à la tâche:", error);
+    }
   }
 
   return data.id as number;
