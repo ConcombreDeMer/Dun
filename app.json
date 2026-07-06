@@ -11,8 +11,9 @@
     ],
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.dunapp.Dun",
+      "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CADisableMinimumFrameDurationOnPhone": true
@@ -52,15 +53,24 @@
         "@react-native-google-signin/google-signin",
         {
           "iosUrlScheme": "com.googleusercontent.apps.655132375234-u8q4aig0tprhb7m8a4e5r2jn42nvo7ne",
-          "iosClientId": "655132375234-u8q4aig0tprhb7m8a4e5r2jn42nvo7ne.apps.googleusercontent.com",
-          "androidClientId": "",
-          "webClientId": "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com"
+          "iosClientId": "655132375234-u8q4aig0tprhb7m8a4e5r2jn42nvo7ne.apps.googleusercontent.com"
         }
       ],
       "./plugins/with-ios-google-modular-headers",
       "expo-web-browser",
       "expo-image",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#EFEFEF",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 160,
+          "dark": {
+            "backgroundColor": "#121212",
+            "image": "./assets/images/splash-icon.png"
+          }
+        }
+      ],
       "expo-status-bar",
       [
         "@sentry/react-native/expo",
