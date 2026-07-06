@@ -3,7 +3,9 @@ import PopUpTask from "@/components/popUpTask";
 import Squircle from "@/components/Squircle";
 import { TaskItem, TaskItemLayout } from "@/components/TaskItem";
 import { useAuthUserId } from "@/lib/AuthSessionContext";
+import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
+import { SCREEN_HEADER_HEIGHT, SCREEN_HEADER_HORIZONTAL_PADDING, SCREEN_HEADER_TITLE_LINE_HEIGHT, SCREEN_HEADER_TOP_OFFSET } from "@/lib/screenHeader";
 import { fetchTaskList, type TaskListItem } from "@/lib/tasks";
 import { useTheme } from "@/lib/ThemeContext";
 import { useToggleTaskDone } from "@/lib/useToggleTaskDone";
@@ -19,6 +21,7 @@ const getTaskRenderKey = (task: any) => task.clientKey ?? task.id;
 
 export default function Box() {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const { fontSizes } = useFont();
   const { colors, theme } = useTheme();
   const { t } = useAppTranslation();
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
@@ -144,7 +147,7 @@ export default function Box() {
       <StatusBar style={theme === "dark" ? "light" : "auto"} />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text, opacity: 0.8 }]}>{t("box.title")}</Text>
+          <Text style={[styles.title, { color: colors.text, fontSize: fontSizes["3xl"] }]}>{t("box.title")}</Text>
           {/* <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t("box.subtitle")}</Text> */}
         </View>
 
@@ -215,16 +218,18 @@ export default function Box() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
+    paddingTop: SCREEN_HEADER_TOP_OFFSET,
   },
   header: {
+    justifyContent: "center",
     gap: 4,
-    paddingBottom: 18,
-    paddingHorizontal: 22,
+    marginBottom: 8,
+    minHeight: SCREEN_HEADER_HEIGHT,
+    paddingHorizontal: SCREEN_HEADER_HORIZONTAL_PADDING,
   },
   title: {
     fontFamily: "Satoshi-Bold",
-    fontSize: 34,
+    lineHeight: SCREEN_HEADER_TITLE_LINE_HEIGHT,
   },
   subtitle: {
     fontFamily: "Satoshi-Regular",

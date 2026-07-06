@@ -23,6 +23,7 @@ import {
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { getStatsImageSource } from "@/lib/imageHelper";
+import { SCREEN_HEADER_HEIGHT, SCREEN_HEADER_HORIZONTAL_PADDING, SCREEN_HEADER_TITLE_LINE_HEIGHT, SCREEN_HEADER_TOP_OFFSET } from "@/lib/screenHeader";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { buildTagUsageStats, getTagUsageSourceData, TAG_USAGE_STATS_QUERY_KEY, TagUsageBucket } from "@/lib/tags";
@@ -38,7 +39,6 @@ import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated from 'react-native-reanimated';
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 
 interface StatsData {
@@ -82,7 +82,6 @@ export default function Stats() {
   const { fontSizes } = useFont();
   const { colors, actualTheme } = useTheme();
   const { t } = useAppTranslation();
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { canUseAdvancedStats, isPremium } = useSubscription();
   const userId = useAuthUserId();
@@ -331,8 +330,8 @@ export default function Stats() {
 
   const periodOptions = useMemo<StatsPeriod[]>(() => ['Par semaine', 'Par mois', 'Par année'], []);
   const displayedLoadingState = canUseAdvancedStats ? loadingState : daysQuery.isLoading;
-  const topContentPadding = insets.top + 12;
-  const topScrimHeight = insets.top + 44;
+  const topContentPadding = SCREEN_HEADER_TOP_OFFSET;
+  const topScrimHeight = SCREEN_HEADER_TOP_OFFSET + SCREEN_HEADER_HEIGHT;
   const topScrimColors = useMemo(
     () => [
       colors.background,
@@ -599,8 +598,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 8,
-    minHeight: 74,
-    paddingHorizontal: 20,
+    minHeight: SCREEN_HEADER_HEIGHT,
+    paddingHorizontal: SCREEN_HEADER_HORIZONTAL_PADDING,
     width: "100%",
   },
   profileIdentity: {
@@ -631,7 +630,8 @@ const styles = StyleSheet.create({
   },
   profileGreeting: {
     flexShrink: 1,
-    fontFamily: "Satoshi-Medium",
+    fontFamily: "Satoshi-Bold",
+    lineHeight: SCREEN_HEADER_TITLE_LINE_HEIGHT,
   },
   profileEmail: {
     fontFamily: "Satoshi-Regular",
@@ -658,7 +658,7 @@ const styles = StyleSheet.create({
     left: 0,
     position: "absolute",
     right: 0,
-    top: 0,
+    top: -24,
     zIndex: 4,
   },
   overviewSection: {
