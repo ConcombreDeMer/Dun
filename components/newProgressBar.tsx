@@ -23,6 +23,7 @@ type NewProgressBarProps = {
 };
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const PROGRESS_ANIMATION_DURATION = 220;
 
 const clampProgress = (progress: number) => Math.max(0, Math.min(100, Math.round(progress)));
 
@@ -69,7 +70,7 @@ function NewProgressBar({
 
     useEffect(() => {
         animatedProgress.value = withTiming(clampedProgress, {
-            duration: 420,
+            duration: PROGRESS_ANIMATION_DURATION,
             easing: Easing.bezier(0.2, 0.8, 0.2, 1),
         });
 
@@ -80,7 +81,7 @@ function NewProgressBar({
 
         const tick = () => {
             const elapsed = Date.now() - startedAt;
-            const phase = Math.min(1, elapsed / 420);
+            const phase = Math.min(1, elapsed / PROGRESS_ANIMATION_DURATION);
             const eased = 1 - Math.pow(1 - phase, 3);
             const nextDisplayProgress = Math.round(startValue + delta * eased);
             displayProgressRef.current = nextDisplayProgress;

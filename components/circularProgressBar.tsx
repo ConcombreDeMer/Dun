@@ -27,6 +27,7 @@ type CircularProgressBarProps = {
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const PROGRESS_ANIMATION_DURATION = 220;
 
 const SIZE = 180;
 const STROKE_WIDTH = 10;
@@ -76,7 +77,7 @@ function CircularProgressBar({
 
     useEffect(() => {
         animatedProgress.value = withTiming(clampedProgress, {
-            duration: 520,
+            duration: PROGRESS_ANIMATION_DURATION,
             easing: Easing.bezier(0.2, 0.8, 0.2, 1),
         });
 
@@ -87,7 +88,7 @@ function CircularProgressBar({
 
         const tick = () => {
             const elapsed = Date.now() - startedAt;
-            const phase = Math.min(1, elapsed / 520);
+            const phase = Math.min(1, elapsed / PROGRESS_ANIMATION_DURATION);
             const eased = 1 - Math.pow(1 - phase, 3);
             const nextDisplayProgress = Math.round(startValue + delta * eased);
             displayProgressRef.current = nextDisplayProgress;

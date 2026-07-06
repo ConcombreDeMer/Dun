@@ -39,6 +39,7 @@ type LateAdjustableTask = {
 };
 
 const TASK_LIST_SELECT = "id, name, description, done, order, date, created_at, completed_at, resolved_at, resolution, carried_from_id, delay_count, late_adjusted_at, Task_Tags(tag_id)";
+const optimisticTaskDoneById = new Map<number, boolean>();
 
 const getUserId = async () => {
   const { data: { user } } = await supabase.auth.getUser();
@@ -76,6 +77,29 @@ const hydrateTaskClientKeys = (
   });
 };
 
+const applyOptimisticTaskDone = (tasks: TaskListItem[]) => {
+  if (optimisticTaskDoneById.size === 0) {
+    return tasks;
+  }
+
+  return tasks.map((task) => {
+    const optimisticDone = optimisticTaskDoneById.get(task.id);
+    return optimisticDone === undefined ? task : { ...task, done: optimisticDone };
+  });
+};
+
+export const setOptimisticTaskDone = (taskId: number, nextDone: boolean) => {
+  optimisticTaskDoneById.set(taskId, nextDone);
+};
+
+export const getOptimisticTaskDone = (taskId: number) => {
+  return optimisticTaskDoneById.get(taskId);
+};
+
+export const clearOptimisticTaskDone = (taskId: number) => {
+  optimisticTaskDoneById.delete(taskId);
+};
+
 export const fetchTaskList = async (cachedTasks: TaskListItem[] = []) => {
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -94,7 +118,9 @@ export const fetchTaskList = async (cachedTasks: TaskListItem[] = []) => {
     return [];
   }
 
-  return hydrateTaskClientKeys((data ?? []) as TaskListItem[], cachedTasks);
+  return applyOptimisticTaskDone(
+    hydrateTaskClientKeys((data ?? []) as TaskListItem[], cachedTasks)
+  );
 };
 
 export const markTaskLateAdjustedIfResolved = async (taskId: number, userId?: string) => {

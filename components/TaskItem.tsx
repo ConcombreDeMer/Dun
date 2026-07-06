@@ -105,7 +105,6 @@ export const TaskItem = ({
   layoutAnimationKey,
   disableAddedAnimations = false,
   isExtendable = true,
-  isTogglePending = false,
   mode = 'normal',
   isReadOnly = false,
   onDeleteTask,
@@ -126,6 +125,7 @@ export const TaskItem = ({
   const enterProgress = useSharedValue(0);
   const pressScale = useSharedValue(1);
   const doneProgress = useSharedValue(item.done ? 1 : 0);
+  const visualDoneRef = useRef(item.done);
 
   const {
     deleteTaskOptimistically,
@@ -407,10 +407,12 @@ export const TaskItem = ({
 
   const handleCheckboxPress = useCallback(() => {
     void (async () => {
-      if (isReadOnly || isTogglePending) return;
+      if (isReadOnly) return;
       if (needsLateAdjustmentConfirmation(item) && !(await confirmLateAdjustment(t))) return;
 
-      const nextDone = !item.done;
+      const nextDone = !visualDoneRef.current;
+      visualDoneRef.current = nextDone;
+      handleToggleTask(item.id, item.done);
 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       dotScale.value = withSpring(nextDone ? 1 : 0, {
@@ -423,9 +425,8 @@ export const TaskItem = ({
         duration: 180,
         easing: Easing.out(Easing.quad),
       });
-      handleToggleTask(item.id, item.done);
     })();
-  }, [doneProgress, isReadOnly, isTogglePending, item, t, handleToggleTask, dotScale]);
+  }, [doneProgress, isReadOnly, item, t, handleToggleTask, dotScale]);
 
   const handlePress = useCallback(() => {
     if (!isExtendable || isReadOnly) return;
@@ -534,6 +535,7 @@ export const TaskItem = ({
   }, [disableAddedAnimations, enterProgress]);
 
   useEffect(() => {
+    visualDoneRef.current = item.done;
     dotScale.value = withSpring(item.done ? 1 : 0, {
       damping: 18,
       stiffness: 220,
@@ -599,6 +601,13 @@ export const TaskItem = ({
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
           >
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: visualDoneRef.current }}
+              disabled={isReadOnly}
+              onPress={handleCheckboxPress}
+              style={styles.checkboxHitboxDebug}
+            />
             <View style={styles.taskContent}>
               {itemTags.length > 0 && (
                 <View style={styles.tagDots}>
@@ -642,7 +651,7 @@ export const TaskItem = ({
                     checkboxAnimatedStyle,
                   ]}
                   onPress={handleCheckboxPress}
-                  disabled={isReadOnly || isTogglePending}
+                  disabled={isReadOnly}
                   activeOpacity={0.85}
                 >
                   <Animated.View style={checkAnimatedStyle}>
@@ -704,6 +713,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     minHeight: 64,
+  },
+
+  checkboxHitboxDebug: {
+    bottom: 0,
+    opacity: 0.35,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 76,
+    zIndex: 5,
   },
 
   taskName: {
