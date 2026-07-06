@@ -379,13 +379,13 @@ export default function Stats() {
       >
         <View style={styles.profileHeader}>
           <View style={styles.profileIdentity}>
-            <View style={[styles.profileIconContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            {/* <View style={[styles.profileIconContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <SymbolView
                 name="person.fill"
                 size={31}
                 tintColor={colors.textSecondary}
               />
-            </View>
+            </View> */}
 
             <View style={styles.profileTextGroup}>
               <View style={styles.profileNameRow}>
@@ -402,23 +402,20 @@ export default function Stats() {
                 ) : null}
               </View>
 
-              {user?.email ? (
+              {/* {user?.email ? (
                 <Text
                   numberOfLines={1}
                   style={[styles.profileEmail, { color: colors.textSecondary }]}
                 >
                   {user.email}
                 </Text>
-              ) : null}
+              ) : null} */}
             </View>
           </View>
 
           <ProfileSettingsButton onPress={handleSettingsPress} />
         </View>
 
-        {/* <View style={styles.topContainer}>
-          <StatsStreak value={streak.toString()} />
-        </View> */}
         <View style={styles.periodPickerContainer}>
           <StatsPeriodMenu
             period={period}
@@ -575,7 +572,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 14,
+    marginBottom: 8,
     minHeight: 74,
     paddingHorizontal: 20,
     width: "100%",
@@ -659,14 +656,12 @@ const styles = StyleSheet.create({
     height: 100,
   },
   periodPickerContainer: {
-    marginTop: 20,
     marginBottom: 10,
     width: "90%",
     display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    // backgroundColor: "red",
   },
   adjustmentMetric: {
     alignItems: "center",
