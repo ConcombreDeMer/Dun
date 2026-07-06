@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useAuthUserId } from "./AuthSessionContext";
 import { supabase } from "./supabase";
 
 export type CalendarPreference = 1 | 2;
@@ -52,11 +54,14 @@ const saveCalendarPreference = async (preference: CalendarPreference) => {
 };
 
 export const useCalendarPreference = () => {
+  const userId = useAuthUserId();
   const queryClient = useQueryClient();
+  const queryKey = useMemo(() => [...CALENDAR_PREFERENCE_QUERY_KEY, userId] as const, [userId]);
 
   const preferenceQuery = useQuery({
-    queryKey: CALENDAR_PREFERENCE_QUERY_KEY,
+    queryKey,
     queryFn: fetchCalendarPreference,
+    enabled: !!userId,
     staleTime: 1000 * 60 * 30,
     gcTime: 1000 * 60 * 60,
   });
@@ -66,24 +71,24 @@ export const useCalendarPreference = () => {
   const mutation = useMutation({
     mutationFn: saveCalendarPreference,
     onMutate: async (nextPreference) => {
-      await queryClient.cancelQueries({ queryKey: CALENDAR_PREFERENCE_QUERY_KEY });
+      await queryClient.cancelQueries({ queryKey });
 
       const previousPreference = queryClient.getQueryData<CalendarPreference>(
-        CALENDAR_PREFERENCE_QUERY_KEY
+        queryKey
       );
 
-      queryClient.setQueryData(CALENDAR_PREFERENCE_QUERY_KEY, nextPreference);
+      queryClient.setQueryData(queryKey, nextPreference);
 
       return { previousPreference };
     },
     onError: (_error, _nextPreference, context) => {
       queryClient.setQueryData(
-        CALENDAR_PREFERENCE_QUERY_KEY,
+        queryKey,
         context?.previousPreference ?? DEFAULT_CALENDAR_PREFERENCE
       );
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: CALENDAR_PREFERENCE_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey });
     },
   });
 

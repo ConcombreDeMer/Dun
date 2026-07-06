@@ -9,6 +9,7 @@ import StatsInfoButton from "@/components/StatsInfoButton";
 import StatsPeriodMenu from "@/components/StatsPeriodMenu";
 import StatsPreferencesModal from "@/components/StatsPreferencesModal";
 import StatsStreak from "@/components/statsStreak";
+import { useAuthUserId } from "@/lib/AuthSessionContext";
 import {
   CalculatedStats,
   calculateStats,
@@ -27,8 +28,8 @@ import { supabase } from "@/lib/supabase";
 import { buildTagUsageStats, getTagUsageSourceData, TAG_USAGE_STATS_QUERY_KEY, TagUsageBucket } from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStatsPreferences } from "@/lib/useStatsPreferences";
-import { useQuery } from "@tanstack/react-query";
 import type { User } from "@supabase/supabase-js";
+import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -84,6 +85,7 @@ export default function Stats() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { canUseAdvancedStats, isPremium } = useSubscription();
+  const userId = useAuthUserId();
   const [showInfoPopUp, setShowInfoPopUp] = useState(false);
   const [period, setPeriod] = useState<StatsPeriod>('Par semaine');
   const [slideStats, setSlideStats] = useState<CalculatedStats | null>(null);
@@ -182,6 +184,7 @@ export default function Stats() {
     const { data, error } = await supabase
       .from("Days")
       .select("*")
+      .eq("user_id", userId)
       .lte("date", today.toISOString())
       .order("date", { ascending: false });
     if (error) {
@@ -192,8 +195,9 @@ export default function Stats() {
   };
 
   const daysQuery = useQuery({
-    queryKey: ['days'],
+    queryKey: ['days', userId],
     queryFn: getDays,
+    enabled: !!userId,
   });
 
   // Cela évite de recréer la fonction à chaque rendu
@@ -274,8 +278,8 @@ export default function Stats() {
   }, [includedTagStatsDateKeys]);
 
   const tagUsageSourceQuery = useQuery({
-    enabled: canUseAdvancedStats,
-    queryKey: [...TAG_USAGE_STATS_QUERY_KEY, "source"],
+    enabled: canUseAdvancedStats && !!userId,
+    queryKey: [...TAG_USAGE_STATS_QUERY_KEY, userId, "source"],
     queryFn: () => getTagUsageSourceData(),
     staleTime: 1000 * 60 * 5,
   });

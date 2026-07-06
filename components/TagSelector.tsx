@@ -1,4 +1,5 @@
 import { useFont } from "@/lib/FontContext";
+import { useAuthUserId } from "@/lib/AuthSessionContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { getTags, MAX_TAGS_PER_TASK, TAGS_QUERY_KEY, Tag } from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
@@ -96,9 +97,11 @@ export default function TagSelector({ compact = false, mode = "all", selectedTag
   const { colors } = useTheme();
   const { fontSizes } = useFont();
   const { t } = useAppTranslation();
+  const userId = useAuthUserId();
   const { data: tags = [] } = useQuery({
-    queryKey: TAGS_QUERY_KEY,
+    queryKey: [...TAGS_QUERY_KEY, userId],
     queryFn: getTags,
+    enabled: !!userId,
   });
   const [exitingTagIds, setExitingTagIds] = useState<string[]>([]);
   const [visibleSelectedTagIds, setVisibleSelectedTagIds] = useState(selectedTagIds);

@@ -2,6 +2,7 @@ import CreateModalHost from "@/components/CreateModalHost";
 import PopUpTask from "@/components/popUpTask";
 import Squircle from "@/components/Squircle";
 import { TaskItem, TaskItemLayout } from "@/components/TaskItem";
+import { useAuthUserId } from "@/lib/AuthSessionContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { fetchTaskList, type TaskListItem } from "@/lib/tasks";
 import { useTheme } from "@/lib/ThemeContext";
@@ -25,7 +26,9 @@ export default function Box() {
   const [shouldRenderOverlayContent, setShouldRenderOverlayContent] = useState(false);
   const overlayProgress = useSharedValue(0);
   const queryClient = useQueryClient();
-  const taskToggleQueryKeys = useMemo(() => [["tasks"]], []);
+  const userId = useAuthUserId();
+  const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
+  const taskToggleQueryKeys = useMemo(() => [tasksQueryKey], [tasksQueryKey]);
   const { isTaskPending, toggleTaskDone } = useToggleTaskDone({
     queryKeys: taskToggleQueryKeys,
     errorTitle: t("common.alerts.errorTitle"),
@@ -33,8 +36,9 @@ export default function Box() {
   });
 
   const taskQuery = useQuery({
-    queryKey: ["tasks"],
-    queryFn: () => fetchTaskList(queryClient.getQueryData<TaskListItem[]>(["tasks"]) ?? []),
+    queryKey: tasksQueryKey,
+    queryFn: () => fetchTaskList(queryClient.getQueryData<TaskListItem[]>(tasksQueryKey) ?? []),
+    enabled: !!userId,
     gcTime: 1000 * 60 * 30,
     staleTime: 1000 * 60 * 15,
   });

@@ -6,6 +6,7 @@ import PopUpTask from "@/components/popUpTask";
 import Squircle from "@/components/Squircle";
 import { TaskItem, TaskItemLayout } from "@/components/TaskItem";
 import TextCalendarComponent from "@/components/textCalendar";
+import { useAuthUserId } from "@/lib/AuthSessionContext";
 import { toAppDateKey } from "@/lib/date";
 import { useAppTranslation } from "@/lib/i18n";
 import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "@/lib/notificationService";
@@ -359,7 +360,9 @@ export default function Home() {
   const [shouldRenderOverlayContent, setShouldRenderOverlayContent] = useState(false);
   const queryClient = useQueryClient();
   const store = useStore();
-  const taskToggleQueryKeys = useMemo(() => [["tasks"]], []);
+  const userId = useAuthUserId();
+  const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
+  const taskToggleQueryKeys = useMemo(() => [tasksQueryKey], [tasksQueryKey]);
   const { isTaskPending, toggleTaskDone } = useToggleTaskDone({
     queryKeys: taskToggleQueryKeys,
     errorTitle: t("common.alerts.errorTitle"),
@@ -541,12 +544,13 @@ export default function Home() {
   }, [dateKey, storedDate]);
 
   const getTasks = async () => {
-    return fetchTaskList(queryClient.getQueryData<TaskListItem[]>(['tasks']) ?? []);
+    return fetchTaskList(queryClient.getQueryData<TaskListItem[]>(tasksQueryKey) ?? []);
   }
 
   const taskQuery = useQuery({
-    queryKey: ['tasks'],
+    queryKey: tasksQueryKey,
     queryFn: getTasks,
+    enabled: !!userId,
     gcTime: 1000 * 60 * 30, // 30 minutes de cache
     staleTime: 1000 * 60 * 15,
   });
@@ -596,12 +600,12 @@ export default function Home() {
       ...task,
       order: data.length - index
     }));
-    const previousTasks = queryClient.getQueryData<any[]>(['tasks']);
+    const previousTasks = queryClient.getQueryData<any[]>(tasksQueryKey);
 
-    await queryClient.cancelQueries({ queryKey: ['tasks'] });
+    await queryClient.cancelQueries({ queryKey: tasksQueryKey });
 
     // Optimistic update immédiat avec les nouveaux "order"
-    queryClient.setQueryData<any[]>(['tasks'], (oldVars) => {
+    queryClient.setQueryData<any[]>(tasksQueryKey, (oldVars) => {
       if (!oldVars) return [];
       const otherTasks = oldVars.filter((t: any) => !t.date || toAppDateKey(t.date) !== dateKey);
       return [...otherTasks, ...updatedData];
@@ -619,9 +623,9 @@ export default function Home() {
         if (error) {
           console.error("Erreur lors de la mise à jour de l'ordre:", error);
           if (previousTasks) {
-            queryClient.setQueryData(['tasks'], previousTasks);
+            queryClient.setQueryData(tasksQueryKey, previousTasks);
           } else {
-            queryClient.invalidateQueries({ queryKey: ['tasks'] });
+            queryClient.invalidateQueries({ queryKey: tasksQueryKey });
           }
           return;
         }
@@ -629,12 +633,12 @@ export default function Home() {
     } catch (error) {
       console.error("Erreur:", error);
       if (previousTasks) {
-        queryClient.setQueryData(['tasks'], previousTasks);
+        queryClient.setQueryData(tasksQueryKey, previousTasks);
       } else {
-        queryClient.invalidateQueries({ queryKey: ['tasks'] });
+        queryClient.invalidateQueries({ queryKey: tasksQueryKey });
       }
     }
-  }, [dateKey, queryClient, store.user.id]);
+  }, [dateKey, queryClient, store.user.id, tasksQueryKey]);
 
   const closeSelectedTaskOverlay = useCallback((afterClose?: () => void) => {
     setShouldRenderOverlayContent(false);

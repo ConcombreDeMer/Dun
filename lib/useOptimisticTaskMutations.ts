@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAuthUserId } from "./AuthSessionContext";
 import { toAppDateKey } from "./date";
 import { TAG_USAGE_STATS_QUERY_KEY } from "./tags";
 import { createTask, deleteTask, moveTaskDate, resolveOverdueTask } from "./tasks";
@@ -47,8 +48,6 @@ type CreateTaskInput = {
   tagIds?: string[];
 };
 
-const TASKS_QUERY_KEY = ["tasks"] as const;
-const DAYS_QUERY_KEY = ["days"] as const;
 let nextTempTaskId = -1;
 
 const getNextLocalOrder = (tasks: TaskCacheItem[] | undefined, dateKey: string | null) => {
@@ -102,7 +101,10 @@ const replaceTaskIdInCache = (
 };
 
 export const useOptimisticTaskMutations = () => {
+  const userId = useAuthUserId();
   const queryClient = useQueryClient();
+  const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
+  const daysQueryKey = useMemo(() => ["days", userId] as const, [userId]);
   const invalidateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const [pendingCreateIds, setPendingCreateIds] = useState<Set<number>>(() => new Set());
@@ -115,11 +117,11 @@ export const useOptimisticTaskMutations = () => {
     }
 
     invalidateTimeoutRef.current = setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: DAYS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: tasksQueryKey });
+      queryClient.invalidateQueries({ queryKey: daysQueryKey });
       queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
     }, 350);
-  }, [queryClient]);
+  }, [daysQueryKey, queryClient, tasksQueryKey]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -148,9 +150,9 @@ export const useOptimisticTaskMutations = () => {
 
     const tempId = nextTempTaskId--;
     const now = new Date().toISOString();
-    await queryClient.cancelQueries({ queryKey: TASKS_QUERY_KEY });
+    await queryClient.cancelQueries({ queryKey: tasksQueryKey });
 
-    const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY);
+    const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(tasksQueryKey);
     const optimisticOrder = getNextLocalOrder(previousTasks, dateKey);
     const optimisticTask: TaskCacheItem = {
       id: tempId,
@@ -178,7 +180,7 @@ export const useOptimisticTaskMutations = () => {
       });
     }
 
-    queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) => [
+    queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) => [
       ...(current ?? []),
       optimisticTask,
     ]);
@@ -192,13 +194,13 @@ export const useOptimisticTaskMutations = () => {
         tagIds,
       });
 
-      queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) =>
+      queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
         replaceTaskIdInCache(current, tempId, realTaskId)
       );
       scheduleInvalidate();
       return realTaskId;
     } catch (error) {
-      queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) =>
+      queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
         removeTaskFromCache(current, tempId)
       );
       throw error;
@@ -211,12 +213,12 @@ export const useOptimisticTaskMutations = () => {
         });
       }
     }
-  }, [queryClient, scheduleInvalidate]);
+  }, [queryClient, scheduleInvalidate, tasksQueryKey]);
 
   const deleteTaskOptimistically = useCallback(async (taskId: number, taskSnapshot?: TaskMutationSnapshot) => {
-    await queryClient.cancelQueries({ queryKey: TASKS_QUERY_KEY });
+    await queryClient.cancelQueries({ queryKey: tasksQueryKey });
 
-    const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY);
+    const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(tasksQueryKey);
     const deletedTask = previousTasks?.find((task) => task.id === taskId) ?? taskSnapshot;
 
     if (isMountedRef.current) {
@@ -228,7 +230,7 @@ export const useOptimisticTaskMutations = () => {
     }
 
     if (deletedTask) {
-      queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) =>
+      queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
         deletedTask.date
           ? normalizeOrdersForDate(
             removeTaskFromCache(current, taskId),
@@ -243,7 +245,7 @@ export const useOptimisticTaskMutations = () => {
       scheduleInvalidate();
     } catch (error) {
       if (deletedTask) {
-        queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) => {
+        queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) => {
           if (current?.some((task) => task.id === taskId)) {
             return current;
           }
@@ -261,12 +263,12 @@ export const useOptimisticTaskMutations = () => {
         });
       }
     }
-  }, [queryClient, scheduleInvalidate]);
+  }, [queryClient, scheduleInvalidate, tasksQueryKey]);
 
   const moveTaskDateOptimistically = useCallback(async (taskId: number, dateKey: string | null, taskSnapshot?: TaskMutationSnapshot) => {
-    await queryClient.cancelQueries({ queryKey: TASKS_QUERY_KEY });
+    await queryClient.cancelQueries({ queryKey: tasksQueryKey });
 
-    const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY);
+    const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(tasksQueryKey);
     const movedTask = previousTasks?.find((task) => task.id === taskId) ?? taskSnapshot;
 
     const currentDateKey = movedTask?.date ? toAppDateKey(movedTask.date) : null;
@@ -284,7 +286,7 @@ export const useOptimisticTaskMutations = () => {
     }
 
     if (movedTask) {
-      queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) => {
+      queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) => {
         const currentTasks = current ?? [];
         const sourceDateKey = movedTask.date ? toAppDateKey(movedTask.date) : null;
         const nextOrder = getNextLocalOrder(
@@ -305,7 +307,7 @@ export const useOptimisticTaskMutations = () => {
       scheduleInvalidate();
     } catch (error) {
       if (movedTask) {
-        queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) =>
+        queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
           isTaskCacheItem(movedTask)
             ? (current ?? []).map((task) => task.id === taskId ? movedTask : task)
             : removeTaskFromCache(current, taskId)
@@ -321,7 +323,7 @@ export const useOptimisticTaskMutations = () => {
         });
       }
     }
-  }, [queryClient, scheduleInvalidate]);
+  }, [queryClient, scheduleInvalidate, tasksQueryKey]);
 
   const isTaskDeletePending = useCallback((taskId: number) => {
     return pendingDeleteIds.has(taskId);
@@ -345,7 +347,10 @@ export const useOptimisticTaskMutations = () => {
 };
 
 export const useOptimisticOverdueTaskMutations = () => {
+  const userId = useAuthUserId();
   const queryClient = useQueryClient();
+  const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
+  const daysQueryKey = useMemo(() => ["days", userId] as const, [userId]);
   const invalidateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(() => new Set());
@@ -356,10 +361,10 @@ export const useOptimisticOverdueTaskMutations = () => {
     }
 
     invalidateTimeoutRef.current = setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: DAYS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: tasksQueryKey });
+      queryClient.invalidateQueries({ queryKey: daysQueryKey });
     }, 350);
-  }, [queryClient]);
+  }, [daysQueryKey, queryClient, tasksQueryKey]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -379,9 +384,9 @@ export const useOptimisticOverdueTaskMutations = () => {
     taskSnapshot?: TaskMutationSnapshot,
     targetDateKey = toAppDateKey(new Date())
   ) => {
-    await queryClient.cancelQueries({ queryKey: TASKS_QUERY_KEY });
+    await queryClient.cancelQueries({ queryKey: tasksQueryKey });
 
-    const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY);
+    const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(tasksQueryKey);
     const overdueTask = previousTasks?.find((task) => task.id === taskId) ?? taskSnapshot;
     const tempId = resolution === "postponed" ? nextTempTaskId-- : null;
     const now = new Date().toISOString();
@@ -395,7 +400,7 @@ export const useOptimisticOverdueTaskMutations = () => {
     }
 
     if (overdueTask) {
-      queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) => {
+      queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) => {
         const currentTasks = current ?? [];
         const resolvedTasks = currentTasks.map((task) => {
           if (task.id !== taskId) {
@@ -440,7 +445,7 @@ export const useOptimisticOverdueTaskMutations = () => {
       const createdTaskId = await resolveOverdueTask(taskId, resolution, targetDateKey);
 
       if (resolution === "postponed" && tempId !== null && createdTaskId) {
-        queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) =>
+        queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
           replaceTaskIdInCache(current, tempId, createdTaskId)
         );
       }
@@ -449,9 +454,9 @@ export const useOptimisticOverdueTaskMutations = () => {
       return createdTaskId;
     } catch (error) {
       if (previousTasks) {
-        queryClient.setQueryData(TASKS_QUERY_KEY, previousTasks);
+        queryClient.setQueryData(tasksQueryKey, previousTasks);
       } else {
-        queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY });
+        queryClient.invalidateQueries({ queryKey: tasksQueryKey });
       }
       throw error;
     } finally {
@@ -463,7 +468,7 @@ export const useOptimisticOverdueTaskMutations = () => {
         });
       }
     }
-  }, [queryClient, scheduleInvalidate]);
+  }, [queryClient, scheduleInvalidate, tasksQueryKey]);
 
   const isOverdueTaskPending = useCallback((taskId: number) => {
     return pendingTaskIds.has(taskId);

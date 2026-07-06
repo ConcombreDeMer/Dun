@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAuthUserId } from "./AuthSessionContext";
 import {
   DEFAULT_STATS_PREFERENCES,
   StatsPreferenceKey,
@@ -63,7 +64,9 @@ const updateStatsPreference = async (key: StatsPreferenceKey, value: boolean) =>
 };
 
 export const useStatsPreferences = () => {
+  const userId = useAuthUserId();
   const queryClient = useQueryClient();
+  const queryKey = useMemo(() => [...STATS_PREFERENCES_QUERY_KEY, userId] as const, [userId]);
   const isMountedRef = useRef(true);
   const mutationIdsRef = useRef<Record<StatsPreferenceKey, number>>({
     includeToday: 0,
@@ -82,8 +85,9 @@ export const useStatsPreferences = () => {
   }, []);
 
   const preferencesQuery = useQuery({
-    queryKey: STATS_PREFERENCES_QUERY_KEY,
+    queryKey,
     queryFn: fetchStatsPreferences,
+    enabled: !!userId,
   });
 
   const setPending = useCallback((key: StatsPreferenceKey, pending: boolean) => {
@@ -104,7 +108,7 @@ export const useStatsPreferences = () => {
 
   const setPreferenceOptimistically = useCallback(async (key: StatsPreferenceKey, value: boolean) => {
     const currentPreferences =
-      queryClient.getQueryData<StatsPreferences>(STATS_PREFERENCES_QUERY_KEY) ??
+      queryClient.getQueryData<StatsPreferences>(queryKey) ??
       preferencesQuery.data ??
       DEFAULT_STATS_PREFERENCES;
 
@@ -115,17 +119,17 @@ export const useStatsPreferences = () => {
     const previousValue = currentPreferences[key];
 
     setPending(key, true);
-    queryClient.setQueryData<StatsPreferences>(STATS_PREFERENCES_QUERY_KEY, {
+    queryClient.setQueryData<StatsPreferences>(queryKey, {
       ...currentPreferences,
       [key]: value,
     });
 
     try {
       await updateStatsPreference(key, value);
-      queryClient.invalidateQueries({ queryKey: STATS_PREFERENCES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey });
     } catch (error) {
       if (mutationIdsRef.current[key] === mutationId) {
-        queryClient.setQueryData<StatsPreferences>(STATS_PREFERENCES_QUERY_KEY, (current) => ({
+        queryClient.setQueryData<StatsPreferences>(queryKey, (current) => ({
           ...(current ?? DEFAULT_STATS_PREFERENCES),
           [key]: previousValue,
         }));
@@ -137,7 +141,7 @@ export const useStatsPreferences = () => {
         setPending(key, false);
       }
     }
-  }, [preferencesQuery.data, queryClient, setPending]);
+  }, [preferencesQuery.data, queryClient, queryKey, setPending]);
 
   const isPreferencePending = useCallback((key: StatsPreferenceKey) => pendingKeys.has(key), [pendingKeys]);
 

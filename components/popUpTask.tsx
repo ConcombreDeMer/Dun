@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn, FadeOut, interpolateColor, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { fromAppDateKey, toAppDateKey } from "../lib/date";
+import { useAuthUserId } from "../lib/AuthSessionContext";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import {
@@ -51,6 +52,8 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     const [tempDate, setTempDate] = useState(new Date());
     const doneProgress = useSharedValue(0);
     const queryClient = useQueryClient();
+    const userId = useAuthUserId();
+    const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
     const { deleteTaskOptimistically, isTaskDeletePending } = useOptimisticTaskMutations();
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -66,7 +69,10 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
         taskDate: new Date(),
         isDone: false,
     });
-    const taskToggleQueryKeys = useMemo(() => id ? [["tasks"], ["tasks", id]] : [["tasks"]], [id]);
+    const taskToggleQueryKeys = useMemo(
+        () => id ? [tasksQueryKey, ["tasks", userId, id] as const] : [tasksQueryKey],
+        [id, tasksQueryKey, userId]
+    );
     const {
         isTaskPending: isTogglePending,
         toggleTaskDone,
@@ -88,17 +94,17 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     });
 
     const taskQuery = useQuery({
-        queryKey: ['tasks', id],
+        queryKey: ["tasks", userId, id],
         queryFn: getTask,
-        enabled: !!id,
+        enabled: !!id && !!userId,
         gcTime: 1000 * 60 * 5,
         staleTime: 1000 * 60 * 2,
     });
 
     const taskTagsQuery = useQuery({
-        queryKey: ['task-tags', id],
+        queryKey: ["task-tags", userId, id],
         queryFn: () => getTaskTagIds(id as number),
-        enabled: !!id,
+        enabled: !!id && !!userId,
         gcTime: 1000 * 60 * 5,
         staleTime: 1000 * 60 * 2,
     });
@@ -219,11 +225,11 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
             return tagIds;
         },
         onSuccess: (tagIds) => {
-            queryClient.setQueryData(['task-tags', id], tagIds);
+            queryClient.setQueryData(["task-tags", userId, id], tagIds);
             setSelectedTagIds(null);
             markLocalLateAdjusted();
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
-            queryClient.invalidateQueries({ queryKey: ['tasks', id] });
+            queryClient.invalidateQueries({ queryKey: ["tasks", userId, id] });
             queryClient.invalidateQueries({ queryKey: ['days'] });
             queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
         },

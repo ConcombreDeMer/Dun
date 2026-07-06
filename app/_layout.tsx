@@ -3,9 +3,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider as NavigationThemeProvider, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Appearance } from "react-native";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { AuthSessionProvider } from "../lib/AuthSessionContext";
 import { FontProvider } from "../lib/FontContext";
 import { I18nProvider, useAppTranslation, useI18nReady } from "../lib/i18n";
 import { syncRevenueCatUser } from "../lib/revenuecat";
@@ -13,6 +14,7 @@ import { SubscriptionProvider } from "../lib/subscription";
 import { supabase } from "../lib/supabase";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 import * as Sentry from '@sentry/react-native';
+import { useStore } from "../store/store";
 
 Sentry.init({
   dsn: 'https://22e24a375245f570d6a9c3e6ebfb71af@o4511662072594432.ingest.de.sentry.io/4511662116896848',
@@ -61,6 +63,7 @@ function RootLayoutContent() {
   const pathname = usePathname();
   const [session, setSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const previousUserIdRef = useRef<string | null | undefined>(undefined);
 
   const [fontsLoaded] = useFonts({
     "Satoshi-Regular": require("../assets/fonts/Satoshi-Regular.otf"),
@@ -72,10 +75,26 @@ function RootLayoutContent() {
 
   const queryClient = useMemo(() => getQueryClient(), []);
   const navigationTheme = actualTheme === "dark" ? DarkTheme : DefaultTheme;
+  const userId = session?.user?.id ?? null;
 
   useEffect(() => {
-    Sentry.setUser(session?.user?.id ? { id: session.user.id } : null);
-  }, [session?.user?.id]);
+    const previousUserId = previousUserIdRef.current;
+
+    if (previousUserId === undefined) {
+      previousUserIdRef.current = userId;
+      return;
+    }
+
+    if (previousUserId !== userId) {
+      queryClient.clear();
+      useStore.getState().clearStore();
+      previousUserIdRef.current = userId;
+    }
+  }, [queryClient, userId]);
+
+  useEffect(() => {
+    Sentry.setUser(userId ? { id: userId } : null);
+  }, [userId]);
 
   useEffect(() => {
     Sentry.setTag("route", pathname ?? "unknown");
@@ -158,9 +177,6 @@ function RootLayoutContent() {
 
         if (error) {
           console.error("Erreur profil:", error);
-          if (!isOnboardingRoute) {
-            router.replace("/onboarding/tutorial");
-          }  
           return;
         }
 
@@ -186,7 +202,8 @@ function RootLayoutContent() {
   return (
 
     <QueryClientProvider client={queryClient}>
-      <SubscriptionProvider appUserID={session?.user?.id ?? null}>
+      <AuthSessionProvider userId={userId}>
+        <SubscriptionProvider appUserID={userId}>
 
       {/* <View
         pointerEvents="none"
@@ -277,7 +294,8 @@ function RootLayoutContent() {
             />
           </Stack>
         </NavigationThemeProvider>
-      </SubscriptionProvider>
+        </SubscriptionProvider>
+      </AuthSessionProvider>
     </QueryClientProvider>
   );
 }

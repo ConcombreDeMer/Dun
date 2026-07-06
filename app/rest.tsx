@@ -1,4 +1,5 @@
 import PopUpContainer from '@/components/popUpContainer';
+import { useAuthUserId } from '@/lib/AuthSessionContext';
 import { getCharacterImageSource } from '@/lib/imageHelper';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
@@ -20,16 +21,29 @@ export default function RestScreen() {
     const { fontSizes } = useFont();
     const { t, language } = useAppTranslation();
     const router = useRouter();
+    const userId = useAuthUserId();
     const [showCancelModal, setShowCancelModal] = React.useState(false);
     const [restEndDate, setRestEndDate] = React.useState<Date | null>(null);
     const [selectedDate, setSelectedDate] = React.useState(new Date());
     const fetchRestEndDate = async () => {
         try {
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                return '';
+            }
+
             const { data, error } = await supabase
                 .from("Profiles")
                 .select("restEndDate")
+                .eq("id", user.id)
+                .single();
 
-            const fetchedDate = data?.[0]?.restEndDate ? new Date(data[0].restEndDate) : null;
+            if (error) {
+                throw error;
+            }
+
+            const fetchedDate = data?.restEndDate ? new Date(data.restEndDate) : null;
 
             setRestEndDate(fetchedDate);
             setSelectedDate(fetchedDate ? fetchedDate : new Date());
@@ -49,8 +63,9 @@ export default function RestScreen() {
     }, []);
 
     const restEndDateQuery = useQuery({
-        queryKey: ['restEndDate'],
+        queryKey: ['restEndDate', userId],
         queryFn: fetchRestEndDate,
+        enabled: !!userId,
         gcTime: 1000 * 60 * 5,
         staleTime: 1000 * 60 * 2,
     });
