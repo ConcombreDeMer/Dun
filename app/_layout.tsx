@@ -1,7 +1,8 @@
+import * as Sentry from '@sentry/react-native';
 import { Session } from "@supabase/supabase-js";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider as NavigationThemeProvider, usePathname, useRouter } from "expo-router";
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider, Stack, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Appearance } from "react-native";
@@ -13,7 +14,6 @@ import { syncRevenueCatUser } from "../lib/revenuecat";
 import { SubscriptionProvider } from "../lib/subscription";
 import { supabase } from "../lib/supabase";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
-import * as Sentry from '@sentry/react-native';
 import { useStore } from "../store/store";
 
 Sentry.init({
@@ -245,6 +245,7 @@ function RootLayoutContent() {
               name="(tabs)"
               options={{
                 headerShown: false,
+                animation: "none",
               }}
             />
             <Stack.Screen
