@@ -17,7 +17,7 @@ import ReAnimated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import { toAppDateKey } from "../lib/date";
+import { isPastAppDateKey, toAppDateKey } from "../lib/date";
 import { useAppTranslation } from "../lib/i18n";
 import { useTheme } from "../lib/ThemeContext";
 import TagSelector from "./TagSelector";
@@ -53,6 +53,7 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
   const { createTaskOptimistically } = useOptimisticTaskMutations();
   const selectedDate = useStore((state) => state.selectedDate) || new Date();
   const selectedDateKey = toAppDateKey(selectedDate);
+  const isSelectedDatePast = isPastAppDateKey(selectedDateKey);
   const createActionGradientColors =
     actualTheme === "dark"
       ? (["rgba(255, 255, 255, 0.92)", "rgba(255, 255, 255, 0.68)"] as const)
@@ -244,6 +245,12 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
 
     if (!taskTitle.trim()) {
       Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.requiredTaskName"));
+      inputRef.current?.focus();
+      return;
+    }
+
+    if (!createInBox && isSelectedDatePast) {
+      Alert.alert(t("common.alerts.errorTitle"), t("createTask.alerts.pastDate"));
       inputRef.current?.focus();
       return;
     }

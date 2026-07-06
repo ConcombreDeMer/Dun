@@ -6,7 +6,7 @@ import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn, FadeOut, interpolateColor, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
-import { fromAppDateKey, toAppDateKey } from "../lib/date";
+import { fromAppDateKey, isPastAppDateKey, toAppDateKey } from "../lib/date";
 import { useAuthUserId } from "../lib/AuthSessionContext";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
@@ -61,6 +61,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     const hydratedTaskIdRef = useRef<number | null>(null);
     const lastSavedTextSnapshotRef = useRef("");
     const committedTaskDateRef = useRef<Date | null>(new Date());
+    const datePickerOriginalDateRef = useRef<Date | null>(new Date());
     const pendingTaskDateRef = useRef<Date | null>(null);
     const hasPendingTaskDateChangeRef = useRef(false);
     const latestDraftRef = useRef<TaskDraft>({
@@ -557,6 +558,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
             return;
         }
 
+        datePickerOriginalDateRef.current = taskDate;
         setTempDate(taskDate ?? new Date());
         setShowDatePicker(true);
     };
@@ -565,6 +567,12 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
         if (Platform.OS === "android") {
             setShowDatePicker(false);
             if (date) {
+                if (isPastAppDateKey(toAppDateKey(date))) {
+                    Alert.alert(t("common.alerts.errorTitle"), t("task.popup.lockedDate"));
+                    setTempDate(datePickerOriginalDateRef.current ?? new Date());
+                    return;
+                }
+
                 void handleDateChange(date);
             }
             return;
@@ -576,6 +584,13 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     };
 
     const closeDatePicker = () => {
+        if (isPastAppDateKey(toAppDateKey(tempDate))) {
+            Alert.alert(t("common.alerts.errorTitle"), t("task.popup.lockedDate"));
+            setTempDate(datePickerOriginalDateRef.current ?? new Date());
+            setShowDatePicker(false);
+            return;
+        }
+
         setShowDatePicker(false);
         void handleDateChange(tempDate);
     };

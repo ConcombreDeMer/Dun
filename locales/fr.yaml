@@ -396,6 +396,8 @@ createTask:
     taskBoxSelected: "Sera créée dans la boîte à tâches"
   buttons:
     confirm: "Valider"
+  alerts:
+    pastDate: "Tu ne peux pas créer une tâche sur un jour passé."
 daily:
   loading: "Chargement du daily..."
   preparing: "Préparation de ta journée..."
@@ -468,6 +470,7 @@ task:
     nameRequired: "Le nom de la tâche est requis"
     lastUpdated: "Dernière mise à jour : {{date}}"
     lateAdjustmentNotice: "Daily passé : les changements compteront comme réajustements."
+    lockedDate: "Ce jour est verrouillé. Choisis aujourd'hui ou un jour futur."
     now: "à l'instant"
     secondsAgo: "il y a {{count}} secondes"
     minutesAgo: "il y a {{count}} minutes"

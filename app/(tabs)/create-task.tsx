@@ -17,7 +17,7 @@ import {
     Text,
     View
 } from "react-native";
-import { toAppDateKey } from "@/lib/date";
+import { isPastAppDateKey, toAppDateKey } from "@/lib/date";
 import { taskEmitter } from "@/lib/eventEmitter";
 import { useAppTranslation } from "@/lib/i18n";
 import { useTheme } from "@/lib/ThemeContext";
@@ -35,6 +35,7 @@ export default function CreateTask() {
     const { t } = useAppTranslation();
     const { createTaskOptimistically, isCreatingTask } = useOptimisticTaskMutations();
     const selectedDateKey = toAppDateKey(selectedDate);
+    const isSelectedDatePast = isPastAppDateKey(selectedDateKey);
 
     const leaveCreateTask = () => {
         if (router.canGoBack()) {
@@ -48,6 +49,11 @@ export default function CreateTask() {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         if (!name.trim()) {
             Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.requiredTaskName"));
+            return;
+        }
+
+        if (!createInBox && isSelectedDatePast) {
+            Alert.alert(t("common.alerts.errorTitle"), t("createTask.alerts.pastDate"));
             return;
         }
 
@@ -136,6 +142,8 @@ export default function CreateTask() {
                             disabled={isCreatingTask}
                             bold
                             showTodayButton
+                            minimumDate={new Date()}
+                            minimumDateAlertMessage={t("createTask.alerts.pastDate")}
                         />
                     ) : null}
 
@@ -144,7 +152,7 @@ export default function CreateTask() {
 
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf: "center", width: "100%", position: "absolute", bottom: 23 }}>
                 <PrimaryButton size="XS" image="xmark" onPress={handleCancel} />
-                <PrimaryButton size="M" title={t("createTask.buttons.confirm")} onPress={handleCreateTask} />
+                <PrimaryButton size="M" title={t("createTask.buttons.confirm")} onPress={handleCreateTask} disabled={isCreatingTask || (!createInBox && isSelectedDatePast)} />
             </View>
 
         </KeyboardAvoidingView>

@@ -7,7 +7,7 @@ import { router } from "expo-router";
 import { SquircleView } from "expo-squircle-view";
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, Animated, Easing, InputAccessoryView, Keyboard, Pressable, StyleSheet, TextInput, View } from "react-native";
-import { toAppDateKey } from "../lib/date";
+import { isPastAppDateKey, toAppDateKey } from "../lib/date";
 import { useAppTranslation } from "../lib/i18n";
 import SecondaryButton from "./secondaryButton";
 import TagSelector from "./TagSelector";
@@ -30,6 +30,7 @@ export default function CreateModal({ accessoryId = "createTaskAccessory", onClo
     const { createTaskOptimistically } = useOptimisticTaskMutations();
     const selectedDate = useStore((state) => state.selectedDate) || new Date();
     const selectedDateKey = toAppDateKey(selectedDate);
+    const isSelectedDatePast = isPastAppDateKey(selectedDateKey);
 
 
     useEffect(() => {
@@ -60,6 +61,12 @@ export default function CreateModal({ accessoryId = "createTaskAccessory", onClo
 
         if (!taskTitle.trim()) {
             Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.requiredTaskName"));
+            isCreatingTaskRef.current = false;
+            return;
+        }
+
+        if (isSelectedDatePast) {
+            Alert.alert(t("common.alerts.errorTitle"), t("createTask.alerts.pastDate"));
             isCreatingTaskRef.current = false;
             return;
         }

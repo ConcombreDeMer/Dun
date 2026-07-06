@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUserId } from "./AuthSessionContext";
-import { toAppDateKey } from "./date";
+import { isPastAppDateKey, toAppDateKey } from "./date";
 import { TAG_USAGE_STATS_QUERY_KEY } from "./tags";
 import { createTask, deleteTask, moveTaskDate, resolveOverdueTask } from "./tasks";
 
@@ -146,6 +146,10 @@ export const useOptimisticTaskMutations = () => {
 
     if (!trimmedName) {
       throw new Error("Task name is required");
+    }
+
+    if (dateKey && isPastAppDateKey(dateKey)) {
+      throw new Error("Impossible de créer une tâche dans un jour passé");
     }
 
     const tempId = nextTempTaskId--;

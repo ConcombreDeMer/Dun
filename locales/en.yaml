@@ -396,6 +396,8 @@ createTask:
     taskBoxSelected: "Will be created in the task box"
   buttons:
     confirm: "Confirm"
+  alerts:
+    pastDate: "You can't create a task on a past day."
 daily:
   loading: "Loading daily..."
   preparing: "Preparing your day..."
@@ -468,6 +470,7 @@ task:
     nameRequired: "Task name is required"
     lastUpdated: "Last updated: {{date}}"
     lateAdjustmentNotice: "Past daily window: changes will count as adjustments."
+    lockedDate: "This day is locked. Choose today or a future day."
     now: "just now"
     secondsAgo: "{{count}} seconds ago"
     minutesAgo: "{{count}} minutes ago"
