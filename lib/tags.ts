@@ -113,10 +113,20 @@ export const getTagUsageSourceData = async ({
   const tagIds = new Set(tags.map((tag) => tag.id));
   const rows: TagUsageSourceRow[] = [];
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("Task_Tags")
-    .select("tag_id, Tasks(id, done, date)")
+    .select("tag_id, Tasks!inner(id, done, date)")
     .eq("user_id", userId);
+
+  if (startDateKey) {
+    query = query.gte("Tasks.date", startDateKey);
+  }
+
+  if (endDateKey) {
+    query = query.lte("Tasks.date", `${endDateKey}T23:59:59.999`);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(error.message);

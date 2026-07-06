@@ -656,10 +656,23 @@ export default memo(function StatsBarGraph({
   const setSelectedDate = useStore((state: { setSelectedDate: (date: Date) => void }) => state.setSelectedDate);
   const flatListRef = useRef<FlatList<Slide>>(null);
   const onSlideChangeRef = useRef(onSlideChange);
+  const displayedSlidesRef = useRef<Slide[]>([]);
   const itemWidth = Math.min(screenWidth * 0.9, 520);
   const displayedSlides = useMemo(
     () => transformDaysDataByPeriod(daysData || [], period, palette, locale, t, statsPreferences),
     [daysData, period, palette, locale, t, statsPreferences]
+  );
+  const displayedSlidesSignature = useMemo(
+    () => displayedSlides
+      .map((slide) => [
+        slide.id,
+        slide.summary.done,
+        slide.summary.total,
+        slide.summary.completion,
+        slide.stats.lateAdjustmentRate,
+      ].join(":"))
+      .join("|"),
+    [displayedSlides]
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const [opensDayOnPress, setOpensDayOnPress] = useState(false);
@@ -669,17 +682,22 @@ export default memo(function StatsBarGraph({
   }, [onSlideChange]);
 
   useEffect(() => {
-    const nextIndex = Math.max(0, displayedSlides.length - 1);
+    displayedSlidesRef.current = displayedSlides;
+  }, [displayedSlides]);
+
+  useEffect(() => {
+    const slides = displayedSlidesRef.current;
+    const nextIndex = Math.max(0, slides.length - 1);
     setActiveIndex(nextIndex);
 
-    if (displayedSlides[nextIndex]) {
-      onSlideChangeRef.current?.(displayedSlides[nextIndex]);
+    if (slides[nextIndex]) {
+      onSlideChangeRef.current?.(slides[nextIndex]);
     }
 
     requestAnimationFrame(() => {
       flatListRef.current?.scrollToIndex({ index: nextIndex, animated: false });
     });
-  }, [displayedSlides]);
+  }, [displayedSlidesSignature]);
 
   const handlePressBar = useCallback(async (bar: BarData) => {
     await Haptic.impactAsync(opensDayOnPress ? Haptic.ImpactFeedbackStyle.Medium : Haptic.ImpactFeedbackStyle.Light);
