@@ -27,6 +27,14 @@ export function isSameAppDate(left: Date | string, right: Date | string): boolea
   return toAppDateKey(left) === toAppDateKey(right);
 }
 
+export function getTodayAppDateKey(): string {
+  return toAppDateKey(new Date());
+}
+
+export function isPastAppDateKey(dateKey: string, todayKey = getTodayAppDateKey()): boolean {
+  return dateKey < todayKey;
+}
+
 export function toDailyDateKey(value: Date | string): string {
   if (typeof value === "string" && APP_DATE_KEY_REGEX.test(value)) {
     return value;

@@ -2,6 +2,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { SquircleView } from "expo-squircle-view";
 import { useEffect, useState } from "react";
 import {
+    Alert,
     Modal,
     Platform,
     StyleSheet,
@@ -22,6 +23,8 @@ interface DateInputProps {
     label?: string;
     bold?: boolean;
     showTodayButton?: boolean;
+    minimumDate?: Date;
+    minimumDateAlertMessage?: string;
 }
 
 // Fonction utilitaire pour comparer les dates efficacement
@@ -33,7 +36,14 @@ const isSameDay = (date1: Date, date2: Date): boolean => {
     );
 };
 
-export default function DateInput({ value, onChange, disabled = false, label, bold = false, showTodayButton = false }: DateInputProps) {
+const isBeforeDay = (date: Date, minimumDate: Date): boolean => {
+    const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const normalizedMinimumDate = new Date(minimumDate.getFullYear(), minimumDate.getMonth(), minimumDate.getDate());
+
+    return normalizedDate < normalizedMinimumDate;
+};
+
+export default function DateInput({ value, onChange, disabled = false, label, bold = false, showTodayButton = false, minimumDate, minimumDateAlertMessage }: DateInputProps) {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [tempDate, setTempDate] = useState(value);
     const { t, language } = useAppTranslation();
@@ -44,19 +54,43 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
     const todayButtonHeightValue = useSharedValue(0);
     const todayButtonOpacityValue = useSharedValue(0);
 
+    const validateDate = (date: Date) => {
+        if (!minimumDate || !isBeforeDay(date, minimumDate)) {
+            return true;
+        }
+
+        Alert.alert(
+            t("common.alerts.errorTitle"),
+            minimumDateAlertMessage || t("createTask.alerts.pastDate")
+        );
+        setTempDate(value);
+        return false;
+    };
+
     const handleDateChange = (event: any, date?: Date) => {
         if (Platform.OS === "android") {
             setShowDatePicker(false);
             if (date) {
+                if (!validateDate(date)) {
+                    return;
+                }
+
                 onChange(date);
             }
+            setTempDate(value);
+            return;
         }
+
         if (date) {
             setTempDate(date);
         }
     };
 
     const handleCloseDatePicker = () => {
+        if (!validateDate(tempDate)) {
+            return;
+        }
+
         onChange(tempDate);
         setShowDatePicker(false);
     };
@@ -66,7 +100,7 @@ export default function DateInput({ value, onChange, disabled = false, label, bo
         if (showDatePicker) {
             setTempDate(value);
         }
-    }, [showDatePicker]);
+    }, [showDatePicker, value]);
 
     // Mettre à jour la hauteur du bouton avec animation
     useEffect(() => {

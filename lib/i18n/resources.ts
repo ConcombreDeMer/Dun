@@ -505,6 +505,9 @@ export const resources = {
         },
         "buttons": {
           "confirm": "Confirm"
+        },
+        "alerts": {
+          "pastDate": "You can't create a task on a past day."
         }
       },
       "daily": {
@@ -590,6 +593,7 @@ export const resources = {
           "nameRequired": "Task name is required",
           "lastUpdated": "Last updated: {{date}}",
           "lateAdjustmentNotice": "Past daily window: changes will count as adjustments.",
+          "lockedDate": "This day is locked. Choose today or a future day.",
           "now": "just now",
           "secondsAgo": "{{count}} seconds ago",
           "minutesAgo": "{{count}} minutes ago",
@@ -1535,6 +1539,9 @@ export const resources = {
         },
         "buttons": {
           "confirm": "Valider"
+        },
+        "alerts": {
+          "pastDate": "Tu ne peux pas créer une tâche sur un jour passé."
         }
       },
       "daily": {
@@ -1620,6 +1627,7 @@ export const resources = {
           "nameRequired": "Le nom de la tâche est requis",
           "lastUpdated": "Dernière mise à jour : {{date}}",
           "lateAdjustmentNotice": "Daily passé : les changements compteront comme réajustements.",
+          "lockedDate": "Ce jour est verrouillé. Choisis aujourd'hui ou un jour futur.",
           "now": "à l'instant",
           "secondsAgo": "il y a {{count}} secondes",
           "minutesAgo": "il y a {{count}} minutes",

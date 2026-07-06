@@ -1,4 +1,4 @@
-import { toAppDateKey } from "./date";
+import { getTodayAppDateKey, isPastAppDateKey, toAppDateKey } from "./date";
 import { supabase } from "./supabase";
 import { copyTaskTags, setTaskTags } from "./tags";
 
@@ -51,11 +51,8 @@ const getUserId = async () => {
   return user.id;
 };
 
-const getTodayKey = () => toAppDateKey(new Date());
-
-const isPastDateKey = (dateKey: string, todayKey = getTodayKey()) => {
-  return dateKey < todayKey;
-};
+const getTodayKey = getTodayAppDateKey;
+const isPastDateKey = isPastAppDateKey;
 
 const getLateAdjustmentTimestamp = (task: LateAdjustableTask, now: string) => {
   return task.resolved_at && !task.late_adjusted_at ? now : undefined;
@@ -197,6 +194,11 @@ export const createTask = async ({
   tagIds?: string[];
 }) => {
   const userId = await getUserId();
+
+  if (dateKey && isPastDateKey(dateKey)) {
+    throw new Error("Impossible de créer une tâche dans un jour passé");
+  }
+
   const nextServerOrder = dateKey === null ? 0 : await getNextTaskOrder(dateKey, userId);
   const order = dateKey === null
     ? 0
