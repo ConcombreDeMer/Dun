@@ -1,7 +1,7 @@
-import CreateModalHost from "@/components/CreateModalHost";
 import NavItem from "@/components/navItem";
 import PopUpContainer from "@/components/popUpContainer";
 import PrimaryButton from "@/components/primaryButton";
+import SecondaryButton from "@/components/secondaryButton";
 import Squircle from "@/components/Squircle";
 import SwitchItem from "@/components/switchItem";
 import { useFont } from "@/lib/FontContext";
@@ -27,11 +27,9 @@ import Purchases from "react-native-purchases";
 
 export default function Settings() {
     const router = useRouter();
-    const { theme, toggleTheme, colors, actualTheme } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
     const { t } = useAppTranslation();
-    const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-    const [isLoading, setIsLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
     const [isSubscribed, setIsSubscribed] = useState(false);
     const [dailyEnabled, setDailyEnabled] = useState(false);
@@ -65,7 +63,6 @@ export default function Settings() {
             } finally {
                 if (isMounted) {
                     fetchInformation();
-                    setIsLoading(false);
                 }
             }
         };
@@ -141,6 +138,16 @@ export default function Settings() {
         }
     }
 
+    const handleBack = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        if (router.canGoBack()) {
+            router.back();
+            return;
+        }
+
+        router.replace("/stats");
+    };
+
 
 
 
@@ -157,85 +164,24 @@ export default function Settings() {
                 }}
             >
 
-
-
-
-                {user &&
-
-                    <Squircle
-                        style={styles.header}
-                    >
-
-                        <View
-                            style={styles.left}
-                        >
-                            <Image
-                                source={{ uri: user.user_metadata.avatar_url || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y' }}
-                                style={{
-                                    width: 80,
-                                    height: 80,
-                                    borderRadius: 40,
-                                }}
-                            />
-
-                        </View>
-
-                        <View
-                            style={styles.right}
-                        >
-                            <Text
-                                style={{
-                                    color: '#fff',
-                                    fontSize: fontSizes['2xl'],
-                                    fontWeight: '600',
-                                    marginBottom: 4,
-                                }}
-                            >
-                                {user.user_metadata.name || t("settings.root.defaultUserName")}
-                            </Text>
-
-                            <Text
-                                style={{
-                                    color: '#fff',
-                                    fontSize: fontSizes.lg,
-                                    fontWeight: '300',
-                                    opacity: 0.8,
-                                }}
-                            >
-                                {user.email}
-                            </Text>
-                            {
-                                isSubscribed && (
-                                    <Text
-                                        style={{
-                                            color: "#FFBB00",
-                                            fontSize: fontSizes.sm,
-                                            fontWeight: '500',
-                                            marginTop: 4,
-                                        }}
-                                    >
-                                        {t("settings.root.subscribed")}
-                                    </Text>
-
-                                )
-                            }
-
-                        </View>
-
-
-
-                    </Squircle>
-
-                }
-
-
+                <View style={styles.topBar}>
+                    <SecondaryButton
+                        image="chevron.left"
+                        imageSize={24}
+                        onPress={handleBack}
+                    />
+                    <Text style={[styles.title, { color: colors.text, fontSize: fontSizes["3xl"] }]}>
+                        {t("navigation.settings")}
+                    </Text>
+                    <View style={styles.topBarSpacer} />
+                </View>
 
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
 
-                    <NavItem image="person.fill" title={t("settings.root.account")} onPress={() => router.push(`/settings/account?id=${user.id}`)} />
+                    <NavItem image="person.fill" title={t("settings.root.account")} onPress={() => router.push("/settings/account")} />
                     <NavItem image="bell.fill" title={t("settings.root.notifications")} onPress={() => router.push("/settings/notifications")} />
                     <NavItem image="display" title={t("settings.root.display")} onPress={() => router.push("/settings/display")} />
                     <NavItem image="tag.fill" title={t("settings.root.tags")} onPress={() => router.push("/settings/tags")} />
@@ -264,7 +210,6 @@ export default function Settings() {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                         setShowReposModal(true);
                     }} />
-                    {/* <SwitchItem image="display" title="Mode sombre" event={toggleTheme} currentValue={theme === 'dark'} /> */}
 
                 </ScrollView>
 
@@ -415,9 +360,6 @@ export default function Settings() {
                 </TouchableWithoutFeedback>
             </PopUpContainer>
 
-            <CreateModalHost activePath="/settings" />
-
-
         </View>
     );
 }
@@ -431,32 +373,20 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
     },
 
-    header: {
-        backgroundColor: "#272727ff",
-        height: 115,
-        width: "100%",
-        borderRadius: 30,
-        display: "flex",
+    topBar: {
+        alignItems: "center",
         flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        paddingHorizontal: 15,
-        gap: 15,
+        justifyContent: "space-between",
+        marginBottom: 8,
+        width: "100%",
     },
-
-    left: {
-        position: "relative",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
+    title: {
+        fontFamily: "Satoshi-Bold",
     },
-
-
-    right: {
-        position: "relative",
+    topBarSpacer: {
+        height: 48,
+        width: 48,
     },
-
-
 
     scrollContent: {
         marginTop: 12,

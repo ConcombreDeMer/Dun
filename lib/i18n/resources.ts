@@ -45,6 +45,9 @@ export const resources = {
         "daily": "New day",
         "rest": "Rest"
       },
+      "profile": {
+        "greeting": "Hi, {{name}}!"
+      },
       "settings": {
         "root": {
           "account": "Account",
@@ -1071,6 +1074,9 @@ export const resources = {
         "stats": "Statistiques",
         "daily": "Nouveau jour",
         "rest": "Repos"
+      },
+      "profile": {
+        "greeting": "Salut, {{name}} !"
       },
       "settings": {
         "root": {
