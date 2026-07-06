@@ -1,5 +1,6 @@
 import CreateModalHost from "@/components/CreateModalHost";
 import HorizontalBarGraph from "@/components/horizontalBarGraph";
+import ProfileSettingsButton from "@/components/ProfileSettingsButton";
 import StatsBarGraph from "@/components/statsBarGraph";
 import StatsCard from "@/components/statsCard";
 import StatsCardCharge from "@/components/statsCardCharge";
@@ -27,12 +28,13 @@ import { buildTagUsageStats, getTagUsageSourceData, TAG_USAGE_STATS_QUERY_KEY, T
 import { useTheme } from "@/lib/ThemeContext";
 import { useStatsPreferences } from "@/lib/useStatsPreferences";
 import { useQuery } from "@tanstack/react-query";
+import type { User } from "@supabase/supabase-js";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -81,18 +83,42 @@ export default function Stats() {
   const { t } = useAppTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { canUseAdvancedStats } = useSubscription();
+  const { canUseAdvancedStats, isPremium } = useSubscription();
   const [showInfoPopUp, setShowInfoPopUp] = useState(false);
   const [period, setPeriod] = useState<StatsPeriod>('Par semaine');
   const [slideStats, setSlideStats] = useState<CalculatedStats | null>(null);
   const [activeSlide, setActiveSlide] = useState<Slide | null>(null);
   const [showUnusedTags, setShowUnusedTags] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const {
     isPreferencePending,
     preferences: statsPreferences,
     setPreferenceOptimistically,
   } = useStatsPreferences();
   const [loadingState, setLoadingState] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+
+      if (error) {
+        console.error("Erreur lors de la récupération de l'utilisateur:", error);
+        return;
+      }
+
+      if (isMounted) {
+        setUser(data.user ?? null);
+      }
+    };
+
+    loadUser();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Gestionnaire pour les changements de slide
   const handleSlideChange = useCallback((slide: Slide) => {
@@ -316,6 +342,15 @@ export default function Stats() {
     setShowInfoPopUp((current) => !current);
   }, []);
 
+  const handleSettingsPress = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push("/settings");
+  }, [router]);
+
+  const profileName = useMemo(() => {
+    return user?.user_metadata?.name || user?.email?.split("@")[0] || t("settings.root.defaultUserName");
+  }, [t, user?.email, user?.user_metadata?.name]);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View
@@ -338,6 +373,45 @@ export default function Stats() {
         contentContainerStyle={[styles.listContent, { paddingTop: topContentPadding }]}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.profileHeader}>
+          <View style={styles.profileIdentity}>
+            <View style={[styles.profileIconContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <SymbolView
+                name="person.fill"
+                size={31}
+                tintColor={colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.profileTextGroup}>
+              <View style={styles.profileNameRow}>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.profileGreeting, { color: colors.text, fontSize: fontSizes["3xl"] }]}
+                >
+                  {t("profile.greeting", { name: profileName })}
+                </Text>
+                {isPremium ? (
+                  <View style={styles.premiumBadge}>
+                    <Text style={styles.premiumBadgeText}>Dun+</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {user?.email ? (
+                <Text
+                  numberOfLines={1}
+                  style={[styles.profileEmail, { color: colors.textSecondary }]}
+                >
+                  {user.email}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+
+          <ProfileSettingsButton onPress={handleSettingsPress} />
+        </View>
+
         {/* <View style={styles.topContainer}>
           <StatsStreak value={streak.toString()} />
         </View> */}
@@ -492,6 +566,66 @@ const styles = StyleSheet.create({
   listContent: {
     alignItems: "center",
     paddingBottom: 200,
+  },
+  profileHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 14,
+    minHeight: 74,
+    paddingHorizontal: 20,
+    width: "100%",
+  },
+  profileIdentity: {
+    alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
+    gap: 14,
+    minWidth: 0,
+    paddingRight: 16,
+  },
+  profileIconContainer: {
+    alignItems: "center",
+    borderRadius: 32,
+    borderWidth: 0.5,
+    height: 64,
+    justifyContent: "center",
+    width: 64,
+  },
+  profileTextGroup: {
+    flex: 1,
+    minWidth: 0,
+  },
+  profileNameRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+    minWidth: 0,
+  },
+  profileGreeting: {
+    flexShrink: 1,
+    fontFamily: "Satoshi-Medium",
+  },
+  profileEmail: {
+    fontFamily: "Satoshi-Regular",
+    fontSize: 14,
+    marginTop: 3,
+    opacity: 0.7,
+  },
+  premiumBadge: {
+    alignItems: "center",
+    backgroundColor: "#FFE39C",
+    borderColor: "#FFCF4D",
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  premiumBadgeText: {
+    color: "#2F2500",
+    fontFamily: "Satoshi-Bold",
+    fontSize: 12,
   },
   topScrim: {
     left: 0,

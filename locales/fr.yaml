@@ -36,6 +36,8 @@ navigation:
   stats: "Statistiques"
   daily: "Nouveau jour"
   rest: "Repos"
+profile:
+  greeting: "Salut, {{name}} !"
 settings:
   root:
     account: "Compte"

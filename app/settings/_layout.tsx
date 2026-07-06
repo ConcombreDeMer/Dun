@@ -19,6 +19,7 @@ export default function SettingsStackLayout() {
         headerShown: false,
       }}
     >
+      <Stack.Screen name="index" />
       <Stack.Screen name="account" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="display" />

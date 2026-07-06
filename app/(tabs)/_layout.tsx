@@ -41,12 +41,8 @@ function Tabs() {
         <NativeTabs.Trigger.Icon sf={{ default: 'archivebox', selected: 'archivebox.fill' }} md="home" selectedColor={tabTintColor} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="stats">
-        <NativeTabs.Trigger.Label hidden>Stats</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'chart.bar', selected: 'chart.bar.fill' }} md="home" selectedColor={tabTintColor} />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="settings">
-        <NativeTabs.Trigger.Label hidden>Settings</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'gearshape', selected: 'gearshape.fill' }} md="home" selectedColor={tabTintColor} />
+        <NativeTabs.Trigger.Label hidden>Profile</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }} md="home" selectedColor={tabTintColor} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="create-task" disabled role="search">
         <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>

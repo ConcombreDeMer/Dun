@@ -2,8 +2,8 @@ import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { useTheme } from "@/lib/ThemeContext";
 import { useRouter } from "expo-router";
+import { SquircleButton } from "expo-squircle-view";
 import { Image, StyleSheet, Text } from "react-native";
-import Squircle from "./Squircle";
 
 
 export default function StatsStatut({ value }: { value: string }) {
@@ -19,9 +19,12 @@ export default function StatsStatut({ value }: { value: string }) {
 
 
     return (
-        <Squircle
+        <SquircleButton
+            activeOpacity={0.82}
+            cornerSmoothing={100}
+            preserveSmoothing
             style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onTouchEnd={handleExplicationPress}
+            onPress={handleExplicationPress}
         >
             <Image source={require('../assets/images/stats/streak/high.png')} style={styles.image} />
             <Text style={[{ color: colors.text, fontSize: fontSizes.lg, fontFamily: 'Satoshi-Medium' }]}>
@@ -29,7 +32,7 @@ export default function StatsStatut({ value }: { value: string }) {
                 <Text style={{ opacity: 0.6 }}>{t("stats.badge.suffix")}</Text>
             </Text>
 
-        </Squircle>
+        </SquircleButton>
     );
 }
 
