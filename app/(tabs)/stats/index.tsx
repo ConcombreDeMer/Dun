@@ -35,7 +35,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -92,6 +92,8 @@ export default function Stats() {
   const [activeSlide, setActiveSlide] = useState<Slide | null>(null);
   const [showUnusedTags, setShowUnusedTags] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const activeSlideSignatureRef = useRef<string | null>(null);
+  const lastPeriodChangeAtRef = useRef(0);
   const {
     isPreferencePending,
     preferences: statsPreferences,
@@ -124,6 +126,19 @@ export default function Stats() {
 
   // Gestionnaire pour les changements de slide
   const handleSlideChange = useCallback((slide: Slide) => {
+    const slideSignature = [
+      slide.id,
+      slide.stats.totalDoneCount,
+      slide.stats.totalTasksCount,
+      slide.stats.completion,
+      slide.stats.lateAdjustmentRate,
+    ].join(":");
+
+    if (activeSlideSignatureRef.current === slideSignature) {
+      return;
+    }
+
+    activeSlideSignatureRef.current = slideSignature;
     setActiveSlide(slide);
 
     // Ne mettre à jour les stats que si ce n'est pas "Global"
@@ -183,8 +198,7 @@ export default function Stats() {
 
     const { data, error } = await supabase
       .from("Days")
-      .select("*")
-      .eq("user_id", userId)
+      .select("date,total,done_count,late_adjusted_count")
       .lte("date", today.toISOString())
       .order("date", { ascending: false });
     if (error) {
@@ -278,9 +292,17 @@ export default function Stats() {
   }, [includedTagStatsDateKeys]);
 
   const tagUsageSourceQuery = useQuery({
-    enabled: canUseAdvancedStats && !!userId,
-    queryKey: [...TAG_USAGE_STATS_QUERY_KEY, userId, "source"],
-    queryFn: () => getTagUsageSourceData(),
+    enabled: canUseAdvancedStats && Boolean(tagStatsDateRange.startDateKey && tagStatsDateRange.endDateKey),
+    queryKey: [
+      ...TAG_USAGE_STATS_QUERY_KEY,
+      "source",
+      tagStatsDateRange.startDateKey,
+      tagStatsDateRange.endDateKey,
+    ],
+    queryFn: () => getTagUsageSourceData({
+      startDateKey: tagStatsDateRange.startDateKey,
+      endDateKey: tagStatsDateRange.endDateKey,
+    }),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -332,6 +354,13 @@ export default function Stats() {
       return;
     }
 
+    const now = Date.now();
+    if (now - lastPeriodChangeAtRef.current < 350) {
+      return;
+    }
+
+    lastPeriodChangeAtRef.current = now;
+    activeSlideSignatureRef.current = null;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setPeriod(selectedPeriod);
     console.log('Période sélectionnée :', selectedPeriod);
@@ -436,9 +465,6 @@ export default function Stats() {
             statsPreferences={statsPreferences}
             onSlideChange={handleSlideChange}
           />
-
-
-
           <View style={styles.cardsContainer}>
           <StatsStreak value={streak.toString()} />
             <View style={styles.cardsRow}>
