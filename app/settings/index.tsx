@@ -7,6 +7,7 @@ import SwitchItem from "@/components/switchItem";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { getCharacterImageSource } from "@/lib/imageHelper";
+import { SCREEN_HEADER_HEIGHT, SCREEN_HEADER_HORIZONTAL_PADDING, SCREEN_HEADER_TITLE_LINE_HEIGHT, SCREEN_HEADER_TOP_OFFSET } from "@/lib/screenHeader";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
 import * as Haptics from 'expo-haptics';
@@ -158,9 +159,9 @@ export default function Settings() {
                 style={{
                     width: '100%',
                     height: '100%',
-                    paddingLeft: 20,
-                    paddingRight: 20,
-                    paddingTop: 60,
+                    paddingLeft: SCREEN_HEADER_HORIZONTAL_PADDING,
+                    paddingRight: SCREEN_HEADER_HORIZONTAL_PADDING,
+                    paddingTop: SCREEN_HEADER_TOP_OFFSET,
                 }}
             >
 
@@ -378,10 +379,12 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         marginBottom: 8,
+        minHeight: SCREEN_HEADER_HEIGHT,
         width: "100%",
     },
     title: {
         fontFamily: "Satoshi-Bold",
+        lineHeight: SCREEN_HEADER_TITLE_LINE_HEIGHT,
     },
     topBarSpacer: {
         height: 48,
