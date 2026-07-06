@@ -70,7 +70,7 @@ interface TaskItemProps {
     name: string;
     done: boolean;
     description: string;
-    date?: string;
+    date?: string | null;
     late_days?: number | null;
     delay_count?: number | null;
     late_adjusted_at?: string | null;
@@ -88,10 +88,10 @@ interface TaskItemProps {
   disableAddedAnimations?: boolean;
   isExtendable?: boolean;
   isTogglePending?: boolean;
-  mode?: 'normal' | 'daily';
+  mode?: 'normal' | 'daily' | 'box';
   isReadOnly?: boolean;
   onDeleteTask?: (item: TaskItemProps["item"]) => Promise<unknown> | unknown;
-  onMoveTask?: (item: TaskItemProps["item"], targetDateKey: string) => Promise<unknown> | unknown;
+  onMoveTask?: (item: TaskItemProps["item"], targetDateKey: string | null) => Promise<unknown> | unknown;
 }
 
 export const TaskItem = ({
@@ -184,39 +184,25 @@ export const TaskItem = ({
     })();
   }, [handleDeleteAfterSwipe, isReadOnly, isTaskDeletePending, item, t, translateX, itemOpacity, screenWidth]);
 
-  const handleMoveAfterSwipe = useCallback(() => {
-    const sourceDate = item.date ? new Date(item.date) : new Date();
-    const targetDate = mode === 'daily' ? new Date() : sourceDate;
-
-    if (mode !== 'daily') {
-      targetDate.setDate(targetDate.getDate() + 1);
-    }
-
-    const nextDateKey = toAppDateKey(targetDate);
-
+  const moveTaskToDate = useCallback((nextDateKey: string | null) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const mutation = onMoveTask
       ? Promise.resolve(onMoveTask(item, nextDateKey))
       : moveTaskDateOptimistically(item.id, nextDateKey, item);
 
     void mutation.catch((error: any) => {
-      console.error("Erreur lors du report:", error);
+      console.error("Erreur lors du déplacement:", error);
       Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
     });
-  }, [item, mode, moveTaskDateOptimistically, onMoveTask, t]);
+  }, [item, moveTaskDateOptimistically, onMoveTask, t]);
 
-  const handleSwipeRight = useCallback(() => {
+  const handleMoveAction = useCallback((targetDateKey: string | null) => {
     void (async () => {
       if (isReadOnly || isTaskMovePending(item.id)) return;
 
-      const sourceDate = item.date ? new Date(item.date) : new Date();
-      const targetDate = mode === 'daily' ? new Date() : new Date(sourceDate);
+      const sourceDateKey = item.date ? toAppDateKey(item.date) : null;
 
-      if (mode !== 'daily') {
-        targetDate.setDate(targetDate.getDate() + 1);
-      }
-
-      if (toAppDateKey(sourceDate) === toAppDateKey(targetDate)) {
+      if (sourceDateKey === targetDateKey) {
         swipeableRef.current?.close();
         translateX.value = withTiming(0, { duration: 180 });
         itemOpacity.value = withTiming(1, { duration: 180 });
@@ -231,12 +217,26 @@ export const TaskItem = ({
       swipeableRef.current?.close();
       itemOpacity.value = withTiming(0, { duration: 300 }, (finished) => {
         if (finished) {
-          runOnJS(handleMoveAfterSwipe)();
+          runOnJS(moveTaskToDate)(targetDateKey);
         }
       });
       translateX.value = withTiming(screenWidth, { duration: 300 });
     })();
-  }, [handleMoveAfterSwipe, isReadOnly, isTaskMovePending, item, mode, t, translateX, itemOpacity, screenWidth]);
+  }, [isReadOnly, isTaskMovePending, item, t, translateX, itemOpacity, screenWidth, moveTaskToDate]);
+
+  const handlePostpone = useCallback(() => {
+    const sourceDate = item.date ? new Date(item.date) : new Date();
+    sourceDate.setDate(sourceDate.getDate() + 1);
+    handleMoveAction(toAppDateKey(sourceDate));
+  }, [handleMoveAction, item.date]);
+
+  const handleMoveToBox = useCallback(() => {
+    handleMoveAction(null);
+  }, [handleMoveAction]);
+
+  const handleMoveToToday = useCallback(() => {
+    handleMoveAction(toAppDateKey(new Date()));
+  }, [handleMoveAction]);
 
   const renderRightActions = useCallback(() => {
     return (
@@ -264,13 +264,59 @@ export const TaskItem = ({
   }, [handleSwipeLeft, fontSizes.base, t]);
 
   const renderLeftActions = useCallback(() => {
-    const actionWidth = mode === 'daily' ? 170 : 120;
-    const actionText = mode === 'daily' ? t("task.actions.moveToToday") : t("task.actions.postpone");
+    const isInTaskBox = !item.date || mode === "box";
+    const shouldMoveToToday = mode === 'daily' || isInTaskBox;
+
+    if (!shouldMoveToToday && item.date) {
+      return (
+        <View style={{ width: 250, minHeight: 64, height: '100%', paddingRight: 10, justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
+          <SquircleButton
+            onPress={handleMoveToBox}
+            activeOpacity={0.8}
+            style={{
+              backgroundColor: '#ECE5D8',
+              flex: 1,
+              borderRadius: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6
+            }}
+            cornerSmoothing={100}
+            preserveSmoothing={true}
+          >
+            <Text style={{ fontFamily: 'Satoshi-Regular', color: '#4F4331', fontSize: fontSizes.base }}>{t("task.actions.moveToBox")}</Text>
+            <Feather name="archive" size={18} color="#4F4331" />
+          </SquircleButton>
+          <SquircleButton
+            onPress={handlePostpone}
+            activeOpacity={0.8}
+            style={{
+              backgroundColor: '#333333',
+              flex: 1,
+              borderRadius: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6
+            }}
+            cornerSmoothing={100}
+            preserveSmoothing={true}
+          >
+            <Text style={{ fontFamily: 'Satoshi-Regular', color: '#ffffff', fontSize: fontSizes.base }}>{t("task.actions.postpone")}</Text>
+            <Feather name="chevron-right" size={20} color="#ffffff" />
+          </SquircleButton>
+        </View>
+      );
+    }
+
+    const actionWidth = 170;
+    const actionText = t("task.actions.moveToToday");
 
     return (
       <View style={{ width: actionWidth, minHeight: 64, height: '100%', paddingRight: 10, justifyContent: 'center' }}>
         <SquircleButton
-          onPress={handleSwipeRight}
+          onPress={handleMoveToToday}
           activeOpacity={0.8}
           style={{
             backgroundColor: '#333333',
@@ -285,11 +331,11 @@ export const TaskItem = ({
           preserveSmoothing={true} // false matches figma, true has more rounding
         >
           <Text style={{ fontFamily: 'Satoshi-Regular', color: '#ffffff', fontSize: fontSizes.base }}>{actionText}</Text>
-          <Feather name={mode === 'daily' ? "corner-down-left" : "chevron-right"} size={20} color="#ffffff" />
+          <Feather name="corner-down-left" size={20} color="#ffffff" />
         </SquircleButton>
       </View>
     );
-  }, [handleSwipeRight, fontSizes.base, mode, t]);
+  }, [fontSizes.base, handleMoveToBox, handleMoveToToday, handlePostpone, item.date, mode, t]);
 
   const animatedStyle = useAnimatedStyle(() => {
     const enterScale = disableAddedAnimations ? 1 : 0.3 + enterProgress.value * 0.7;

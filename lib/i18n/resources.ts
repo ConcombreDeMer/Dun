@@ -484,6 +484,11 @@ export const resources = {
           "tasks": "tasks"
         }
       },
+      "box": {
+        "title": "Task box",
+        "subtitle": "Undated tasks stay here until you place them on a day.",
+        "emptyState": "No tasks in the box"
+      },
       "createTask": {
         "headline": {
           "title": "Create",
@@ -491,7 +496,9 @@ export const resources = {
         },
         "fields": {
           "title": "Title",
-          "description": "Description"
+          "description": "Description",
+          "taskBox": "Create in task box",
+          "taskBoxSelected": "Will be created in the task box"
         },
         "buttons": {
           "confirm": "Confirm"
@@ -565,6 +572,7 @@ export const resources = {
         "delayBadge_other": "{{count}} days late",
         "actions": {
           "moveToToday": "Move to today",
+          "moveToBox": "Box",
           "postpone": "Postpone"
         },
         "lateAdjustmentAlert": {
@@ -575,6 +583,7 @@ export const resources = {
         "popup": {
           "notFound": "Task not found",
           "insertDescription": "Add a description",
+          "taskBox": "Task box",
           "nameRequired": "Task name is required",
           "lastUpdated": "Last updated: {{date}}",
           "lateAdjustmentNotice": "Past daily window: changes will count as adjustments.",
@@ -1502,6 +1511,11 @@ export const resources = {
           "tasks": "tâches"
         }
       },
+      "box": {
+        "title": "Boîte à tâches",
+        "subtitle": "Les tâches sans date restent ici jusqu'à ce que tu les places dans une journée.",
+        "emptyState": "Aucune tâche dans la boîte"
+      },
       "createTask": {
         "headline": {
           "title": "Créer",
@@ -1509,7 +1523,9 @@ export const resources = {
         },
         "fields": {
           "title": "Titre",
-          "description": "Description"
+          "description": "Description",
+          "taskBox": "Créer dans la boîte à tâches",
+          "taskBoxSelected": "Sera créée dans la boîte à tâches"
         },
         "buttons": {
           "confirm": "Valider"
@@ -1583,6 +1599,7 @@ export const resources = {
         "delayBadge_other": "retard de {{count}} jours",
         "actions": {
           "moveToToday": "Pour aujourd'hui",
+          "moveToBox": "Box",
           "postpone": "Reporter"
         },
         "lateAdjustmentAlert": {
@@ -1593,6 +1610,7 @@ export const resources = {
         "popup": {
           "notFound": "Tâche non trouvée",
           "insertDescription": "Insérer une description",
+          "taskBox": "Boîte à tâches",
           "nameRequired": "Le nom de la tâche est requis",
           "lastUpdated": "Dernière mise à jour : {{date}}",
           "lateAdjustmentNotice": "Daily passé : les changements compteront comme réajustements.",

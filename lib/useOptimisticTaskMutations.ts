@@ -12,7 +12,8 @@ type TaskCacheItem = {
   tagIds?: string[];
   done: boolean;
   order: number;
-  date: string;
+  date: string | null;
+  created_at?: string | null;
   completed_at?: string | null;
   resolved_at?: string | null;
   resolution?: string | null;
@@ -29,7 +30,8 @@ type TaskMutationSnapshot = {
   tagIds?: string[];
   done: boolean;
   order?: number;
-  date?: string;
+  date?: string | null;
+  created_at?: string | null;
   completed_at?: string | null;
   resolved_at?: string | null;
   resolution?: string | null;
@@ -41,7 +43,7 @@ type TaskMutationSnapshot = {
 type CreateTaskInput = {
   name: string;
   description?: string;
-  dateKey: string;
+  dateKey: string | null;
   tagIds?: string[];
 };
 
@@ -49,7 +51,11 @@ const TASKS_QUERY_KEY = ["tasks"] as const;
 const DAYS_QUERY_KEY = ["days"] as const;
 let nextTempTaskId = -1;
 
-const getNextLocalOrder = (tasks: TaskCacheItem[] | undefined, dateKey: string) => {
+const getNextLocalOrder = (tasks: TaskCacheItem[] | undefined, dateKey: string | null) => {
+  if (dateKey === null) {
+    return 0;
+  }
+
   const dateTasks = tasks?.filter((task) => task.date && toAppDateKey(task.date) === dateKey) ?? [];
 
   if (dateTasks.length === 0) {
@@ -63,7 +69,11 @@ const removeTaskFromCache = (tasks: TaskCacheItem[] | undefined, taskId: number)
   return tasks?.filter((task) => task.id !== taskId) ?? [];
 };
 
-const normalizeOrdersForDate = (tasks: TaskCacheItem[], dateKey: string) => {
+const normalizeOrdersForDate = (tasks: TaskCacheItem[], dateKey: string | null) => {
+  if (dateKey === null) {
+    return tasks;
+  }
+
   const dateTasks = tasks
     .filter((task) => task.date && toAppDateKey(task.date) === dateKey)
     .sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -78,7 +88,7 @@ const normalizeOrdersForDate = (tasks: TaskCacheItem[], dateKey: string) => {
 };
 
 const isTaskCacheItem = (task: TaskMutationSnapshot | undefined): task is TaskCacheItem => {
-  return !!task?.date && typeof task.order === "number";
+  return task !== undefined && typeof task.order === "number";
 };
 
 export const useOptimisticTaskMutations = () => {
@@ -128,6 +138,7 @@ export const useOptimisticTaskMutations = () => {
 
     const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY);
     const tempId = nextTempTaskId--;
+    const now = new Date().toISOString();
     const optimisticOrder = getNextLocalOrder(previousTasks, dateKey);
     const optimisticTask: TaskCacheItem = {
       id: tempId,
@@ -136,6 +147,7 @@ export const useOptimisticTaskMutations = () => {
       description: trimmedDescription,
       tagIds,
       done: false,
+      created_at: now,
       completed_at: null,
       resolved_at: null,
       resolution: null,
@@ -243,11 +255,13 @@ export const useOptimisticTaskMutations = () => {
     }
   }, [queryClient, scheduleInvalidate]);
 
-  const moveTaskDateOptimistically = useCallback(async (taskId: number, dateKey: string, taskSnapshot?: TaskMutationSnapshot) => {
+  const moveTaskDateOptimistically = useCallback(async (taskId: number, dateKey: string | null, taskSnapshot?: TaskMutationSnapshot) => {
     const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY);
     const movedTask = previousTasks?.find((task) => task.id === taskId) ?? taskSnapshot;
 
-    if (movedTask?.date && toAppDateKey(movedTask.date) === dateKey) {
+    const currentDateKey = movedTask?.date ? toAppDateKey(movedTask.date) : null;
+
+    if (currentDateKey === dateKey) {
       return;
     }
 
@@ -262,7 +276,7 @@ export const useOptimisticTaskMutations = () => {
     if (movedTask) {
       queryClient.setQueryData<TaskCacheItem[]>(TASKS_QUERY_KEY, (current) => {
         const currentTasks = current ?? [];
-        const sourceDateKey = movedTask.date ? toAppDateKey(movedTask.date) : dateKey;
+        const sourceDateKey = movedTask.date ? toAppDateKey(movedTask.date) : null;
         const nextOrder = getNextLocalOrder(
           currentTasks.filter((task) => task.id !== taskId),
           dateKey

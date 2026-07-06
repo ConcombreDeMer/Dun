@@ -36,6 +36,10 @@ function Tabs() {
         <NativeTabs.Trigger.Label hidden>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} md="home" selectedColor={tabTintColor} />
       </NativeTabs.Trigger>
+       <NativeTabs.Trigger name="box">
+        <NativeTabs.Trigger.Label hidden>Box</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'archivebox', selected: 'archivebox.fill' }} md="home" selectedColor={tabTintColor} />
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="stats">
         <NativeTabs.Trigger.Label hidden>Stats</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'chart.bar', selected: 'chart.bar.fill' }} md="home" selectedColor={tabTintColor} />

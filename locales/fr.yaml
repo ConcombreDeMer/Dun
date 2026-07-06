@@ -379,6 +379,10 @@ home:
     totalTasks: "au total"
     task: "tâche"
     tasks: "tâches"
+box:
+  title: "Boîte à tâches"
+  subtitle: "Les tâches sans date restent ici jusqu'à ce que tu les places dans une journée."
+  emptyState: "Aucune tâche dans la boîte"
 createTask:
   headline:
     title: "Créer"
@@ -386,6 +390,8 @@ createTask:
   fields:
     title: "Titre"
     description: "Description"
+    taskBox: "Créer dans la boîte à tâches"
+    taskBoxSelected: "Sera créée dans la boîte à tâches"
   buttons:
     confirm: "Valider"
 daily:
@@ -447,6 +453,7 @@ task:
   delayBadge_other: "retard de {{count}} jours"
   actions:
     moveToToday: "Pour aujourd'hui"
+    moveToBox: "Box"
     postpone: "Reporter"
   lateAdjustmentAlert:
     title: "Réajustement tardif"
@@ -455,6 +462,7 @@ task:
   popup:
     notFound: "Tâche non trouvée"
     insertDescription: "Insérer une description"
+    taskBox: "Boîte à tâches"
     nameRequired: "Le nom de la tâche est requis"
     lastUpdated: "Dernière mise à jour : {{date}}"
     lateAdjustmentNotice: "Daily passé : les changements compteront comme réajustements."

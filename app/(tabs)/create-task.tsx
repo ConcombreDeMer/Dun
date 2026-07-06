@@ -11,8 +11,10 @@ import {
     Alert,
     KeyboardAvoidingView,
     Platform,
+    Pressable,
     ScrollView,
     StyleSheet,
+    Text,
     View
 } from "react-native";
 import { toAppDateKey } from "@/lib/date";
@@ -26,6 +28,7 @@ export default function CreateTask() {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+    const [createInBox, setCreateInBox] = useState(false);
     const selectedDate = useStore((state) => state.selectedDate) || new Date();
     const setSelectedDate = useStore((state) => state.setSelectedDate);
     const { colors } = useTheme();
@@ -51,13 +54,14 @@ export default function CreateTask() {
         const nextTask = {
             name,
             description,
-            dateKey: selectedDateKey,
+            dateKey: createInBox ? null : selectedDateKey,
             tagIds: selectedTagIds,
         };
 
         setName("");
         setDescription("");
         setSelectedTagIds([]);
+        setCreateInBox(false);
         taskEmitter.emit("taskAdded");
         leaveCreateTask();
 
@@ -108,13 +112,32 @@ export default function CreateTask() {
                         onChange={setSelectedTagIds}
                     />
 
-                    <DateInput
-                        value={selectedDate}
-                        onChange={handleDateChange}
+                    <Pressable
+                        onPress={() => setCreateInBox((current) => !current)}
+                        style={({ pressed }) => [
+                            styles.boxToggle,
+                            {
+                                backgroundColor: createInBox ? colors.text : colors.task,
+                                borderColor: createInBox ? colors.text : colors.border,
+                                opacity: pressed || isCreatingTask ? 0.75 : 1,
+                            },
+                        ]}
                         disabled={isCreatingTask}
-                        bold
-                        showTodayButton
-                    />
+                    >
+                        <Text style={[styles.boxToggleText, { color: createInBox ? colors.background : colors.text }]}>
+                            {createInBox ? t("createTask.fields.taskBoxSelected") : t("createTask.fields.taskBox")}
+                        </Text>
+                    </Pressable>
+
+                    {!createInBox ? (
+                        <DateInput
+                            value={selectedDate}
+                            onChange={handleDateChange}
+                            disabled={isCreatingTask}
+                            bold
+                            showTodayButton
+                        />
+                    ) : null}
 
                 </View>
             </ScrollView>
@@ -227,6 +250,19 @@ const styles = StyleSheet.create({
     },
     dateContainer: {
         marginBottom: 30,
+    },
+    boxToggle: {
+        alignItems: "center",
+        borderRadius: 15,
+        borderWidth: 1,
+        minHeight: 56,
+        justifyContent: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+    },
+    boxToggleText: {
+        fontFamily: "Satoshi-Medium",
+        fontSize: 17,
     },
     dateButton: {
         borderWidth: 1,

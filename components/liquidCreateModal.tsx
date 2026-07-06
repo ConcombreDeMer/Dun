@@ -33,6 +33,7 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
   const [isPresented, setIsPresented] = useState(true);
   const [taskTitle, setTaskTitle] = useState("");
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [createInBox, setCreateInBox] = useState(false);
   const [createButtonState, setCreateButtonState] = useState<CreateButtonState>("idle");
   const inputRef = useRef<TextInput>(null);
   const [contentEntrance] = useState(() => new Animated.Value(0));
@@ -252,13 +253,14 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
 
     const nextTitle = taskTitle;
     const nextTagIds = selectedTagIds;
+    const nextDateKey = createInBox ? null : selectedDateKey;
     playCreateLoadingAnimation();
     setTaskTitle("");
     setSelectedTagIds([]);
 
     void createTaskOptimistically({
       name: nextTitle,
-      dateKey: selectedDateKey,
+      dateKey: nextDateKey,
       tagIds: nextTagIds,
     }).then(() => {
       setCreateButtonState("success");
@@ -281,6 +283,11 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     shouldOpenDetailsAfterDismissRef.current = true;
     requestClose();
+  };
+
+  const toggleCreateInBox = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setCreateInBox((current) => !current);
   };
 
   return (
@@ -374,6 +381,32 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
                 >
                   <Pressable accessibilityRole="button" onPress={openPage} style={styles.secondaryAction}>
                     <SymbolView name="text.page" size={19} tintColor={colors.textSecondary} />
+                  </Pressable>
+                </SquircleView>
+
+                <SquircleView
+                  cornerSmoothing={100}
+                  preserveSmoothing
+                  style={[
+                    styles.secondarySurface,
+                    {
+                      backgroundColor: createInBox ? colors.text : colors.card,
+                      borderColor: createInBox ? colors.text : colors.border,
+                    },
+                  ]}
+                >
+                  <Pressable
+                    accessibilityRole="switch"
+                    accessibilityState={{ checked: createInBox }}
+                    accessibilityLabel={t("task.actions.moveToBox")}
+                    onPress={toggleCreateInBox}
+                    style={styles.secondaryAction}
+                  >
+                    <SymbolView
+                      name={createInBox ? "archivebox.fill" : "archivebox"}
+                      size={19}
+                      tintColor={createInBox ? colors.background : colors.textSecondary}
+                    />
                   </Pressable>
                 </SquircleView>
 
@@ -503,7 +536,8 @@ const styles = StyleSheet.create({
   footer: {
     alignItems: "center",
     flexDirection: "row",
-    justifyContent: "space-between",
+    gap: 10,
+    justifyContent: "flex-end",
   },
   secondarySurface: {
     borderRadius: 999,

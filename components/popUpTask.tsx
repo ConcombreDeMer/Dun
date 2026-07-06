@@ -27,7 +27,7 @@ const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpaci
 type TaskDraft = {
     name: string;
     description: string;
-    taskDate: Date;
+    taskDate: Date | null;
     isDone: boolean;
 };
 
@@ -41,7 +41,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [selectedTagIds, setSelectedTagIds] = useState<string[] | null>(null);
-    const [taskDate, setTaskDate] = useState<Date>(new Date());
+    const [taskDate, setTaskDate] = useState<Date | null>(new Date());
     const [last_update_date, setLastUpdateDate] = useState<Date | null>(null);
     const [hasChanges, setHasChanges] = useState(false);
     const [isDone, setIsDone] = useState(false);
@@ -57,8 +57,9 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     const hasConfirmedLateAdjustmentRef = useRef(false);
     const hydratedTaskIdRef = useRef<number | null>(null);
     const lastSavedTextSnapshotRef = useRef("");
-    const committedTaskDateRef = useRef<Date>(new Date());
+    const committedTaskDateRef = useRef<Date | null>(new Date());
     const pendingTaskDateRef = useRef<Date | null>(null);
+    const hasPendingTaskDateChangeRef = useRef(false);
     const latestDraftRef = useRef<TaskDraft>({
         name: "",
         description: "",
@@ -181,7 +182,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                 ...current,
                 name: draft.name,
                 description: draft.description,
-                date: toAppDateKey(draft.taskDate),
+                date: draft.taskDate ? toAppDateKey(draft.taskDate) : null,
                 late_adjusted_at: current.late_adjusted_at ?? (current.resolved_at ? savedAt : null),
                 last_update_date: savedAt,
             } : current);
@@ -291,7 +292,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
         const hydratedDraft = {
             name: taskQuery.data.name || "",
             description: taskQuery.data.description || "",
-            taskDate: taskQuery.data.date ? fromAppDateKey(taskQuery.data.date) : new Date(),
+            taskDate: taskQuery.data.date ? fromAppDateKey(taskQuery.data.date) : null,
             isDone: taskQuery.data.done || false,
         };
 
@@ -305,6 +306,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
         setLastUpdateDate(taskQuery.data.last_update_date ? new Date(taskQuery.data.last_update_date) : null);
         committedTaskDateRef.current = hydratedDraft.taskDate;
         pendingTaskDateRef.current = null;
+        hasPendingTaskDateChangeRef.current = false;
         latestDraftRef.current = hydratedDraft;
         lastSavedTextSnapshotRef.current = JSON.stringify({
             name: hydratedDraft.name.trim(),
@@ -394,12 +396,16 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     const flushPendingDateChange = async () => {
         const pendingDate = pendingTaskDateRef.current;
 
-        if (!pendingDate) {
+        if (!hasPendingTaskDateChangeRef.current) {
             return;
         }
 
-        if (toAppDateKey(pendingDate) === toAppDateKey(committedTaskDateRef.current)) {
+        const pendingDateKey = pendingDate ? toAppDateKey(pendingDate) : null;
+        const committedDateKey = committedTaskDateRef.current ? toAppDateKey(committedTaskDateRef.current) : null;
+
+        if (pendingDateKey === committedDateKey) {
             pendingTaskDateRef.current = null;
+            hasPendingTaskDateChangeRef.current = false;
             return;
         }
 
@@ -414,6 +420,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
 
         await updateTaskMutation.mutateAsync(nextDraft);
         pendingTaskDateRef.current = null;
+        hasPendingTaskDateChangeRef.current = false;
     };
 
     const handleClose = async () => {
@@ -521,7 +528,10 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     };
 
     const handleDateChange = async (date: Date) => {
-        if (toAppDateKey(date) !== toAppDateKey(committedTaskDateRef.current) && !(await ensureLateAdjustmentConfirmed())) {
+        const committedDateKey = committedTaskDateRef.current ? toAppDateKey(committedTaskDateRef.current) : null;
+        const nextDateKey = toAppDateKey(date);
+
+        if (nextDateKey !== committedDateKey && !(await ensureLateAdjustmentConfirmed())) {
             return;
         }
 
@@ -532,9 +542,8 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
 
         setTaskDate(date);
         latestDraftRef.current = nextDraft;
-        pendingTaskDateRef.current = toAppDateKey(date) === toAppDateKey(committedTaskDateRef.current)
-            ? null
-            : date;
+        pendingTaskDateRef.current = date;
+        hasPendingTaskDateChangeRef.current = nextDateKey !== committedDateKey;
     };
 
     const openDatePicker = () => {
@@ -542,7 +551,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
             return;
         }
 
-        setTempDate(taskDate);
+        setTempDate(taskDate ?? new Date());
         setShowDatePicker(true);
     };
 
@@ -642,12 +651,14 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
         });
     };
 
-    const formattedTaskDate = taskDate.toLocaleDateString(language === "en" ? "en-US" : "fr-FR", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-    });
+    const formattedTaskDate = taskDate
+        ? taskDate.toLocaleDateString(language === "en" ? "en-US" : "fr-FR", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+        })
+        : t("task.popup.taskBox");
 
 
 

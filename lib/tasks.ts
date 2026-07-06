@@ -5,7 +5,7 @@ import { copyTaskTags, setTaskTags } from "./tags";
 export type TaskDraftUpdate = {
   name: string;
   description: string;
-  taskDate: Date;
+  taskDate: Date | null;
   isDone: boolean;
 };
 
@@ -79,13 +79,15 @@ const getNextDateKey = (dateKey: string) => {
   return toAppDateKey(date);
 };
 
-export const getNextTaskOrder = async (dateKey: string, userId?: string) => {
+export const getNextTaskOrder = async (dateKey: string | null, userId?: string) => {
   const resolvedUserId = userId ?? await getUserId();
-  const { data, error } = await supabase
+  const query = supabase
     .from("Tasks")
     .select("order")
-    .eq("date", dateKey)
     .eq("user_id", resolvedUserId);
+  const { data, error } = dateKey === null
+    ? await query.is("date", null)
+    : await query.eq("date", dateKey);
 
   if (error) {
     throw new Error(error.message);
@@ -107,13 +109,15 @@ export const createTask = async ({
 }: {
   name: string;
   description?: string;
-  dateKey: string;
+  dateKey: string | null;
   preferredOrder?: number;
   tagIds?: string[];
 }) => {
   const userId = await getUserId();
-  const nextServerOrder = await getNextTaskOrder(dateKey, userId);
-  const order = preferredOrder === undefined
+  const nextServerOrder = dateKey === null ? 0 : await getNextTaskOrder(dateKey, userId);
+  const order = dateKey === null
+    ? 0
+    : preferredOrder === undefined
     ? nextServerOrder
     : Math.max(preferredOrder, nextServerOrder);
 
@@ -128,7 +132,7 @@ export const createTask = async ({
       carried_from_id: null,
       delay_count: 0,
       date: dateKey,
-      created_at: toAppDateKey(new Date()),
+      created_at: new Date().toISOString(),
       user_id: userId,
       order,
     },
@@ -193,7 +197,7 @@ export const updateTaskDraft = async (
     throw new Error("Task name is required");
   }
 
-  const nextDateKey = toAppDateKey(draft.taskDate);
+  const nextDateKey = draft.taskDate ? toAppDateKey(draft.taskDate) : null;
   const { data: taskData, error: fetchError } = await supabase
     .from("Tasks")
     .select("date, resolved_at, late_adjusted_at")
@@ -216,20 +220,20 @@ export const updateTaskDraft = async (
   const didDateChange = previousDateKey !== nextDateKey;
   const todayKey = getTodayKey();
 
-  if (!taskData.resolved_at && previousDateKey && (isPastDateKey(previousDateKey, todayKey) || isPastDateKey(nextDateKey, todayKey))) {
+  if (!taskData.resolved_at && previousDateKey && (isPastDateKey(previousDateKey, todayKey) || (nextDateKey && isPastDateKey(nextDateKey, todayKey)))) {
     throw new Error("Impossible de modifier une tâche d'un jour verrouillé");
   }
 
-  const order = didDateChange ? await getNextTaskOrder(nextDateKey, userId) : undefined;
+  const order = didDateChange && nextDateKey ? await getNextTaskOrder(nextDateKey, userId) : undefined;
   const savedAt = new Date().toISOString();
   const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, savedAt);
   const updatePayload: {
     name: string;
     description: string;
-    date: string;
+    date: string | null;
     last_update_date: string;
     late_adjusted_at?: string;
-    order?: number;
+    order?: number | null;
   } = {
     name: trimmedName,
     description: draft.description.trim(),
@@ -239,6 +243,8 @@ export const updateTaskDraft = async (
 
   if (order !== undefined) {
     updatePayload.order = order;
+  } else if (didDateChange && nextDateKey === null) {
+    updatePayload.order = 0;
   }
 
   if (lateAdjustedAt) {
@@ -351,7 +357,7 @@ export const deleteTask = async (taskId: number) => {
   }
 };
 
-export const moveTaskDate = async (taskId: number, dateKey: string) => {
+export const moveTaskDate = async (taskId: number, dateKey: string | null) => {
   const userId = await getUserId();
   const { data: taskData, error: fetchError } = await supabase
     .from("Tasks")
@@ -370,11 +376,11 @@ export const moveTaskDate = async (taskId: number, dateKey: string) => {
     return;
   }
 
-  if (!taskData.resolved_at && ((previousDateKey && isPastDateKey(previousDateKey)) || isPastDateKey(dateKey))) {
+  if (!taskData.resolved_at && ((previousDateKey && isPastDateKey(previousDateKey)) || (dateKey && isPastDateKey(dateKey)))) {
     throw new Error("Impossible de déplacer une tâche d'un jour verrouillé");
   }
 
-  const order = await getNextTaskOrder(dateKey, userId);
+  const order = dateKey === null ? 0 : await getNextTaskOrder(dateKey, userId);
   const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, new Date().toISOString());
   const { error } = await supabase
     .from("Tasks")

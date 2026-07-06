@@ -266,7 +266,11 @@ export default function DailyScreen() {
         });
     }, [queryClient, refreshDailyData, removePendingTask, runDailyMutation]);
 
-    const handlePostponePendingTask = useCallback(async (task: { id: number }, targetDateKey: string) => {
+    const handlePostponePendingTask = useCallback(async (task: { id: number }, targetDateKey: string | null) => {
+        if (!targetDateKey) {
+            return;
+        }
+
         await runDailyMutation(async () => {
             if (useMock) {
                 removePendingTask(task);
