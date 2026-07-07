@@ -1,4 +1,4 @@
-import { CreateModalControllerProvider, useCreateModalController } from "@/lib/createModalController";
+import { useCreateModalController } from "@/lib/createModalController";
 import { useTheme } from "@/lib/ThemeContext";
 import * as Haptics from "expo-haptics";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
@@ -36,10 +36,6 @@ function Tabs() {
         <NativeTabs.Trigger.Label hidden>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} md="home" selectedColor={tabTintColor} />
       </NativeTabs.Trigger>
-       <NativeTabs.Trigger name="box">
-        <NativeTabs.Trigger.Label hidden>Box</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'archivebox', selected: 'archivebox.fill' }} md="home" selectedColor={tabTintColor} />
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="stats">
         <NativeTabs.Trigger.Label hidden>Profile</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }} md="home" selectedColor={tabTintColor} />
@@ -54,8 +50,6 @@ function Tabs() {
 
 export default function TabsLayout() {
   return (
-    <CreateModalControllerProvider>
-      <Tabs />
-    </CreateModalControllerProvider>
+    <Tabs />
   );
 }

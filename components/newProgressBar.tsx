@@ -13,6 +13,7 @@ import Animated, {
 import { useFont } from '../lib/FontContext';
 import { useAppTranslation } from '../lib/i18n';
 import { useTheme } from '../lib/ThemeContext';
+import ArchiveBoxButton from './ArchiveBoxButton';
 
 type NewProgressBarProps = {
     progress: number;
@@ -20,6 +21,7 @@ type NewProgressBarProps = {
     totalTasks: number;
     completedTaskIds?: (number | string)[];
     scopeKey?: string;
+    onBoxPress?: () => void;
 };
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -37,6 +39,7 @@ function NewProgressBar({
     totalTasks,
     completedTaskIds = [],
     scopeKey = 'default',
+    onBoxPress,
 }: NewProgressBarProps) {
     const { actualTheme, colors } = useTheme();
     const { fontSizes } = useFont();
@@ -250,91 +253,97 @@ function NewProgressBar({
 
     return (
         <Animated.View style={[styles.root, rootSpacingAnimatedStyle]}>
-            <AnimatedPressable
-                onPress={onToggleDetails}
-                onPressIn={onPressIn}
-                onPressOut={onPressOut}
-                style={[
-                    styles.shell,
-                    rootAnimatedStyle,
-                ]}
-            >
-                <View style={styles.topRow}>
-                    <View style={styles.trackWrap}>
-                        <Animated.View
-                            pointerEvents="none"
-                            style={[
-                                styles.glowFill,
-                                { backgroundColor: palette.fill, shadowColor: palette.fillEnd },
-                                glowFillStyle,
-                            ]}
-                        />
-                        <View style={[styles.track, { backgroundColor: colors.checkbox }]}>
+            <View style={styles.contentRow}>
+
+                <AnimatedPressable
+                    onPress={onToggleDetails}
+                    onPressIn={onPressIn}
+                    onPressOut={onPressOut}
+                    style={[
+                        styles.shell,
+                        rootAnimatedStyle,
+                    ]}
+                >
+                    <View style={styles.topRow}>
+                        <View style={styles.trackWrap}>
                             <Animated.View
+                                pointerEvents="none"
                                 style={[
-                                    styles.fill,
-                                    { backgroundColor: palette.fill },
-                                    fillStyle,
+                                    styles.glowFill,
+                                    { backgroundColor: palette.fill, shadowColor: palette.fillEnd },
+                                    glowFillStyle,
                                 ]}
                             />
+                            <View style={[styles.track, { backgroundColor: colors.checkbox }]}>
+                                <Animated.View
+                                    style={[
+                                        styles.fill,
+                                        { backgroundColor: palette.fill },
+                                        fillStyle,
+                                    ]}
+                                />
+                            </View>
                         </View>
-                    </View>
 
-                    <View style={styles.percentWrap}>
-                        <Animated.Text
-                            style={[
-                                styles.percent,
-                                { fontSize: fontSizes['2xl'], color: colors.text },
-                                labelAnimatedStyle,
-                            ]}
-                        >
-                            {displayProgress}%
-                        </Animated.Text>
-                        <Animated.View style={chevronAnimatedStyle}>
-                            <Feather name="chevron-down" size={15} color={colors.textSecondary} strokeWidth={2.4} />
-                        </Animated.View>
-                    </View>
-                </View>
-
-                <Animated.View style={[styles.detailsClip, detailsAnimatedStyle]}>
-                    <View style={styles.details}>
-                        <View style={styles.summaryLine}>
-                            <Text
+                        <View style={styles.percentWrap}>
+                            <Animated.Text
                                 style={[
-                                    styles.summaryText,
-                                    {
-                                        color: colors.textSecondary,
-                                        fontSize: fontSizes['2xl'],
-                                        lineHeight: fontSizes['2xl'] + 8,
-                                    },
+                                    styles.percent,
+                                    { fontSize: fontSizes['2xl'], color: colors.text },
+                                    labelAnimatedStyle,
                                 ]}
                             >
-                                {renderSummary()}
-                            </Text>
+                                {displayProgress}%
+                            </Animated.Text>
+                            <Animated.View style={chevronAnimatedStyle}>
+                                <Feather name="chevron-down" size={15} color={colors.textSecondary} strokeWidth={2.4} />
+                            </Animated.View>
                         </View>
+                    </View>
 
-                        <View style={styles.statsRow}>
-                            <View style={styles.statItem}>
-                                <View style={[styles.statIcon, { backgroundColor: palette.accentSoft }]}>
-                                    <Feather name="check" size={13} color={palette.icon} strokeWidth={3} />
-                                </View>
-                                <Text style={[styles.statValue, { color: colors.text, fontSize: fontSizes.base }]}>
-                                    {completedTasks}/{totalTasks}
+                    <Animated.View style={[styles.detailsClip, detailsAnimatedStyle]}>
+                        <View style={styles.details}>
+                            <View style={styles.summaryLine}>
+                                <Text
+                                    style={[
+                                        styles.summaryText,
+                                        {
+                                            color: colors.textSecondary,
+                                            fontSize: fontSizes['2xl'],
+                                            lineHeight: fontSizes['2xl'] + 8,
+                                        },
+                                    ]}
+                                >
+                                    {renderSummary()}
                                 </Text>
                             </View>
 
-                            {/* <View style={styles.divider} /> */}
+                            <View style={styles.statsRow}>
+                                <View style={styles.statItem}>
+                                    <View style={[styles.statIcon, { backgroundColor: palette.accentSoft }]}>
+                                        <Feather name="check" size={13} color={palette.icon} strokeWidth={3} />
+                                    </View>
+                                    <Text style={[styles.statValue, { color: colors.text, fontSize: fontSizes.base }]}>
+                                        {completedTasks}/{totalTasks}
+                                    </Text>
+                                </View>
 
-                            {/* <Text
-                                numberOfLines={1}
-                                style={[styles.statusText, { color: colors.textSecondary, fontSize: fontSizes.base }]}
-                            >
-                                {dayStatus}
-                            </Text> */}
+                                {/* <View style={styles.divider} /> */}
+
+                                {/* <Text
+                                    numberOfLines={1}
+                                    style={[styles.statusText, { color: colors.textSecondary, fontSize: fontSizes.base }]}
+                                >
+                                    {dayStatus}
+                                </Text> */}
+                            </View>
                         </View>
-                    </View>
-                </Animated.View>
-            </AnimatedPressable>
+                    </Animated.View>
+                </AnimatedPressable>
+                {onBoxPress ? (
+                    <ArchiveBoxButton onPress={onBoxPress} offsetY={-3} />
+                ) : null}
+            </View>
         </Animated.View>
     );
 }
@@ -344,12 +353,18 @@ export default memo(NewProgressBar);
 const styles = StyleSheet.create({
     root: {
         width: '100%',
-        paddingHorizontal: 40,
+        paddingHorizontal: 34,
         marginTop: 10,
         marginBottom: 0,
     },
-    shell: {
+    contentRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 14,
         width: '100%',
+    },
+    shell: {
+        flex: 1,
         minHeight: 42,
     },
     topRow: {

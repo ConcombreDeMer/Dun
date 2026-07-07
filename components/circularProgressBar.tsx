@@ -15,6 +15,7 @@ import Animated, {
 import Svg, { Circle } from 'react-native-svg';
 import { useAppTranslation } from '../lib/i18n';
 import { useTheme } from '../lib/ThemeContext';
+import ArchiveBoxButton from './ArchiveBoxButton';
 
 type CircularProgressBarProps = {
     progress: number;
@@ -23,6 +24,7 @@ type CircularProgressBarProps = {
     completedTaskIds?: (number | string)[];
     scopeKey?: string;
     compactProgress?: SharedValue<number>;
+    onBoxPress?: () => void;
 };
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -46,6 +48,7 @@ function CircularProgressBar({
     completedTaskIds = [],
     scopeKey = 'default',
     compactProgress,
+    onBoxPress,
 }: CircularProgressBarProps) {
     const { actualTheme, colors } = useTheme();
     const { t } = useAppTranslation();
@@ -55,6 +58,7 @@ function CircularProgressBar({
     const detailProgress = useSharedValue(0);
     const completionPulse = useSharedValue(0);
     const [displayProgress, setDisplayProgress] = useState(clampedProgress);
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const displayProgressRef = useRef(clampedProgress);
     const fallbackCompactProgress = useSharedValue(0);
     const effectiveCompactProgress = compactProgress ?? fallbackCompactProgress;
@@ -202,6 +206,17 @@ function CircularProgressBar({
         };
     });
 
+    const boxButtonVisibilityAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            opacity: interpolate(detailProgress.value, [0, 0.22], [1, 0], 'clamp'),
+            transform: [
+                {
+                    translateY: interpolate(detailProgress.value, [0, 0.22], [0, 14], 'clamp'),
+                },
+            ],
+        };
+    });
+
     const progressAnimatedProps = useAnimatedProps(() => {
         return {
             strokeDashoffset: CIRCUMFERENCE * (1 - animatedProgress.value / 100),
@@ -210,6 +225,7 @@ function CircularProgressBar({
 
     const toggleDetails = () => {
         const nextValue = detailProgress.value > 0.5 ? 0 : 1;
+        setIsDetailsOpen(nextValue === 1);
         detailProgress.value = withSpring(nextValue, {
             damping: 18,
             stiffness: 160,
@@ -219,6 +235,15 @@ function CircularProgressBar({
 
     return (
         <Animated.View style={[styles.root, rootAnimatedStyle]}>
+            {onBoxPress ? (
+                <Animated.View
+                    pointerEvents={isDetailsOpen ? 'none' : 'auto'}
+                    style={[styles.boxButtonWrapper, boxButtonVisibilityAnimatedStyle]}
+                >
+                    <ArchiveBoxButton onPress={onBoxPress} />
+                </Animated.View>
+            ) : null}
+
             <Animated.View
                 pointerEvents="none"
                 style={[
@@ -328,6 +353,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'visible',
+    },
+    boxButtonWrapper: {
+        right: 25,
+        position: 'absolute',
+        bottom: 8,
+        zIndex: 3,
     },
     detailBlock: {
         position: 'absolute',
