@@ -2,12 +2,13 @@ import { Feather } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import * as Haptics from "expo-haptics";
 import { SquircleButton } from 'expo-squircle-view';
+import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useRef } from "react";
 import { Alert, Dimensions, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Swipeable } from 'react-native-gesture-handler';
 import Animated, { Easing, interpolateColor, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { useAuthUserId } from "../lib/AuthSessionContext";
-import { toAppDateKey } from "../lib/date";
+import { fromAppDateKey, isPastAppDateKey, toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import { confirmLateAdjustment, needsLateAdjustmentConfirmation } from "../lib/lateAdjustmentConfirmation";
@@ -91,6 +92,7 @@ interface TaskItemProps {
   isTogglePending?: boolean;
   mode?: 'normal' | 'daily' | 'box';
   isReadOnly?: boolean;
+  moveToDateKey?: string;
   onDeleteTask?: (item: TaskItemProps["item"]) => Promise<unknown> | unknown;
   onMoveTask?: (item: TaskItemProps["item"], targetDateKey: string | null) => Promise<unknown> | unknown;
 }
@@ -108,6 +110,7 @@ export const TaskItem = ({
   isExtendable = true,
   mode = 'normal',
   isReadOnly = false,
+  moveToDateKey,
   onDeleteTask,
   onMoveTask,
 }: TaskItemProps) => {
@@ -139,6 +142,8 @@ export const TaskItem = ({
   const swipeableRef = useRef<Swipeable>(null);
   const rowRef = useRef<View>(null);
   const lastMeasuredYRef = useRef<number | null>(null);
+  const suppressPressAfterSwipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shouldSuppressPressAfterSwipeRef = useRef(false);
   const isActiveRef = useRef(isActive);
   const selectedTaskIdRef = useRef(selectedTaskId);
   const disableAddedAnimationsRef = useRef(disableAddedAnimations);
@@ -233,15 +238,94 @@ export const TaskItem = ({
     handleMoveAction(toAppDateKey(sourceDate));
   }, [handleMoveAction, item.date]);
 
-  const handleMoveToBox = useCallback(() => {
-    handleMoveAction(null);
-  }, [handleMoveAction]);
-
   const handleMoveToToday = useCallback(() => {
-    handleMoveAction(toAppDateKey(new Date()));
-  }, [handleMoveAction]);
+    handleMoveAction(moveToDateKey ?? toAppDateKey(new Date()));
+  }, [handleMoveAction, moveToDateKey]);
+
+  const handleMoveToBoxAfterSwipe = useCallback(() => {
+    void (async () => {
+      if (isReadOnly || isTaskMovePending(item.id)) return;
+      if (needsLateAdjustmentConfirmation(item) && !(await confirmLateAdjustment(t))) return;
+
+      swipeableRef.current?.close();
+      itemOpacity.value = withTiming(0, { duration: 600 }, (finished) => {
+        if (finished) {
+          runOnJS(moveTaskToDate)(null);
+        }
+      });
+      translateX.value = withTiming(-screenWidth, { duration: 600 });
+    })();
+  }, [isReadOnly, isTaskMovePending, item, t, itemOpacity, moveTaskToDate, screenWidth, translateX]);
+
+  const suppressNextPressAfterSwipe = useCallback(() => {
+    if (mode !== "box") {
+      return;
+    }
+
+    shouldSuppressPressAfterSwipeRef.current = true;
+    pressScale.value = withSpring(1, {
+      damping: 20,
+      mass: 0.8,
+      stiffness: 280,
+      overshootClamping: true,
+    });
+
+    if (suppressPressAfterSwipeTimeoutRef.current) {
+      clearTimeout(suppressPressAfterSwipeTimeoutRef.current);
+    }
+
+    suppressPressAfterSwipeTimeoutRef.current = setTimeout(() => {
+      shouldSuppressPressAfterSwipeRef.current = false;
+      suppressPressAfterSwipeTimeoutRef.current = null;
+    }, 280);
+  }, [mode, pressScale]);
 
   const renderRightActions = useCallback(() => {
+    const shouldShowBoxAction = mode === "normal" && !!item.date;
+
+    if (shouldShowBoxAction) {
+      return (
+        <View style={{ width: 260, minHeight: 64, height: '100%', paddingLeft: 10, justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
+          <SquircleButton
+            onPress={handleMoveToBoxAfterSwipe}
+            activeOpacity={0.8}
+            style={{
+              backgroundColor: '#ECE5D8',
+              flex: 1,
+              borderRadius: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6
+            }}
+            cornerSmoothing={100}
+            preserveSmoothing={true}
+          >
+            <Text style={{ fontFamily: 'Satoshi-Regular', color: '#4F4331', fontSize: fontSizes.base }}>{t("task.actions.moveToBox")}</Text>
+            <Feather name="archive" size={18} color="#4F4331" />
+          </SquircleButton>
+          <SquircleButton
+            onPress={handleSwipeLeft}
+            activeOpacity={0.8}
+            style={{
+              backgroundColor: '#f5b7b9',
+              flex: 1,
+              borderRadius: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+            cornerSmoothing={100}
+            preserveSmoothing={true}
+          >
+            <Text style={{ fontFamily: 'Satoshi-Regular', color: '#c83232', fontSize: fontSizes.base }}>{t("task.deleteLabel")}</Text>
+            <Feather name="trash-2" size={18} color="#c83232" />
+          </SquircleButton>
+        </View>
+      );
+    }
+
     return (
       <View style={{ width: 130, minHeight: 64, height: '100%', paddingLeft: 10, justifyContent: 'center' }}>
         <SquircleButton
@@ -264,7 +348,7 @@ export const TaskItem = ({
         </SquircleButton>
       </View>
     );
-  }, [handleSwipeLeft, fontSizes.base, t]);
+  }, [handleMoveToBoxAfterSwipe, handleSwipeLeft, fontSizes.base, item.date, mode, t]);
 
   const renderLeftActions = useCallback(() => {
     const isInTaskBox = !item.date || mode === "box";
@@ -272,25 +356,7 @@ export const TaskItem = ({
 
     if (!shouldMoveToToday && item.date) {
       return (
-        <View style={{ width: 250, minHeight: 64, height: '100%', paddingRight: 10, justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
-          <SquircleButton
-            onPress={handleMoveToBox}
-            activeOpacity={0.8}
-            style={{
-              backgroundColor: '#ECE5D8',
-              flex: 1,
-              borderRadius: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6
-            }}
-            cornerSmoothing={100}
-            preserveSmoothing={true}
-          >
-            <Text style={{ fontFamily: 'Satoshi-Regular', color: '#4F4331', fontSize: fontSizes.base }}>{t("task.actions.moveToBox")}</Text>
-            <Feather name="archive" size={18} color="#4F4331" />
-          </SquircleButton>
+        <View style={{ width: 130, minHeight: 64, height: '100%', paddingRight: 10, justifyContent: 'center' }}>
           <SquircleButton
             onPress={handlePostpone}
             activeOpacity={0.8}
@@ -313,16 +379,25 @@ export const TaskItem = ({
       );
     }
 
-    const actionWidth = 170;
-    const actionText = t("task.actions.moveToToday");
+    const targetDateKey = moveToDateKey ?? toAppDateKey(new Date());
+    const isTargetToday = targetDateKey === toAppDateKey(new Date());
+    const isTargetLocked = isPastAppDateKey(targetDateKey);
+    const targetDate = fromAppDateKey(targetDateKey);
+    const actionWidth = isTargetToday ? 170 : 190;
+    const actionText = isTargetToday
+      ? t("task.actions.moveToToday")
+      : targetDate.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+    const actionBackgroundColor = isTargetLocked ? colors.checkbox : '#333333';
+    const actionForegroundColor = isTargetLocked ? colors.textSecondary : '#ffffff';
 
     return (
       <View style={{ width: actionWidth, minHeight: 64, height: '100%', paddingRight: 10, justifyContent: 'center' }}>
         <SquircleButton
-          onPress={handleMoveToToday}
-          activeOpacity={0.8}
+          onPress={isTargetLocked ? undefined : handleMoveToToday}
+          activeOpacity={isTargetLocked ? 1 : 0.8}
+          disabled={isTargetLocked}
           style={{
-            backgroundColor: '#333333',
+            backgroundColor: actionBackgroundColor,
             flex: 1,
             borderRadius: 20,
             flexDirection: 'row',
@@ -333,12 +408,16 @@ export const TaskItem = ({
           cornerSmoothing={100} // 0-100
           preserveSmoothing={true} // false matches figma, true has more rounding
         >
-          <Text style={{ fontFamily: 'Satoshi-Regular', color: '#ffffff', fontSize: fontSizes.base }}>{actionText}</Text>
-          <Feather name="corner-down-left" size={20} color="#ffffff" />
+          <Text style={{ fontFamily: 'Satoshi-Regular', color: actionForegroundColor, fontSize: fontSizes.base }}>{actionText}</Text>
+          {isTargetLocked ? (
+            <SymbolView name="lock.fill" size={18} tintColor={actionForegroundColor} />
+          ) : (
+            <Feather name="corner-down-left" size={20} color={actionForegroundColor} />
+          )}
         </SquircleButton>
       </View>
     );
-  }, [fontSizes.base, handleMoveToBox, handleMoveToToday, handlePostpone, item.date, mode, t]);
+  }, [colors.checkbox, colors.textSecondary, fontSizes.base, handleMoveToToday, handlePostpone, item.date, mode, moveToDateKey, t]);
 
   const animatedStyle = useAnimatedStyle(() => {
     const enterScale = disableAddedAnimations ? 1 : 0.3 + enterProgress.value * 0.7;
@@ -433,6 +512,15 @@ export const TaskItem = ({
 
   const handlePress = useCallback(() => {
     if (!isExtendable || isReadOnly) return;
+    if (shouldSuppressPressAfterSwipeRef.current) {
+      shouldSuppressPressAfterSwipeRef.current = false;
+      if (suppressPressAfterSwipeTimeoutRef.current) {
+        clearTimeout(suppressPressAfterSwipeTimeoutRef.current);
+        suppressPressAfterSwipeTimeoutRef.current = null;
+      }
+      return;
+    }
+
     rowRef.current?.measureInWindow((x, y, width, height) => {
       handleTaskPress(item.id, { x, y, width, height });
     });
@@ -555,6 +643,14 @@ export const TaskItem = ({
   }, [doneProgress, item.done]);
 
   useEffect(() => {
+    return () => {
+      if (suppressPressAfterSwipeTimeoutRef.current) {
+        clearTimeout(suppressPressAfterSwipeTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     rowOpacity.value = withTiming(selectedTaskId === null ? 1 : isSelected ? 0 : 0, {
       duration: 220,
       easing: Easing.out(Easing.quad),
@@ -575,6 +671,9 @@ export const TaskItem = ({
         ref={swipeableRef}
         renderLeftActions={renderLeftActions}
         renderRightActions={renderRightActions}
+        onSwipeableOpenStartDrag={suppressNextPressAfterSwipe}
+        onSwipeableCloseStartDrag={suppressNextPressAfterSwipe}
+        onSwipeableWillOpen={suppressNextPressAfterSwipe}
         enabled={selectedTaskId === null && !isReadOnly}
         leftThreshold={40}
         rightThreshold={40}

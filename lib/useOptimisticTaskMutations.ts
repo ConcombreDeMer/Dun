@@ -52,11 +52,10 @@ type CreateTaskInput = {
 let nextTempTaskId = -1;
 
 const getNextLocalOrder = (tasks: TaskCacheItem[] | undefined, dateKey: string | null) => {
-  if (dateKey === null) {
-    return 0;
-  }
-
-  const dateTasks = tasks?.filter((task) => task.date && toAppDateKey(task.date) === dateKey) ?? [];
+  const dateTasks = tasks?.filter((task) => {
+    const taskDateKey = task.date ? toAppDateKey(task.date) : null;
+    return taskDateKey === dateKey;
+  }) ?? [];
 
   if (dateTasks.length === 0) {
     return 1;
@@ -70,12 +69,11 @@ const removeTaskFromCache = (tasks: TaskCacheItem[] | undefined, taskId: number)
 };
 
 const normalizeOrdersForDate = (tasks: TaskCacheItem[], dateKey: string | null) => {
-  if (dateKey === null) {
-    return tasks;
-  }
-
   const dateTasks = tasks
-    .filter((task) => task.date && toAppDateKey(task.date) === dateKey)
+    .filter((task) => {
+      const taskDateKey = task.date ? toAppDateKey(task.date) : null;
+      return taskDateKey === dateKey;
+    })
     .sort((a, b) => (a.order || 0) - (b.order || 0));
   const nextOrderById = new Map(
     dateTasks.map((task, index) => [task.id, index + 1])

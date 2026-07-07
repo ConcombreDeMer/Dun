@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Appearance } from "react-native";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthSessionProvider } from "../lib/AuthSessionContext";
+import { CreateModalControllerProvider } from "../lib/createModalController";
 import { FontProvider } from "../lib/FontContext";
 import { I18nProvider, useAppTranslation, useI18nReady } from "../lib/i18n";
 import { syncRevenueCatUser } from "../lib/revenuecat";
@@ -220,81 +221,91 @@ function RootLayoutContent() {
       >
 
       </View> */}
-        <NavigationThemeProvider value={navigationTheme}>
-          <Stack
-            screenOptions={{
-              headerStyle: {
-                backgroundColor: colors.background,
-              },
-              headerTintColor: colors.text,
-              headerTitleStyle: {
-                fontWeight: "bold",
-                fontSize: 18,
-                color: colors.text,
-              },
-              headerShown: false,
-            }}
-          >
-            <Stack.Screen
-              name="index"
-              options={{
+        <CreateModalControllerProvider>
+          <NavigationThemeProvider value={navigationTheme}>
+            <Stack
+              screenOptions={{
+                headerStyle: {
+                  backgroundColor: colors.background,
+                },
+                headerTintColor: colors.text,
+                headerTitleStyle: {
+                  fontWeight: "bold",
+                  fontSize: 18,
+                  color: colors.text,
+                },
                 headerShown: false,
               }}
-            />
-            <Stack.Screen
-              name="(tabs)"
-              options={{
-                headerShown: false,
-                animation: "none",
-              }}
-            />
-            <Stack.Screen
-              name="onboarding"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="auth/callback"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="settings"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="stats"
-              options={{
-                headerShown: false,
-                presentation: "modal",
-                animation: "slide_from_bottom",
-                animationDuration: 200,
-              }}
-            />
-            <Stack.Screen
-              name="daily"
-              options={{
-                title: t("navigation.daily"),
-                presentation: "fullScreenModal",
-                headerShown: false,
-                animation: "fade",
-              }}
-            />
-            <Stack.Screen
-              name="rest"
-              options={{
-                title: t("navigation.rest"),
-                presentation: "fullScreenModal",
-                headerShown: false,
-                animation: "slide_from_bottom",
-              }}
-            />
-          </Stack>
-        </NavigationThemeProvider>
+            >
+              <Stack.Screen
+                name="index"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="(tabs)"
+                options={{
+                  headerShown: false,
+                  animation: "none",
+                }}
+              />
+              <Stack.Screen
+                name="onboarding"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="auth/callback"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="settings"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="stats"
+                options={{
+                  headerShown: false,
+                  presentation: "modal",
+                  animation: "slide_from_bottom",
+                  animationDuration: 200,
+                }}
+              />
+              <Stack.Screen
+                name="box"
+                options={{
+                  headerShown: false,
+                  animation: "ios_from_left",
+                  animationDuration: 200,
+                }}
+              />
+              <Stack.Screen
+                name="daily"
+                options={{
+                  title: t("navigation.daily"),
+                  presentation: "fullScreenModal",
+                  headerShown: false,
+                  animation: "fade",
+                }}
+              />
+              <Stack.Screen
+                name="rest"
+                options={{
+                  title: t("navigation.rest"),
+                  presentation: "fullScreenModal",
+                  headerShown: false,
+                  animation: "slide_from_bottom",
+                }}
+              />
+            </Stack>
+          </NavigationThemeProvider>
+        </CreateModalControllerProvider>
         </SubscriptionProvider>
       </AuthSessionProvider>
     </QueryClientProvider>

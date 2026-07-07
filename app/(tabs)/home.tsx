@@ -12,14 +12,15 @@ import { useAppTranslation } from "@/lib/i18n";
 import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "@/lib/notificationService";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
-import { useTheme } from "@/lib/ThemeContext";
 import { fetchTaskList, type TaskListItem } from "@/lib/tasks";
+import { useTheme } from "@/lib/ThemeContext";
 import { DEFAULT_CALENDAR_PREFERENCE, useCalendarPreference, type CalendarPreference } from "@/lib/useCalendarPreference";
 import { DEFAULT_PROGRESS_BAR_PREFERENCE, useProgressBarPreference, type ProgressBarPreference } from "@/lib/useProgressBarPreference";
 import { useToggleTaskDone } from "@/lib/useToggleTaskDone";
 import { useStore } from "@/store/store";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
+import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, useWindowDimensions, View } from "react-native";
@@ -289,6 +290,9 @@ const DayPage = ({
   } = useTaskListCompactProgress(pageDateKey);
   const progressStats = useMemo(() => getProgressStats(tasks), [tasks]);
   const isTaskSelected = dayTasksPageProps.selectedTaskId !== null;
+  const openBox = useCallback(() => {
+    router.push("/box");
+  }, []);
 
   const progressBarAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -322,6 +326,7 @@ const DayPage = ({
               completedTaskIds={progressStats.completedTaskIds}
               scopeKey={pageDateKey}
               compactProgress={compactProgress}
+              onBoxPress={openBox}
             />
           ) : (
             <NewProgressBar
@@ -330,6 +335,7 @@ const DayPage = ({
               totalTasks={progressStats.totalTasks}
               completedTaskIds={progressStats.completedTaskIds}
               scopeKey={pageDateKey}
+              onBoxPress={openBox}
             />
           )}
         </ReAnimated.View>

@@ -199,10 +199,8 @@ export const createTask = async ({
     throw new Error("Impossible de créer une tâche dans un jour passé");
   }
 
-  const nextServerOrder = dateKey === null ? 0 : await getNextTaskOrder(dateKey, userId);
-  const order = dateKey === null
-    ? 0
-    : preferredOrder === undefined
+  const nextServerOrder = await getNextTaskOrder(dateKey, userId);
+  const order = preferredOrder === undefined
     ? nextServerOrder
     : Math.max(preferredOrder, nextServerOrder);
 
@@ -299,10 +297,10 @@ export const updateTaskDraft = async (
   }
 
   const hasPreviousDateKey = options.previousDateKey !== undefined;
-  const previousDateKey = hasPreviousDateKey
+  const previousDateKey: string | null = hasPreviousDateKey
     ? options.previousDateKey
       ? toAppDateKey(options.previousDateKey)
-      : options.previousDateKey
+      : null
     : taskData.date
       ? toAppDateKey(taskData.date)
       : null;
@@ -313,7 +311,7 @@ export const updateTaskDraft = async (
     throw new Error("Impossible de modifier une tâche d'un jour verrouillé");
   }
 
-  const order = didDateChange && nextDateKey ? await getNextTaskOrder(nextDateKey, userId) : undefined;
+  const order = didDateChange ? await getNextTaskOrder(nextDateKey, userId) : undefined;
   const savedAt = new Date().toISOString();
   const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, savedAt);
   const updatePayload: {
@@ -332,8 +330,6 @@ export const updateTaskDraft = async (
 
   if (order !== undefined) {
     updatePayload.order = order;
-  } else if (didDateChange && nextDateKey === null) {
-    updatePayload.order = 0;
   }
 
   if (lateAdjustedAt) {
@@ -350,7 +346,7 @@ export const updateTaskDraft = async (
     throw new Error(error.message);
   }
 
-  if (didDateChange && previousDateKey) {
+  if (didDateChange) {
     await normalizeTaskOrderForDate(previousDateKey, userId);
   }
 
@@ -364,14 +360,16 @@ export const updateTaskDraft = async (
   };
 };
 
-export const normalizeTaskOrderForDate = async (dateKey: string, userId?: string) => {
+export const normalizeTaskOrderForDate = async (dateKey: string | null, userId?: string) => {
   const resolvedUserId = userId ?? await getUserId();
-  const { data, error } = await supabase
+  const query = supabase
     .from("Tasks")
     .select("id, order")
-    .eq("user_id", resolvedUserId)
-    .eq("date", dateKey)
-    .order("order", { ascending: true });
+    .eq("user_id", resolvedUserId);
+  const scopedQuery = dateKey === null
+    ? query.is("date", null)
+    : query.eq("date", dateKey);
+  const { data, error } = await scopedQuery.order("order", { ascending: true });
 
   if (error) {
     throw new Error(error.message);
@@ -441,9 +439,7 @@ export const deleteTask = async (taskId: number) => {
     throw new Error(error.message);
   }
 
-  if (deletedTaskDate) {
-    await normalizeTaskOrderForDate(deletedTaskDate, userId);
-  }
+  await normalizeTaskOrderForDate(deletedTaskDate, userId);
 };
 
 export const moveTaskDate = async (taskId: number, dateKey: string | null) => {
@@ -469,7 +465,7 @@ export const moveTaskDate = async (taskId: number, dateKey: string | null) => {
     throw new Error("Impossible de déplacer une tâche d'un jour verrouillé");
   }
 
-  const order = dateKey === null ? 0 : await getNextTaskOrder(dateKey, userId);
+  const order = await getNextTaskOrder(dateKey, userId);
   const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, new Date().toISOString());
   const { error } = await supabase
     .from("Tasks")
@@ -485,9 +481,7 @@ export const moveTaskDate = async (taskId: number, dateKey: string | null) => {
     throw new Error(error.message);
   }
 
-  if (previousDateKey) {
-    await normalizeTaskOrderForDate(previousDateKey, userId);
-  }
+  await normalizeTaskOrderForDate(previousDateKey, userId);
 };
 
 export const resolveOverdueTask = async (
