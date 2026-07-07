@@ -100,7 +100,7 @@ export default function TagSelector({ compact = false, mode = "all", selectedTag
   const userId = useAuthUserId();
   const { data: tags = [] } = useQuery({
     queryKey: [...TAGS_QUERY_KEY, userId],
-    queryFn: getTags,
+    queryFn: () => getTags(userId),
     enabled: !!userId,
   });
   const [exitingTagIds, setExitingTagIds] = useState<string[]>([]);

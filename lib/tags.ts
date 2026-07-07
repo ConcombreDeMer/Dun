@@ -71,12 +71,12 @@ const normalizeTagIds = (tagIds: string[]) => {
   return Array.from(new Set(tagIds.filter(Boolean))).slice(0, MAX_TAGS_PER_TASK);
 };
 
-export const getTags = async () => {
-  const userId = await getUserId();
+export const getTags = async (userId?: string | null) => {
+  const resolvedUserId = userId ?? await getUserId();
   const { data, error } = await supabase
     .from("Tags")
     .select("id, user_id, name, color")
-    .eq("user_id", userId)
+    .eq("user_id", resolvedUserId)
     .order("name", { ascending: true });
 
   if (error) {
@@ -104,19 +104,21 @@ export const getTaskTagIds = async (taskId: number, userId?: string) => {
 export const getTagUsageSourceData = async ({
   endDateKey,
   startDateKey,
+  userId,
 }: {
   endDateKey?: string | null;
   startDateKey?: string | null;
+  userId?: string | null;
 } = {}): Promise<TagUsageSourceData> => {
-  const userId = await getUserId();
-  const tags = await getTags();
+  const resolvedUserId = userId ?? await getUserId();
+  const tags = await getTags(resolvedUserId);
   const tagIds = new Set(tags.map((tag) => tag.id));
   const rows: TagUsageSourceRow[] = [];
 
   let query = supabase
     .from("Task_Tags")
     .select("tag_id, Tasks!inner(id, done, date)")
-    .eq("user_id", userId);
+    .eq("user_id", resolvedUserId);
 
   if (startDateKey) {
     query = query.gte("Tasks.date", startDateKey);
@@ -266,8 +268,8 @@ export const getTagUsageStats = async ({
   });
 };
 
-export const createTag = async ({ name, color }: { name: string; color: string }) => {
-  const userId = await getUserId();
+export const createTag = async ({ name, color, userId }: { name: string; color: string; userId?: string | null }) => {
+  const resolvedUserId = userId ?? await getUserId();
   const trimmedName = name.trim();
 
   if (!trimmedName) {
@@ -276,7 +278,7 @@ export const createTag = async ({ name, color }: { name: string; color: string }
 
   const { data, error } = await supabase
     .from("Tags")
-    .insert([{ name: trimmedName, color, user_id: userId }])
+    .insert([{ name: trimmedName, color, user_id: resolvedUserId }])
     .select("id, user_id, name, color")
     .single();
 
@@ -287,8 +289,8 @@ export const createTag = async ({ name, color }: { name: string; color: string }
   return data as Tag;
 };
 
-export const updateTag = async ({ id, name, color }: { id: string; name: string; color: string }) => {
-  const userId = await getUserId();
+export const updateTag = async ({ id, name, color, userId }: { id: string; name: string; color: string; userId?: string | null }) => {
+  const resolvedUserId = userId ?? await getUserId();
   const trimmedName = name.trim();
 
   if (!trimmedName) {
@@ -299,7 +301,7 @@ export const updateTag = async ({ id, name, color }: { id: string; name: string;
     .from("Tags")
     .update({ name: trimmedName, color })
     .eq("id", id)
-    .eq("user_id", userId)
+    .eq("user_id", resolvedUserId)
     .select("id, user_id, name, color")
     .single();
 
@@ -310,13 +312,13 @@ export const updateTag = async ({ id, name, color }: { id: string; name: string;
   return data as Tag;
 };
 
-export const deleteTag = async (id: string) => {
-  const userId = await getUserId();
+export const deleteTag = async (id: string, userId?: string | null) => {
+  const resolvedUserId = userId ?? await getUserId();
   const { error } = await supabase
     .from("Tags")
     .delete()
     .eq("id", id)
-    .eq("user_id", userId);
+    .eq("user_id", resolvedUserId);
 
   if (error) {
     throw new Error(error.message);

@@ -52,7 +52,7 @@ export default function Box() {
 
   const taskQuery = useQuery({
     queryKey: tasksQueryKey,
-    queryFn: () => fetchTaskList(queryClient.getQueryData<TaskListItem[]>(tasksQueryKey) ?? []),
+    queryFn: () => fetchTaskList(queryClient.getQueryData<TaskListItem[]>(tasksQueryKey) ?? [], userId),
     enabled: !!userId,
     gcTime: 1000 * 60 * 30,
     staleTime: 1000 * 60 * 15,

@@ -37,7 +37,7 @@ export default function TagsSettings() {
 
   const { data: tags = [], isLoading } = useQuery({
     queryKey: [...TAGS_QUERY_KEY, userId],
-    queryFn: getTags,
+    queryFn: () => getTags(userId),
     enabled: !!userId,
   });
   const isTagLimitReached = !isPremium && tags.length >= FREE_TAG_LIMIT;
@@ -45,7 +45,7 @@ export default function TagsSettings() {
   const createTagMutation = useMutation({
     mutationFn: createTag,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TAGS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: [...TAGS_QUERY_KEY, userId] });
       queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
       closeSheet();
     },
@@ -57,9 +57,9 @@ export default function TagsSettings() {
   const updateTagMutation = useMutation({
     mutationFn: updateTag,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TAGS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: [...TAGS_QUERY_KEY, userId] });
       queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", userId] });
       closeSheet();
     },
     onError: (error: any) => {
@@ -68,11 +68,11 @@ export default function TagsSettings() {
   });
 
   const deleteTagMutation = useMutation({
-    mutationFn: deleteTag,
+    mutationFn: (id: string) => deleteTag(id, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TAGS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: [...TAGS_QUERY_KEY, userId] });
       queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", userId] });
     },
     onError: (error: any) => {
       Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
@@ -140,11 +140,11 @@ export default function TagsSettings() {
     }
 
     if (editingTag) {
-      updateTagMutation.mutate({ id: editingTag.id, name, color: selectedColor });
+      updateTagMutation.mutate({ id: editingTag.id, name, color: selectedColor, userId });
       return;
     }
 
-    createTagMutation.mutate({ name, color: selectedColor });
+    createTagMutation.mutate({ name, color: selectedColor, userId });
   };
 
   return (

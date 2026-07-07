@@ -120,7 +120,7 @@ export const TaskItem = ({
   const userId = useAuthUserId();
   const { data: tags = [] } = useQuery({
     queryKey: [...TAGS_QUERY_KEY, userId],
-    queryFn: getTags,
+    queryFn: () => getTags(userId),
     enabled: !!userId,
   });
   const dotScale = useSharedValue(item.done ? 1 : 0);

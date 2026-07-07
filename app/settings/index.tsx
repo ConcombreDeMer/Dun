@@ -7,9 +7,11 @@ import SwitchItem from "@/components/switchItem";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { getCharacterImageSource } from "@/lib/imageHelper";
+import { patchProfileCache } from "@/lib/profile";
 import { SCREEN_HEADER_HEIGHT, SCREEN_HEADER_HORIZONTAL_PADDING, SCREEN_HEADER_TITLE_LINE_HEIGHT, SCREEN_HEADER_TOP_OFFSET } from "@/lib/screenHeader";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
+import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from 'expo-haptics';
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
@@ -31,6 +33,7 @@ export default function Settings() {
     const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
     const { t } = useAppTranslation();
+    const queryClient = useQueryClient();
     const [user, setUser] = useState<any>(null);
     const [isSubscribed, setIsSubscribed] = useState(false);
     const [dailyEnabled, setDailyEnabled] = useState(false);
@@ -110,6 +113,7 @@ export default function Settings() {
             if (error) {
                 console.error("Erreur lors de la mise à jour des informations de l'utilisateur:", error);
             } else {
+                patchProfileCache(queryClient, user.id, { dailyEnabled: newValue });
                 console.log("Informations de l'utilisateur mises à jour avec succès");
             }
         }
@@ -129,6 +133,11 @@ export default function Settings() {
 
                 if (error) {
                     console.error("Erreur lors de la mise à jour de hasDoneDaily:", error);
+                } else {
+                    patchProfileCache(queryClient, user.id, {
+                        restMode: true,
+                        restEndDate: tomorrow.toISOString(),
+                    });
                 }
             }
         } catch (error) {

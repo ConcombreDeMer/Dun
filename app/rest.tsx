@@ -1,11 +1,12 @@
 import PopUpContainer from '@/components/popUpContainer';
 import { useAuthUserId } from '@/lib/AuthSessionContext';
 import { getCharacterImageSource } from '@/lib/imageHelper';
+import { patchProfileCache } from '@/lib/profile';
 import { supabase } from '@/lib/supabase';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Dimensions, Image, Keyboard, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import DateInput from '../components/dateInput';
@@ -21,22 +22,21 @@ export default function RestScreen() {
     const { fontSizes } = useFont();
     const { t, language } = useAppTranslation();
     const router = useRouter();
+    const queryClient = useQueryClient();
     const userId = useAuthUserId();
     const [showCancelModal, setShowCancelModal] = React.useState(false);
     const [restEndDate, setRestEndDate] = React.useState<Date | null>(null);
     const [selectedDate, setSelectedDate] = React.useState(new Date());
     const fetchRestEndDate = async () => {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) {
+            if (!userId) {
                 return '';
             }
 
             const { data, error } = await supabase
                 .from("Profiles")
                 .select("restEndDate")
-                .eq("id", user.id)
+                .eq("id", userId)
                 .single();
 
             if (error) {
@@ -56,11 +56,6 @@ export default function RestScreen() {
             return '';
         }
     }
-
-    useEffect(() => {
-        fetchRestEndDate();
-        restEndDateQuery.refetch();
-    }, []);
 
     const restEndDateQuery = useQuery({
         queryKey: ['restEndDate', userId],
@@ -176,15 +171,16 @@ export default function RestScreen() {
                                 title={t("common.actions.validate")}
                                 onPress={async () => {
                                     try {
-                                        const { data: { user } } = await supabase.auth.getUser();
-                                        if (user) {
+                                        if (userId) {
                                             const { error } = await supabase
                                                 .from('Profiles')
                                                 .update({ restEndDate: selectedDate })
-                                                .eq('id', user.id);
+                                                .eq('id', userId);
 
                                             if (error) {
                                                 console.error("Erreur lors de la mise à jour de hasDoneDaily:", error);
+                                            } else {
+                                                patchProfileCache(queryClient, userId, { restEndDate: selectedDate.toISOString() });
                                             }
                                         }
                                     } catch (error) {
@@ -249,15 +245,16 @@ export default function RestScreen() {
                                 onPress={async () => {
                                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                                     try {
-                                        const { data: { user } } = await supabase.auth.getUser();
-                                        if (user) {
+                                        if (userId) {
                                             const { error } = await supabase
                                                 .from('Profiles')
                                                 .update({ restEndDate: null, restMode: false })
-                                                .eq('id', user.id);
+                                                .eq('id', userId);
 
                                             if (error) {
                                                 console.error("Erreur lors de l'annulation du mode repos:", error);
+                                            } else {
+                                                patchProfileCache(queryClient, userId, { restEndDate: null, restMode: false });
                                             }
                                         }
                                     } catch (error) {

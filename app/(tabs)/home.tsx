@@ -10,6 +10,7 @@ import { useAuthUserId } from "@/lib/AuthSessionContext";
 import { toAppDateKey } from "@/lib/date";
 import { useAppTranslation } from "@/lib/i18n";
 import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "@/lib/notificationService";
+import { patchProfileCache, useProfile } from "@/lib/profile";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { fetchTaskList, type TaskListItem } from "@/lib/tasks";
@@ -365,8 +366,9 @@ export default function Home() {
   const [selectedTaskLayout, setSelectedTaskLayout] = useState<TaskItemLayout | null>(null);
   const [shouldRenderOverlayContent, setShouldRenderOverlayContent] = useState(false);
   const queryClient = useQueryClient();
-  const store = useStore();
+  const setStoreUser = useStore((state) => state.setUser);
   const userId = useAuthUserId();
+  const profileQuery = useProfile();
   const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
   const taskToggleQueryKeys = useMemo(() => [tasksQueryKey], [tasksQueryKey]);
   const { isTaskPending, toggleTaskDone } = useToggleTaskDone({
@@ -458,43 +460,46 @@ export default function Home() {
   ]);
 
   useEffect(() => {
-    const initApp = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (user) {
-          const name = user.user_metadata?.name || user.email?.split('@')[0] || t("settings.root.defaultUserName");
-          setUserName(name);
-          store.setUser({ id: user.id });
-
-          const { data, error } = await supabase
-            .from("Profiles")
-            .select("*")
-            .eq("id", user.id)
-            .single();
-
-          if (error) {
-            console.error('Erreur lors de la récupération du profil utilisateur:', error);
-          } else if (data) {
-
-            if (data.alertSetupActive) {
-              const hasPermission = await requestNotificationPermissions();
-              if (hasPermission) {
-                await scheduleDailyReminder(parseInt(data.alertSetupHour), parseInt(data.alertSetupMinute));
-              }
-            } else {
-              await cancelDailyReminder();
-            }
-          }
-        }
-      }
-      catch (error) {
-        console.error('Erreur lors de la récupération du nom utilisateur:', error);
-      }
-
+    if (userId) {
+      setStoreUser({ id: userId });
     }
-    initApp();
-  }, []);
+  }, [setStoreUser, userId]);
+
+  useEffect(() => {
+    const profile = profileQuery.data;
+
+    if (!profile) {
+      return;
+    }
+
+    setUserName(profile.name?.trim() || t("settings.root.defaultUserName"));
+
+    const syncReminder = async () => {
+      try {
+        if (profile.alertSetupActive) {
+          const hasPermission = await requestNotificationPermissions();
+          if (hasPermission) {
+            await scheduleDailyReminder(
+              parseInt(`${profile.alertSetupHour ?? 0}`),
+              parseInt(`${profile.alertSetupMinute ?? 0}`)
+            );
+          }
+        } else {
+          await cancelDailyReminder();
+        }
+      } catch (error) {
+        console.error("Erreur lors de la synchronisation des notifications:", error);
+      }
+    };
+
+    syncReminder();
+  }, [
+    profileQuery.data?.alertSetupActive,
+    profileQuery.data?.alertSetupHour,
+    profileQuery.data?.alertSetupMinute,
+    profileQuery.data?.name,
+    t,
+  ]);
 
   // const logStoreState = useCallback(() => {
   //   console.log("Store modifié : ", useStore.getState());
@@ -503,35 +508,9 @@ export default function Home() {
   // useEffect(() => {
   //   logStoreState();
   // }, [logStoreState]);
-
-
-
   useEffect(() => {
-    const checkUserConnection = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (user) {
-          const { data: profileData, error: profileError } = await supabase
-            .from("Profiles")
-            .select("hasSeenTutorial")
-            .eq("id", user.id)
-            .single();
-
-          if (profileError) {
-            console.error('Erreur lors de la récupération du profil utilisateur:', profileError);
-            return;
-          }
-
-          setUserHasSeenTutorial(profileData?.hasSeenTutorial || false);
-        }
-      } catch (error) {
-        console.error('Erreur lors de la vérification de la connexion utilisateur:', error);
-      }
-    };
-
-    checkUserConnection();
-  }, []);
+    setUserHasSeenTutorial(Boolean(profileQuery.data?.hasSeenTutorial));
+  }, [profileQuery.data?.hasSeenTutorial]);
 
   const dateKey = useMemo(() => getDateKey(selectedDate), [selectedDate]);
   const todayKey = useMemo(() => getDateKey(new Date()), []);
@@ -550,7 +529,7 @@ export default function Home() {
   }, [dateKey, storedDate]);
 
   const getTasks = async () => {
-    return fetchTaskList(queryClient.getQueryData<TaskListItem[]>(tasksQueryKey) ?? []);
+    return fetchTaskList(queryClient.getQueryData<TaskListItem[]>(tasksQueryKey) ?? [], userId);
   }
 
   const taskQuery = useQuery({
@@ -607,6 +586,10 @@ export default function Home() {
       order: data.length - index
     }));
     const previousTasks = queryClient.getQueryData<any[]>(tasksQueryKey);
+    const previousOrderById = new Map(
+      (previousTasks ?? []).map((task: any) => [task.id, task.order])
+    );
+    const changedTasks = updatedData.filter((task) => previousOrderById.get(task.id) !== task.order);
 
     await queryClient.cancelQueries({ queryKey: tasksQueryKey });
 
@@ -619,12 +602,16 @@ export default function Home() {
 
     // Mettre à jour les ordres individuellement (évite les problèmes RLS avec upsert)
     try {
-      for (const task of updatedData) {
+      if (!userId) {
+        return;
+      }
+
+      for (const task of changedTasks) {
         const { error } = await supabase
           .from("Tasks")
           .update({ order: task.order })
           .eq("id", task.id)
-          .eq("user_id", store.user.id);
+          .eq("user_id", userId);
 
         if (error) {
           console.error("Erreur lors de la mise à jour de l'ordre:", error);
@@ -644,7 +631,7 @@ export default function Home() {
         queryClient.invalidateQueries({ queryKey: tasksQueryKey });
       }
     }
-  }, [dateKey, queryClient, store.user.id, tasksQueryKey]);
+  }, [dateKey, queryClient, tasksQueryKey, userId]);
 
   const closeSelectedTaskOverlay = useCallback((afterClose?: () => void) => {
     setShouldRenderOverlayContent(false);
@@ -796,22 +783,22 @@ export default function Home() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setUserHasSeenTutorial(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (user) {
+      if (userId) {
         const { error } = await supabase
           .from("Profiles")
           .update({ hasSeenTutorial: true })
-          .eq("id", user.id);
+          .eq("id", userId);
 
         if (error) {
           console.error('Erreur lors de la mise à jour du profil utilisateur:', error);
+        } else {
+          patchProfileCache(queryClient, userId, { hasSeenTutorial: true });
         }
       }
     } catch (error) {
       console.error('Erreur lors de la mise à jour du profil utilisateur:', error);
     }
-  }, []);
+  }, [queryClient, userId]);
 
   const handleHorizontalMomentumEnd = useCallback((event: any) => {
     const nextIndex = Math.round(event.nativeEvent.contentOffset.x / windowWidth);

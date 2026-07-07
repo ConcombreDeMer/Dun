@@ -2,11 +2,13 @@ import DailyCircle from '@/components/dailyCircle';
 import ExtendedButton from '@/components/extendedButton';
 import PrimaryButton from '@/components/primaryButton';
 import { TaskItem } from '@/components/TaskItem';
+import { useAuthUserId } from '@/lib/AuthSessionContext';
 import { completeDailyReview, deleteDailyPendingTask, getDailyData, postponeDailyPendingTask, setDailyPendingTaskDone, type DailyData, type DailyPendingTask } from '@/lib/daily';
 import { dailyCompletionDays as mockDailyCompletionDays, dailyMotivation as mockDailyMotivation, dailyPendingTasks as mockDailyPendingTasks, dailyStreak as mockDailyStreak, dailyUserName as mockDailyUserName, previousDayCompletion as mockPreviousDayCompletion } from '@/lib/dailyMock';
 import { useFont } from '@/lib/FontContext';
 import { useAppTranslation } from '@/lib/i18n';
 import { getCharacterImageSource } from '@/lib/imageHelper';
+import { patchProfileCache } from '@/lib/profile';
 import { Feather } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
@@ -132,6 +134,7 @@ export default function DailyScreen() {
     const { t, language } = useAppTranslation();
     const router = useRouter();
     const queryClient = useQueryClient();
+    const userId = useAuthUserId();
     const { width: windowWidth } = useWindowDimensions();
     const [currentStep, setCurrentStep] = useState(1);
     const [isExtendedButtonExpanded, setIsExtendedButtonExpanded] = useState(false);
@@ -223,14 +226,14 @@ export default function DailyScreen() {
     }, []);
 
     const refreshDailyData = useCallback(async (syncPendingTasks = false) => {
-        const nextDailyData = useMock ? getMockDailyData() : await getDailyData();
+        const nextDailyData = useMock ? getMockDailyData() : await getDailyData(userId);
         setDailyData(nextDailyData);
         setDisplayedStreak(nextDailyData.streak);
 
         if (syncPendingTasks) {
             setPendingTasks(nextDailyData.pendingTasks);
         }
-    }, []);
+    }, [userId]);
 
     const runDailyMutation = useCallback(async (mutation: () => Promise<void>) => {
         setPendingDailyMutationCount((count) => count + 1);
@@ -258,13 +261,13 @@ export default function DailyScreen() {
                 return;
             }
 
-            await deleteDailyPendingTask(task.id);
+            await deleteDailyPendingTask(task.id, userId);
             removePendingTask(task);
-            await queryClient.invalidateQueries({ queryKey: ['tasks'] });
-            await queryClient.invalidateQueries({ queryKey: ['days'] });
+            await queryClient.invalidateQueries({ queryKey: ['tasks', userId] });
+            await queryClient.invalidateQueries({ queryKey: ['days', userId] });
             await refreshDailyData(true);
         });
-    }, [queryClient, refreshDailyData, removePendingTask, runDailyMutation]);
+    }, [queryClient, refreshDailyData, removePendingTask, runDailyMutation, userId]);
 
     const handlePostponePendingTask = useCallback(async (task: { id: number }, targetDateKey: string | null) => {
         if (!targetDateKey) {
@@ -277,13 +280,13 @@ export default function DailyScreen() {
                 return;
             }
 
-            await postponeDailyPendingTask(task.id, targetDateKey);
+            await postponeDailyPendingTask(task.id, targetDateKey, userId);
             removePendingTask(task);
-            await queryClient.invalidateQueries({ queryKey: ['tasks'] });
-            await queryClient.invalidateQueries({ queryKey: ['days'] });
+            await queryClient.invalidateQueries({ queryKey: ['tasks', userId] });
+            await queryClient.invalidateQueries({ queryKey: ['days', userId] });
             await refreshDailyData(true);
         });
-    }, [queryClient, refreshDailyData, removePendingTask, runDailyMutation]);
+    }, [queryClient, refreshDailyData, removePendingTask, runDailyMutation, userId]);
 
     const handleTogglePendingTask = useCallback((taskId: number, currentDone: boolean) => {
         const nextDone = !currentDone;
@@ -302,10 +305,10 @@ export default function DailyScreen() {
                 return;
             }
 
-            await setDailyPendingTaskDone(taskId, nextDone);
+            await setDailyPendingTaskDone(taskId, nextDone, userId);
             await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ['tasks'] }),
-                queryClient.invalidateQueries({ queryKey: ['days'] }),
+                queryClient.invalidateQueries({ queryKey: ['tasks', userId] }),
+                queryClient.invalidateQueries({ queryKey: ['days', userId] }),
             ]);
             await refreshDailyData(false);
         })
@@ -323,7 +326,7 @@ export default function DailyScreen() {
                     return next;
                 });
             });
-    }, [queryClient, refreshDailyData, runDailyMutation, t]);
+    }, [queryClient, refreshDailyData, runDailyMutation, t, userId]);
 
     const closeDailyRoute = useCallback(() => {
         if (router.canGoBack()) {
@@ -345,10 +348,11 @@ export default function DailyScreen() {
                 return;
             }
 
-            await completeDailyReview();
+            await completeDailyReview(userId);
+            patchProfileCache(queryClient, userId, { hasDoneDaily: true });
             await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ['tasks'] }),
-                queryClient.invalidateQueries({ queryKey: ['days'] }),
+                queryClient.invalidateQueries({ queryKey: ['tasks', userId] }),
+                queryClient.invalidateQueries({ queryKey: ['days', userId] }),
             ]);
             closeDailyRoute();
         } catch (error) {
@@ -356,7 +360,7 @@ export default function DailyScreen() {
             setIsCompletingDaily(false);
             Alert.alert(t('common.alerts.errorTitle'), t('daily.prepareError'));
         }
-    }, [closeDailyRoute, queryClient, t]);
+    }, [closeDailyRoute, queryClient, t, userId]);
 
     useEffect(() => {
         let isMounted = true;
@@ -365,7 +369,7 @@ export default function DailyScreen() {
             try {
                 setIsDailyLoading(true);
                 setDailyError(null);
-                const nextDailyData = useMock ? getMockDailyData() : await getDailyData();
+                const nextDailyData = useMock ? getMockDailyData() : await getDailyData(userId);
 
                 if (!isMounted) {
                     return;
@@ -392,7 +396,7 @@ export default function DailyScreen() {
         return () => {
             isMounted = false;
         };
-    }, [t]);
+    }, [t, userId]);
 
     const handleStep2DonePress = useCallback(async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
