@@ -381,7 +381,7 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
               </View>
 
               <View style={styles.footer}>
-                <SquircleView
+                {/* <SquircleView
                   cornerSmoothing={100}
                   preserveSmoothing
                   style={[styles.secondarySurface, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -389,7 +389,7 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
                   <Pressable accessibilityRole="button" onPress={openPage} style={styles.secondaryAction}>
                     <SymbolView name="text.page" size={19} tintColor={colors.textSecondary} />
                   </Pressable>
-                </SquircleView>
+                </SquircleView> */}
 
                 <SquircleView
                   cornerSmoothing={100}
