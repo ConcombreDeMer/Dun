@@ -116,10 +116,10 @@ export const useOptimisticTaskMutations = () => {
 
     invalidateTimeoutRef.current = setTimeout(() => {
       queryClient.invalidateQueries({ queryKey: tasksQueryKey });
-      queryClient.invalidateQueries({ queryKey: [DAYS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [DAYS_QUERY_KEY, userId] });
       queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
     }, 350);
-  }, [queryClient, tasksQueryKey]);
+  }, [queryClient, tasksQueryKey, userId]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -194,6 +194,7 @@ export const useOptimisticTaskMutations = () => {
         dateKey,
         preferredOrder: optimisticOrder,
         tagIds,
+        userId: userId ?? undefined,
       });
 
       queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
@@ -215,7 +216,7 @@ export const useOptimisticTaskMutations = () => {
         });
       }
     }
-  }, [queryClient, scheduleInvalidate, tasksQueryKey]);
+  }, [queryClient, scheduleInvalidate, tasksQueryKey, userId]);
 
   const deleteTaskOptimistically = useCallback(async (taskId: number, taskSnapshot?: TaskMutationSnapshot) => {
     await queryClient.cancelQueries({ queryKey: tasksQueryKey });
@@ -243,7 +244,7 @@ export const useOptimisticTaskMutations = () => {
     }
 
     try {
-      await deleteTask(taskId);
+      await deleteTask(taskId, userId ?? undefined);
       scheduleInvalidate();
     } catch (error) {
       if (deletedTask) {
@@ -265,7 +266,7 @@ export const useOptimisticTaskMutations = () => {
         });
       }
     }
-  }, [queryClient, scheduleInvalidate, tasksQueryKey]);
+  }, [queryClient, scheduleInvalidate, tasksQueryKey, userId]);
 
   const moveTaskDateOptimistically = useCallback(async (taskId: number, dateKey: string | null, taskSnapshot?: TaskMutationSnapshot) => {
     await queryClient.cancelQueries({ queryKey: tasksQueryKey });
@@ -305,7 +306,7 @@ export const useOptimisticTaskMutations = () => {
     }
 
     try {
-      await moveTaskDate(taskId, dateKey);
+      await moveTaskDate(taskId, dateKey, userId ?? undefined);
       scheduleInvalidate();
     } catch (error) {
       if (movedTask) {
@@ -325,7 +326,7 @@ export const useOptimisticTaskMutations = () => {
         });
       }
     }
-  }, [queryClient, scheduleInvalidate, tasksQueryKey]);
+  }, [queryClient, scheduleInvalidate, tasksQueryKey, userId]);
 
   const isTaskDeletePending = useCallback((taskId: number) => {
     return pendingDeleteIds.has(taskId);
@@ -363,9 +364,9 @@ export const useOptimisticOverdueTaskMutations = () => {
 
     invalidateTimeoutRef.current = setTimeout(() => {
       queryClient.invalidateQueries({ queryKey: tasksQueryKey });
-      queryClient.invalidateQueries({ queryKey: [DAYS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [DAYS_QUERY_KEY, userId] });
     }, 350);
-  }, [queryClient, tasksQueryKey]);
+  }, [queryClient, tasksQueryKey, userId]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -443,7 +444,7 @@ export const useOptimisticOverdueTaskMutations = () => {
     }
 
     try {
-      const createdTaskId = await resolveOverdueTask(taskId, resolution, targetDateKey);
+      const createdTaskId = await resolveOverdueTask(taskId, resolution, targetDateKey, userId ?? undefined);
 
       if (resolution === "postponed" && tempId !== null && createdTaskId) {
         queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
@@ -469,7 +470,7 @@ export const useOptimisticOverdueTaskMutations = () => {
         });
       }
     }
-  }, [queryClient, scheduleInvalidate, tasksQueryKey]);
+  }, [queryClient, scheduleInvalidate, tasksQueryKey, userId]);
 
   const isOverdueTaskPending = useCallback((taskId: number) => {
     return pendingTaskIds.has(taskId);

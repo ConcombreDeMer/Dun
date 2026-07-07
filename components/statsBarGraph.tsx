@@ -10,6 +10,7 @@ import {
   normalizeDate,
   toDateKey,
 } from "@/lib/calculateStats";
+import { useAuthUserId } from "@/lib/AuthSessionContext";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { useTheme } from "@/lib/ThemeContext";
@@ -653,6 +654,7 @@ export default memo(function StatsBarGraph({
     colors.input,
   ]);
   const queryClient = useQueryClient();
+  const userId = useAuthUserId();
   const setSelectedDate = useStore((state: { setSelectedDate: (date: Date) => void }) => state.setSelectedDate);
   const flatListRef = useRef<FlatList<Slide>>(null);
   const onSlideChangeRef = useRef(onSlideChange);
@@ -707,9 +709,9 @@ export default memo(function StatsBarGraph({
     }
 
     setSelectedDate(new Date(bar.date));
-    queryClient.invalidateQueries({ queryKey: ["days"] });
+    queryClient.invalidateQueries({ queryKey: ["days", userId] });
     router.navigate("/home");
-  }, [opensDayOnPress, queryClient, setSelectedDate]);
+  }, [opensDayOnPress, queryClient, setSelectedDate, userId]);
 
   const toggleOpenDayOnPress = useCallback(async () => {
     await Haptic.impactAsync(Haptic.ImpactFeedbackStyle.Light);

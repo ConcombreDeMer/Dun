@@ -104,16 +104,14 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
 
     const taskTagsQuery = useQuery({
         queryKey: ["task-tags", userId, id],
-        queryFn: () => getTaskTagIds(id as number),
+        queryFn: () => getTaskTagIds(id as number, userId ?? undefined),
         enabled: !!id && !!userId,
         gcTime: 1000 * 60 * 5,
         staleTime: 1000 * 60 * 2,
     });
 
     async function getTask() {
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) {
+        if (!userId) {
             throw new Error("Utilisateur non connecté");
         }
 
@@ -121,7 +119,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
             .from("Tasks")
             .select("*")
             .eq("id", id)
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
             .single();
 
         if (error) {
@@ -180,11 +178,11 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
 
             return updateTaskDraft(id, draft, {
                 previousDateKey: task?.date ?? null,
-            });
+            }, userId ?? undefined);
         },
         onSuccess: ({ draft, savedAt }) => {
-            queryClient.invalidateQueries({ queryKey: ['tasks'] });
-            queryClient.invalidateQueries({ queryKey: ['days'] });
+            queryClient.invalidateQueries({ queryKey: ["tasks", userId] });
+            queryClient.invalidateQueries({ queryKey: ["days", userId] });
             setTask((current: any) => current ? {
                 ...current,
                 name: draft.name,
@@ -221,17 +219,17 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                 throw createLateAdjustmentCancelledError();
             }
 
-            await markTaskLateAdjustedIfResolved(id);
-            await setTaskTags(id, tagIds);
+            await markTaskLateAdjustedIfResolved(id, userId ?? undefined);
+            await setTaskTags(id, tagIds, userId ?? undefined);
             return tagIds;
         },
         onSuccess: (tagIds) => {
             queryClient.setQueryData(["task-tags", userId, id], tagIds);
             setSelectedTagIds(null);
             markLocalLateAdjusted();
-            queryClient.invalidateQueries({ queryKey: ['tasks'] });
+            queryClient.invalidateQueries({ queryKey: ["tasks", userId] });
             queryClient.invalidateQueries({ queryKey: ["tasks", userId, id] });
-            queryClient.invalidateQueries({ queryKey: ['days'] });
+            queryClient.invalidateQueries({ queryKey: ["days", userId] });
             queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
         },
         onError: (error: any) => {

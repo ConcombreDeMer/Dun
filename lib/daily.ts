@@ -126,8 +126,8 @@ const computeBaseStreak = (daysByDate: Map<string, DaySnapshot>, yesterdayKey: s
   return streak;
 };
 
-export const getDailyData = async (): Promise<DailyData> => {
-  const userId = await getUserId();
+export const getDailyData = async (userId?: string | null): Promise<DailyData> => {
+  const resolvedUserId = userId ?? await getUserId();
   const todayKey = toDailyDateKey(new Date());
   const yesterdayKey = addDays(todayKey, -1);
   const firstCompletionDayKey = addDays(todayKey, -7);
@@ -141,19 +141,19 @@ export const getDailyData = async (): Promise<DailyData> => {
     supabase
       .from("Profiles")
       .select("name")
-      .eq("id", userId)
+      .eq("id", resolvedUserId)
       .single(),
     supabase
       .from("Days")
       .select("date, total, done_count")
-      .eq("user_id", userId)
+      .eq("user_id", resolvedUserId)
       .gte("date", streakLookupStartKey)
       .lt("date", todayKey)
       .order("date", { ascending: false }),
     supabase
       .from("Tasks")
       .select("id, name, description, done, order, date, delay_count, late_adjusted_at, resolved_at, Task_Tags(tag_id)")
-      .eq("user_id", userId)
+      .eq("user_id", resolvedUserId)
       .eq("done", false)
       .is("resolved_at", null)
       .lt("date", todayKey)
@@ -209,13 +209,13 @@ export const getDailyData = async (): Promise<DailyData> => {
   };
 };
 
-export const postponeDailyPendingTask = async (taskId: number, targetDateKey = toDailyDateKey(new Date())) => {
-  const userId = await getUserId();
+export const postponeDailyPendingTask = async (taskId: number, targetDateKey = toDailyDateKey(new Date()), userId?: string | null) => {
+  const resolvedUserId = userId ?? await getUserId();
   const { data: taskData, error: fetchError } = await supabase
     .from("Tasks")
     .select("date, delay_count")
     .eq("id", taskId)
-    .eq("user_id", userId)
+    .eq("user_id", resolvedUserId)
     .single();
 
   if (fetchError || !taskData) {
@@ -228,7 +228,7 @@ export const postponeDailyPendingTask = async (taskId: number, targetDateKey = t
     throw new Error("Cette action est réservée aux tâches en retard");
   }
 
-  const order = await getNextTaskOrder(targetDateKey, userId);
+  const order = await getNextTaskOrder(targetDateKey, resolvedUserId);
   const { error } = await supabase
     .from("Tasks")
     .update({
@@ -242,26 +242,26 @@ export const postponeDailyPendingTask = async (taskId: number, targetDateKey = t
       order,
     })
     .eq("id", taskId)
-    .eq("user_id", userId);
+    .eq("user_id", resolvedUserId);
 
   if (error) {
     throw new Error(error.message);
   }
 
-  await normalizeTaskOrderForDate(previousDateKey, userId);
+  await normalizeTaskOrderForDate(previousDateKey, resolvedUserId);
   await Promise.all([
-    syncDaySnapshot(previousDateKey, userId),
-    syncDaySnapshot(targetDateKey, userId),
+    syncDaySnapshot(previousDateKey, resolvedUserId),
+    syncDaySnapshot(targetDateKey, resolvedUserId),
   ]);
 };
 
-export const deleteDailyPendingTask = async (taskId: number) => {
-  const userId = await getUserId();
+export const deleteDailyPendingTask = async (taskId: number, userId?: string | null) => {
+  const resolvedUserId = userId ?? await getUserId();
   const { data: taskData, error: fetchError } = await supabase
     .from("Tasks")
     .select("date")
     .eq("id", taskId)
-    .eq("user_id", userId)
+    .eq("user_id", resolvedUserId)
     .single();
 
   if (fetchError || !taskData) {
@@ -274,7 +274,7 @@ export const deleteDailyPendingTask = async (taskId: number) => {
     .from("Task_Tags")
     .delete()
     .eq("task_id", taskId)
-    .eq("user_id", userId);
+    .eq("user_id", resolvedUserId);
 
   if (tagsError) {
     throw new Error(tagsError.message);
@@ -284,25 +284,25 @@ export const deleteDailyPendingTask = async (taskId: number) => {
     .from("Tasks")
     .delete()
     .eq("id", taskId)
-    .eq("user_id", userId);
+    .eq("user_id", resolvedUserId);
 
   if (error) {
     throw new Error(error.message);
   }
 
   if (previousDateKey) {
-    await normalizeTaskOrderForDate(previousDateKey, userId);
-    await syncDaySnapshot(previousDateKey, userId);
+    await normalizeTaskOrderForDate(previousDateKey, resolvedUserId);
+    await syncDaySnapshot(previousDateKey, resolvedUserId);
   }
 };
 
-export const setDailyPendingTaskDone = async (taskId: number, nextDone: boolean) => {
-  const userId = await getUserId();
+export const setDailyPendingTaskDone = async (taskId: number, nextDone: boolean, userId?: string | null) => {
+  const resolvedUserId = userId ?? await getUserId();
   const { data: taskData, error: fetchError } = await supabase
     .from("Tasks")
     .select("date, resolved_at")
     .eq("id", taskId)
-    .eq("user_id", userId)
+    .eq("user_id", resolvedUserId)
     .single();
 
   if (fetchError || !taskData) {
@@ -322,27 +322,27 @@ export const setDailyPendingTaskDone = async (taskId: number, nextDone: boolean)
       last_update_date: new Date().toISOString(),
     })
     .eq("id", taskId)
-    .eq("user_id", userId);
+    .eq("user_id", resolvedUserId);
 
   if (error) {
     throw new Error(error.message);
   }
 
   if (taskDateKey) {
-    await syncDaySnapshot(taskDateKey, userId);
+    await syncDaySnapshot(taskDateKey, resolvedUserId);
   }
 };
 
-export const completeDailyReview = async () => {
-  const userId = await getUserId();
+export const completeDailyReview = async (userId?: string | null) => {
+  const resolvedUserId = userId ?? await getUserId();
   const todayKey = toDailyDateKey(new Date());
 
-  await finalizeDailyReview(todayKey);
+  await finalizeDailyReview(todayKey, resolvedUserId);
 
   const { error } = await supabase
     .from("Profiles")
     .update({ hasDoneDaily: true })
-    .eq("id", userId);
+    .eq("id", resolvedUserId);
 
   if (error) {
     throw new Error(error.message);

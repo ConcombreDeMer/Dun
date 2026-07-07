@@ -24,20 +24,20 @@ import { statsDaysQueryKey } from "@/lib/daysQueryKeys";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { getStatsImageSource } from "@/lib/imageHelper";
+import { useProfile } from "@/lib/profile";
 import { SCREEN_HEADER_HEIGHT, SCREEN_HEADER_HORIZONTAL_PADDING, SCREEN_HEADER_TITLE_LINE_HEIGHT, SCREEN_HEADER_TOP_OFFSET } from "@/lib/screenHeader";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { buildTagUsageStats, getTagUsageSourceData, TAG_USAGE_STATS_QUERY_KEY, TagUsageBucket } from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStatsPreferences } from "@/lib/useStatsPreferences";
-import type { User } from "@supabase/supabase-js";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated from 'react-native-reanimated';
 
@@ -91,7 +91,7 @@ export default function Stats() {
   const [slideStats, setSlideStats] = useState<CalculatedStats | null>(null);
   const [activeSlide, setActiveSlide] = useState<Slide | null>(null);
   const [showUnusedTags, setShowUnusedTags] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const profileQuery = useProfile();
   const activeSlideSignatureRef = useRef<string | null>(null);
   const lastPeriodChangeAtRef = useRef(0);
   const {
@@ -100,29 +100,6 @@ export default function Stats() {
     setPreferenceOptimistically,
   } = useStatsPreferences();
   const [loadingState, setLoadingState] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-
-      if (error) {
-        console.error("Erreur lors de la récupération de l'utilisateur:", error);
-        return;
-      }
-
-      if (isMounted) {
-        setUser(data.user ?? null);
-      }
-    };
-
-    loadUser();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   // Gestionnaire pour les changements de slide
   const handleSlideChange = useCallback((slide: Slide) => {
@@ -193,12 +170,17 @@ export default function Stats() {
   // FETCHING DES JOURS
 
   const getDays = async () => {
+    if (!userId) {
+      return [];
+    }
+
     const today = new Date();
     today.setHours(23, 59, 59, 999);
 
     const { data, error } = await supabase
       .from("Days")
       .select("date,total,done_count,late_adjusted_count")
+      .eq("user_id", userId)
       .lte("date", today.toISOString())
       .order("date", { ascending: false });
     if (error) {
@@ -302,6 +284,7 @@ export default function Stats() {
     queryFn: () => getTagUsageSourceData({
       startDateKey: tagStatsDateRange.startDateKey,
       endDateKey: tagStatsDateRange.endDateKey,
+      userId,
     }),
     staleTime: 1000 * 60 * 5,
   });
@@ -381,8 +364,8 @@ export default function Stats() {
   }, [router]);
 
   const profileName = useMemo(() => {
-    return user?.user_metadata?.name || user?.email?.split("@")[0] || t("settings.root.defaultUserName");
-  }, [t, user?.email, user?.user_metadata?.name]);
+    return profileQuery.data?.name?.trim() || t("settings.root.defaultUserName");
+  }, [profileQuery.data?.name, t]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

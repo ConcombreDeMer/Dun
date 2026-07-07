@@ -1,36 +1,35 @@
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { View } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { toDailyDateKey } from '../lib/date';
+import { fetchProfile, patchProfileCache, profileQueryKey } from '../lib/profile';
 import { useTheme } from '../lib/ThemeContext';
 import { supabase } from '../lib/supabase';
 
 export default function Index() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { colors } = useTheme();
 
     useEffect(() => {
         const checkRouting = async () => {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) {
+                const { data: { session } } = await supabase.auth.getSession();
+                const userId = session?.user.id;
+
+                if (!userId) {
                     // Non authentifié, _layout.tsx s'occupera de la redirection vers /onboarding/start
                     return;
                 }
 
                 const today = toDailyDateKey(new Date());
 
-                const { data: profile, error } = await supabase
-                    .from('Profiles')
-                    .select('last_opened, hasDoneDaily, restMode, restEndDate, dailyEnabled',)
-                    .eq('id', user.id)
-                    .single();
-
-                if (error) {
-                    console.error('Erreur lors de la récupération du profil:', error);
-                    router.replace('/home');
-                    return;
-                }
+                const profile = await queryClient.fetchQuery({
+                    queryKey: profileQueryKey(userId),
+                    queryFn: () => fetchProfile(userId),
+                    staleTime: 0,
+                });
 
                 if (profile.restEndDate && profile.restEndDate > new Date().toISOString()) {
                     router.replace('/rest');
@@ -39,7 +38,11 @@ export default function Index() {
                     await supabase
                         .from('Profiles')
                         .update({ restMode: false, restEndDate: null })
-                        .eq('id', user.id);
+                        .eq('id', userId);
+                    patchProfileCache(queryClient, userId, {
+                        restMode: false,
+                        restEndDate: null,
+                    });
                 }
 
                 if(profile.dailyEnabled == false) {
@@ -51,7 +54,11 @@ export default function Index() {
                     await supabase
                         .from('Profiles')
                         .update({ last_opened: today, hasDoneDaily: false })
-                        .eq('id', user.id);
+                        .eq('id', userId);
+                    patchProfileCache(queryClient, userId, {
+                        last_opened: today,
+                        hasDoneDaily: false,
+                    });
                     router.replace('/daily');
                     return;
                 }
@@ -60,7 +67,11 @@ export default function Index() {
                     await supabase
                         .from('Profiles')
                         .update({ last_opened: today, hasDoneDaily: false })
-                        .eq('id', user.id);
+                        .eq('id', userId);
+                    patchProfileCache(queryClient, userId, {
+                        last_opened: today,
+                        hasDoneDaily: false,
+                    });
                     router.replace('/daily');
                     return;
                 } else {
@@ -80,7 +91,7 @@ export default function Index() {
         };
 
         checkRouting();
-    }, [router]);
+    }, [queryClient, router]);
 
     return <View style={{ flex: 1, backgroundColor: colors.background }} />;
 }

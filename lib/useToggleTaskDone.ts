@@ -1,6 +1,7 @@
 import { QueryKey, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
+import { useAuthUserId } from "./AuthSessionContext";
 import { DAYS_QUERY_KEY } from "./daysQueryKeys";
 import { TAG_USAGE_STATS_QUERY_KEY } from "./tags";
 import { clearOptimisticTaskDone, getOptimisticTaskDone, setOptimisticTaskDone, setTaskDone } from "./tasks";
@@ -34,6 +35,7 @@ export const useToggleTaskDone = ({
   onError,
   onSuccess,
 }: ToggleTaskDoneOptions) => {
+  const userId = useAuthUserId();
   const queryClient = useQueryClient();
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(() => new Set());
   const pendingTaskIdsRef = useRef<Set<number>>(new Set());
@@ -56,10 +58,10 @@ export const useToggleTaskDone = ({
       queryKeys.forEach((queryKey) => {
         queryClient.invalidateQueries({ queryKey });
       });
-      queryClient.invalidateQueries({ queryKey: [DAYS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [DAYS_QUERY_KEY, userId] });
       queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
     }, 350);
-  }, [clearScheduledInvalidate, queryClient, queryKeys]);
+  }, [clearScheduledInvalidate, queryClient, queryKeys, userId]);
 
   useEffect(() => {
     return () => {
@@ -118,7 +120,7 @@ export const useToggleTaskDone = ({
           return;
         }
 
-        await setTaskDone(taskId, desiredDone);
+        await setTaskDone(taskId, desiredDone, userId ?? undefined);
         finalSavedDone = desiredDone;
 
         if (desiredDoneByTaskIdRef.current.get(taskId) === desiredDone) {
@@ -165,6 +167,7 @@ export const useToggleTaskDone = ({
     scheduleInvalidate,
     unmarkTaskPending,
     updateTaskDoneEverywhere,
+    userId,
   ]);
 
   const toggleTaskDone = useCallback(async (taskId: number, currentDone: boolean) => {

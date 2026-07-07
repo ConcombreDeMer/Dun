@@ -11,6 +11,7 @@ import { AuthSessionProvider } from "../lib/AuthSessionContext";
 import { CreateModalControllerProvider } from "../lib/createModalController";
 import { FontProvider } from "../lib/FontContext";
 import { I18nProvider, useAppTranslation, useI18nReady } from "../lib/i18n";
+import { fetchProfile, profileQueryKey } from "../lib/profile";
 import { syncRevenueCatUser } from "../lib/revenuecat";
 import { SubscriptionProvider } from "../lib/subscription";
 import { supabase } from "../lib/supabase";
@@ -170,16 +171,11 @@ function RootLayoutContent() {
 
     const checkUserAndRedirect = async () => {
       try {
-        const { data: profileData, error } = await supabase
-          .from("Profiles")
-          .select("hasName")
-          .eq("id", session.user.id)
-          .single();
-
-        if (error) {
-          console.error("Erreur profil:", error);
-          return;
-        }
+        const profileData = await queryClient.fetchQuery({
+          queryKey: profileQueryKey(session.user.id),
+          queryFn: () => fetchProfile(session.user.id),
+          staleTime: 0,
+        });
 
         const hasName = profileData?.hasName ?? false;
 
@@ -194,7 +190,7 @@ function RootLayoutContent() {
     };
 
     checkUserAndRedirect();
-  }, [isAuthLoading, pathname, router, session]);
+  }, [isAuthLoading, pathname, queryClient, router, session]);
 
   if (!fontsLoaded || isLoading || isAuthLoading || !isI18nReady) {
     return null;

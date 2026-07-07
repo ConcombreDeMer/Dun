@@ -1,12 +1,10 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAuthUserId } from "./AuthSessionContext";
 import {
   DEFAULT_STATS_PREFERENCES,
   StatsPreferenceKey,
   StatsPreferences,
 } from "./calculateStats";
-import { supabase } from "./supabase";
+import { useProfile, useUpdateProfile } from "./profile";
 
 type ProfileStatsPreferencesRow = {
   stats_include_today: boolean | null;
@@ -14,8 +12,6 @@ type ProfileStatsPreferencesRow = {
   stats_include_empty: boolean | null;
   stats_include_rest: boolean | null;
 };
-
-const STATS_PREFERENCES_QUERY_KEY = ["profile", "stats-preferences"] as const;
 
 const preferenceColumns: Record<StatsPreferenceKey, keyof ProfileStatsPreferencesRow> = {
   includeToday: "stats_include_today",
@@ -31,43 +27,11 @@ const mapProfilePreferences = (row?: ProfileStatsPreferencesRow | null): StatsPr
   includeRestDays: row?.stats_include_rest ?? DEFAULT_STATS_PREFERENCES.includeRestDays,
 });
 
-const getCurrentUserId = async () => {
-  const { data, error } = await supabase.auth.getUser();
-
-  if (error) throw error;
-  if (!data.user?.id) throw new Error("Utilisateur non trouvé");
-
-  return data.user.id;
-};
-
-const fetchStatsPreferences = async () => {
-  const userId = await getCurrentUserId();
-  const { data, error } = await supabase
-    .from("Profiles")
-    .select("stats_include_today, stats_include_following, stats_include_empty, stats_include_rest")
-    .eq("id", userId)
-    .single();
-
-  if (error) throw error;
-
-  return mapProfilePreferences(data);
-};
-
-const updateStatsPreference = async (key: StatsPreferenceKey, value: boolean) => {
-  const userId = await getCurrentUserId();
-  const { error } = await supabase
-    .from("Profiles")
-    .update({ [preferenceColumns[key]]: value })
-    .eq("id", userId);
-
-  if (error) throw error;
-};
-
 export const useStatsPreferences = () => {
-  const userId = useAuthUserId();
-  const queryClient = useQueryClient();
-  const queryKey = useMemo(() => [...STATS_PREFERENCES_QUERY_KEY, userId] as const, [userId]);
   const isMountedRef = useRef(true);
+  const profileQuery = useProfile();
+  const updateProfileMutation = useUpdateProfile();
+  const [optimisticPreferences, setOptimisticPreferences] = useState<StatsPreferences | null>(null);
   const mutationIdsRef = useRef<Record<StatsPreferenceKey, number>>({
     includeToday: 0,
     includeFutureDays: 0,
@@ -84,11 +48,15 @@ export const useStatsPreferences = () => {
     };
   }, []);
 
-  const preferencesQuery = useQuery({
-    queryKey,
-    queryFn: fetchStatsPreferences,
-    enabled: !!userId,
-  });
+  const profilePreferences = useMemo(
+    () => mapProfilePreferences(profileQuery.data),
+    [profileQuery.data]
+  );
+  const preferences = optimisticPreferences ?? profilePreferences;
+
+  useEffect(() => {
+    setOptimisticPreferences(null);
+  }, [profilePreferences]);
 
   const setPending = useCallback((key: StatsPreferenceKey, pending: boolean) => {
     if (!isMountedRef.current) return;
@@ -107,10 +75,7 @@ export const useStatsPreferences = () => {
   }, []);
 
   const setPreferenceOptimistically = useCallback(async (key: StatsPreferenceKey, value: boolean) => {
-    const currentPreferences =
-      queryClient.getQueryData<StatsPreferences>(queryKey) ??
-      preferencesQuery.data ??
-      DEFAULT_STATS_PREFERENCES;
+    const currentPreferences = optimisticPreferences ?? profilePreferences;
 
     if (currentPreferences[key] === value) return;
 
@@ -119,20 +84,15 @@ export const useStatsPreferences = () => {
     const previousValue = currentPreferences[key];
 
     setPending(key, true);
-    queryClient.setQueryData<StatsPreferences>(queryKey, {
-      ...currentPreferences,
-      [key]: value,
-    });
+    setOptimisticPreferences({ ...currentPreferences, [key]: value });
 
     try {
-      await updateStatsPreference(key, value);
-      queryClient.invalidateQueries({ queryKey });
+      await updateProfileMutation.mutateAsync({
+        [preferenceColumns[key]]: value,
+      } as Partial<ProfileStatsPreferencesRow>);
     } catch (error) {
       if (mutationIdsRef.current[key] === mutationId) {
-        queryClient.setQueryData<StatsPreferences>(queryKey, (current) => ({
-          ...(current ?? DEFAULT_STATS_PREFERENCES),
-          [key]: previousValue,
-        }));
+        setOptimisticPreferences({ ...currentPreferences, [key]: previousValue });
       }
 
       console.error("Erreur lors de la mise à jour des préférences stats:", error);
@@ -141,14 +101,14 @@ export const useStatsPreferences = () => {
         setPending(key, false);
       }
     }
-  }, [preferencesQuery.data, queryClient, queryKey, setPending]);
+  }, [optimisticPreferences, profilePreferences, setPending, updateProfileMutation]);
 
   const isPreferencePending = useCallback((key: StatsPreferenceKey) => pendingKeys.has(key), [pendingKeys]);
 
   return {
     isPreferencePending,
-    isStatsPreferencesLoading: preferencesQuery.isLoading,
-    preferences: preferencesQuery.data ?? DEFAULT_STATS_PREFERENCES,
+    isStatsPreferencesLoading: profileQuery.isLoading,
+    preferences,
     setPreferenceOptimistically,
   };
 };

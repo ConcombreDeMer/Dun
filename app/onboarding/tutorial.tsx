@@ -1,4 +1,6 @@
+import { patchProfileCache } from "@/lib/profile";
 import { supabase } from "@/lib/supabase";
+import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -15,6 +17,7 @@ export default function Tutorial() {
     const { colors, actualTheme } = useTheme();
     const { t } = useAppTranslation();
     const router = useRouter();
+    const queryClient = useQueryClient();
     const simpleInputRef = useRef<TextInput>(null);
     const [disableNext, setDisableNext] = useState(false);
     const [name, setName] = useState('');
@@ -64,6 +67,8 @@ export default function Tutorial() {
 
                     if (error) {
                         console.error('Erreur lors de la sauvegarde du name dans Supabase:', error);
+                    } else {
+                        patchProfileCache(queryClient, user.id, { hasName: true, name });
                     }
                 }
             } catch (error) {
