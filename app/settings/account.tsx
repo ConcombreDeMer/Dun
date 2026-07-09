@@ -28,6 +28,7 @@ import { useFont } from "@/lib/FontContext";
 import { clearStoredExportData } from "@/lib/exportData";
 import { getCharacterImageSource } from "@/lib/imageHelper";
 import { useAppTranslation } from "@/lib/i18n";
+import { useProfile, useUpdateProfile } from "@/lib/profile";
 import { deleteUserAccount, supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStore } from "@/store/store";
@@ -64,6 +65,8 @@ export default function Account() {
     const [modalConfig, setModalConfig] = useState({ title: '', message: '' });
     const queryClient = useQueryClient();
     const store = useStore();
+    const profileQuery = useProfile();
+    const updateProfile = useUpdateProfile();
     const { fontSizes } = useFont();
 
     const screenWidth = Dimensions.get('window').width;
@@ -296,6 +299,26 @@ export default function Account() {
         setName(userData.name || '');
     }, [userData]);
 
+    useEffect(() => {
+        if (!profileQuery.data || !userData) return;
+
+        const profileName = profileQuery.data.name?.trim();
+        if (!profileName) return;
+
+        if (profileName === userData.name) return;
+
+        setUserData((currentUserData) =>
+            currentUserData ? { ...currentUserData, name: profileName } : currentUserData
+        );
+        setName((currentName) => {
+            if (currentName === userData.name || currentName.trim() === '') {
+                return profileName;
+            }
+
+            return currentName;
+        });
+    }, [profileQuery.data, userData]);
+
     const formatLastUpdateDate = (date: Date | null): string => {
         if (!date) return "";
 
@@ -341,7 +364,7 @@ export default function Account() {
         else {
             setHasChanges(false);
         }
-    }, [name, email]);
+    }, [name, email, userData]);
 
     useEffect(() => {
         // console.log("hasChanges", hasChanges);
@@ -399,16 +422,32 @@ export default function Account() {
         }
 
         if (name !== userData?.name) {
-            const { data, error } = await supabase.auth.updateUser(
-                { data: { name: name } }
+            const trimmedName = name.trim();
+            if (!trimmedName) {
+                alert(t("onboarding.tutorial.missingName1"));
+                return;
+            }
+
+            try {
+                await updateProfile.mutateAsync({ name: trimmedName });
+            } catch (error) {
+                console.error("Erreur lors de la mise à jour du profil utilisateur :", error);
+                return;
+            }
+
+            const { error } = await supabase.auth.updateUser(
+                { data: { name: trimmedName } }
             )
             if (error) {
                 console.error("Erreur lors de la mise à jour du nom d'utilisateur : " + error.message);
-                return;
             }
+            setUserData((currentUserData) =>
+                currentUserData ? { ...currentUserData, name: trimmedName } : currentUserData
+            );
+            setName(trimmedName);
             setHasChanges(false);
         }
-    }, [hasChanges, email, userData, name]);
+    }, [hasChanges, email, userData, name, t, updateProfile]);
 
     const seeMore = useCallback(() => {
         router.push("/settings/changeEmail");

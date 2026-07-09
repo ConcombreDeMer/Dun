@@ -2,7 +2,7 @@ const { withDangerousMod } = require("@expo/config-plugins");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const PODFILE_TARGET = "target 'Dun' do";
+const PODFILE_TARGET_PATTERN = /target\s+['"][^'"]+['"]\s+do/;
 const GOOGLE_UTILITIES_POD =
   "  pod 'GoogleUtilities', :modular_headers => true";
 const RECAPTCHA_INTEROP_POD =
@@ -25,10 +25,13 @@ module.exports = function withIosGoogleModularHeaders(config) {
         return config;
       }
 
-      contents = contents.replace(
-        PODFILE_TARGET,
+      if (!PODFILE_TARGET_PATTERN.test(contents)) {
+        throw new Error("Could not find an iOS target block in Podfile.");
+      }
+
+      contents = contents.replace(PODFILE_TARGET_PATTERN, (targetLine) =>
         [
-          PODFILE_TARGET,
+          targetLine,
           GOOGLE_UTILITIES_POD,
           RECAPTCHA_INTEROP_POD,
         ].join("\n")

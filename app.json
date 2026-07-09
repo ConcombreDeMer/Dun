@@ -2,9 +2,9 @@
   "expo": {
     "name": "Dun",
     "slug": "Dun",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
-    "icon": "./assets/icon.icon",
+    "icon": "./assets/images/icon.png",
     "scheme": [
       "exp+dun",
       "dun"
@@ -12,8 +12,9 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
+      "icon": "./assets/icon.icon",
       "bundleIdentifier": "com.dunapp.Dun",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CADisableMinimumFrameDurationOnPhone": true
@@ -57,6 +58,8 @@
         }
       ],
       "./plugins/with-ios-google-modular-headers",
+      "./plugins/with-ios-build-number",
+      "./plugins/with-ios-sentry-xcode-env",
       "expo-web-browser",
       "expo-image",
       [
