@@ -13,7 +13,6 @@ import { useAuthUserId } from "@/lib/AuthSessionContext";
 import {
   CalculatedStats,
   calculateStats,
-  createEmptyStatsDay,
   filterStatsDays,
   getGlobalStatsDays,
   StatsDay,
@@ -42,12 +41,6 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-nati
 import Animated from 'react-native-reanimated';
 
 
-interface StatsData {
-  completion: string;
-  charge: number;
-  streak: number;
-}
-
 type Slide = {
   bars: {
     stacks: { value: number; color: string; marginBottom?: number }[];
@@ -57,6 +50,8 @@ type Slide = {
     days?: StatsDay[];
   }[];
   periodLabel: string;
+  rangeEnd: string;
+  rangeStart: string;
   id: string;
   stats: CalculatedStats;
 };
@@ -78,6 +73,34 @@ const withAlpha = (color: string, alpha: number) => {
   return color;
 };
 
+const isPerfectStatsDay = (day?: StatsDay) => {
+  if (!day) return false;
+
+  const total = Math.max(day.total || 0, 0);
+  const done = Math.min(Math.max(day.done_count || 0, 0), total);
+
+  return total > 0 && done === total;
+};
+
+const calculateCurrentStreak = (days: StatsDay[]) => {
+  const daysByDate = new Map<string, StatsDay>();
+
+  for (const day of days) {
+    daysByDate.set(toDateKey(new Date(day.date)), day);
+  }
+
+  let streak = 0;
+  const cursor = new Date();
+  cursor.setDate(cursor.getDate() - 1);
+
+  while (isPerfectStatsDay(daysByDate.get(toDateKey(cursor)))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return streak;
+};
+
 
 export default function Stats() {
   const { fontSizes } = useFont();
@@ -90,6 +113,7 @@ export default function Stats() {
   const [period, setPeriod] = useState<StatsPeriod>('Par semaine');
   const [slideStats, setSlideStats] = useState<CalculatedStats | null>(null);
   const [activeSlide, setActiveSlide] = useState<Slide | null>(null);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(Number.MAX_SAFE_INTEGER);
   const [showUnusedTags, setShowUnusedTags] = useState(false);
   const profileQuery = useProfile();
   const showLateAdjustmentStats = profileQuery.data?.lockPastDaysEnabled ?? true;
@@ -126,48 +150,6 @@ export default function Stats() {
     setLoadingState(false);
   }, [period]);
 
-
-  // Cela évite de parcourir previousDays 4 fois et élimine les calculs redondants
-  const calculateAllStats = useCallback((days: StatsDay[]): StatsData => {
-    if (!days || days.length === 0) {
-      return {
-        completion: "0%",
-        charge: 0,
-        streak: 0,
-      };
-    }
-
-    const { completion, charge: averageCharge } = calculateStats(days, statsPreferences);
-
-    // Calcul du streak
-    const today = new Date();
-    const todayString = today.toDateString();
-    let streak = 0;
-    let currentDate = new Date();
-    currentDate.setDate(currentDate.getDate() - 1);
-    // Limiter la boucle aux 7 derniers jours et éviter recréation de Date
-    for (let i = 0; i < Math.min(7, days.length); i++) {
-      const day = days[i];
-      const dayDate = new Date(day.date);
-      const dayDateString = dayDate.toDateString();
-
-      if (dayDateString === todayString) {
-        continue;
-      } else if (dayDateString === currentDate.toDateString()) {
-        const total = Math.max(day.total || 0, 0);
-        const done = Math.max(day.done_count || 0, 0);
-        if (total > 0 && done === total) {
-          streak++;
-          currentDate.setDate(currentDate.getDate() - 1);
-        }
-      } else {
-        break;
-      }
-    }
-    return { completion, charge: averageCharge, streak };
-  }, [statsPreferences]);
-
-
   // FETCHING DES JOURS
 
   const getDays = async () => {
@@ -197,36 +179,8 @@ export default function Stats() {
     enabled: !!userId,
   });
 
-  // Cela évite de recréer la fonction à chaque rendu
-  const getLastWeekDays = useCallback((daysData: StatsDay[]) => {
-    const lastWeekDays: StatsDay[] = [];
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    // Créer une Map pour O(1) lookup au lieu de O(n)
-    const daysByDateString = new Map();
-    for (const day of daysData) {
-      const dayDate = new Date(day.date);
-      daysByDateString.set(dayDate.toDateString(), day);
-    }
-
-    for (let i = 0; i < 7; i++) {
-      const targetDate = new Date(today);
-      targetDate.setDate(today.getDate() - i);
-      const targetDateString = toDateKey(targetDate);
-
-      const dayData = daysByDateString.get(targetDateString);
-      if (dayData) {
-        lastWeekDays.push(dayData);
-      } else {
-        lastWeekDays.push(createEmptyStatsDay(targetDate));
-      }
-    }
-    return lastWeekDays;
-  }, []);
-
   const chartDaysData = useMemo(() => (daysQuery.data || []) as StatsDay[], [daysQuery.data]);
-  const previousDays = useMemo(() => getLastWeekDays(chartDaysData), [chartDaysData, getLastWeekDays]);
-  const streak = useMemo(() => calculateAllStats(previousDays).streak, [previousDays, calculateAllStats]);
+  const streak = useMemo(() => calculateCurrentStreak(chartDaysData), [chartDaysData]);
   const globalStats = useMemo(
     () => calculateStats(getGlobalStatsDays(chartDaysData), statsPreferences),
     [chartDaysData, statsPreferences]
@@ -345,10 +299,15 @@ export default function Stats() {
 
     lastPeriodChangeAtRef.current = now;
     activeSlideSignatureRef.current = null;
+    setActiveSlideIndex(Number.MAX_SAFE_INTEGER);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setPeriod(selectedPeriod);
     console.log('Période sélectionnée :', selectedPeriod);
   }, [period]);
+
+  const handleSlideIndexChange = useCallback((index: number) => {
+    setActiveSlideIndex(index);
+  }, []);
 
   const handleShowUnusedTagsChange = useCallback(async (value: boolean) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -444,13 +403,21 @@ export default function Stats() {
 
         <View style={styles.overviewSection}>
           <StatsBarGraph
+            activeSlideIndex={activeSlideIndex}
             daysData={chartDaysData}
             period={period}
             statsPreferences={statsPreferences}
             onSlideChange={handleSlideChange}
+            onSlideIndexChange={handleSlideIndexChange}
+          />
+          <StatsStreak
+            activeSlideIndex={activeSlideIndex}
+            daysData={chartDaysData}
+            onSlideIndexChange={handleSlideIndexChange}
+            period={period}
+            value={streak.toString()}
           />
           <View style={styles.cardsContainer}>
-          <StatsStreak value={streak.toString()} />
             <View style={styles.cardsRow}>
               <StatsCard
                 image={getStatsImageSource('done', actualTheme)}
@@ -650,13 +617,13 @@ const styles = StyleSheet.create({
   },
   overviewSection: {
     alignItems: "center",
-    gap: 10,
+    gap: 18,
     width: "100%",
   },
   cardsContainer: {
     alignItems: "center",
     gap: 10,
-    marginVertical: 10,
+    // marginVertical: 10,
     width: "100%",
   },
 
