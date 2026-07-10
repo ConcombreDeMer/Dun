@@ -497,7 +497,12 @@ export const resources = {
       "box": {
         "title": "Task box",
         "subtitle": "Undated tasks stay here until you place them on a day.",
-        "emptyState": "No tasks in the box"
+        "emptyState": "No tasks in the box",
+        "premium": {
+          "title": "Task box",
+          "message": "Set aside tasks you do not want to schedule right away. Use the Box button on a task, then find it here when you are ready to give it a date.",
+          "cta": "Discover Dun +"
+        }
       },
       "createTask": {
         "headline": {
@@ -740,8 +745,8 @@ export const resources = {
             "lateAdjustmentCount": "Adjusted tasks: {{count}}"
           },
           "premium": {
-            "title": "Dun Plus charts",
-            "message": "Unlock detailed charts and tag analysis with Dun Plus.",
+            "title": "Charts",
+            "message": "Unlock deeper stats to track your progress and stay on track with Dun Plus.",
             "cta": "Discover Dun +"
           },
           "tags": {
@@ -1538,7 +1543,12 @@ export const resources = {
       "box": {
         "title": "Boîte à tâches",
         "subtitle": "Les tâches sans date restent ici jusqu'à ce que tu les places dans une journée.",
-        "emptyState": "Aucune tâche dans la boîte"
+        "emptyState": "Aucune tâche dans la boîte",
+        "premium": {
+          "title": "Boîte à tâches",
+          "message": "Mets de côté les tâches que tu ne veux pas planifier tout de suite. Utilise le bouton Box sur une tâche, puis retrouve-la ici quand tu es prêt à lui donner une date.",
+          "cta": "Découvrir Dun +"
+        }
       },
       "createTask": {
         "headline": {
@@ -1781,8 +1791,8 @@ export const resources = {
             "lateAdjustmentCount": "Tâches réajustées : {{count}}"
           },
           "premium": {
-            "title": "Graphiques Dun Plus",
-            "message": "Débloque les graphiques détaillés et l'analyse des tags avec Dun Plus.",
+            "title": "Graphiques",
+            "message": "Débloque des statistiques plus poussées pour suivre ton évolution et garder le cap avec Dun Plus.",
             "cta": "Découvrir Dun +"
           },
           "tags": {

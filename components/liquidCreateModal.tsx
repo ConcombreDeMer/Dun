@@ -20,6 +20,7 @@ import ReAnimated, {
 import { isPastAppDateKey, toAppDateKey } from "../lib/date";
 import { useAppTranslation } from "../lib/i18n";
 import { useProfile } from "../lib/profile";
+import { useSubscription } from "../lib/subscription";
 import { useTheme } from "../lib/ThemeContext";
 import TagSelector from "./TagSelector";
 
@@ -47,11 +48,13 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
   const didNotifyCloseRef = useRef(false);
   const hasFocusedInputRef = useRef(false);
   const shouldOpenDetailsAfterDismissRef = useRef(false);
+  const shouldOpenPremiumAfterDismissRef = useRef(false);
   const successResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { colors, actualTheme } = useTheme();
   const { fontSizes } = React.useContext(FontContext)!;
   const { t } = useAppTranslation();
   const { createTaskOptimistically } = useOptimisticTaskMutations();
+  const { canUseTaskBox } = useSubscription();
   const profileQuery = useProfile();
   const selectedDate = useStore((state) => state.selectedDate) || new Date();
   const selectedDateKey = toAppDateKey(selectedDate);
@@ -117,6 +120,12 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
     if (shouldOpenDetailsAfterDismissRef.current) {
       requestAnimationFrame(() => {
         router.push("/create-task");
+      });
+    }
+
+    if (shouldOpenPremiumAfterDismissRef.current) {
+      requestAnimationFrame(() => {
+        router.push("/settings/premium");
       });
     }
   };
@@ -258,6 +267,12 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
       return;
     }
 
+    if (createInBox && !canUseTaskBox) {
+      shouldOpenPremiumAfterDismissRef.current = true;
+      requestClose();
+      return;
+    }
+
     isCreatingTaskRef.current = true;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -297,6 +312,12 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
 
   const toggleCreateInBox = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!canUseTaskBox) {
+      shouldOpenPremiumAfterDismissRef.current = true;
+      requestClose();
+      return;
+    }
+
     setCreateInBox((current) => !current);
   };
 
@@ -401,7 +422,7 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
                     styles.secondarySurface,
                     {
                       backgroundColor: createInBox ? colors.text : colors.card,
-                      borderColor: createInBox ? colors.text : colors.border,
+                      borderColor: !canUseTaskBox ? "#F4BA00" : createInBox ? colors.text : colors.border,
                     },
                   ]}
                 >

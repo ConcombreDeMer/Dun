@@ -21,6 +21,7 @@ import { isPastAppDateKey, toAppDateKey } from "@/lib/date";
 import { taskEmitter } from "@/lib/eventEmitter";
 import { useAppTranslation } from "@/lib/i18n";
 import { useProfile } from "@/lib/profile";
+import { useSubscription } from "@/lib/subscription";
 import { useTheme } from "@/lib/ThemeContext";
 import { useOptimisticTaskMutations } from "@/lib/useOptimisticTaskMutations";
 
@@ -35,6 +36,7 @@ export default function CreateTask() {
     const { colors } = useTheme();
     const { t } = useAppTranslation();
     const { createTaskOptimistically, isCreatingTask } = useOptimisticTaskMutations();
+    const { canUseTaskBox } = useSubscription();
     const profileQuery = useProfile();
     const selectedDateKey = toAppDateKey(selectedDate);
     const lockPastDaysEnabled = profileQuery.data?.lockPastDaysEnabled ?? true;
@@ -57,6 +59,11 @@ export default function CreateTask() {
 
         if (!createInBox && isSelectedDatePast) {
             Alert.alert(t("common.alerts.errorTitle"), t("createTask.alerts.pastDate"));
+            return;
+        }
+
+        if (createInBox && !canUseTaskBox) {
+            router.push("/settings/premium");
             return;
         }
 
@@ -87,6 +94,16 @@ export default function CreateTask() {
 
     const handleDateChange = (date: Date) => {
         setSelectedDate(date);
+    };
+
+    const handleBoxToggle = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        if (!canUseTaskBox) {
+            router.push("/settings/premium");
+            return;
+        }
+
+        setCreateInBox((current) => !current);
     };
 
     return (
@@ -122,12 +139,12 @@ export default function CreateTask() {
                     />
 
                     <Pressable
-                        onPress={() => setCreateInBox((current) => !current)}
+                        onPress={handleBoxToggle}
                         style={({ pressed }) => [
                             styles.boxToggle,
                             {
                                 backgroundColor: createInBox ? colors.text : colors.task,
-                                borderColor: createInBox ? colors.text : colors.border,
+                                borderColor: !canUseTaskBox ? "#F4BA00" : createInBox ? colors.text : colors.border,
                                 opacity: pressed || isCreatingTask ? 0.75 : 1,
                             },
                         ]}

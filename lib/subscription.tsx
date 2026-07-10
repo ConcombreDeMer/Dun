@@ -17,7 +17,10 @@ type SubscriptionPackages = {
 type SubscriptionContextValue = {
   activeEntitlement: CustomerInfo["entitlements"]["active"][string] | null;
   canUseAdvancedStats: boolean;
+  canUseNotificationReminders: boolean;
+  canUseNotificationWeekends: boolean;
   canUsePremiumColorThemes: boolean;
+  canUseTaskBox: boolean;
   customerInfo: CustomerInfo | null;
   currentOffering: PurchasesOffering | null;
   error: string | null;
@@ -188,7 +191,10 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
   const value = useMemo<SubscriptionContextValue>(() => ({
     activeEntitlement,
     canUseAdvancedStats: isPremium,
+    canUseNotificationReminders: isPremium,
+    canUseNotificationWeekends: isPremium,
     canUsePremiumColorThemes: isPremium,
+    canUseTaskBox: isPremium,
     customerInfo,
     currentOffering,
     error,

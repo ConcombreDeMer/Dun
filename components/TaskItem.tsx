@@ -13,6 +13,7 @@ import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import { confirmLateAdjustment, needsLateAdjustmentConfirmation } from "../lib/lateAdjustmentConfirmation";
 import { useProfile } from "../lib/profile";
+import { useSubscription } from "../lib/subscription";
 import { getTags, TAGS_QUERY_KEY } from "../lib/tags";
 import { useTheme } from "../lib/ThemeContext";
 import { useOptimisticTaskMutations } from "../lib/useOptimisticTaskMutations";
@@ -118,6 +119,7 @@ export const TaskItem = ({
   const { actualTheme, colors } = useTheme();
   const { fontSizes } = useFont();
   const { t } = useAppTranslation();
+  const { canUseTaskBox } = useSubscription();
   const userId = useAuthUserId();
   const { data: tags = [] } = useQuery({
     queryKey: [...TAGS_QUERY_KEY, userId],
@@ -284,7 +286,7 @@ export const TaskItem = ({
   }, [mode, pressScale]);
 
   const renderRightActions = useCallback(() => {
-    const shouldShowBoxAction = mode === "normal" && !!item.date;
+    const shouldShowBoxAction = canUseTaskBox && mode === "normal" && !!item.date;
 
     if (shouldShowBoxAction) {
       return (
@@ -351,7 +353,7 @@ export const TaskItem = ({
         </SquircleButton>
       </View>
     );
-  }, [handleMoveToBoxAfterSwipe, handleSwipeLeft, fontSizes.base, item.date, mode, t]);
+  }, [canUseTaskBox, handleMoveToBoxAfterSwipe, handleSwipeLeft, fontSizes.base, item.date, mode, t]);
 
   const renderLeftActions = useCallback(() => {
     const isInTaskBox = !item.date || mode === "box";

@@ -391,6 +391,10 @@ box:
   title: "Task box"
   subtitle: "Undated tasks stay here until you place them on a day."
   emptyState: "No tasks in the box"
+  premium:
+    title: "Task box"
+    message: "Set aside tasks you do not want to schedule right away. Use the Box button on a task, then find it here when you are ready to give it a date."
+    cta: "Discover Dun +"
 createTask:
   headline:
     title: "Create"
@@ -584,8 +588,8 @@ stats:
       lateAdjustmentRate: "Adjustment rate"
       lateAdjustmentCount: "Adjusted tasks: {{count}}"
     premium:
-      title: "Dun Plus charts"
-      message: "Unlock detailed charts and tag analysis with Dun Plus."
+      title: "Charts"
+      message: "Unlock deeper stats to track your progress and stay on track with Dun Plus."
       cta: "Discover Dun +"
     tags:
       title: "Tag usage"
