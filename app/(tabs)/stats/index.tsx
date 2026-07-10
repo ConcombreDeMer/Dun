@@ -39,8 +39,8 @@ import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
-import Animated from 'react-native-reanimated';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
 
 
 type Slide = {
@@ -117,6 +117,7 @@ export default function Stats() {
   const [activeSlide, setActiveSlide] = useState<Slide | null>(null);
   const [activeSlideIndex, setActiveSlideIndex] = useState(Number.MAX_SAFE_INTEGER);
   const [showUnusedTags, setShowUnusedTags] = useState(false);
+  const [showPremiumStatsDetails, setShowPremiumStatsDetails] = useState(false);
   const profileQuery = useProfile();
   const showLateAdjustmentStats = profileQuery.data?.lockPastDaysEnabled ?? true;
   const activeSlideSignatureRef = useRef<string | null>(null);
@@ -127,6 +128,7 @@ export default function Stats() {
     setPreferenceOptimistically,
   } = useStatsPreferences();
   const [loadingState, setLoadingState] = useState(true);
+  const effectivePeriod: StatsPeriod = canUseAdvancedStats ? period : 'Par semaine';
 
   // Gestionnaire pour les changements de slide
   const handleSlideChange = useCallback((slide: Slide) => {
@@ -146,11 +148,11 @@ export default function Stats() {
     setActiveSlide(slide);
 
     // Ne mettre à jour les stats que si ce n'est pas "Global"
-    if (period === 'Global') return;
+    if (effectivePeriod === 'Global') return;
 
     setSlideStats(slide.stats);
     setLoadingState(false);
-  }, [period]);
+  }, [effectivePeriod]);
 
   // FETCHING DES JOURS
 
@@ -187,7 +189,7 @@ export default function Stats() {
     () => calculateStats(getGlobalStatsDays(chartDaysData), statsPreferences),
     [chartDaysData, statsPreferences]
   );
-  const displayedStats = period === "Global" ? globalStats : slideStats || globalStats;
+  const displayedStats = effectivePeriod === "Global" ? globalStats : slideStats || globalStats;
   const includedTagStatsDateKeys = useMemo(() => {
     if (!activeSlide) {
       return null;
@@ -320,6 +322,11 @@ export default function Stats() {
     setShowInfoPopUp((current) => !current);
   }, []);
 
+  const togglePremiumStatsDetails = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowPremiumStatsDetails((current) => !current);
+  }, []);
+
   const handleSettingsPress = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push("/settings");
@@ -391,12 +398,25 @@ export default function Stats() {
         </View>
 
         <View style={styles.periodPickerContainer}>
-          <StatsPeriodMenu
-            period={period}
-            periodOptions={periodOptions}
-            getDisplayedPeriod={getDisplayedPeriod}
-            onPeriodChange={handlePeriodSelect}
-          />
+          {canUseAdvancedStats ? (
+            <StatsPeriodMenu
+              period={period}
+              periodOptions={periodOptions}
+              getDisplayedPeriod={getDisplayedPeriod}
+              onPeriodChange={handlePeriodSelect}
+            />
+          ) : (
+            <StatsBarGraph
+              activeSlideIndex={activeSlideIndex}
+              daysData={chartDaysData}
+              period={effectivePeriod}
+              statsPreferences={statsPreferences}
+              style={styles.inlineSummaryGraph}
+              summaryOnly
+              onSlideChange={handleSlideChange}
+              onSlideIndexChange={handleSlideIndexChange}
+            />
+          )}
 
           <StatsInfoButton
             onPress={toggleInfoPopup}
@@ -404,19 +424,21 @@ export default function Stats() {
         </View>
 
         <View style={styles.overviewSection}>
-          <StatsBarGraph
-            activeSlideIndex={activeSlideIndex}
-            daysData={chartDaysData}
-            period={period}
-            statsPreferences={statsPreferences}
-            onSlideChange={handleSlideChange}
-            onSlideIndexChange={handleSlideIndexChange}
-          />
+          {canUseAdvancedStats ? (
+            <StatsBarGraph
+              activeSlideIndex={activeSlideIndex}
+              daysData={chartDaysData}
+              period={effectivePeriod}
+              statsPreferences={statsPreferences}
+              onSlideChange={handleSlideChange}
+              onSlideIndexChange={handleSlideIndexChange}
+            />
+          ) : null}
           <StatsStreak
             activeSlideIndex={activeSlideIndex}
             daysData={chartDaysData}
             onSlideIndexChange={handleSlideIndexChange}
-            period={period}
+            period={effectivePeriod}
             value={streak.toString()}
           />
           <View style={styles.cardsContainer}>
@@ -448,7 +470,7 @@ export default function Stats() {
                 loading={displayedLoadingState}
               />
             </View>
-            {showLateAdjustmentStats ? (
+            {canUseAdvancedStats && showLateAdjustmentStats ? (
               <SquircleButton
                 activeOpacity={0.82}
                 cornerSmoothing={100}
@@ -486,28 +508,81 @@ export default function Stats() {
             <HorizontalBarGraph
               data={tagUsageStats}
               isLoading={!activeSlide || tagUsageSourceQuery.isLoading}
-              periodLabel={activeSlide?.periodLabel ?? getDisplayedPeriod(period)}
+              periodLabel={activeSlide?.periodLabel ?? getDisplayedPeriod(effectivePeriod)}
             />
           ) : (
-            <Squircle
-              style={[styles.premiumStatsCard, { backgroundColor: colors.card, borderColor: "#F4BA00" }]}
-              cornerSmoothing={100}
-              preserveSmoothing={true}
-            >
-              <View style={styles.premiumIcon}>
-                <SymbolView name="chart.bar.xaxis" size={24} tintColor="#2C2405" />
-              </View>
-              <Text style={[styles.premiumTitle, { color: colors.text }]}>
-                {t("stats.general.premium.title")}
-              </Text>
-              <Text style={[styles.premiumMessage, { color: colors.textSecondary }]}>
-                {t("stats.general.premium.message")}
-              </Text>
-              <PremiumCTAButton
-                title={t("stats.general.premium.cta")}
-                onPress={() => router.push("/settings/premium")}
-              />
-            </Squircle>
+            <View style={styles.premiumStatsAccordion}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showPremiumStatsDetails }}
+                onPress={togglePremiumStatsDetails}
+                style={styles.premiumStatsToggle}
+              >
+                <Text style={[styles.premiumStatsToggleText, { color: colors.textSecondary }]}>
+                  {t("stats.general.premium.more")}
+                </Text>
+                <SymbolView
+                  name={showPremiumStatsDetails ? "minus" : "plus"}
+                  size={16}
+                  tintColor={colors.textSecondary}
+                />
+              </Pressable>
+
+              {showPremiumStatsDetails ? (
+                <Animated.View
+                  entering={FadeInUp.duration(180)}
+                  exiting={FadeOutUp.duration(140)}
+                  style={styles.premiumStatsDetails}
+                >
+                  <Squircle
+                    style={[styles.premiumStatsCard, { backgroundColor: colors.card, borderColor: "#F4BA00" }]}
+                    cornerSmoothing={100}
+                    preserveSmoothing={true}
+                  >
+                    <View style={styles.premiumIcon}>
+                      <SymbolView name="chart.bar.xaxis" size={24} tintColor="#2C2405" />
+                    </View>
+                    <Text style={[styles.premiumTitle, { color: colors.text }]}>
+                      {t("stats.general.premium.title")}
+                    </Text>
+                    <Text style={[styles.premiumMessage, { color: colors.textSecondary }]}>
+                      {t("stats.general.premium.message")}
+                    </Text>
+                    <View style={[styles.premiumScreenshotShowcase, { backgroundColor: colors.input }]}>
+                      <View style={styles.premiumScreenshotLeftColumn}>
+                        <View style={[styles.premiumScreenshotFrame, styles.premiumScreenshotFrameTop]}>
+                          <Image
+                            source={require("@/assets/images/stats/premium/1.png")}
+                            resizeMode="contain"
+                            style={styles.premiumScreenshotImage}
+                          />
+                        </View>
+                        <View style={[styles.premiumScreenshotFrame, styles.premiumScreenshotFrameBottom]}>
+                          <Image
+                            source={require("@/assets/images/stats/premium/2.png")}
+                            resizeMode="contain"
+                            style={styles.premiumScreenshotImage}
+                          />
+                        </View>
+                      </View>
+                      <View style={styles.premiumScreenshotRightColumn}>
+                        <View style={[styles.premiumScreenshotFrame, styles.premiumScreenshotFrameRight]}>
+                          <Image
+                            source={require("@/assets/images/stats/premium/3.png")}
+                            resizeMode="contain"
+                            style={styles.premiumScreenshotImage}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                    <PremiumCTAButton
+                      title={t("stats.general.premium.cta")}
+                      onPress={() => router.push("/settings/premium")}
+                    />
+                  </Squircle>
+                </Animated.View>
+              ) : null}
+            </View>
           )}
         </View>
       </ScrollView>
@@ -638,12 +713,22 @@ const styles = StyleSheet.create({
     height: 100,
   },
   periodPickerContainer: {
-    marginBottom: 10,
-    width: "90%",
+    alignItems: "center",
     display: "flex",
     flexDirection: "row",
+    gap: 10,
     justifyContent: "space-between",
-    alignItems: "center",
+    marginBottom: 10,
+    width: "90%",
+  },
+  inlineSummaryGraph: {
+    flexGrow: 0,
+    flexShrink: 1,
+    height: 48,
+    minHeight: 48,
+    paddingBottom: 8,
+    paddingTop: 8,
+    width: "76%",
   },
   adjustmentMetric: {
     alignItems: "center",
@@ -686,10 +771,31 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     gap: 12,
-    marginTop: 8,
     paddingHorizontal: 24,
     paddingVertical: 28,
+    width: "100%",
+  },
+  premiumStatsAccordion: {
+    alignItems: "flex-end",
+    gap: 10,
+    marginTop: 2,
     width: "90%",
+  },
+  premiumStatsDetails: {
+    width: "100%",
+  },
+  premiumStatsToggle: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 6,
+    justifyContent: "center",
+    minHeight: 34,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
+  premiumStatsToggleText: {
+    fontFamily: "Satoshi-Medium",
+    fontSize: 18,
   },
   premiumIcon: {
     alignItems: "center",
@@ -709,5 +815,48 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
     textAlign: "center",
+  },
+  premiumScreenshotShowcase: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
+    padding: 18,
+    borderRadius: 20,
+    width: "100%",
+  },
+  premiumScreenshotLeftColumn: {
+    flex: 0.52,
+    gap: 14,
+  },
+  premiumScreenshotRightColumn: {
+    alignItems: "center",
+    flex: 0.48,
+    justifyContent: "center",
+    paddingTop: 22,
+  },
+  premiumScreenshotFrame: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+  },
+  premiumScreenshotFrameTop: {
+    aspectRatio: 498 / 501,
+    width: "100%",
+  },
+  premiumScreenshotFrameBottom: {
+    aspectRatio: 684 / 365,
+    width: "100%",
+  },
+  premiumScreenshotFrameRight: {
+    aspectRatio: 422 / 591,
+    width: "100%",
+  },
+  premiumScreenshotImage: {
+    height: "100%",
+    width: "100%",
   },
 });

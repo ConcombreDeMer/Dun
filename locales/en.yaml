@@ -589,8 +589,9 @@ stats:
       lateAdjustmentCount: "Adjusted tasks: {{count}}"
     premium:
       title: "Charts"
-      message: "Unlock deeper stats to track your progress and stay on track with Dun Plus."
+      message: "Unlock deeper stats, explore your progress by week, month, or year, and stay on track with Dun Plus."
       cta: "Discover Dun +"
+      more: "More stats"
     tags:
       title: "Tag usage"
       total: "Total"

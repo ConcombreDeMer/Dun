@@ -25,8 +25,10 @@ import {
   FlatList,
   Pressable,
   StyleSheet,
+  StyleProp,
   Text,
   View,
+  ViewStyle,
   useWindowDimensions,
 } from "react-native";
 import Animated, { FadeIn, LinearTransition } from "react-native-reanimated";
@@ -40,6 +42,8 @@ interface StatsBarGraphProps {
   onSlideChange?: (slide: Slide) => void;
   onSlideIndexChange?: (index: number) => void;
   onSlidesLengthChange?: (length: number) => void;
+  style?: StyleProp<ViewStyle>;
+  summaryOnly?: boolean;
 }
 
 type Period = "Par semaine" | "Par mois" | "Par année" | "Global";
@@ -638,6 +642,8 @@ export default memo(function StatsBarGraph({
   onSlideChange,
   onSlideIndexChange,
   onSlidesLengthChange,
+  style,
+  summaryOnly = false,
 }: StatsBarGraphProps) {
   const { width: screenWidth } = useWindowDimensions();
   const { actualTheme, colors } = useTheme();
@@ -783,7 +789,14 @@ export default memo(function StatsBarGraph({
     : "";
 
   return (
-    <Squircle style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <Squircle
+      style={[
+        styles.container,
+        summaryOnly && styles.summaryContainer,
+        { backgroundColor: colors.card, borderColor: colors.border },
+        style,
+      ]}
+    >
       <View style={styles.topBar}>
         <Text
           numberOfLines={1}
@@ -812,7 +825,7 @@ export default memo(function StatsBarGraph({
         </View>
       </View>
 
-      {displayedSlides.length === 0 ? (
+      {summaryOnly ? null : displayedSlides.length === 0 ? (
         <EmptyState colors={colors} itemWidth={itemWidth} text={t("stats.chart.empty")} />
       ) : (
         <>
@@ -880,6 +893,10 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',
     width: "90%",
+  },
+  summaryContainer: {
+    minHeight: 76,
+    paddingBottom: 14,
   },
   topBar: {
     alignItems: "center",

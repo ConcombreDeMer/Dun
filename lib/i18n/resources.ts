@@ -746,8 +746,9 @@ export const resources = {
           },
           "premium": {
             "title": "Charts",
-            "message": "Unlock deeper stats to track your progress and stay on track with Dun Plus.",
-            "cta": "Discover Dun +"
+            "message": "Unlock deeper stats, explore your progress by week, month, or year, and stay on track with Dun Plus.",
+            "cta": "Discover Dun +",
+            "more": "More stats"
           },
           "tags": {
             "title": "Tag usage",
@@ -1792,8 +1793,9 @@ export const resources = {
           },
           "premium": {
             "title": "Graphiques",
-            "message": "Débloque des statistiques plus poussées pour suivre ton évolution et garder le cap avec Dun Plus.",
-            "cta": "Découvrir Dun +"
+            "message": "Débloque des statistiques plus poussées, explore tes progrès par semaine, par mois ou par année, et garde le cap avec Dun Plus.",
+            "cta": "Découvrir Dun +",
+            "more": "Plus de statistiques"
           },
           "tags": {
             "title": "Utilisation des tags",

@@ -589,8 +589,9 @@ stats:
       lateAdjustmentCount: "Tâches réajustées : {{count}}"
     premium:
       title: "Graphiques"
-      message: "Débloque des statistiques plus poussées pour suivre ton évolution et garder le cap avec Dun Plus."
+      message: "Débloque des statistiques plus poussées, explore tes progrès par semaine, par mois ou par année, et garde le cap avec Dun Plus."
       cta: "Découvrir Dun +"
+      more: "Plus de statistiques"
     tags:
       title: "Utilisation des tags"
       total: "Total"
