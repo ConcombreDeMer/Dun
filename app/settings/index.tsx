@@ -9,13 +9,15 @@ import { useAppTranslation } from "@/lib/i18n";
 import { getCharacterImageSource } from "@/lib/imageHelper";
 import { patchProfileCache } from "@/lib/profile";
 import { SCREEN_HEADER_HEIGHT, SCREEN_HEADER_HORIZONTAL_PADDING, SCREEN_HEADER_TITLE_LINE_HEIGHT, SCREEN_HEADER_TOP_OFFSET } from "@/lib/screenHeader";
+import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from 'expo-haptics';
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
-import { useEffect, useState } from "react";
+import { SymbolView } from "expo-symbols";
+import { useCallback, useEffect, useState } from "react";
 import {
     Alert,
     Image,
@@ -34,6 +36,7 @@ export default function Settings() {
     const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
     const { t } = useAppTranslation();
+    const { isPremium, isLoading: isSubscriptionLoading } = useSubscription();
     const queryClient = useQueryClient();
     const [user, setUser] = useState<any>(null);
     const [isSubscribed, setIsSubscribed] = useState(false);
@@ -105,24 +108,34 @@ export default function Settings() {
         }
     }, [user]);
 
-    const toggleDaily = async () => {
+    const updateDaily = useCallback(async (value: boolean) => {
         if (user) {
-            const newValue = !dailyEnabled;
-            setDailyEnabled(newValue);
+            setDailyEnabled(value);
             const { error } = await supabase
                 .from("Profiles")
-                .update({ dailyEnabled: newValue })
+                .update({ dailyEnabled: value })
                 .eq("id", user.id);
             if (error) {
                 console.error("Erreur lors de la mise à jour des informations de l'utilisateur:", error);
+                setDailyEnabled(!value);
             } else {
-                patchProfileCache(queryClient, user.id, { dailyEnabled: newValue });
+                patchProfileCache(queryClient, user.id, { dailyEnabled: value });
                 console.log("Informations de l'utilisateur mises à jour avec succès");
             }
         }
+    }, [queryClient, user]);
+
+    const toggleDaily = async (value: boolean) => {
+        if (!value && !isPremium) {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/settings/premium");
+            return;
+        }
+
+        await updateDaily(value);
     };
 
-    const updatePastDaysLock = async (value: boolean) => {
+    const updatePastDaysLock = useCallback(async (value: boolean) => {
         if (user) {
             setLockPastDaysEnabled(value);
             const { error } = await supabase
@@ -137,9 +150,15 @@ export default function Settings() {
                 console.log("Verrouillage des jours passés mis à jour avec succès");
             }
         }
-    };
+    }, [queryClient, user]);
 
     const togglePastDaysLock = async (value: boolean) => {
+        if (!value && !isPremium) {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/settings/premium");
+            return;
+        }
+
         const title = value
             ? t("settings.root.lockPastDaysAlert.enableTitle")
             : t("settings.root.lockPastDaysAlert.disableTitle");
@@ -165,6 +184,22 @@ export default function Settings() {
             ]
         );
     };
+
+    useEffect(() => {
+        if (isSubscriptionLoading || isPremium || lockPastDaysEnabled || !user) {
+            return;
+        }
+
+        void updatePastDaysLock(true);
+    }, [isPremium, isSubscriptionLoading, lockPastDaysEnabled, updatePastDaysLock, user]);
+
+    useEffect(() => {
+        if (isSubscriptionLoading || isPremium || dailyEnabled || !user) {
+            return;
+        }
+
+        void updateDaily(true);
+    }, [dailyEnabled, isPremium, isSubscriptionLoading, updateDaily, user]);
 
     const handleRestMode = async () => {
         // setShowReposModal(false);
@@ -237,149 +272,189 @@ export default function Settings() {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
+                    {
+                        !isSubscribed && (
+
+                            <SquircleButton
+                                style={{
+                                    position: "relative",
+                                    height: 150,
+                                    borderRadius: 30,
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    borderWidth: 1,
+                                    borderColor: "#FFDB7F",
+                                    backgroundColor: "#FFE39C",
+                                    marginBottom: 12,
+                                }}
+                                onPress={() => router.push("/settings/premium")}
+                            >
+
+                                <View
+                                    style={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        alignItems: "flex-start",
+                                        position: "absolute",
+                                        top: 20,
+                                        left: 20,
+                                    }}
+                                >
+                                    <View
+                                        style={{
+                                            display: "flex",
+                                            flexDirection: "row",
+                                            alignItems: "center",
+                                            gap: 10,
+                                        }}
+                                    >
+                                        <Text
+                                            style={{
+                                                color: colors.text,
+                                                fontSize: fontSizes['6xl'],
+                                                fontFamily: 'Satoshi-Black',
+                                            }}
+                                        >
+                                            Dun
+                                        </Text>
+                                        <Text
+                                            style={{
+                                                color: "#FFBB00",
+                                                fontSize: fontSizes['7xl'],
+                                                fontFamily: 'Satoshi-Black',
+                                            }}
+                                        >
+                                            +
+                                        </Text>
+                                    </View>
+
+                                    <Text
+                                        style={{
+                                            color: colors.text,
+                                            fontSize: fontSizes.lg,
+                                            fontFamily: 'Satoshi-Medium',
+                                            opacity: 0.3,
+                                            marginTop: -6,
+                                        }}
+                                    >
+                                        {t("settings.root.premiumTagline")}
+                                    </Text>
+
+                                </View>
+
+
+
+                                <Image
+                                    source={getCharacterImageSource('16', actualTheme)}
+                                    style={{
+                                        height: '90%',
+                                        aspectRatio: 1,
+                                        alignSelf: "flex-end",
+                                    }}
+                                />
+
+
+
+
+
+                            </SquircleButton>
+                        )
+                    }
 
                     <NavItem image="person.fill" title={t("settings.root.account")} onPress={() => router.push("/settings/account")} />
                     <NavItem image="bell.fill" title={t("settings.root.notifications")} onPress={() => router.push("/settings/notifications")} />
                     <NavItem image="display" title={t("settings.root.display")} onPress={() => router.push("/settings/display")} />
                     <NavItem image="tag.fill" title={t("settings.root.tags")} onPress={() => router.push("/settings/tags")} />
-                    <Squircle
-                        style={{
-                            width: '100%',
-                            backgroundColor: colors.card,
-                            borderColor: colors.border,
-                            borderRadius: 15,
-                            paddingHorizontal: 24,
-                            height: 64,
-                        }}
-                        cornerSmoothing={100} // 0-100
-                        preserveSmoothing={true} // false matches figma, true has more rounding
-                    >
-                        <SwitchItem
-                            image="list.clipboard.fill"
-                            title={t("settings.root.daily")}
-                            event={toggleDaily}
-                            currentValue={dailyEnabled}
-                        />
 
-                    </Squircle>
-                    <Squircle
+                    <View
                         style={{
-                            width: '100%',
-                            backgroundColor: colors.card,
-                            borderColor: colors.border,
-                            borderRadius: 15,
-                            paddingHorizontal: 24,
-                            height: 64,
+                            width: '80%',
+                            backgroundColor: "#050505",
+                            height: 2,
+                            marginVertical: 24,
+                            alignSelf: "center",
+                            opacity: 0.2,
+                            borderRadius: 10,
                         }}
-                        cornerSmoothing={100}
-                        preserveSmoothing={true}
                     >
-                        <SwitchItem
-                            image="lock.fill"
-                            title={t("settings.root.lockPastDays")}
-                            event={togglePastDaysLock}
-                            currentValue={lockPastDaysEnabled}
-                        />
-                    </Squircle>
+                    </View>
 
-                    <NavItem image="powersleep" title={t("settings.root.rest")} onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                        setShowReposModal(true);
-                    }} />
+                    <View style={styles.premiumSettingContainer}>
+
+
+                        {!isPremium ? (
+                            <View style={styles.plusBadge}>
+                                <SymbolView name="plus" size={15} weight="bold" tintColor="#2C2405" />
+                            </View>
+                        ) : null}
+                        <Squircle
+                            style={{
+                                width: '100%',
+                                backgroundColor: colors.card,
+                                borderColor: colors.border,
+                                borderRadius: 15,
+                                paddingHorizontal: 24,
+                                height: 64,
+                            }}
+                            cornerSmoothing={100} // 0-100
+                            preserveSmoothing={true} // false matches figma, true has more rounding
+                        >
+                            <SwitchItem
+                                image="list.clipboard.fill"
+                                title={t("settings.root.daily")}
+                                event={toggleDaily}
+                                currentValue={dailyEnabled}
+                            />
+
+                        </Squircle>
+                    </View>
+                    <View style={styles.premiumSettingContainer}>
+                        {!isPremium ? (
+                            <View style={styles.plusBadge}>
+                                <SymbolView name="plus" size={15} weight="bold" tintColor="#2C2405" />
+                            </View>
+                        ) : null}
+                        <Squircle
+                            style={{
+                                width: '100%',
+                                backgroundColor: colors.card,
+                                borderColor: colors.border,
+                                borderRadius: 15,
+                                paddingHorizontal: 24,
+                                height: 64,
+                            }}
+                            cornerSmoothing={100}
+                            preserveSmoothing={true}
+                        >
+                            <SwitchItem
+                                image="lock.fill"
+                                title={t("settings.root.lockPastDays")}
+                                event={togglePastDaysLock}
+                                currentValue={lockPastDaysEnabled}
+                            />
+                        </Squircle>
+                    </View>
+
+                    <View style={styles.premiumSettingContainer}>
+                        {!isPremium ? (
+                            <View style={styles.plusBadge}>
+                                <SymbolView name="plus" size={15} weight="bold" tintColor="#2C2405" />
+                            </View>
+                        ) : null}
+                        <NavItem image="powersleep" title={t("settings.root.rest")} onPress={() => {
+                            if (!isPremium) {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                router.push("/settings/premium");
+                                return;
+                            }
+
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                            setShowReposModal(true);
+                        }} />
+                    </View>
 
                 </ScrollView>
 
-
-                {
-                    !isSubscribed && (
-
-                        <SquircleButton
-                            style={{
-                                position: "absolute",
-                                bottom: 120,
-                                left: 20,
-                                right: 20,
-                                height: 150,
-                                borderRadius: 30,
-                                justifyContent: "center",
-                                alignItems: "center",
-                                borderWidth: 1,
-                                borderColor: "#FFDB7F",
-                                backgroundColor: "#FFE39C",
-                            }}
-                            onPress={() => router.push("/settings/premium")}
-                        >
-
-                            <View
-                                style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "flex-start",
-                                    position: "absolute",
-                                    top: 20,
-                                    left: 20,
-                                }}
-                            >
-                                <View
-                                    style={{
-                                        display: "flex",
-                                        flexDirection: "row",
-                                        alignItems: "center",
-                                        gap: 10,
-                                    }}
-                                >
-                                    <Text
-                                        style={{
-                                            color: colors.text,
-                                            fontSize: fontSizes['6xl'],
-                                            fontFamily: 'Satoshi-Black',
-                                        }}
-                                    >
-                                        Dun
-                                    </Text>
-                                    <Text
-                                        style={{
-                                            color: "#FFBB00",
-                                            fontSize: fontSizes['7xl'],
-                                            fontFamily: 'Satoshi-Black',
-                                        }}
-                                    >
-                                        +
-                                    </Text>
-                                </View>
-
-                                <Text
-                                    style={{
-                                        color: colors.text,
-                                        fontSize: fontSizes.lg,
-                                        fontFamily: 'Satoshi-Medium',
-                                        opacity: 0.3,
-                                        marginTop: -6,
-                                    }}
-                                >
-                                    {t("settings.root.premiumTagline")}
-                                </Text>
-
-                            </View>
-
-
-
-                            <Image
-                                source={getCharacterImageSource('16', actualTheme)}
-                                style={{
-                                    height: '90%',
-                                    aspectRatio: 1,
-                                    alignSelf: "flex-end",
-                                }}
-                            />
-
-
-
-
-
-                        </SquircleButton>
-                    )
-                }
 
             </View>
 
@@ -472,6 +547,26 @@ const styles = StyleSheet.create({
         display: "flex",
         flexDirection: "column",
         gap: 12,
+        paddingRight: 8,
+        paddingLeft: 8,
+    },
+    premiumSettingContainer: {
+        overflow: "visible",
+        paddingTop: 8,
+        position: "relative",
+        width: "100%",
+    },
+    plusBadge: {
+        alignItems: "center",
+        backgroundColor: "#F4BA00",
+        borderRadius: 999,
+        height: 28,
+        justifyContent: "center",
+        position: "absolute",
+        right: 0,
+        top: 0,
+        width: 28,
+        zIndex: 2,
     },
 
 
