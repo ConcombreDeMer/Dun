@@ -20,6 +20,7 @@ import {
 import { isPastAppDateKey, toAppDateKey } from "@/lib/date";
 import { taskEmitter } from "@/lib/eventEmitter";
 import { useAppTranslation } from "@/lib/i18n";
+import { useProfile } from "@/lib/profile";
 import { useTheme } from "@/lib/ThemeContext";
 import { useOptimisticTaskMutations } from "@/lib/useOptimisticTaskMutations";
 
@@ -34,8 +35,10 @@ export default function CreateTask() {
     const { colors } = useTheme();
     const { t } = useAppTranslation();
     const { createTaskOptimistically, isCreatingTask } = useOptimisticTaskMutations();
+    const profileQuery = useProfile();
     const selectedDateKey = toAppDateKey(selectedDate);
-    const isSelectedDatePast = isPastAppDateKey(selectedDateKey);
+    const lockPastDaysEnabled = profileQuery.data?.lockPastDaysEnabled ?? true;
+    const isSelectedDatePast = lockPastDaysEnabled && isPastAppDateKey(selectedDateKey);
 
     const leaveCreateTask = () => {
         if (router.canGoBack()) {
@@ -142,7 +145,7 @@ export default function CreateTask() {
                             disabled={isCreatingTask}
                             bold
                             showTodayButton
-                            minimumDate={new Date()}
+                            minimumDate={lockPastDaysEnabled ? new Date() : undefined}
                             minimumDateAlertMessage={t("createTask.alerts.pastDate")}
                         />
                     ) : null}

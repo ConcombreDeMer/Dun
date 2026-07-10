@@ -7,8 +7,11 @@ export type LateAdjustmentCandidate = {
   resolved_at?: string | null;
 };
 
-export const needsLateAdjustmentConfirmation = (task?: LateAdjustmentCandidate | null) => {
-  return Boolean(task?.resolved_at && !task.late_adjusted_at);
+export const needsLateAdjustmentConfirmation = (
+  task?: LateAdjustmentCandidate | null,
+  lockPastDaysEnabled = true
+) => {
+  return Boolean(lockPastDaysEnabled && task?.resolved_at && !task.late_adjusted_at);
 };
 
 export const createLateAdjustmentCancelledError = () => {

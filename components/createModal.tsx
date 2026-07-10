@@ -9,6 +9,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Alert, Animated, Easing, InputAccessoryView, Keyboard, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { isPastAppDateKey, toAppDateKey } from "../lib/date";
 import { useAppTranslation } from "../lib/i18n";
+import { useProfile } from "../lib/profile";
 import SecondaryButton from "./secondaryButton";
 import TagSelector from "./TagSelector";
 
@@ -28,9 +29,11 @@ export default function CreateModal({ accessoryId = "createTaskAccessory", onClo
     const { fontSizes } = React.useContext(FontContext)!;
     const { t } = useAppTranslation();
     const { createTaskOptimistically } = useOptimisticTaskMutations();
+    const profileQuery = useProfile();
     const selectedDate = useStore((state) => state.selectedDate) || new Date();
     const selectedDateKey = toAppDateKey(selectedDate);
-    const isSelectedDatePast = isPastAppDateKey(selectedDateKey);
+    const lockPastDaysEnabled = profileQuery.data?.lockPastDaysEnabled ?? true;
+    const isSelectedDatePast = lockPastDaysEnabled && isPastAppDateKey(selectedDateKey);
 
 
     useEffect(() => {

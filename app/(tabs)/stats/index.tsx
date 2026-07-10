@@ -92,6 +92,7 @@ export default function Stats() {
   const [activeSlide, setActiveSlide] = useState<Slide | null>(null);
   const [showUnusedTags, setShowUnusedTags] = useState(false);
   const profileQuery = useProfile();
+  const showLateAdjustmentStats = profileQuery.data?.lockPastDaysEnabled ?? true;
   const activeSlideSignatureRef = useRef<string | null>(null);
   const lastPeriodChangeAtRef = useRef(0);
   const {
@@ -478,36 +479,38 @@ export default function Stats() {
                 loading={displayedLoadingState}
               />
             </View>
-            <SquircleButton
-              activeOpacity={0.82}
-              cornerSmoothing={100}
-              onPress={() => router.push("/stats/adjustmentExplain")}
-              preserveSmoothing
-              style={[styles.adjustmentMetric, { backgroundColor: colors.card, borderColor: colors.border }]}
-            >
-              <View style={[styles.adjustmentIcon, { backgroundColor: colors.background }]}>
-                <SymbolView name="arrow.triangle.2.circlepath" size={23} tintColor={colors.textSecondary} />
-              </View>
-              <View style={styles.adjustmentTextGroup}>
-                <Text style={[styles.adjustmentTitle, { color: colors.text, fontSize: fontSizes.lg }]}>
-                  {t('stats.general.cards.lateAdjustmentRate')}
-                </Text>
-                <Text style={[styles.adjustmentSubtitle, { color: colors.textSecondary }]}>
-                  {t('stats.general.cards.lateAdjustmentCount', { count: displayedStats.lateAdjustedTasksCount })}
-                </Text>
-              </View>
-              {displayedLoadingState ? (
-                <Animated.Text
-                  style={[styles.adjustmentValue, { color: colors.text, fontSize: fontSizes['3xl'] }]}
-                />
-              ) : (
-                <Animated.Text
-                  style={[styles.adjustmentValue, { color: colors.text, fontSize: fontSizes['3xl'] }]}
-                >
-                  {displayedStats.lateAdjustmentRate}
-                </Animated.Text>
-              )}
-            </SquircleButton>
+            {showLateAdjustmentStats ? (
+              <SquircleButton
+                activeOpacity={0.82}
+                cornerSmoothing={100}
+                onPress={() => router.push("/stats/adjustmentExplain")}
+                preserveSmoothing
+                style={[styles.adjustmentMetric, { backgroundColor: colors.card, borderColor: colors.border }]}
+              >
+                <View style={[styles.adjustmentIcon, { backgroundColor: colors.background }]}>
+                  <SymbolView name="arrow.triangle.2.circlepath" size={23} tintColor={colors.textSecondary} />
+                </View>
+                <View style={styles.adjustmentTextGroup}>
+                  <Text style={[styles.adjustmentTitle, { color: colors.text, fontSize: fontSizes.lg }]}>
+                    {t('stats.general.cards.lateAdjustmentRate')}
+                  </Text>
+                  <Text style={[styles.adjustmentSubtitle, { color: colors.textSecondary }]}>
+                    {t('stats.general.cards.lateAdjustmentCount', { count: displayedStats.lateAdjustedTasksCount })}
+                  </Text>
+                </View>
+                {displayedLoadingState ? (
+                  <Animated.Text
+                    style={[styles.adjustmentValue, { color: colors.text, fontSize: fontSizes['3xl'] }]}
+                  />
+                ) : (
+                  <Animated.Text
+                    style={[styles.adjustmentValue, { color: colors.text, fontSize: fontSizes['3xl'] }]}
+                  >
+                    {displayedStats.lateAdjustmentRate}
+                  </Animated.Text>
+                )}
+              </SquircleButton>
+            ) : null}
           </View>
 
           {canUseAdvancedStats ? (

@@ -19,6 +19,7 @@ import ReAnimated, {
 } from "react-native-reanimated";
 import { isPastAppDateKey, toAppDateKey } from "../lib/date";
 import { useAppTranslation } from "../lib/i18n";
+import { useProfile } from "../lib/profile";
 import { useTheme } from "../lib/ThemeContext";
 import TagSelector from "./TagSelector";
 
@@ -51,9 +52,11 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
   const { fontSizes } = React.useContext(FontContext)!;
   const { t } = useAppTranslation();
   const { createTaskOptimistically } = useOptimisticTaskMutations();
+  const profileQuery = useProfile();
   const selectedDate = useStore((state) => state.selectedDate) || new Date();
   const selectedDateKey = toAppDateKey(selectedDate);
-  const isSelectedDatePast = isPastAppDateKey(selectedDateKey);
+  const lockPastDaysEnabled = profileQuery.data?.lockPastDaysEnabled ?? true;
+  const isSelectedDatePast = lockPastDaysEnabled && isPastAppDateKey(selectedDateKey);
   const createActionGradientColors =
     actualTheme === "dark"
       ? (["rgba(255, 255, 255, 0.92)", "rgba(255, 255, 255, 0.68)"] as const)

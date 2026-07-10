@@ -12,6 +12,7 @@ import { fromAppDateKey, isPastAppDateKey, toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import { confirmLateAdjustment, needsLateAdjustmentConfirmation } from "../lib/lateAdjustmentConfirmation";
+import { useProfile } from "../lib/profile";
 import { getTags, TAGS_QUERY_KEY } from "../lib/tags";
 import { useTheme } from "../lib/ThemeContext";
 import { useOptimisticTaskMutations } from "../lib/useOptimisticTaskMutations";
@@ -123,6 +124,8 @@ export const TaskItem = ({
     queryFn: () => getTags(userId),
     enabled: !!userId,
   });
+  const profileQuery = useProfile();
+  const lockPastDaysEnabled = profileQuery.data?.lockPastDaysEnabled ?? true;
   const dotScale = useSharedValue(item.done ? 1 : 0);
   const rowOpacity = useSharedValue(1);
   const rowScale = useSharedValue(1);
@@ -180,7 +183,7 @@ export const TaskItem = ({
   const handleSwipeLeft = useCallback(() => {
     void (async () => {
       if (isReadOnly || isTaskDeletePending(item.id)) return;
-      if (needsLateAdjustmentConfirmation(item) && !(await confirmLateAdjustment(t))) return;
+      if (needsLateAdjustmentConfirmation(item, lockPastDaysEnabled) && !(await confirmLateAdjustment(t))) return;
 
       swipeableRef.current?.close();
       itemOpacity.value = withTiming(0, { duration: 600 }, (finished) => {
@@ -190,7 +193,7 @@ export const TaskItem = ({
       });
       translateX.value = withTiming(-screenWidth, { duration: 600 });
     })();
-  }, [handleDeleteAfterSwipe, isReadOnly, isTaskDeletePending, item, t, translateX, itemOpacity, screenWidth]);
+  }, [handleDeleteAfterSwipe, isReadOnly, isTaskDeletePending, item, lockPastDaysEnabled, t, translateX, itemOpacity, screenWidth]);
 
   const moveTaskToDate = useCallback((nextDateKey: string | null) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -217,7 +220,7 @@ export const TaskItem = ({
         return;
       }
 
-      if (needsLateAdjustmentConfirmation(item) && !(await confirmLateAdjustment(t))) {
+      if (needsLateAdjustmentConfirmation(item, lockPastDaysEnabled) && !(await confirmLateAdjustment(t))) {
         swipeableRef.current?.close();
         return;
       }
@@ -230,7 +233,7 @@ export const TaskItem = ({
       });
       translateX.value = withTiming(screenWidth, { duration: 300 });
     })();
-  }, [isReadOnly, isTaskMovePending, item, t, translateX, itemOpacity, screenWidth, moveTaskToDate]);
+  }, [isReadOnly, isTaskMovePending, item, lockPastDaysEnabled, t, translateX, itemOpacity, screenWidth, moveTaskToDate]);
 
   const handlePostpone = useCallback(() => {
     const sourceDate = item.date ? new Date(item.date) : new Date();
@@ -245,7 +248,7 @@ export const TaskItem = ({
   const handleMoveToBoxAfterSwipe = useCallback(() => {
     void (async () => {
       if (isReadOnly || isTaskMovePending(item.id)) return;
-      if (needsLateAdjustmentConfirmation(item) && !(await confirmLateAdjustment(t))) return;
+      if (needsLateAdjustmentConfirmation(item, lockPastDaysEnabled) && !(await confirmLateAdjustment(t))) return;
 
       swipeableRef.current?.close();
       itemOpacity.value = withTiming(0, { duration: 600 }, (finished) => {
@@ -255,7 +258,7 @@ export const TaskItem = ({
       });
       translateX.value = withTiming(-screenWidth, { duration: 600 });
     })();
-  }, [isReadOnly, isTaskMovePending, item, t, itemOpacity, moveTaskToDate, screenWidth, translateX]);
+  }, [isReadOnly, isTaskMovePending, item, lockPastDaysEnabled, t, itemOpacity, moveTaskToDate, screenWidth, translateX]);
 
   const suppressNextPressAfterSwipe = useCallback(() => {
     if (mode !== "box") {
@@ -381,7 +384,7 @@ export const TaskItem = ({
 
     const targetDateKey = moveToDateKey ?? toAppDateKey(new Date());
     const isTargetToday = targetDateKey === toAppDateKey(new Date());
-    const isTargetLocked = isPastAppDateKey(targetDateKey);
+    const isTargetLocked = lockPastDaysEnabled && isPastAppDateKey(targetDateKey);
     const targetDate = fromAppDateKey(targetDateKey);
     const actionWidth = isTargetToday ? 170 : 190;
     const actionText = isTargetToday
@@ -417,7 +420,7 @@ export const TaskItem = ({
         </SquircleButton>
       </View>
     );
-  }, [colors.checkbox, colors.textSecondary, fontSizes.base, handleMoveToToday, handlePostpone, item.date, mode, moveToDateKey, t]);
+  }, [colors.checkbox, colors.textSecondary, fontSizes.base, handleMoveToToday, handlePostpone, item.date, lockPastDaysEnabled, mode, moveToDateKey, t]);
 
   const animatedStyle = useAnimatedStyle(() => {
     const enterScale = disableAddedAnimations ? 1 : 0.3 + enterProgress.value * 0.7;
@@ -490,7 +493,7 @@ export const TaskItem = ({
   const handleCheckboxPress = useCallback(() => {
     void (async () => {
       if (isReadOnly) return;
-      if (needsLateAdjustmentConfirmation(item) && !(await confirmLateAdjustment(t))) return;
+      if (needsLateAdjustmentConfirmation(item, lockPastDaysEnabled) && !(await confirmLateAdjustment(t))) return;
 
       const nextDone = !visualDoneRef.current;
       visualDoneRef.current = nextDone;
@@ -508,7 +511,7 @@ export const TaskItem = ({
         easing: Easing.out(Easing.quad),
       });
     })();
-  }, [doneProgress, isReadOnly, item, t, handleToggleTask, dotScale]);
+  }, [doneProgress, isReadOnly, item, lockPastDaysEnabled, t, handleToggleTask, dotScale]);
 
   const handlePress = useCallback(() => {
     if (!isExtendable || isReadOnly) return;
@@ -730,7 +733,7 @@ export const TaskItem = ({
                 {item.name}
               </Animated.Text>
 
-              {(displayedLateDays || item.late_adjusted_at) ? (
+              {(displayedLateDays || (lockPastDaysEnabled && item.late_adjusted_at)) ? (
                 <View style={styles.taskBadges}>
                   {displayedLateDays ? (
                     <Text style={[styles.taskBadgeText, { color: colors.textSecondary }]}>
@@ -738,7 +741,7 @@ export const TaskItem = ({
                     </Text>
                   ) : null}
 
-                  {item.late_adjusted_at ? (
+                  {lockPastDaysEnabled && item.late_adjusted_at ? (
                     <Text style={[styles.taskBadgeText, { color: colors.textSecondary }]}>
                       {t("task.adjustedLabel")}
                     </Text>
