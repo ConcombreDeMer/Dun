@@ -45,6 +45,12 @@ settings:
     display: "Display"
     tags: "Tags"
     daily: "Daily"
+    lockPastDays: "Lock past days"
+    lockPastDaysAlert:
+      enableTitle: "Enable locking?"
+      enableMessage: "This mode protects your history.\n\n- Past days will be locked after they close.\n- Late edits will ask for confirmation.\n- They may count toward the adjustment rate.\n\nRecommended if you want strict and reliable statistics."
+      disableTitle: "Disable locking?"
+      disableMessage: "This mode makes your history freely editable.\n\n- You can edit past days.\n- Deletions will be permanent.\n- Adjustment warnings will be disabled.\n- The adjustment rate will be hidden.\n\nImportant: your statistics will be less strict."
     rest: "Rest"
     subscribed: "Subscribed to Dun Plus"
     defaultUserName: "User"

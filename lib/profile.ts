@@ -14,6 +14,7 @@ export type ProfilePreferencesRow = {
   restMode: boolean | null;
   restEndDate: string | null;
   dailyEnabled: boolean | null;
+  lockPastDaysEnabled: boolean | null;
   alertSetupActive: boolean | null;
   alertSetupHour: string | number | null;
   alertSetupMinute: string | number | null;
@@ -43,6 +44,7 @@ export const PROFILE_SELECT_COLUMNS = [
   "restMode",
   "restEndDate",
   "dailyEnabled",
+  "lockPastDaysEnabled",
   "alertSetupActive",
   "alertSetupHour",
   "alertSetupMinute",

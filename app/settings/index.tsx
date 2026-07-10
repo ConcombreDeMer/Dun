@@ -17,6 +17,7 @@ import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { useEffect, useState } from "react";
 import {
+    Alert,
     Image,
     Keyboard,
     ScrollView,
@@ -37,6 +38,7 @@ export default function Settings() {
     const [user, setUser] = useState<any>(null);
     const [isSubscribed, setIsSubscribed] = useState(false);
     const [dailyEnabled, setDailyEnabled] = useState(false);
+    const [lockPastDaysEnabled, setLockPastDaysEnabled] = useState(true);
     const [showReposModal, setShowReposModal] = useState(false);
 
     useEffect(() => {
@@ -84,7 +86,7 @@ export default function Settings() {
         if (user) {
             const { data, error } = await supabase
                 .from("Profiles")
-                .select("dailyEnabled")
+                .select("dailyEnabled, lockPastDaysEnabled")
                 .eq("id", user.id)
                 .single();
             if (error) {
@@ -92,6 +94,7 @@ export default function Settings() {
             } else {
                 console.log("Informations de l'utilisateur récupérées:", data);
                 setDailyEnabled(data.dailyEnabled);
+                setLockPastDaysEnabled(data.lockPastDaysEnabled ?? true);
             }
         }
     };
@@ -117,6 +120,50 @@ export default function Settings() {
                 console.log("Informations de l'utilisateur mises à jour avec succès");
             }
         }
+    };
+
+    const updatePastDaysLock = async (value: boolean) => {
+        if (user) {
+            setLockPastDaysEnabled(value);
+            const { error } = await supabase
+                .from("Profiles")
+                .update({ lockPastDaysEnabled: value })
+                .eq("id", user.id);
+            if (error) {
+                console.error("Erreur lors de la mise à jour du verrouillage des jours passés:", error);
+                setLockPastDaysEnabled(!value);
+            } else {
+                patchProfileCache(queryClient, user.id, { lockPastDaysEnabled: value });
+                console.log("Verrouillage des jours passés mis à jour avec succès");
+            }
+        }
+    };
+
+    const togglePastDaysLock = async (value: boolean) => {
+        const title = value
+            ? t("settings.root.lockPastDaysAlert.enableTitle")
+            : t("settings.root.lockPastDaysAlert.disableTitle");
+        const message = value
+            ? t("settings.root.lockPastDaysAlert.enableMessage")
+            : t("settings.root.lockPastDaysAlert.disableMessage");
+
+        Alert.alert(
+            title,
+            message,
+            [
+                {
+                    text: t("common.actions.cancel"),
+                    style: "cancel",
+                },
+                {
+                    text: t("common.actions.confirm"),
+                    style: value ? "default" : "destructive",
+                    onPress: () => {
+                        void updatePastDaysLock(value);
+                    },
+                },
+            ]
+        );
     };
 
     const handleRestMode = async () => {
@@ -214,6 +261,25 @@ export default function Settings() {
                             currentValue={dailyEnabled}
                         />
 
+                    </Squircle>
+                    <Squircle
+                        style={{
+                            width: '100%',
+                            backgroundColor: colors.card,
+                            borderColor: colors.border,
+                            borderRadius: 15,
+                            paddingHorizontal: 24,
+                            height: 64,
+                        }}
+                        cornerSmoothing={100}
+                        preserveSmoothing={true}
+                    >
+                        <SwitchItem
+                            image="lock.fill"
+                            title={t("settings.root.lockPastDays")}
+                            event={togglePastDaysLock}
+                            currentValue={lockPastDaysEnabled}
+                        />
                     </Squircle>
 
                     <NavItem image="powersleep" title={t("settings.root.rest")} onPress={() => {

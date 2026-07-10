@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUserId } from "./AuthSessionContext";
 import { isPastAppDateKey, toAppDateKey } from "./date";
 import { DAYS_QUERY_KEY } from "./daysQueryKeys";
+import { useProfile } from "./profile";
 import { TAG_USAGE_STATS_QUERY_KEY } from "./tags";
 import { createTask, deleteTask, moveTaskDate, resolveOverdueTask } from "./tasks";
 
@@ -102,6 +103,8 @@ const replaceTaskIdInCache = (
 export const useOptimisticTaskMutations = () => {
   const userId = useAuthUserId();
   const queryClient = useQueryClient();
+  const profileQuery = useProfile();
+  const lockPastDaysEnabled = profileQuery.data?.lockPastDaysEnabled ?? true;
   const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
   const invalidateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
@@ -146,7 +149,7 @@ export const useOptimisticTaskMutations = () => {
       throw new Error("Task name is required");
     }
 
-    if (dateKey && isPastAppDateKey(dateKey)) {
+    if (lockPastDaysEnabled && dateKey && isPastAppDateKey(dateKey)) {
       throw new Error("Impossible de créer une tâche dans un jour passé");
     }
 
@@ -216,7 +219,7 @@ export const useOptimisticTaskMutations = () => {
         });
       }
     }
-  }, [queryClient, scheduleInvalidate, tasksQueryKey, userId]);
+  }, [lockPastDaysEnabled, queryClient, scheduleInvalidate, tasksQueryKey, userId]);
 
   const deleteTaskOptimistically = useCallback(async (taskId: number, taskSnapshot?: TaskMutationSnapshot) => {
     await queryClient.cancelQueries({ queryKey: tasksQueryKey });

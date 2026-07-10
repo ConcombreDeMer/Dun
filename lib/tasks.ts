@@ -54,8 +54,27 @@ const getUserId = async () => {
 const getTodayKey = getTodayAppDateKey;
 const isPastDateKey = isPastAppDateKey;
 
-const getLateAdjustmentTimestamp = (task: LateAdjustableTask, now: string) => {
-  return task.resolved_at && !task.late_adjusted_at ? now : undefined;
+const getLateAdjustmentTimestamp = (
+  task: LateAdjustableTask,
+  now: string,
+  lockPastDaysEnabled = true
+) => {
+  return lockPastDaysEnabled && task.resolved_at && !task.late_adjusted_at ? now : undefined;
+};
+
+const getLockPastDaysEnabled = async (userId: string) => {
+  const { data, error } = await supabase
+    .from("Profiles")
+    .select("lockPastDaysEnabled")
+    .eq("id", userId)
+    .single();
+
+  if (error) {
+    console.error("Erreur lors de la récupération du verrouillage des jours passés:", error);
+    return true;
+  }
+
+  return data?.lockPastDaysEnabled ?? true;
 };
 
 const hydrateTaskClientKeys = (
@@ -122,6 +141,12 @@ export const fetchTaskList = async (cachedTasks: TaskListItem[] = [], userId?: s
 
 export const markTaskLateAdjustedIfResolved = async (taskId: number, userId?: string) => {
   const resolvedUserId = userId ?? await getUserId();
+  const lockPastDaysEnabled = await getLockPastDaysEnabled(resolvedUserId);
+
+  if (!lockPastDaysEnabled) {
+    return null;
+  }
+
   const { data: taskData, error: fetchError } = await supabase
     .from("Tasks")
     .select("resolved_at, late_adjusted_at")
@@ -133,7 +158,7 @@ export const markTaskLateAdjustedIfResolved = async (taskId: number, userId?: st
     throw new Error(fetchError?.message || "Tâche non trouvée");
   }
 
-  const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, new Date().toISOString());
+  const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, new Date().toISOString(), lockPastDaysEnabled);
 
   if (!lateAdjustedAt) {
     return null;
@@ -197,7 +222,9 @@ export const createTask = async ({
 }) => {
   const resolvedUserId = userId ?? await getUserId();
 
-  if (dateKey && isPastDateKey(dateKey)) {
+  const lockPastDaysEnabled = await getLockPastDaysEnabled(resolvedUserId);
+
+  if (lockPastDaysEnabled && dateKey && isPastDateKey(dateKey)) {
     throw new Error("Impossible de créer une tâche dans un jour passé");
   }
 
@@ -253,12 +280,14 @@ export const setTaskDone = async (taskId: number, nextDone: boolean, userId?: st
 
   const taskDateKey = taskData.date ? toAppDateKey(taskData.date) : null;
 
-  if (!taskData.resolved_at && taskDateKey && isPastDateKey(taskDateKey)) {
+  const lockPastDaysEnabled = await getLockPastDaysEnabled(resolvedUserId);
+
+  if (lockPastDaysEnabled && !taskData.resolved_at && taskDateKey && isPastDateKey(taskDateKey)) {
     throw new Error("Cette tâche appartient à un jour verrouillé");
   }
 
   const now = new Date().toISOString();
-  const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, now);
+  const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, now, lockPastDaysEnabled);
   const { error } = await supabase
     .from("Tasks")
     .update({
@@ -309,14 +338,15 @@ export const updateTaskDraft = async (
       : null;
   const didDateChange = previousDateKey !== nextDateKey;
   const todayKey = getTodayKey();
+  const lockPastDaysEnabled = await getLockPastDaysEnabled(resolvedUserId);
 
-  if (!taskData.resolved_at && previousDateKey && (isPastDateKey(previousDateKey, todayKey) || (nextDateKey && isPastDateKey(nextDateKey, todayKey)))) {
+  if (lockPastDaysEnabled && !taskData.resolved_at && previousDateKey && (isPastDateKey(previousDateKey, todayKey) || (nextDateKey && isPastDateKey(nextDateKey, todayKey)))) {
     throw new Error("Impossible de modifier une tâche d'un jour verrouillé");
   }
 
   const order = didDateChange ? await getNextTaskOrder(nextDateKey, resolvedUserId) : undefined;
   const savedAt = new Date().toISOString();
-  const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, savedAt);
+  const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, savedAt, lockPastDaysEnabled);
   const updatePayload: {
     name: string;
     description: string;
@@ -409,10 +439,11 @@ export const deleteTask = async (taskId: number, userId?: string) => {
   }
 
   const deletedTaskDate = taskData.date ? toAppDateKey(taskData.date) : null;
+  const lockPastDaysEnabled = await getLockPastDaysEnabled(resolvedUserId);
 
-  if (deletedTaskDate && isPastDateKey(deletedTaskDate)) {
+  if (lockPastDaysEnabled && deletedTaskDate && isPastDateKey(deletedTaskDate)) {
     const now = new Date().toISOString();
-    const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, now);
+    const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, now, lockPastDaysEnabled);
     const { error } = await supabase
       .from("Tasks")
       .update({
@@ -464,12 +495,14 @@ export const moveTaskDate = async (taskId: number, dateKey: string | null, userI
     return;
   }
 
-  if (!taskData.resolved_at && ((previousDateKey && isPastDateKey(previousDateKey)) || (dateKey && isPastDateKey(dateKey)))) {
+  const lockPastDaysEnabled = await getLockPastDaysEnabled(resolvedUserId);
+
+  if (lockPastDaysEnabled && !taskData.resolved_at && ((previousDateKey && isPastDateKey(previousDateKey)) || (dateKey && isPastDateKey(dateKey)))) {
     throw new Error("Impossible de déplacer une tâche d'un jour verrouillé");
   }
 
   const order = await getNextTaskOrder(dateKey, resolvedUserId);
-  const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, new Date().toISOString());
+  const lateAdjustedAt = getLateAdjustmentTimestamp(taskData, new Date().toISOString(), lockPastDaysEnabled);
   const { error } = await supabase
     .from("Tasks")
     .update({

@@ -55,6 +55,13 @@ export const resources = {
           "display": "Display",
           "tags": "Tags",
           "daily": "Daily",
+          "lockPastDays": "Lock past days",
+          "lockPastDaysAlert": {
+            "enableTitle": "Enable locking?",
+            "enableMessage": "This mode protects your history.\n\n- Past days will be locked after they close.\n- Late edits will ask for confirmation.\n- They may count toward the adjustment rate.\n\nRecommended if you want strict and reliable statistics.",
+            "disableTitle": "Disable locking?",
+            "disableMessage": "This mode makes your history freely editable.\n\n- You can edit past days.\n- Deletions will be permanent.\n- Adjustment warnings will be disabled.\n- The adjustment rate will be hidden.\n\nImportant: your statistics will be less strict."
+          },
           "rest": "Rest",
           "subscribed": "Subscribed to Dun Plus",
           "defaultUserName": "User",
@@ -1089,6 +1096,13 @@ export const resources = {
           "display": "Affichage",
           "tags": "Tags",
           "daily": "Daily",
+          "lockPastDays": "Verrouiller les jours passés",
+          "lockPastDaysAlert": {
+            "enableTitle": "Activer le verrouillage ?",
+            "enableMessage": "Ce mode protège ton historique.\n\n- Les jours passés seront verrouillés après leur clôture.\n- Les modifications tardives demanderont une confirmation.\n- Elles pourront compter dans le taux de réajustement.\n\nRecommandé si tu veux des statistiques strictes et fiables.",
+            "disableTitle": "Désactiver le verrouillage ?",
+            "disableMessage": "Ce mode rend ton historique librement modifiable.\n\n- Tu pourras éditer les jours passés.\n- Les suppressions seront définitives.\n- Les alertes de réajustement seront désactivées.\n- Le taux de réajustement sera masqué.\n\nImportant : tes statistiques seront moins strictes."
+          },
           "rest": "Repos",
           "subscribed": "Abonné à Dun Plus",
           "defaultUserName": "Utilisateur",

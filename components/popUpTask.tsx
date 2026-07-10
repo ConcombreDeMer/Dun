@@ -21,6 +21,7 @@ import { markTaskLateAdjustedIfResolved, updateTaskDraft } from "../lib/tasks";
 import { useTheme } from "../lib/ThemeContext";
 import { useOptimisticTaskMutations } from "../lib/useOptimisticTaskMutations";
 import { useToggleTaskDone } from "../lib/useToggleTaskDone";
+import { useProfile } from "../lib/profile";
 import TagSelector from "./TagSelector";
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
@@ -54,6 +55,8 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     const queryClient = useQueryClient();
     const userId = useAuthUserId();
     const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
+    const profileQuery = useProfile();
+    const lockPastDaysEnabled = profileQuery.data?.lockPastDaysEnabled ?? true;
     const { deleteTaskOptimistically, isTaskDeletePending } = useOptimisticTaskMutations();
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -131,21 +134,25 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
 
 
     const ensureLateAdjustmentConfirmed = useCallback(async () => {
-        if (!needsLateAdjustmentConfirmation(task) || hasConfirmedLateAdjustmentRef.current) {
+        if (!needsLateAdjustmentConfirmation(task, lockPastDaysEnabled) || hasConfirmedLateAdjustmentRef.current) {
             return true;
         }
 
         const confirmed = await confirmLateAdjustment(t);
         hasConfirmedLateAdjustmentRef.current = confirmed;
         return confirmed;
-    }, [task, t]);
+    }, [lockPastDaysEnabled, task, t]);
 
     const markLocalLateAdjusted = useCallback((lateAdjustedAt = new Date().toISOString()) => {
+        if (!lockPastDaysEnabled) {
+            return;
+        }
+
         setTask((current: any) => current ? {
             ...current,
             late_adjusted_at: current.late_adjusted_at ?? (current.resolved_at ? lateAdjustedAt : null),
         } : current);
-    }, []);
+    }, [lockPastDaysEnabled]);
 
     const resetTextDraftToLastSaved = useCallback(() => {
         const savedSnapshot = JSON.parse(lastSavedTextSnapshotRef.current || "{}") as {
@@ -188,7 +195,9 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                 name: draft.name,
                 description: draft.description,
                 date: draft.taskDate ? toAppDateKey(draft.taskDate) : null,
-                late_adjusted_at: current.late_adjusted_at ?? (current.resolved_at ? savedAt : null),
+                late_adjusted_at: lockPastDaysEnabled
+                    ? current.late_adjusted_at ?? (current.resolved_at ? savedAt : null)
+                    : current.late_adjusted_at,
                 last_update_date: savedAt,
             } : current);
             committedTaskDateRef.current = draft.taskDate;
@@ -565,7 +574,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
         if (Platform.OS === "android") {
             setShowDatePicker(false);
             if (date) {
-                if (isPastAppDateKey(toAppDateKey(date))) {
+                if (lockPastDaysEnabled && isPastAppDateKey(toAppDateKey(date))) {
                     Alert.alert(t("common.alerts.errorTitle"), t("task.popup.lockedDate"));
                     setTempDate(datePickerOriginalDateRef.current ?? new Date());
                     return;
@@ -582,7 +591,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     };
 
     const closeDatePicker = () => {
-        if (isPastAppDateKey(toAppDateKey(tempDate))) {
+        if (lockPastDaysEnabled && isPastAppDateKey(toAppDateKey(tempDate))) {
             Alert.alert(t("common.alerts.errorTitle"), t("task.popup.lockedDate"));
             setTempDate(datePickerOriginalDateRef.current ?? new Date());
             setShowDatePicker(false);
@@ -712,7 +721,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                             <>
                                 <View style={styles.header}>
                                     <View style={styles.titleColumn}>
-                                        {task.resolved_at ? (
+                                        {lockPastDaysEnabled && task.resolved_at ? (
                                             <View style={[styles.adjustmentNotice, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                                 <Feather name="clock" size={14} color={colors.textSecondary} />
                                                 <Text style={[styles.adjustmentNoticeText, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>
