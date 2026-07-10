@@ -36,7 +36,10 @@ interface StatsBarGraphProps {
   daysData: Day[];
   period: Period;
   statsPreferences?: StatsPreferences;
+  activeSlideIndex?: number;
   onSlideChange?: (slide: Slide) => void;
+  onSlideIndexChange?: (index: number) => void;
+  onSlidesLengthChange?: (length: number) => void;
 }
 
 type Period = "Par semaine" | "Par mois" | "Par année" | "Global";
@@ -631,7 +634,10 @@ export default memo(function StatsBarGraph({
   daysData,
   period,
   statsPreferences = DEFAULT_STATS_PREFERENCES,
+  activeSlideIndex: controlledActiveSlideIndex,
   onSlideChange,
+  onSlideIndexChange,
+  onSlidesLengthChange,
 }: StatsBarGraphProps) {
   const { width: screenWidth } = useWindowDimensions();
   const { actualTheme, colors } = useTheme();
@@ -658,6 +664,7 @@ export default memo(function StatsBarGraph({
   const setSelectedDate = useStore((state: { setSelectedDate: (date: Date) => void }) => state.setSelectedDate);
   const flatListRef = useRef<FlatList<Slide>>(null);
   const onSlideChangeRef = useRef(onSlideChange);
+  const controlledActiveSlideIndexRef = useRef(controlledActiveSlideIndex);
   const displayedSlidesRef = useRef<Slide[]>([]);
   const itemWidth = Math.min(screenWidth * 0.9, 520);
   const displayedSlides = useMemo(
@@ -684,13 +691,23 @@ export default memo(function StatsBarGraph({
   }, [onSlideChange]);
 
   useEffect(() => {
+    controlledActiveSlideIndexRef.current = controlledActiveSlideIndex;
+  }, [controlledActiveSlideIndex]);
+
+  useEffect(() => {
     displayedSlidesRef.current = displayedSlides;
   }, [displayedSlides]);
 
   useEffect(() => {
     const slides = displayedSlidesRef.current;
-    const nextIndex = Math.max(0, slides.length - 1);
+    const lastIndex = Math.max(0, slides.length - 1);
+    const requestedIndex = controlledActiveSlideIndexRef.current;
+    const nextIndex = requestedIndex === undefined
+      ? lastIndex
+      : Math.min(Math.max(requestedIndex, 0), lastIndex);
     setActiveIndex(nextIndex);
+    onSlideIndexChange?.(nextIndex);
+    onSlidesLengthChange?.(slides.length);
 
     if (slides[nextIndex]) {
       onSlideChangeRef.current?.(slides[nextIndex]);
@@ -699,7 +716,17 @@ export default memo(function StatsBarGraph({
     requestAnimationFrame(() => {
       flatListRef.current?.scrollToIndex({ index: nextIndex, animated: false });
     });
-  }, [displayedSlidesSignature]);
+  }, [displayedSlidesSignature, onSlideIndexChange, onSlidesLengthChange]);
+
+  useEffect(() => {
+    if (controlledActiveSlideIndex === undefined) return;
+    if (controlledActiveSlideIndex < 0 || controlledActiveSlideIndex >= displayedSlides.length) return;
+    if (controlledActiveSlideIndex === activeIndex) return;
+
+    setActiveIndex(controlledActiveSlideIndex);
+    flatListRef.current?.scrollToIndex({ index: controlledActiveSlideIndex, animated: true });
+    onSlideChange?.(displayedSlides[controlledActiveSlideIndex]);
+  }, [activeIndex, controlledActiveSlideIndex, displayedSlides, onSlideChange]);
 
   const handlePressBar = useCallback(async (bar: BarData) => {
     await Haptic.impactAsync(opensDayOnPress ? Haptic.ImpactFeedbackStyle.Medium : Haptic.ImpactFeedbackStyle.Light);
@@ -722,17 +749,19 @@ export default memo(function StatsBarGraph({
     if (index < 0 || index >= displayedSlides.length) return;
     await Haptic.impactAsync(Haptic.ImpactFeedbackStyle.Light);
     setActiveIndex(index);
+    onSlideIndexChange?.(index);
     flatListRef.current?.scrollToIndex({ index, animated: true });
     onSlideChange?.(displayedSlides[index]);
-  }, [displayedSlides, onSlideChange]);
+  }, [displayedSlides, onSlideChange, onSlideIndexChange]);
 
   const handleMomentumScrollEnd = useCallback((event: any) => {
     const index = Math.round(event.nativeEvent.contentOffset.x / itemWidth);
     if (index < 0 || index >= displayedSlides.length) return;
 
     setActiveIndex(index);
+    onSlideIndexChange?.(index);
     onSlideChange?.(displayedSlides[index]);
-  }, [displayedSlides, itemWidth, onSlideChange]);
+  }, [displayedSlides, itemWidth, onSlideChange, onSlideIndexChange]);
 
   const renderSlide = useCallback(({ item }: { item: Slide }) => (
     <ChartSlide

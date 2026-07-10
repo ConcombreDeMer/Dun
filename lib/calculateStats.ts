@@ -41,8 +41,6 @@ export const DEFAULT_STATS_PREFERENCES: StatsPreferences = {
   includeRestDays: true,
 };
 
-const DAY_IN_MS = 1000 * 60 * 60 * 24;
-
 export const normalizeDate = (date: Date) => {
   const next = new Date(date);
   next.setHours(0, 0, 0, 0);
@@ -174,7 +172,7 @@ export const buildDaysBetween = (
   for (
     let cursor = normalizeDate(startDate);
     cursor <= normalizeDate(endDate);
-    cursor = new Date(cursor.getTime() + DAY_IN_MS)
+    cursor = normalizeDate(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1))
   ) {
     days.push(daysMap.get(toDateKey(cursor)) || createEmptyStatsDay(cursor));
   }
