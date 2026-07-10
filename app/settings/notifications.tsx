@@ -3,12 +3,15 @@ import PrimaryButton from "@/components/primaryButton";
 import SecondaryButton from "@/components/secondaryButton";
 import SwitchItem from "@/components/switchItem";
 import SimpleInput from "@/components/textInput";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { SquircleView } from "expo-squircle-view";
+import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useAppTranslation } from "@/lib/i18n";
 import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "@/lib/notificationService";
+import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStore } from "@/store/store";
@@ -20,6 +23,11 @@ export default function NotificationsSettings() {
     const router = useRouter();
     const { t } = useAppTranslation();
     const { colors } = useTheme();
+    const {
+        canUseNotificationReminders,
+        canUseNotificationWeekends,
+        isLoading: isSubscriptionLoading,
+    } = useSubscription();
     const [isLoading, setIsLoading] = useState(true);
 
 
@@ -48,6 +56,26 @@ export default function NotificationsSettings() {
     useEffect(() => {
         initAlertSettings();
     }, []);
+
+    useEffect(() => {
+        if (isSubscriptionLoading) {
+            return;
+        }
+
+        if (!canUseNotificationReminders && insistanceEnabled) {
+            setInsistanceEnabled(false);
+        }
+
+        if (!canUseNotificationWeekends && weekendEnabled) {
+            setWeekendEnabled(false);
+        }
+    }, [
+        canUseNotificationReminders,
+        canUseNotificationWeekends,
+        insistanceEnabled,
+        isSubscriptionLoading,
+        weekendEnabled,
+    ]);
 
     const initAlertSettings = async () => {
         const { data, error } = await supabase
@@ -94,6 +122,9 @@ export default function NotificationsSettings() {
 
 
     const save = async () => {
+        const nextInsistanceEnabled = canUseNotificationReminders ? insistanceEnabled : false;
+        const nextWeekendEnabled = canUseNotificationWeekends ? weekendEnabled : false;
+
         // Vérifier si l'heur est au format valide
         if (alertsEnabled) {
             const hourNum = parseInt(alertHour);
@@ -111,10 +142,10 @@ export default function NotificationsSettings() {
                 alertSetupHour: alertHour, 
                 alertSetupMinute: alertMinute, 
                 alertSetupActive: alertsEnabled,
-                alertInsistanceActive: insistanceEnabled,
+                alertInsistanceActive: nextInsistanceEnabled,
                 alertInsistanceDelais: insistanceDelais,
                 alertInsistanceRepetitions: insistanceRepetitions,
-                alertWeekendsActive: weekendEnabled
+                alertWeekendsActive: nextWeekendEnabled
             })
             .eq('id', store.user.id);
         if (updateError) {
@@ -127,10 +158,10 @@ export default function NotificationsSettings() {
                 await scheduleDailyReminder(
                     parseInt(alertHour), 
                     parseInt(alertMinute),
-                    insistanceEnabled,
+                    nextInsistanceEnabled,
                     insistanceDelais,
                     insistanceRepetitions,
-                    weekendEnabled
+                    nextWeekendEnabled
                 );
             }
         } else {
@@ -140,10 +171,12 @@ export default function NotificationsSettings() {
         setInitialAlertHour(alertHour);
         setInitialAlertMinute(alertMinute);
         setInitialAlertsEnabled(alertsEnabled);
-        setInitialInsistanceEnabled(insistanceEnabled);
+        setInitialInsistanceEnabled(nextInsistanceEnabled);
         setInitialInsistanceDelais(insistanceDelais);
         setInitialInsistanceRepetitions(insistanceRepetitions);
-        setInitialWeekendEnabled(weekendEnabled);
+        setInitialWeekendEnabled(nextWeekendEnabled);
+        setInsistanceEnabled(nextInsistanceEnabled);
+        setWeekendEnabled(nextWeekendEnabled);
         setIsModified(false);
     };
 
@@ -153,6 +186,26 @@ export default function NotificationsSettings() {
         } else {
             setAlertsEnabled(true);
         }
+    };
+
+    const toggleInsistance = async (value: boolean) => {
+        if (value && !canUseNotificationReminders) {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/settings/premium");
+            return;
+        }
+
+        setInsistanceEnabled(value);
+    };
+
+    const toggleWeekend = async (value: boolean) => {
+        if (value && !canUseNotificationWeekends) {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/settings/premium");
+            return;
+        }
+
+        setWeekendEnabled(value);
     };
 
 
@@ -260,116 +313,136 @@ export default function NotificationsSettings() {
 
             </SquircleView>
 
-            <SquircleView
-                style={{
-                    paddingHorizontal: 20,
-                    paddingBottom: 15,
-                    backgroundColor: colors.card,
-                    borderRadius: 20,
-                    width: '90%',
-                    alignSelf: 'center',
-                    marginTop: 20,
-                }}
-                cornerSmoothing={100}
-                preserveSmoothing={true}
-            >
-                <SwitchItem
-                    title={t("settings.notifications.insistence")}
-                    event={setInsistanceEnabled}
-                    currentValue={insistanceEnabled}
-                />
+            <View style={styles.premiumSettingContainer}>
+                {!canUseNotificationReminders ? (
+                    <View style={styles.plusBadge}>
+                        <SymbolView name="plus" size={15} weight="bold" tintColor="#2C2405" />
+                    </View>
+                ) : null}
+                <SquircleView
+                    style={{
+                        paddingHorizontal: 20,
+                        paddingBottom: 15,
+                        backgroundColor: colors.card,
+                        borderRadius: 20,
+                        width: '100%',
+                        alignSelf: 'center',
+                    }}
+                    cornerSmoothing={100}
+                    preserveSmoothing={true}
+                >
+                    <SwitchItem
+                        title={t("settings.notifications.insistence")}
+                        event={toggleInsistance}
+                        currentValue={insistanceEnabled}
+                    />
 
-                <View>
-                    <SquircleView
-                        cornerSmoothing={100}
-                        preserveSmoothing={true}
-                        style={{
-                            width: '100%',
-                            backgroundColor: colors.input,
-                            borderRadius: 15,
-                            paddingTop: 12,
-                            paddingBottom: 12,
-                            paddingLeft: 24,
-                            paddingRight: 12,
-                            alignSelf: 'center',
-                        }}
-                    >
-                        <View style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            justifyContent: 'space-between',
-                            marginBottom: 8,
-                        }}>
-                            <Text style={{ color: colors.text, fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
-                                {t("settings.notifications.delay")}
-                            </Text>
+                    <View>
+                        <SquircleView
+                            cornerSmoothing={100}
+                            preserveSmoothing={true}
+                            style={{
+                                width: '100%',
+                                backgroundColor: colors.input,
+                                borderRadius: 15,
+                                paddingTop: 12,
+                                paddingBottom: 12,
+                                paddingLeft: 24,
+                                paddingRight: 12,
+                                alignSelf: 'center',
+                            }}
+                        >
+                            <View style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                justifyContent: 'space-between',
+                                marginBottom: 8,
+                            }}>
+                                <Text style={{ color: colors.text, fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
+                                    {t("settings.notifications.delay")}
+                                </Text>
 
-                            <SimpleInput
-                                value={insistanceDelais}
-                                onChangeText={setInsistanceDelais}
-                                placeholder="..."
-                                type="numeric"
-                                returnKeyType="done"
-                                isLoading={isLoading}
-                                inputWidth={120}
-                                style={{ textAlign: 'center' }}
-                            />
-                        </View>
-                        
-                        <View style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            justifyContent: 'space-between',
-                        }}>
-                            <Text style={{ color: colors.text, fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
-                                {t("settings.notifications.repetitions")}
-                            </Text>
+                                <SimpleInput
+                                    value={insistanceDelais}
+                                    onChangeText={setInsistanceDelais}
+                                    placeholder="..."
+                                    type="numeric"
+                                    returnKeyType="done"
+                                    isLoading={isLoading}
+                                    inputWidth={120}
+                                    editable={canUseNotificationReminders}
+                                    style={[
+                                        { textAlign: 'center' },
+                                        !canUseNotificationReminders ? { opacity: 0.45 } : {},
+                                    ]}
+                                />
+                            </View>
 
-                            <SimpleInput
-                                value={insistanceRepetitions}
-                                onChangeText={setInsistanceRepetitions}
-                                placeholder="..."
-                                type="numeric"
-                                returnKeyType="done"
-                                isLoading={isLoading}
-                                inputWidth={120}
-                                style={{ textAlign: 'center' }}
-                            />
-                        </View>
-                    </SquircleView>
-                </View>
+                            <View style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                justifyContent: 'space-between',
+                            }}>
+                                <Text style={{ color: colors.text, fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
+                                    {t("settings.notifications.repetitions")}
+                                </Text>
 
-                <Text style={{
-                    color: colors.textSecondary,
-                    fontSize: 14,
-                    lineHeight: 20,
-                    marginTop: 15,
-                    fontFamily: 'Satoshi-Regular',
-                    paddingHorizontal: 5
-                }}>
-                    {t("settings.notifications.description")}
-                </Text>
+                                <SimpleInput
+                                    value={insistanceRepetitions}
+                                    onChangeText={setInsistanceRepetitions}
+                                    placeholder="..."
+                                    type="numeric"
+                                    returnKeyType="done"
+                                    isLoading={isLoading}
+                                    inputWidth={120}
+                                    editable={canUseNotificationReminders}
+                                    style={[
+                                        { textAlign: 'center' },
+                                        !canUseNotificationReminders ? { opacity: 0.45 } : {},
+                                    ]}
+                                />
+                            </View>
+                        </SquircleView>
+                    </View>
 
-            </SquircleView>
+                    <Text style={{
+                        color: colors.textSecondary,
+                        fontSize: 14,
+                        lineHeight: 20,
+                        marginTop: 15,
+                        fontFamily: 'Satoshi-Regular',
+                        paddingHorizontal: 5
+                    }}>
+                        {t("settings.notifications.description")}
+                    </Text>
 
-            <SquircleView
-                style={{
-                    paddingHorizontal: 20,
-                    backgroundColor: colors.card,
-                    borderRadius: 20,
-                    width: '90%',
-                    alignSelf: 'center',
-                    marginTop: 20,
-                }}
-                cornerSmoothing={100}
-                preserveSmoothing={true}
-            >
-                <SwitchItem
-                    title={t("settings.notifications.weekends")}
-                    event={setWeekendEnabled}
-                    currentValue={weekendEnabled}
-                />
-            </SquircleView>
+                </SquircleView>
+            </View>
+
+            <View style={styles.premiumSettingContainer}>
+                {!canUseNotificationWeekends ? (
+                    <View style={styles.plusBadge}>
+                        <SymbolView name="plus" size={15} weight="bold" tintColor="#2C2405" />
+                    </View>
+                ) : null}
+                <SquircleView
+                    style={{
+                        paddingHorizontal: 20,
+                        backgroundColor: colors.card,
+                        borderRadius: 20,
+                        width: '100%',
+                        alignSelf: 'center',
+                    }}
+                    cornerSmoothing={100}
+                    preserveSmoothing={true}
+                >
+                    <SwitchItem
+                        title={t("settings.notifications.weekends")}
+                        event={toggleWeekend}
+                        currentValue={weekendEnabled}
+                    />
+                </SquircleView>
+            </View>
 
             <PrimaryButton
                 title={t("common.actions.save")}
@@ -388,5 +461,25 @@ export default function NotificationsSettings() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    premiumSettingContainer: {
+        alignSelf: "center",
+        marginTop: 20,
+        overflow: "visible",
+        paddingTop: 8,
+        position: "relative",
+        width: "90%",
+    },
+    plusBadge: {
+        alignItems: "center",
+        backgroundColor: "#F4BA00",
+        borderRadius: 999,
+        height: 28,
+        justifyContent: "center",
+        position: "absolute",
+        right: 0,
+        top: 0,
+        width: 28,
+        zIndex: 2,
     },
 });

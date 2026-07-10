@@ -1,5 +1,6 @@
 import CreateModalHost from "@/components/CreateModalHost";
 import PopUpTask from "@/components/popUpTask";
+import PremiumCTAButton from "@/components/PremiumCTAButton";
 import SecondaryButton from "@/components/secondaryButton";
 import Squircle from "@/components/Squircle";
 import { TaskItem, TaskItemLayout } from "@/components/TaskItem";
@@ -8,8 +9,9 @@ import { toAppDateKey } from "@/lib/date";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { SCREEN_HEADER_HEIGHT, SCREEN_HEADER_HORIZONTAL_PADDING, SCREEN_HEADER_TITLE_LINE_HEIGHT } from "@/lib/screenHeader";
-import { fetchTaskList, type TaskListItem } from "@/lib/tasks";
+import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
+import { fetchTaskList, type TaskListItem } from "@/lib/tasks";
 import { useTheme } from "@/lib/ThemeContext";
 import { useToggleTaskDone } from "@/lib/useToggleTaskDone";
 import { useStore } from "@/store/store";
@@ -19,7 +21,7 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Image, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReAnimated, { Easing, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -32,6 +34,7 @@ export default function Box() {
   const { fontSizes } = useFont();
   const { colors, theme } = useTheme();
   const { t } = useAppTranslation();
+  const { canUseTaskBox } = useSubscription();
   const storedDate = useStore((state) => state.selectedDate);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
   const [selectedTaskLayout, setSelectedTaskLayout] = useState<TaskItemLayout | null>(null);
@@ -53,7 +56,7 @@ export default function Box() {
   const taskQuery = useQuery({
     queryKey: tasksQueryKey,
     queryFn: () => fetchTaskList(queryClient.getQueryData<TaskListItem[]>(tasksQueryKey) ?? [], userId),
-    enabled: !!userId,
+    enabled: !!userId && canUseTaskBox,
     gcTime: 1000 * 60 * 30,
     staleTime: 1000 * 60 * 15,
   });
@@ -272,49 +275,82 @@ export default function Box() {
           <SymbolView name="archivebox.fill" size={48} tintColor={colors.textSecondary} style={{ alignSelf: 'center', marginBottom: 20, marginTop: 60 }} />
         </View>
 
-        <ReAnimated.View style={[styles.listContainer, listAnimatedStyle]}>
-          {taskQuery.isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.text} />
-            </View>
-          ) : (
-            <DraggableFlatList
-              data={displayedBoxTasks}
-              keyExtractor={(item) => `box-${getTaskRenderKey(item)}`}
-              scrollEnabled={selectedTaskId === null}
-              nestedScrollEnabled
-              showsVerticalScrollIndicator={false}
-              persistentScrollbar
-              removeClippedSubviews={false}
-              contentContainerStyle={styles.flatListContent}
-              activationDistance={20}
-              onDragBegin={handleDragBegin}
-              onDragEnd={handleDragEnd}
-              onPlaceholderIndexChange={handlePlaceholderIndexChange}
-              renderItem={({ item, drag, isActive }) => (
-                <TaskItem
-                  item={item}
-                  drag={displayedBoxTasks.length > 1 ? drag : () => { }}
-                  isActive={isActive}
-                  handleToggleTask={handleToggleTask}
-                  handleTaskPress={handleTaskPress}
-                  isTogglePending={isTaskPending(item.id)}
-                  selectedTaskId={selectedTaskId}
-                  listHeight={0}
-                  layoutAnimationKey={taskListCompositionKey}
-                  disableAddedAnimations={disableCustomListAnimations}
-                  mode="box"
-                  moveToDateKey={selectedDateKey}
+        {canUseTaskBox ? (
+          <ReAnimated.View style={[styles.listContainer, listAnimatedStyle]}>
+            {taskQuery.isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.text} />
+              </View>
+            ) : (
+              <DraggableFlatList
+                data={displayedBoxTasks}
+                keyExtractor={(item) => `box-${getTaskRenderKey(item)}`}
+                scrollEnabled={selectedTaskId === null}
+                nestedScrollEnabled
+                showsVerticalScrollIndicator={false}
+                persistentScrollbar
+                removeClippedSubviews={false}
+                contentContainerStyle={styles.flatListContent}
+                activationDistance={20}
+                onDragBegin={handleDragBegin}
+                onDragEnd={handleDragEnd}
+                onPlaceholderIndexChange={handlePlaceholderIndexChange}
+                renderItem={({ item, drag, isActive }) => (
+                  <TaskItem
+                    item={item}
+                    drag={displayedBoxTasks.length > 1 ? drag : () => { }}
+                    isActive={isActive}
+                    handleToggleTask={handleToggleTask}
+                    handleTaskPress={handleTaskPress}
+                    isTogglePending={isTaskPending(item.id)}
+                    selectedTaskId={selectedTaskId}
+                    listHeight={0}
+                    layoutAnimationKey={taskListCompositionKey}
+                    disableAddedAnimations={disableCustomListAnimations}
+                    mode="box"
+                    moveToDateKey={selectedDateKey}
+                  />
+                )}
+                ListEmptyComponent={
+                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                    {t("box.emptyState")}
+                  </Text>
+                }
+              />
+            )}
+          </ReAnimated.View>
+        ) : (
+          <View style={styles.premiumContainer}>
+            <Squircle
+              style={[styles.premiumCard, { backgroundColor: colors.card, borderColor: "#F4BA00" }]}
+              cornerSmoothing={100}
+              preserveSmoothing={true}
+            >
+              <View style={styles.premiumIcon}>
+                <SymbolView name="archivebox.fill" size={24} tintColor="#2C2405" />
+              </View>
+              <Text style={[styles.premiumTitle, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
+                {t("box.premium.title")}
+              </Text>
+              <Text style={[styles.premiumMessage, { color: colors.textSecondary, fontSize: fontSizes.base }]}>
+                {t("box.premium.message")}
+              </Text>
+              <View style={[styles.premiumScreenshotSlot, { backgroundColor: colors.input, borderColor: colors.border }]}>
+                <Image
+                  source={theme === "dark"
+                    ? require("@/assets/images/box/dark.png")
+                    : require("@/assets/images/box/light.png")}
+                  style={styles.premiumScreenshotImage}
+                  resizeMode="contain"
                 />
-              )}
-              ListEmptyComponent={
-                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                  {t("box.emptyState")}
-                </Text>
-              }
-            />
-          )}
-        </ReAnimated.View>
+              </View>
+              <PremiumCTAButton
+                title={t("box.premium.cta")}
+                onPress={() => router.push("/settings/premium")}
+              />
+            </Squircle>
+          </View>
+        )}
 
         {selectedTask && selectedTaskLayout ? (
           <ReAnimated.View pointerEvents="box-none" style={styles.overlayRoot}>
@@ -339,7 +375,9 @@ export default function Box() {
           </ReAnimated.View>
         ) : null}
 
-        <CreateModalHost activePath="/box" />
+        {canUseTaskBox ? (
+          <CreateModalHost activePath="/box" />
+        ) : null}
       </View>
     </GestureHandlerRootView>
   );
@@ -402,6 +440,53 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     justifyContent: "center",
+  },
+  premiumContainer: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    paddingBottom: 100,
+    paddingHorizontal: 24,
+  },
+  premiumCard: {
+    alignItems: "center",
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 28,
+    width: "100%",
+  },
+  premiumIcon: {
+    alignItems: "center",
+    backgroundColor: "#F4BA00",
+    borderRadius: 18,
+    height: 48,
+    justifyContent: "center",
+    width: 48,
+  },
+  premiumTitle: {
+    fontFamily: "Satoshi-Bold",
+    textAlign: "center",
+  },
+  premiumMessage: {
+    fontFamily: "Satoshi-Regular",
+    lineHeight: 22,
+    textAlign: "center",
+  },
+  premiumScreenshotSlot: {
+    alignItems: "center",
+    aspectRatio: 2.35,
+    borderRadius: 16,
+    borderWidth: 1,
+    justifyContent: "center",
+    marginTop: 4,
+    overflow: "hidden",
+    width: "100%",
+  },
+  premiumScreenshotImage: {
+    height: "100%",
+    width: "100%",
   },
   overlayRoot: {
     ...StyleSheet.absoluteFill,

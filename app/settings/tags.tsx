@@ -1,4 +1,5 @@
 import Headline from "@/components/headline";
+import PremiumCTAButton from "@/components/PremiumCTAButton";
 import PrimaryButton from "@/components/primaryButton";
 import SecondaryButton from "@/components/secondaryButton";
 import SimpleInput from "@/components/textInput";
@@ -246,27 +247,27 @@ export default function TagsSettings() {
             </View>
 
             {isTagLimitReached ? (
-              <View style={[styles.limitNotice, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Squircle
+                style={[styles.limitNotice, { backgroundColor: colors.card, borderColor: "#F4BA00" }]}
+                cornerSmoothing={100}
+                preserveSmoothing={true}
+              >
                 <View style={styles.limitNoticeIcon}>
-                  <SymbolView name="plus" size={15} weight="bold" tintColor="#2C2405" />
+                  <SymbolView name="tag.fill" size={22} tintColor="#2C2405" />
                 </View>
                 <View style={styles.limitNoticeText}>
-                  <Text style={[styles.limitNoticeTitle, { color: colors.text, fontSize: fontSizes.lg }]}>
+                  <Text style={[styles.limitNoticeTitle, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
                     {t("tags.limit.reachedTitle")}
                   </Text>
-                  <Text style={[styles.limitNoticeDescription, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>
+                  <Text style={[styles.limitNoticeDescription, { color: colors.textSecondary, fontSize: fontSizes.base }]}>
                     {t("tags.limit.reachedDescription", { limit: FREE_TAG_LIMIT })}
                   </Text>
                 </View>
-                <Pressable
+                <PremiumCTAButton
+                  title={t("common.actions.unlock")}
                   onPress={() => router.push("/settings/premium")}
-                  style={[styles.unlockButton, { backgroundColor: colors.text }]}
-                >
-                  <Text style={[styles.unlockButtonText, { color: colors.background, fontSize: fontSizes.sm }]}>
-                    {t("common.actions.unlock")}
-                  </Text>
-                </Pressable>
-              </View>
+                />
+              </Squircle>
             ) : null}
           </View>
         ) : null}
@@ -437,39 +438,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 15,
     borderWidth: 1,
-    flexDirection: "row",
     gap: 12,
-    padding: 14,
+    paddingHorizontal: 24,
+    paddingVertical: 28,
   },
   limitNoticeIcon: {
     alignItems: "center",
     backgroundColor: "#F4BA00",
-    borderRadius: 999,
-    height: 28,
+    borderRadius: 18,
+    height: 48,
     justifyContent: "center",
-    width: 28,
+    width: 48,
   },
   limitNoticeText: {
-    flex: 1,
-    gap: 3,
-    minWidth: 0,
+    alignItems: "center",
+    gap: 6,
   },
   limitNoticeTitle: {
     fontFamily: "Satoshi-Bold",
+    textAlign: "center",
   },
   limitNoticeDescription: {
     fontFamily: "Satoshi-Regular",
-    lineHeight: 18,
-  },
-  unlockButton: {
-    alignItems: "center",
-    borderRadius: 999,
-    justifyContent: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  unlockButtonText: {
-    fontFamily: "Satoshi-Bold",
+    lineHeight: 22,
+    textAlign: "center",
   },
   menuHost: {
     height: 38,

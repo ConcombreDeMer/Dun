@@ -1,6 +1,8 @@
 import CreateModalHost from "@/components/CreateModalHost";
 import HorizontalBarGraph from "@/components/horizontalBarGraph";
+import PremiumCTAButton from "@/components/PremiumCTAButton";
 import ProfileSettingsButton from "@/components/ProfileSettingsButton";
+import Squircle from "@/components/Squircle";
 import StatsBarGraph from "@/components/statsBarGraph";
 import StatsCard from "@/components/statsCard";
 import StatsCardCharge from "@/components/statsCardCharge";
@@ -37,7 +39,7 @@ import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated from 'react-native-reanimated';
 
 
@@ -487,9 +489,13 @@ export default function Stats() {
               periodLabel={activeSlide?.periodLabel ?? getDisplayedPeriod(period)}
             />
           ) : (
-            <View style={[styles.premiumStatsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Squircle
+              style={[styles.premiumStatsCard, { backgroundColor: colors.card, borderColor: "#F4BA00" }]}
+              cornerSmoothing={100}
+              preserveSmoothing={true}
+            >
               <View style={styles.premiumIcon}>
-                <SymbolView name="chart.bar.xaxis" size={30} tintColor="#F4BA00" />
+                <SymbolView name="chart.bar.xaxis" size={24} tintColor="#2C2405" />
               </View>
               <Text style={[styles.premiumTitle, { color: colors.text }]}>
                 {t("stats.general.premium.title")}
@@ -497,15 +503,11 @@ export default function Stats() {
               <Text style={[styles.premiumMessage, { color: colors.textSecondary }]}>
                 {t("stats.general.premium.message")}
               </Text>
-              <TouchableOpacity
-                style={styles.premiumButton}
+              <PremiumCTAButton
+                title={t("stats.general.premium.cta")}
                 onPress={() => router.push("/settings/premium")}
-              >
-                <Text style={styles.premiumButtonText}>
-                  {t("stats.general.premium.cta")}
-                </Text>
-              </TouchableOpacity>
-            </View>
+              />
+            </Squircle>
           )}
         </View>
       </ScrollView>
@@ -683,19 +685,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 18,
     borderWidth: 1,
-    gap: 10,
+    gap: 12,
     marginTop: 8,
-    paddingHorizontal: 22,
-    paddingVertical: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 28,
     width: "90%",
   },
   premiumIcon: {
     alignItems: "center",
-    backgroundColor: "#FFF5D6",
-    borderRadius: 20,
-    height: 56,
+    backgroundColor: "#F4BA00",
+    borderRadius: 18,
+    height: 48,
     justifyContent: "center",
-    width: 56,
+    width: 48,
   },
   premiumTitle: {
     fontFamily: "Satoshi-Bold",
@@ -708,19 +710,4 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     textAlign: "center",
   },
-  premiumButton: {
-    alignItems: "center",
-    backgroundColor: "#272727",
-    borderRadius: 14,
-    justifyContent: "center",
-    marginTop: 4,
-    minHeight: 46,
-    paddingHorizontal: 22,
-  },
-  premiumButtonText: {
-    color: "#FFFFFF",
-    fontFamily: "Satoshi-Bold",
-    fontSize: 16,
-  },
-
 });
