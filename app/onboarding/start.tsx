@@ -1,10 +1,10 @@
-import * as Google from 'expo-auth-session/providers/google';
 import * as Haptics from "expo-haptics";
 import { useRouter } from 'expo-router';
 import { SquircleButton } from 'expo-squircle-view';
 import { SymbolView } from "expo-symbols";
 import React from 'react';
 import {
+    Alert,
     Dimensions,
     Image,
     Pressable,
@@ -22,7 +22,6 @@ import Animated, {
 import { useAppTranslation } from '../../lib/i18n';
 import { getCharacterImageSource } from '../../lib/imageHelper';
 import { useTheme } from '../../lib/ThemeContext';
-import { supabase } from '../../lib/supabase';
 
 
 export default function StartScreen() {
@@ -38,7 +37,6 @@ export default function StartScreen() {
     const opacity = useSharedValue(0);
     const authButtonsX = useSharedValue(0);
     const registerButtonsX = useSharedValue(screenWidth);
-    const [error, setError] = React.useState('');
 
     const authButtonsAnimatedStyle = useAnimatedStyle(() => {
         return {
@@ -69,45 +67,12 @@ export default function StartScreen() {
         registerButtonsX.value = withSpring(screenWidth);
     }
 
-    const [request, response, promptAsync] = Google.useAuthRequest({
-        clientId: '655132375234-u8q4aig0tprhb7m8a4e5r2jn42nvo7ne.apps.googleusercontent.com',
-        // ...
-    });
-
-    const handleGoogleSignIn = async () => {
-        const result = await promptAsync();
-
-        if (result?.type === 'success' && result.authentication?.idToken) {
-            const { idToken } = result.authentication;
-
-            const { data, error } = await supabase.auth.signInWithIdToken({
-                provider: 'google',
-                token: idToken,
-            });
-
-            if (!error && data.user) {
-                // Créer le profil si nécessaire
-                const { data: profileData } = await supabase
-                    .from('Profiles')
-                    .select('*')
-                    .eq('id', data.user.id)
-                    .single();
-
-                if (!profileData) {
-                    await supabase
-                        .from('Profiles')
-                        .insert({
-                            id: data.user.id,
-                            email: data.user.email,
-                            name: data.user.user_metadata?.name || 'User'
-                        });
-                }
-
-                router.replace('/home');
-            } else {
-                setError(error?.message || t('onboarding.start.googleError'));
-            }
-        }
+    const showAuthInDevelopmentAlert = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        Alert.alert(
+            "Fonctionnalité en cours de développement",
+            "L'authentification avec Apple ou Google est en cours de développement."
+        );
     };
 
     return (
@@ -248,6 +213,7 @@ export default function StartScreen() {
                         cornerSmoothing={100} // 0-100
                         preserveSmoothing={true} // false matches figma, true has more rounding
                         style={[styles.squircleButton, { borderColor: "black", backgroundColor: "black" }]}
+                        onPress={showAuthInDevelopmentAlert}
                     >
                         <SymbolView
                             name="applelogo"
@@ -271,7 +237,7 @@ export default function StartScreen() {
                         cornerSmoothing={100} // 0-100
                         preserveSmoothing={true} // false matches figma, true has more rounding
                         style={[styles.squircleButton, { borderColor: "#C9C9C9", backgroundColor: "#d8d8d8" }]}
-                        onPress={handleGoogleSignIn}
+                        onPress={showAuthInDevelopmentAlert}
                     >
                         <Image
                             source={require('@/assets/images/google.png')}
