@@ -24,6 +24,8 @@ common:
     successTitle: "Success"
     genericError: "Something went wrong"
     invalidTime: "Please enter a valid time (HH:MM)."
+    invalidReminderDelay: "Reminder delay must be between {{min}} and {{max}} minutes."
+    invalidReminderRepetitions: "Reminder repeats must be between {{min}} and {{max}}."
     nonConnectedUser: "User not connected"
     deleteTaskTitle: "Delete task"
     deleteTaskMessage: "Are you sure you want to delete this task?"
@@ -119,7 +121,9 @@ settings:
     time: "Time"
     insistence: "Reminder repeats"
     delay: "Delay"
+    delayLimit: "{{min}} to {{max}} min"
     repetitions: "Repeats"
+    repetitionsLimit: "{{min}} to {{max}} max"
     weekends: "Weekends"
     description: "If you do not react to a reminder, Dun can repeat it to help you stay consistent."
     reminders:

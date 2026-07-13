@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from 'expo-notifications';
 import { Platform } from "react-native";
 import { i18n } from "./i18n";
+import { NOTIFICATION_REMINDER_LIMITS, clampInteger, parseIntegerInput } from "./notificationLimits";
 // import { useStore } from "../store/store";
 
 // const store = useStore();
@@ -141,10 +142,21 @@ export async function scheduleDailyReminder(
 
   // Rappels d'insistance si activé
   if (insistanceActive && insistanceDelais && insistanceRepetitions) {
-    const delay = parseInt(insistanceDelais, 10);
-    const repetitions = parseInt(insistanceRepetitions, 10);
+    const parsedDelay = parseIntegerInput(insistanceDelais);
+    const parsedRepetitions = parseIntegerInput(insistanceRepetitions);
 
-    if (!isNaN(delay) && !isNaN(repetitions) && delay > 0 && repetitions > 0) {
+    if (parsedDelay !== null && parsedRepetitions !== null) {
+      const delay = clampInteger(
+        parsedDelay,
+        NOTIFICATION_REMINDER_LIMITS.delayMinutes.min,
+        NOTIFICATION_REMINDER_LIMITS.delayMinutes.max,
+      );
+      const repetitions = clampInteger(
+        parsedRepetitions,
+        NOTIFICATION_REMINDER_LIMITS.repetitions.min,
+        NOTIFICATION_REMINDER_LIMITS.repetitions.max,
+      );
+
       for (let i = 1; i <= repetitions; i++) {
         const totalMinutes = minute + (delay * i);
         const newHour = Math.floor(hour + (totalMinutes / 60)) % 24;

@@ -10,6 +10,12 @@ import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useAppTranslation } from "@/lib/i18n";
+import {
+    NOTIFICATION_REMINDER_LIMITS,
+    normalizeIntegerInput,
+    parseIntegerInput,
+    sanitizeNumericInput,
+} from "@/lib/notificationLimits";
 import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "@/lib/notificationService";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
@@ -52,6 +58,20 @@ export default function NotificationsSettings() {
     
     const [isModified, setIsModified] = useState(false);
 
+    const normalizeInsistanceDelais = (value: string | number | null | undefined) =>
+        normalizeIntegerInput(
+            value,
+            NOTIFICATION_REMINDER_LIMITS.delayMinutes.min,
+            NOTIFICATION_REMINDER_LIMITS.delayMinutes.max
+        );
+
+    const normalizeInsistanceRepetitions = (value: string | number | null | undefined) =>
+        normalizeIntegerInput(
+            value,
+            NOTIFICATION_REMINDER_LIMITS.repetitions.min,
+            NOTIFICATION_REMINDER_LIMITS.repetitions.max
+        );
+
 
     useEffect(() => {
         initAlertSettings();
@@ -88,20 +108,23 @@ export default function NotificationsSettings() {
             console.error("Erreur lors de la récupération des préférences de notification:", error);
         } else if (data) {
 
+            const nextInsistanceDelais = normalizeInsistanceDelais(data.alertInsistanceDelais);
+            const nextInsistanceRepetitions = normalizeInsistanceRepetitions(data.alertInsistanceRepetitions);
+
             setInitialAlertHour(data.alertSetupHour || '');
             setInitialAlertMinute(data.alertSetupMinute || '');
             setInitialAlertsEnabled(data.alertSetupActive || false);
             setInitialInsistanceEnabled(data.alertInsistanceActive || false);
-            setInitialInsistanceDelais(data.alertInsistanceDelais || '');
-            setInitialInsistanceRepetitions(data.alertInsistanceRepetitions || '');
+            setInitialInsistanceDelais(nextInsistanceDelais);
+            setInitialInsistanceRepetitions(nextInsistanceRepetitions);
             setInitialWeekendEnabled(data.alertWeekendsActive || false);
 
             setAlertHour(data.alertSetupHour || '');
             setAlertMinute(data.alertSetupMinute || '');
             setAlertsEnabled(data.alertSetupActive || false);
             setInsistanceEnabled(data.alertInsistanceActive || false);
-            setInsistanceDelais(data.alertInsistanceDelais || '');
-            setInsistanceRepetitions(data.alertInsistanceRepetitions || '');
+            setInsistanceDelais(nextInsistanceDelais);
+            setInsistanceRepetitions(nextInsistanceRepetitions);
             setWeekendEnabled(data.alertWeekendsActive || false);
         }
         setIsLoading(false);
@@ -124,17 +147,51 @@ export default function NotificationsSettings() {
     const save = async () => {
         const nextInsistanceEnabled = canUseNotificationReminders ? insistanceEnabled : false;
         const nextWeekendEnabled = canUseNotificationWeekends ? weekendEnabled : false;
+        const hourNum = parseIntegerInput(alertHour);
+        const minuteNum = parseIntegerInput(alertMinute);
 
         // Vérifier si l'heur est au format valide
         if (alertsEnabled) {
-            const hourNum = parseInt(alertHour);
-            const minuteNum = parseInt(alertMinute);
-
-            if (isNaN(hourNum) || isNaN(minuteNum) || hourNum < 0 || hourNum > 23 || minuteNum < 0 || minuteNum > 59) {
+            if (hourNum === null || minuteNum === null || hourNum < 0 || hourNum > 23 || minuteNum < 0 || minuteNum > 59) {
                 alert(t("common.alerts.invalidTime"));
                 return;
             }
         }
+
+        const delayNum = parseIntegerInput(insistanceDelais);
+        const repetitionsNum = parseIntegerInput(insistanceRepetitions);
+
+        if (
+            nextInsistanceEnabled &&
+            (
+                delayNum === null ||
+                delayNum < NOTIFICATION_REMINDER_LIMITS.delayMinutes.min ||
+                delayNum > NOTIFICATION_REMINDER_LIMITS.delayMinutes.max
+            )
+        ) {
+            alert(t("common.alerts.invalidReminderDelay", NOTIFICATION_REMINDER_LIMITS.delayMinutes));
+            return;
+        }
+
+        if (
+            nextInsistanceEnabled &&
+            (
+                repetitionsNum === null ||
+                repetitionsNum < NOTIFICATION_REMINDER_LIMITS.repetitions.min ||
+                repetitionsNum > NOTIFICATION_REMINDER_LIMITS.repetitions.max
+            )
+        ) {
+            alert(t("common.alerts.invalidReminderRepetitions", NOTIFICATION_REMINDER_LIMITS.repetitions));
+            return;
+        }
+
+        const nextInsistanceDelais = nextInsistanceEnabled && delayNum !== null
+            ? `${delayNum}`
+            : normalizeInsistanceDelais(insistanceDelais);
+        const nextInsistanceRepetitions = nextInsistanceEnabled && repetitionsNum !== null
+            ? `${repetitionsNum}`
+            : normalizeInsistanceRepetitions(insistanceRepetitions);
+
         // Envoyer les préférences de notification à Supabase
         const { error: updateError } = await supabase
             .from('Profiles')
@@ -143,8 +200,8 @@ export default function NotificationsSettings() {
                 alertSetupMinute: alertMinute, 
                 alertSetupActive: alertsEnabled,
                 alertInsistanceActive: nextInsistanceEnabled,
-                alertInsistanceDelais: insistanceDelais,
-                alertInsistanceRepetitions: insistanceRepetitions,
+                alertInsistanceDelais: nextInsistanceDelais,
+                alertInsistanceRepetitions: nextInsistanceRepetitions,
                 alertWeekendsActive: nextWeekendEnabled
             })
             .eq('id', store.user.id);
@@ -154,13 +211,13 @@ export default function NotificationsSettings() {
         // Mettre à jour les notifications sur l'appareil
         if (alertsEnabled) {
             const hasPermission = await requestNotificationPermissions();
-            if (hasPermission) {
+            if (hasPermission && hourNum !== null && minuteNum !== null) {
                 await scheduleDailyReminder(
-                    parseInt(alertHour), 
-                    parseInt(alertMinute),
+                    hourNum,
+                    minuteNum,
                     nextInsistanceEnabled,
-                    insistanceDelais,
-                    insistanceRepetitions,
+                    nextInsistanceDelais,
+                    nextInsistanceRepetitions,
                     nextWeekendEnabled
                 );
             }
@@ -172,10 +229,12 @@ export default function NotificationsSettings() {
         setInitialAlertMinute(alertMinute);
         setInitialAlertsEnabled(alertsEnabled);
         setInitialInsistanceEnabled(nextInsistanceEnabled);
-        setInitialInsistanceDelais(insistanceDelais);
-        setInitialInsistanceRepetitions(insistanceRepetitions);
+        setInitialInsistanceDelais(nextInsistanceDelais);
+        setInitialInsistanceRepetitions(nextInsistanceRepetitions);
         setInitialWeekendEnabled(nextWeekendEnabled);
         setInsistanceEnabled(nextInsistanceEnabled);
+        setInsistanceDelais(nextInsistanceDelais);
+        setInsistanceRepetitions(nextInsistanceRepetitions);
         setWeekendEnabled(nextWeekendEnabled);
         setIsModified(false);
     };
@@ -358,13 +417,19 @@ export default function NotificationsSettings() {
                                 justifyContent: 'space-between',
                                 marginBottom: 8,
                             }}>
-                                <Text style={{ color: colors.text, fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
-                                    {t("settings.notifications.delay")}
-                                </Text>
+                                <View style={styles.insistenceLabel}>
+                                    <Text style={{ color: colors.text, fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
+                                        {t("settings.notifications.delay")}
+                                    </Text>
+                                    <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: 'Satoshi-Regular', marginTop: 2 }}>
+                                        {t("settings.notifications.delayLimit", NOTIFICATION_REMINDER_LIMITS.delayMinutes)}
+                                    </Text>
+                                </View>
 
                                 <SimpleInput
                                     value={insistanceDelais}
-                                    onChangeText={setInsistanceDelais}
+                                    onChangeText={(value) => setInsistanceDelais(sanitizeNumericInput(value, 3))}
+                                    onBlur={() => setInsistanceDelais(normalizeInsistanceDelais(insistanceDelais))}
                                     placeholder="..."
                                     type="numeric"
                                     returnKeyType="done"
@@ -383,13 +448,19 @@ export default function NotificationsSettings() {
                                 alignItems: "center",
                                 justifyContent: 'space-between',
                             }}>
-                                <Text style={{ color: colors.text, fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
-                                    {t("settings.notifications.repetitions")}
-                                </Text>
+                                <View style={styles.insistenceLabel}>
+                                    <Text style={{ color: colors.text, fontSize: 16, fontFamily: 'Satoshi-Regular' }}>
+                                        {t("settings.notifications.repetitions")}
+                                    </Text>
+                                    <Text style={{ color: colors.textSecondary, fontSize: 12, fontFamily: 'Satoshi-Regular', marginTop: 2 }}>
+                                        {t("settings.notifications.repetitionsLimit", NOTIFICATION_REMINDER_LIMITS.repetitions)}
+                                    </Text>
+                                </View>
 
                                 <SimpleInput
                                     value={insistanceRepetitions}
-                                    onChangeText={setInsistanceRepetitions}
+                                    onChangeText={(value) => setInsistanceRepetitions(sanitizeNumericInput(value, 1))}
+                                    onBlur={() => setInsistanceRepetitions(normalizeInsistanceRepetitions(insistanceRepetitions))}
                                     placeholder="..."
                                     type="numeric"
                                     returnKeyType="done"
@@ -481,5 +552,9 @@ const styles = StyleSheet.create({
         top: 0,
         width: 28,
         zIndex: 2,
+    },
+    insistenceLabel: {
+        flex: 1,
+        paddingRight: 12,
     },
 });
