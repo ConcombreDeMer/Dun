@@ -378,6 +378,10 @@ auth:
     checking: "Vérification de votre compte..."
 home:
   emptyState: "Aucune tâche pour cette date"
+  taskLimit:
+    title: "Limite gratuite"
+    message: "Avec l'offre gratuite, tu peux créer jusqu'à {{limit}} tâches par journée. Débloque Dun Plus pour créer des tâches sans limite."
+    cta: "Découvrir Dun +"
   progress:
     empty: "Journée vide"
     complete: "Journée terminée"
@@ -419,6 +423,7 @@ createTask:
     confirm: "Valider"
   alerts:
     pastDate: "Tu ne peux pas créer une tâche sur un jour passé."
+    dailyLimit: "Tu as atteint la limite de {{limit}} tâches pour cette journée."
 daily:
   loading: "Chargement du daily..."
   preparing: "Préparation de ta journée..."

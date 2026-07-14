@@ -483,6 +483,11 @@ export const resources = {
       },
       "home": {
         "emptyState": "No tasks for this date",
+        "taskLimit": {
+          "title": "Free limit",
+          "message": "With the free plan, you can create up to {{limit}} tasks per day. Unlock Dun Plus to create tasks without limits.",
+          "cta": "Discover Dun +"
+        },
         "progress": {
           "empty": "No tasks yet",
           "complete": "Day complete",
@@ -531,7 +536,8 @@ export const resources = {
           "confirm": "Confirm"
         },
         "alerts": {
-          "pastDate": "You can't create a task on a past day."
+          "pastDate": "You can't create a task on a past day.",
+          "dailyLimit": "You've reached the limit of {{limit}} tasks for this day."
         }
       },
       "daily": {
@@ -1544,6 +1550,11 @@ export const resources = {
       },
       "home": {
         "emptyState": "Aucune tâche pour cette date",
+        "taskLimit": {
+          "title": "Limite gratuite",
+          "message": "Avec l'offre gratuite, tu peux créer jusqu'à {{limit}} tâches par journée. Débloque Dun Plus pour créer des tâches sans limite.",
+          "cta": "Découvrir Dun +"
+        },
         "progress": {
           "empty": "Journée vide",
           "complete": "Journée terminée",
@@ -1592,7 +1603,8 @@ export const resources = {
           "confirm": "Valider"
         },
         "alerts": {
-          "pastDate": "Tu ne peux pas créer une tâche sur un jour passé."
+          "pastDate": "Tu ne peux pas créer une tâche sur un jour passé.",
+          "dailyLimit": "Tu as atteint la limite de {{limit}} tâches pour cette journée."
         }
       },
       "daily": {

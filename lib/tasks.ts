@@ -38,6 +38,8 @@ type LateAdjustableTask = {
   resolved_at?: string | null;
 };
 
+export const FREE_DAILY_TASK_LIMIT = 6;
+
 const TASK_LIST_SELECT = "id, name, description, done, order, date, created_at, completed_at, resolved_at, resolution, carried_from_id, delay_count, late_adjusted_at, Task_Tags(tag_id)";
 const optimisticTaskDoneById = new Map<number, boolean>();
 
@@ -114,6 +116,19 @@ export const getOptimisticTaskDone = (taskId: number) => {
 
 export const clearOptimisticTaskDone = (taskId: number) => {
   optimisticTaskDoneById.delete(taskId);
+};
+
+export const countTasksForDate = (tasks: Pick<TaskListItem, "date">[] | undefined, dateKey: string) => {
+  return (tasks ?? []).filter((task) =>
+    task.date ? toAppDateKey(task.date) === dateKey : false
+  ).length;
+};
+
+export const isFreeDailyTaskLimitReached = (
+  tasks: Pick<TaskListItem, "date">[] | undefined,
+  dateKey: string
+) => {
+  return countTasksForDate(tasks, dateKey) >= FREE_DAILY_TASK_LIMIT;
 };
 
 export const fetchTaskList = async (cachedTasks: TaskListItem[] = [], userId?: string | null) => {

@@ -3,9 +3,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthUserId } from "./AuthSessionContext";
 import { isPastAppDateKey, toAppDateKey } from "./date";
 import { DAYS_QUERY_KEY } from "./daysQueryKeys";
+import { i18n } from "./i18n";
 import { useProfile } from "./profile";
+import { useSubscription } from "./subscription";
 import { TAG_USAGE_STATS_QUERY_KEY } from "./tags";
-import { createTask, deleteTask, moveTaskDate, resolveOverdueTask } from "./tasks";
+import { createTask, deleteTask, FREE_DAILY_TASK_LIMIT, isFreeDailyTaskLimitReached, moveTaskDate, resolveOverdueTask } from "./tasks";
 
 type TaskCacheItem = {
   id: number;
@@ -104,6 +106,7 @@ export const useOptimisticTaskMutations = () => {
   const userId = useAuthUserId();
   const queryClient = useQueryClient();
   const profileQuery = useProfile();
+  const { isPremium } = useSubscription();
   const lockPastDaysEnabled = profileQuery.data?.lockPastDaysEnabled ?? true;
   const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
   const invalidateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -158,6 +161,11 @@ export const useOptimisticTaskMutations = () => {
     await queryClient.cancelQueries({ queryKey: tasksQueryKey });
 
     const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(tasksQueryKey);
+
+    if (!isPremium && dateKey && isFreeDailyTaskLimitReached(previousTasks, dateKey)) {
+      throw new Error(i18n.t("createTask.alerts.dailyLimit", { limit: FREE_DAILY_TASK_LIMIT }));
+    }
+
     const optimisticOrder = getNextLocalOrder(previousTasks, dateKey);
     const optimisticTask: TaskCacheItem = {
       id: tempId,
@@ -219,7 +227,7 @@ export const useOptimisticTaskMutations = () => {
         });
       }
     }
-  }, [lockPastDaysEnabled, queryClient, scheduleInvalidate, tasksQueryKey, userId]);
+  }, [isPremium, lockPastDaysEnabled, queryClient, scheduleInvalidate, tasksQueryKey, userId]);
 
   const deleteTaskOptimistically = useCallback(async (taskId: number, taskSnapshot?: TaskMutationSnapshot) => {
     await queryClient.cancelQueries({ queryKey: tasksQueryKey });

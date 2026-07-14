@@ -3,6 +3,7 @@ import CircularProgressBar from "@/components/circularProgressBar";
 import CreateModalHost from "@/components/CreateModalHost";
 import NewProgressBar from "@/components/newProgressBar";
 import PopUpTask from "@/components/popUpTask";
+import PremiumCTAButton from "@/components/PremiumCTAButton";
 import Squircle from "@/components/Squircle";
 import { TaskItem, TaskItemLayout } from "@/components/TaskItem";
 import TextCalendarComponent from "@/components/textCalendar";
@@ -13,7 +14,7 @@ import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyRemin
 import { patchProfileCache, useProfile } from "@/lib/profile";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
-import { fetchTaskList, type TaskListItem } from "@/lib/tasks";
+import { fetchTaskList, FREE_DAILY_TASK_LIMIT, type TaskListItem } from "@/lib/tasks";
 import { useTheme } from "@/lib/ThemeContext";
 import { DEFAULT_CALENDAR_PREFERENCE, useCalendarPreference, type CalendarPreference } from "@/lib/useCalendarPreference";
 import { DEFAULT_PROGRESS_BAR_PREFERENCE, useProgressBarPreference, type ProgressBarPreference } from "@/lib/useProgressBarPreference";
@@ -23,11 +24,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import ReAnimated, { Easing, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import ReAnimated, { Easing, FadeInUp, FadeOutUp, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 
 const LottieView = require("lottie-react-native").default;
@@ -103,6 +105,7 @@ type DayTasksPageProps = {
   tasks: any[];
   canReorder?: boolean;
   isReadOnly?: boolean;
+  taskLimit?: number | null;
   onDragBegin?: () => void;
   onDragEnd?: ({ data }: { data: any[] }) => void;
   onScrollOffsetChange?: (offset: number) => void;
@@ -130,9 +133,11 @@ const DayTasksPage = ({
   tasks,
   canReorder = true,
   isReadOnly = false,
+  taskLimit = null,
   t,
 }: DayTasksPageProps) => {
   const [optimisticTaskOrder, setOptimisticTaskOrder] = useState<(string | number)[] | null>(null);
+  const [showTaskLimitDetails, setShowTaskLimitDetails] = useState(false);
   const displayedTasks = useMemo(() => {
     if (!optimisticTaskOrder || optimisticTaskOrder.length !== tasks.length) {
       return tasks;
@@ -192,6 +197,11 @@ const DayTasksPage = ({
     unlockCustomListAnimationsSoon();
   }, [onDragEnd, unlockCustomListAnimationsSoon]);
 
+  const toggleTaskLimitDetails = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowTaskLimitDetails((current) => !current);
+  }, []);
+
   return (
     <View style={[styles.dayPage, { width: dayWidth }]}>
       {loading ? (
@@ -234,6 +244,64 @@ const DayTasksPage = ({
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               {t("home.emptyState")}
             </Text>
+          }
+          ListFooterComponent={
+            taskLimit ? (
+              <View style={styles.taskLimitFooter}>
+                <View style={styles.taskLimitHeader}>
+                  <Text style={[styles.taskLimitCounter, { color: colors.textSecondary }]}>
+                    {displayedTasks.length}/{taskLimit}
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: showTaskLimitDetails }}
+                    onPress={toggleTaskLimitDetails}
+                    style={({ pressed }) => [
+                      styles.taskLimitInfoButton,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        opacity: pressed ? 0.72 : 1,
+                      },
+                    ]}
+                  >
+                    <SymbolView
+                      name={showTaskLimitDetails ? "minus" : "info.circle"}
+                      size={15}
+                      tintColor={colors.textSecondary}
+                    />
+                  </Pressable>
+                </View>
+
+                {showTaskLimitDetails ? (
+                  <ReAnimated.View
+                    entering={FadeInUp.duration(180)}
+                    exiting={FadeOutUp.duration(140)}
+                    style={styles.taskLimitDetails}
+                  >
+                    <Squircle
+                      style={[styles.taskLimitCard, { backgroundColor: colors.card, borderColor: "#F4BA00" }]}
+                      cornerSmoothing={100}
+                      preserveSmoothing={true}
+                    >
+                      <View style={styles.taskLimitCardIcon}>
+                        <SymbolView name="list.bullet.clipboard.fill" size={22} tintColor="#2C2405" />
+                      </View>
+                      <Text style={[styles.taskLimitCardTitle, { color: colors.text }]}>
+                        {t("home.taskLimit.title")}
+                      </Text>
+                      <Text style={[styles.taskLimitCardMessage, { color: colors.textSecondary }]}>
+                        {t("home.taskLimit.message", { limit: taskLimit })}
+                      </Text>
+                      <PremiumCTAButton
+                        title={t("home.taskLimit.cta")}
+                        onPress={() => router.push("/settings/premium")}
+                      />
+                    </Squircle>
+                  </ReAnimated.View>
+                ) : null}
+              </View>
+            ) : null
           }
         />
       )}
@@ -855,6 +923,7 @@ export default function Home() {
         pageDateKey={pageDateKey}
         progressBarPreference={activeProgressBarPreference}
         isReadOnly={false}
+        taskLimit={isPremium ? null : FREE_DAILY_TASK_LIMIT}
         t={t}
       />
     );
@@ -869,6 +938,7 @@ export default function Home() {
     isCalendarExpanded,
     loading,
     activeProgressBarPreference,
+    isPremium,
     selectedTaskId,
     t,
     tasksByDate,
@@ -981,8 +1051,8 @@ const styles = StyleSheet.create({
 
   dayPage: {
     flex: 1,
-        display : 'flex',
-    gap : 20,
+    display: 'flex',
+    gap: 20,
   },
 
   overlayRoot: {
@@ -1044,6 +1114,70 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginTop: 20,
+  },
+
+  taskLimitCounter: {
+    fontFamily: 'Satoshi-Bold',
+    fontSize: 13,
+    opacity: 0.7,
+    marginLeft: 8,
+  },
+
+  taskLimitFooter: {
+    alignItems: 'flex-start',
+    marginTop: 12,
+    width: '100%',
+  },
+
+  taskLimitHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+
+  taskLimitInfoButton: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    height: 24,
+    justifyContent: 'center',
+    width: 24,
+  },
+
+  taskLimitDetails: {
+    marginTop: 12,
+    width: '100%',
+  },
+
+  taskLimitCard: {
+    alignItems: 'center',
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 10,
+    overflow: 'hidden',
+    padding: 16,
+  },
+
+  taskLimitCardIcon: {
+    alignItems: 'center',
+    backgroundColor: '#F4BA00',
+    borderRadius: 16,
+    height: 34,
+    justifyContent: 'center',
+    width: 34,
+  },
+
+  taskLimitCardTitle: {
+    fontFamily: 'Satoshi-Bold',
+    fontSize: 20,
+    textAlign: 'center',
+  },
+
+  taskLimitCardMessage: {
+    fontFamily: 'Satoshi-Regular',
+    fontSize: 15,
+    lineHeight: 21,
+    textAlign: 'center',
   },
 
   animationContainer: {
