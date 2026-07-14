@@ -1,6 +1,7 @@
 import { SFSymbol, SymbolView } from 'expo-symbols';
+import { SquircleView } from 'expo-squircle-view';
 import { Pressable, Text, ViewStyle } from 'react-native';
-import SquircleView from "react-native-fast-squircle";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { useFont } from "../lib/FontContext";
 import { useTheme } from "../lib/ThemeContext";
 
@@ -17,9 +18,30 @@ interface PrimaryButtonProps {
     height?: number;
 }
 
+const AnimatedSquircleView = Animated.createAnimatedComponent(SquircleView);
+
 export default function PrimaryButton({ title, onPress, disabled = false, image = '', size = 'L', style, type, width, height }: PrimaryButtonProps) {
     const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
+    const scale = useSharedValue(1);
+    const pressOpacity = useSharedValue(1);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        opacity: disabled ? 0.5 : pressOpacity.value,
+        transform: [{ scale: scale.value }],
+    }));
+
+    const handlePressIn = () => {
+        if (disabled) return;
+        scale.value = withSpring(0.97, { damping: 18, stiffness: 320 });
+        pressOpacity.value = withTiming(0.86, { duration: 90 });
+    };
+
+    const handlePressOut = () => {
+        if (disabled) return;
+        scale.value = withSpring(1, { damping: 16, stiffness: 260 });
+        pressOpacity.value = withTiming(1, { duration: 120 });
+    };
 
     const getContentColor = () => {
         if (type === 'danger') {
@@ -60,10 +82,6 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
             baseStyle.borderColor = colors.actionButton;
         }
 
-        if (disabled) {
-            baseStyle.opacity = 0.5;
-        }
-
         // Appliquer le height personnalisé en dernier pour qu'il soit prioritaire
         if (width) {
             baseStyle.width = width;
@@ -83,14 +101,16 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
     };
 
     return (
-        <SquircleView
-            style={[getButtonStyle(), style]}
+        <AnimatedSquircleView
+            style={[getButtonStyle(), style, animatedStyle]}
             // onPress={onPress}
             // disabled={disabled}
             cornerSmoothing={1}
         >
             <Pressable
                 onPress={onPress}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
                 disabled={disabled}
                 style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', position: 'absolute', top: 0, left: 0, zIndex: 1 }}
             >
@@ -128,6 +148,6 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
                 />
             }
             {(size === 'L' || size === 'M' || size === 'S') && title && <Text style={getTextStyle()}>{title}</Text>}
-        </SquircleView>
+        </AnimatedSquircleView>
     );
 }

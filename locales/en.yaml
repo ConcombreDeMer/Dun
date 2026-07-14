@@ -242,7 +242,7 @@ settings:
       resetPassword: "An error occurred while sending the password reset email."
       deleteAccount: "An error occurred while deleting the account. Please try again."
     exportData:
-      action: "Export my data"
+      action: "Data transfer"
       confirmTitle: "Export your data?"
       confirmMessage: "A JSON file containing the data linked to your account will be generated."
       fileName: "Dun data export"
@@ -263,6 +263,47 @@ settings:
       errors:
         export: "An error occurred while exporting your data."
         download: "Unable to download the JSON file."
+    dataTransfer:
+      headline:
+        title: "Data"
+        subtitle: "Export or import"
+      export:
+        title: "Export my data"
+        description: "Generate a JSON backup of the data linked to your account."
+      import:
+        title: "Import my data"
+        description: "Replace this account's data with a Dun JSON export."
+    importData:
+      headline:
+        title: "Import"
+        subtitle: "your data"
+      fileNameFallback: "Dun data import"
+      idleTitle: "Choose an export file"
+      idleDescription: "Select a Dun JSON export to preview what will be restored."
+      readyTitle: "Ready to import"
+      readyDescription: "This import will replace the current account data with the selected file."
+      loadingTitle: "Importing data"
+      loadingDescription: "We are replacing your account data. Keep the app open for a few seconds."
+      successTitle: "Import complete"
+      successDescription: "{{tasks}} tasks and {{tags}} tags were restored."
+      errorTitle: "Import unavailable"
+      errorDescription: "The selected file could not be imported."
+      chooseFile: "Choose file"
+      import: "Import"
+      confirmTitle: "Replace your current data?"
+      confirmMessage: "This will delete the current tasks, tags, task-tag links, days, and account preferences, then restore the selected export file. This action cannot be undone."
+      confirmAction: "Replace data"
+      freePlanWarningTitle: "Free account limits"
+      freePlanWarningDescription: "Dun Plus data or options found in the file will be kept, but some features may stay limited while this account is free."
+      summary:
+        exportedAt: "Exported"
+        tasks: "Tasks"
+        tags: "Tags"
+        days: "Days"
+      errors:
+        documentPickerUnavailable: "File selection is unavailable in this build. Rebuild the app to enable imports."
+        read: "Unable to read this JSON file."
+        import: "An error occurred while importing your data."
     deleteAccount:
       title: "Delete account"
       message: "Are you sure you want to delete your account? This action is irreversible and will remove all your data."
@@ -281,7 +322,8 @@ settings:
       informations: "INFORMATION"
       subscription: "SUBSCRIPTION"
       security: "SECURITY"
-      dangerZone: "DANGER ZONE"
+      data: "DATA"
+      dangerZone: "EXIT"
     firstName: "First name"
     subscriptionManagement: "Manage subscription"
     resetPassword: "Reset password"

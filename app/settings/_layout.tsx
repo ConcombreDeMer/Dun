@@ -28,7 +28,9 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="subscription" />
       <Stack.Screen name="premium" />
       <Stack.Screen name="changeEmail" />
+      <Stack.Screen name="DataTransfer" />
       <Stack.Screen name="ExportData" />
+      <Stack.Screen name="ImportData" />
     </Stack>
   );
 }

@@ -242,7 +242,7 @@ settings:
       resetPassword: "Une erreur est survenue lors de l'envoi de l'email de réinitialisation."
       deleteAccount: "Une erreur est survenue lors de la suppression du compte. Veuillez réessayer."
     exportData:
-      action: "Exporter mes données"
+      action: "Transfert de données"
       confirmTitle: "Exporter vos données ?"
       confirmMessage: "Un fichier JSON contenant les données liées à votre compte va être généré."
       fileName: "Export des données Dun"
@@ -263,6 +263,47 @@ settings:
       errors:
         export: "Une erreur est survenue pendant l'export de vos données."
         download: "Impossible de télécharger le fichier JSON."
+    dataTransfer:
+      headline:
+        title: "Données"
+        subtitle: "Exporter ou importer"
+      export:
+        title: "Exporter mes données"
+        description: "Génère une sauvegarde JSON des données liées à ton compte."
+      import:
+        title: "Importer mes données"
+        description: "Remplace les données de ce compte avec un export JSON Dun."
+    importData:
+      headline:
+        title: "Import"
+        subtitle: "de vos données"
+      fileNameFallback: "Import des données Dun"
+      idleTitle: "Choisir un fichier d'export"
+      idleDescription: "Sélectionne un export JSON Dun pour vérifier ce qui sera restauré."
+      readyTitle: "Prêt pour l'import"
+      readyDescription: "Cet import remplacera les données actuelles du compte par le fichier sélectionné."
+      loadingTitle: "Import des données"
+      loadingDescription: "Nous remplaçons les données de ton compte. Garde l'app ouverte quelques secondes."
+      successTitle: "Import terminé"
+      successDescription: "{{tasks}} tâches et {{tags}} tags ont été restaurés."
+      errorTitle: "Import impossible"
+      errorDescription: "Le fichier sélectionné n'a pas pu être importé."
+      chooseFile: "Choisir un fichier"
+      import: "Importer"
+      confirmTitle: "Remplacer vos données actuelles ?"
+      confirmMessage: "Les tâches, tags, associations tags-tâches, jours et préférences actuels seront supprimés, puis remplacés par le fichier d'export sélectionné. Cette action est irréversible."
+      confirmAction: "Remplacer"
+      freePlanWarningTitle: "Limites du compte gratuit"
+      freePlanWarningDescription: "Les données ou options Dun Plus du fichier seront conservées, mais certaines fonctionnalités peuvent rester limitées tant que ce compte est gratuit."
+      summary:
+        exportedAt: "Exporté"
+        tasks: "Tâches"
+        tags: "Tags"
+        days: "Jours"
+      errors:
+        documentPickerUnavailable: "La sélection de fichier n'est pas disponible dans ce build. Reconstruis l'app pour activer l'import."
+        read: "Impossible de lire ce fichier JSON."
+        import: "Une erreur est survenue pendant l'import de vos données."
     deleteAccount:
       title: "Supprimer le compte"
       message: "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible et supprimera toutes vos données."
@@ -281,7 +322,8 @@ settings:
       informations: "INFORMATIONS"
       subscription: "ABONNEMENT"
       security: "SÉCURITÉ"
-      dangerZone: "ZONE DE DANGER"
+      data: "DONNÉES"
+      dangerZone: "SORTIE"
     firstName: "Prénom"
     subscriptionManagement: "Gestion de l'abonnement"
     resetPassword: "Réinitialiser le mot de passe"

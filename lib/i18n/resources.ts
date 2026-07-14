@@ -325,7 +325,7 @@ export const resources = {
             "deleteAccount": "An error occurred while deleting the account. Please try again."
           },
           "exportData": {
-            "action": "Export my data",
+            "action": "Data transfer",
             "confirmTitle": "Export your data?",
             "confirmMessage": "A JSON file containing the data linked to your account will be generated.",
             "fileName": "Dun data export",
@@ -349,6 +349,55 @@ export const resources = {
               "download": "Unable to download the JSON file."
             }
           },
+          "dataTransfer": {
+            "headline": {
+              "title": "Data",
+              "subtitle": "Export or import"
+            },
+            "export": {
+              "title": "Export my data",
+              "description": "Generate a JSON backup of the data linked to your account."
+            },
+            "import": {
+              "title": "Import my data",
+              "description": "Replace this account's data with a Dun JSON export."
+            }
+          },
+          "importData": {
+            "headline": {
+              "title": "Import",
+              "subtitle": "your data"
+            },
+            "fileNameFallback": "Dun data import",
+            "idleTitle": "Choose an export file",
+            "idleDescription": "Select a Dun JSON export to preview what will be restored.",
+            "readyTitle": "Ready to import",
+            "readyDescription": "This import will replace the current account data with the selected file.",
+            "loadingTitle": "Importing data",
+            "loadingDescription": "We are replacing your account data. Keep the app open for a few seconds.",
+            "successTitle": "Import complete",
+            "successDescription": "{{tasks}} tasks and {{tags}} tags were restored.",
+            "errorTitle": "Import unavailable",
+            "errorDescription": "The selected file could not be imported.",
+            "chooseFile": "Choose file",
+            "import": "Import",
+            "confirmTitle": "Replace your current data?",
+            "confirmMessage": "This will delete the current tasks, tags, task-tag links, days, and account preferences, then restore the selected export file. This action cannot be undone.",
+            "confirmAction": "Replace data",
+            "freePlanWarningTitle": "Free account limits",
+            "freePlanWarningDescription": "Dun Plus data or options found in the file will be kept, but some features may stay limited while this account is free.",
+            "summary": {
+              "exportedAt": "Exported",
+              "tasks": "Tasks",
+              "tags": "Tags",
+              "days": "Days"
+            },
+            "errors": {
+              "documentPickerUnavailable": "File selection is unavailable in this build. Rebuild the app to enable imports.",
+              "read": "Unable to read this JSON file.",
+              "import": "An error occurred while importing your data."
+            }
+          },
           "deleteAccount": {
             "title": "Delete account",
             "message": "Are you sure you want to delete your account? This action is irreversible and will remove all your data.",
@@ -370,7 +419,8 @@ export const resources = {
             "informations": "INFORMATION",
             "subscription": "SUBSCRIPTION",
             "security": "SECURITY",
-            "dangerZone": "DANGER ZONE"
+            "data": "DATA",
+            "dangerZone": "EXIT"
           },
           "firstName": "First name",
           "subscriptionManagement": "Manage subscription",
@@ -1392,7 +1442,7 @@ export const resources = {
             "deleteAccount": "Une erreur est survenue lors de la suppression du compte. Veuillez réessayer."
           },
           "exportData": {
-            "action": "Exporter mes données",
+            "action": "Transfert de données",
             "confirmTitle": "Exporter vos données ?",
             "confirmMessage": "Un fichier JSON contenant les données liées à votre compte va être généré.",
             "fileName": "Export des données Dun",
@@ -1416,6 +1466,55 @@ export const resources = {
               "download": "Impossible de télécharger le fichier JSON."
             }
           },
+          "dataTransfer": {
+            "headline": {
+              "title": "Données",
+              "subtitle": "Exporter ou importer"
+            },
+            "export": {
+              "title": "Exporter mes données",
+              "description": "Génère une sauvegarde JSON des données liées à ton compte."
+            },
+            "import": {
+              "title": "Importer mes données",
+              "description": "Remplace les données de ce compte avec un export JSON Dun."
+            }
+          },
+          "importData": {
+            "headline": {
+              "title": "Import",
+              "subtitle": "de vos données"
+            },
+            "fileNameFallback": "Import des données Dun",
+            "idleTitle": "Choisir un fichier d'export",
+            "idleDescription": "Sélectionne un export JSON Dun pour vérifier ce qui sera restauré.",
+            "readyTitle": "Prêt pour l'import",
+            "readyDescription": "Cet import remplacera les données actuelles du compte par le fichier sélectionné.",
+            "loadingTitle": "Import des données",
+            "loadingDescription": "Nous remplaçons les données de ton compte. Garde l'app ouverte quelques secondes.",
+            "successTitle": "Import terminé",
+            "successDescription": "{{tasks}} tâches et {{tags}} tags ont été restaurés.",
+            "errorTitle": "Import impossible",
+            "errorDescription": "Le fichier sélectionné n'a pas pu être importé.",
+            "chooseFile": "Choisir un fichier",
+            "import": "Importer",
+            "confirmTitle": "Remplacer vos données actuelles ?",
+            "confirmMessage": "Les tâches, tags, associations tags-tâches, jours et préférences actuels seront supprimés, puis remplacés par le fichier d'export sélectionné. Cette action est irréversible.",
+            "confirmAction": "Remplacer",
+            "freePlanWarningTitle": "Limites du compte gratuit",
+            "freePlanWarningDescription": "Les données ou options Dun Plus du fichier seront conservées, mais certaines fonctionnalités peuvent rester limitées tant que ce compte est gratuit.",
+            "summary": {
+              "exportedAt": "Exporté",
+              "tasks": "Tâches",
+              "tags": "Tags",
+              "days": "Jours"
+            },
+            "errors": {
+              "documentPickerUnavailable": "La sélection de fichier n'est pas disponible dans ce build. Reconstruis l'app pour activer l'import.",
+              "read": "Impossible de lire ce fichier JSON.",
+              "import": "Une erreur est survenue pendant l'import de vos données."
+            }
+          },
           "deleteAccount": {
             "title": "Supprimer le compte",
             "message": "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible et supprimera toutes vos données.",
@@ -1437,7 +1536,8 @@ export const resources = {
             "informations": "INFORMATIONS",
             "subscription": "ABONNEMENT",
             "security": "SÉCURITÉ",
-            "dangerZone": "ZONE DE DANGER"
+            "data": "DONNÉES",
+            "dangerZone": "SORTIE"
           },
           "firstName": "Prénom",
           "subscriptionManagement": "Gestion de l'abonnement",
