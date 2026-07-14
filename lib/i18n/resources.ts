@@ -506,6 +506,10 @@ export const resources = {
         "title": "Task box",
         "subtitle": "Undated tasks stay here until you place them on a day.",
         "emptyState": "No tasks in the box",
+        "recovery": {
+          "title": "Box recovery mode",
+          "message": "Your Box still contains tasks created with Dun Plus. You can view them, move them to a date, or delete them. Adding new tasks to the Box remains reserved for Dun Plus."
+        },
         "premium": {
           "title": "Task box",
           "message": "Set aside tasks you do not want to schedule right away. Use the Box button on a task, then find it here when you are ready to give it a date.",
@@ -648,7 +652,9 @@ export const resources = {
           "counter": "{{count}}/{{limit}} free tags",
           "premium": "Unlimited tags with Dun Plus",
           "reachedTitle": "Free tag limit reached",
-          "reachedDescription": "Free accounts can create up to {{limit}} tags. Unlock Dun Plus to create more."
+          "reachedDescription": "Free accounts can create up to {{limit}} tags. Unlock Dun Plus to create more.",
+          "inactiveTitle": "Tags in limited mode",
+          "inactiveDescription": "Your tags still include extra tags created with Dun Plus. With the free plan, only the first 2 tags in alphabetical order remain active. The others are kept and can still be edited, deleted, or unassigned."
         },
         "delete": {
           "title": "Delete tag",
@@ -1561,6 +1567,10 @@ export const resources = {
         "title": "Boîte à tâches",
         "subtitle": "Les tâches sans date restent ici jusqu'à ce que tu les places dans une journée.",
         "emptyState": "Aucune tâche dans la boîte",
+        "recovery": {
+          "title": "Box en récupération",
+          "message": "Ta Box contient encore des tâches créées avec Dun Plus. Tu peux les consulter, les déplacer vers une date ou les supprimer. L'ajout de nouvelles tâches dans la Box reste réservé à Dun Plus."
+        },
         "premium": {
           "title": "Boîte à tâches",
           "message": "Mets de côté les tâches que tu ne veux pas planifier tout de suite. Utilise le bouton Box sur une tâche, puis retrouve-la ici quand tu es prêt à lui donner une date.",
@@ -1703,7 +1713,9 @@ export const resources = {
           "counter": "{{count}}/{{limit}} tags gratuits",
           "premium": "Tags illimités avec Dun Plus",
           "reachedTitle": "Limite de tags atteinte",
-          "reachedDescription": "Les comptes gratuits peuvent créer jusqu'à {{limit}} tags. Débloque Dun Plus pour en créer davantage."
+          "reachedDescription": "Les comptes gratuits peuvent créer jusqu'à {{limit}} tags. Débloque Dun Plus pour en créer davantage.",
+          "inactiveTitle": "Tags en lecture limitée",
+          "inactiveDescription": "Tes tags contiennent encore des tags supplémentaires créés avec Dun Plus. Avec l'offre gratuite, seuls les 2 premiers par ordre alphabétique restent actifs. Les autres sont conservés et peuvent encore être modifiés, supprimés ou désassignés."
         },
         "delete": {
           "title": "Supprimer le tag",

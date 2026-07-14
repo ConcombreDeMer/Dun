@@ -8,7 +8,7 @@ import { useAuthUserId } from "@/lib/AuthSessionContext";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { useSubscription } from "@/lib/subscription";
-import { createTag, deleteTag, getTags, Tag, TAGS_QUERY_KEY, TAG_USAGE_STATS_QUERY_KEY, updateTag } from "@/lib/tags";
+import { createTag, deleteTag, FREE_TAG_LIMIT, getActiveTagIdsForPlan, getTags, Tag, TAGS_QUERY_KEY, TAG_USAGE_STATS_QUERY_KEY, updateTag } from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
 import { BottomSheet, Button as SwiftButton, Group, Host, Menu, RNHostView } from "@expo/ui/swift-ui";
 import { presentationDetents, presentationDragIndicator } from "@expo/ui/swift-ui/modifiers";
@@ -20,8 +20,6 @@ import { useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const TAG_COLORS = ["#4F8EF7", "#62B36F", "#F05D5E", "#F6A23D", "#8B6FF6", "#3A3A3A"];
-const FREE_TAG_LIMIT = 2;
-
 export default function TagsSettings() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -42,6 +40,8 @@ export default function TagsSettings() {
     enabled: !!userId,
   });
   const isTagLimitReached = !isPremium && tags.length >= FREE_TAG_LIMIT;
+  const hasInactiveTags = !isPremium && tags.length > FREE_TAG_LIMIT;
+  const activeTagIds = getActiveTagIdsForPlan(tags, isPremium);
 
   const createTagMutation = useMutation({
     mutationFn: createTag,
@@ -183,10 +183,20 @@ export default function TagsSettings() {
           </View>
         )}
 
-        {tags.map((tag) => (
+        {tags.map((tag) => {
+          const isInactive = !activeTagIds.has(tag.id);
+
+          return (
           <Squircle
             key={tag.id}
-            style={[styles.tagRow, { backgroundColor: colors.card, borderColor: colors.border }]}
+            style={[
+              styles.tagRow,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                opacity: isInactive ? 0.6 : 1,
+              },
+            ]}
           >
             <View style={styles.tagInfo}>
               <View style={[styles.tagColor, { backgroundColor: tag.color }]} />
@@ -219,7 +229,8 @@ export default function TagsSettings() {
               </Menu>
             </Host>
           </Squircle>
-        ))}
+          );
+        })}
 
         {!isLoading && !isPremium ? (
           <View style={styles.limitSection}>
@@ -257,10 +268,12 @@ export default function TagsSettings() {
                 </View>
                 <View style={styles.limitNoticeText}>
                   <Text style={[styles.limitNoticeTitle, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
-                    {t("tags.limit.reachedTitle")}
+                    {hasInactiveTags ? t("tags.limit.inactiveTitle") : t("tags.limit.reachedTitle")}
                   </Text>
                   <Text style={[styles.limitNoticeDescription, { color: colors.textSecondary, fontSize: fontSizes.base }]}>
-                    {t("tags.limit.reachedDescription", { limit: FREE_TAG_LIMIT })}
+                    {hasInactiveTags
+                      ? t("tags.limit.inactiveDescription")
+                      : t("tags.limit.reachedDescription", { limit: FREE_TAG_LIMIT })}
                   </Text>
                 </View>
                 <PremiumCTAButton

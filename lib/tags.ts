@@ -9,6 +9,7 @@ export type Tag = {
 
 export const TAGS_QUERY_KEY = ["tags"] as const;
 export const TAG_USAGE_STATS_QUERY_KEY = ["tag-usage-stats"] as const;
+export const FREE_TAG_LIMIT = 2;
 export const MAX_TAGS_PER_TASK = 3;
 
 export type TagUsageStat = {
@@ -84,6 +85,14 @@ export const getTags = async (userId?: string | null) => {
   }
 
   return (data ?? []) as Tag[];
+};
+
+export const getActiveTagIdsForPlan = (tags: Tag[], isPremium: boolean) => {
+  if (isPremium) {
+    return new Set(tags.map((tag) => tag.id));
+  }
+
+  return new Set(tags.slice(0, FREE_TAG_LIMIT).map((tag) => tag.id));
 };
 
 export const getTaskTagIds = async (taskId: number, userId?: string) => {

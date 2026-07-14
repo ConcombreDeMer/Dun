@@ -56,7 +56,7 @@ export default function Box() {
   const taskQuery = useQuery({
     queryKey: tasksQueryKey,
     queryFn: () => fetchTaskList(queryClient.getQueryData<TaskListItem[]>(tasksQueryKey) ?? [], userId),
-    enabled: !!userId && canUseTaskBox,
+    enabled: !!userId,
     gcTime: 1000 * 60 * 30,
     staleTime: 1000 * 60 * 15,
   });
@@ -98,6 +98,8 @@ export default function Box() {
     () => boxTasks.find((task: any) => task.id === selectedTaskId) ?? null,
     [boxTasks, selectedTaskId]
   );
+  const canRecoverExistingBoxTasks = !canUseTaskBox && boxTasks.length > 0;
+  const shouldShowBoxTasks = canUseTaskBox || canRecoverExistingBoxTasks;
 
   const handleBackPress = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -134,6 +136,10 @@ export default function Box() {
   }, []);
 
   const handleDragEnd = useCallback(async ({ data }: { data: any[] }) => {
+    if (!canUseTaskBox) {
+      return;
+    }
+
     const updatedData = data.map((task, index) => ({
       ...task,
       order: data.length - index,
@@ -171,7 +177,7 @@ export default function Box() {
         queryClient.invalidateQueries({ queryKey: tasksQueryKey });
       }
     }
-  }, [queryClient, tasksQueryKey, unlockCustomListAnimationsSoon, userId]);
+  }, [canUseTaskBox, queryClient, tasksQueryKey, unlockCustomListAnimationsSoon, userId]);
 
   const closeSelectedTaskOverlay = useCallback((afterClose?: () => void) => {
     setShouldRenderOverlayContent(false);
@@ -275,7 +281,11 @@ export default function Box() {
           <SymbolView name="archivebox.fill" size={48} tintColor={colors.textSecondary} style={{ alignSelf: 'center', marginBottom: 20, marginTop: 60 }} />
         </View>
 
-        {canUseTaskBox ? (
+        {taskQuery.isLoading && !canUseTaskBox ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.text} />
+          </View>
+        ) : shouldShowBoxTasks ? (
           <ReAnimated.View style={[styles.listContainer, listAnimatedStyle]}>
             {taskQuery.isLoading ? (
               <View style={styles.loadingContainer}>
@@ -298,7 +308,7 @@ export default function Box() {
                 renderItem={({ item, drag, isActive }) => (
                   <TaskItem
                     item={item}
-                    drag={displayedBoxTasks.length > 1 ? drag : () => { }}
+                    drag={canUseTaskBox && displayedBoxTasks.length > 1 ? drag : () => { }}
                     isActive={isActive}
                     handleToggleTask={handleToggleTask}
                     handleTaskPress={handleTaskPress}
@@ -311,6 +321,31 @@ export default function Box() {
                     moveToDateKey={selectedDateKey}
                   />
                 )}
+                ListHeaderComponent={
+                  canRecoverExistingBoxTasks ? (
+                    <Squircle
+                      style={[styles.recoveryNotice, { backgroundColor: colors.card, borderColor: "#F4BA00" }]}
+                      cornerSmoothing={100}
+                      preserveSmoothing={true}
+                    >
+                      <View style={styles.recoveryNoticeIcon}>
+                        <SymbolView name="archivebox.fill" size={22} tintColor="#2C2405" />
+                      </View>
+                      <View style={styles.recoveryNoticeText}>
+                        <Text style={[styles.recoveryNoticeTitle, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
+                          {t("box.recovery.title")}
+                        </Text>
+                        <Text style={[styles.recoveryNoticeMessage, { color: colors.textSecondary, fontSize: fontSizes.base }]}>
+                          {t("box.recovery.message")}
+                        </Text>
+                      </View>
+                      <PremiumCTAButton
+                        title={t("common.actions.unlock")}
+                        onPress={() => router.push("/settings/premium")}
+                      />
+                    </Squircle>
+                  ) : null
+                }
                 ListEmptyComponent={
                   <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                     {t("box.emptyState")}
@@ -434,6 +469,36 @@ const styles = StyleSheet.create({
     fontFamily: "Satoshi-Regular",
     fontSize: 16,
     marginTop: 20,
+    textAlign: "center",
+  },
+  recoveryNotice: {
+    alignItems: "center",
+    borderRadius: 15,
+    borderWidth: 1,
+    gap: 12,
+    marginBottom: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 28,
+  },
+  recoveryNoticeIcon: {
+    alignItems: "center",
+    backgroundColor: "#F4BA00",
+    borderRadius: 18,
+    height: 48,
+    justifyContent: "center",
+    width: 48,
+  },
+  recoveryNoticeText: {
+    alignItems: "center",
+    gap: 4,
+  },
+  recoveryNoticeTitle: {
+    fontFamily: "Satoshi-Bold",
+    textAlign: "center",
+  },
+  recoveryNoticeMessage: {
+    fontFamily: "Satoshi-Regular",
+    lineHeight: 22,
     textAlign: "center",
   },
   loadingContainer: {
