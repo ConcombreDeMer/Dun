@@ -9,6 +9,10 @@ import { initializeRevenueCat } from "./revenuecat";
 
 export const REVENUECAT_ENTITLEMENT_ID = "dun_plus";
 
+const BETA_PREMIUM_ENABLED = ["1", "true", "yes", "on"].includes(
+  process.env.EXPO_PUBLIC_BETA_PREMIUM?.trim().toLowerCase() ?? ""
+);
+
 type SubscriptionPackages = {
   annual?: PurchasesPackage;
   monthly?: PurchasesPackage;
@@ -25,6 +29,7 @@ type SubscriptionContextValue = {
   currentOffering: PurchasesOffering | null;
   error: string | null;
   isConfigured: boolean;
+  isBetaPremium: boolean;
   isLoading: boolean;
   isPremium: boolean;
   isPurchasing: boolean;
@@ -185,7 +190,7 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
   }, []);
 
   const activeEntitlement = useMemo(() => getPremiumEntitlement(customerInfo), [customerInfo]);
-  const isPremium = Boolean(activeEntitlement);
+  const isPremium = BETA_PREMIUM_ENABLED || Boolean(activeEntitlement);
   const packages = useMemo(() => getPackages(currentOffering), [currentOffering]);
 
   const value = useMemo<SubscriptionContextValue>(() => ({
@@ -199,6 +204,7 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
     currentOffering,
     error,
     isConfigured,
+    isBetaPremium: BETA_PREMIUM_ENABLED,
     isLoading,
     isPremium,
     isPurchasing,

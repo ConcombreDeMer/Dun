@@ -23,6 +23,7 @@ export default function Subscription() {
     const [showCancelModal, setShowCancelModal] = useState(false);
     const {
         activeEntitlement,
+        isBetaPremium,
         isPremium,
         packages,
         showManageSubscriptions,
@@ -222,35 +223,54 @@ export default function Subscription() {
                                         flexDirection: 'column',
                                     }}
                                 >
-                                    <SettingItem
-                                        title={t("settings.subscription.startDate")}
-                                        rightContent={
-                                            <Text
-                                                style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>{formatDate(activeEntitlement?.latestPurchaseDate)}</Text>
-                                        }
-                                    />
-                                    <SettingItem
-                                        title={t("settings.subscription.endDate")}
-                                        rightContent={
-                                            <Text
-                                                style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>{formatDate(activeEntitlement?.expirationDate)}</Text>
+                                    {isBetaPremium ? (
+                                        <>
+                                            <SettingItem
+                                                title={t("settings.subscription.accessType")}
+                                                rightContent={
+                                                    <Text style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>{t("settings.subscription.betaAccess")}</Text>
+                                                }
+                                            />
+                                            <SettingItem
+                                                title={t("settings.subscription.price")}
+                                                rightContent={
+                                                    <Text style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>{t("settings.subscription.free")}</Text>
+                                                }
+                                            />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <SettingItem
+                                                title={t("settings.subscription.startDate")}
+                                                rightContent={
+                                                    <Text
+                                                        style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>{formatDate(activeEntitlement?.latestPurchaseDate)}</Text>
+                                                }
+                                            />
+                                            <SettingItem
+                                                title={t("settings.subscription.endDate")}
+                                                rightContent={
+                                                    <Text
+                                                        style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>{formatDate(activeEntitlement?.expirationDate)}</Text>
 
-                                        }
-                                    />
-                                    <SettingItem
-                                        title={t("settings.subscription.periodicity")}
-                                        rightContent={
-                                            <Text style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>{getPeriodicity()}</Text>
+                                                }
+                                            />
+                                            <SettingItem
+                                                title={t("settings.subscription.periodicity")}
+                                                rightContent={
+                                                    <Text style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>{getPeriodicity()}</Text>
 
-                                        }
-                                    />
-                                    <SettingItem
-                                        title={t("settings.subscription.price")}
-                                        rightContent={
-                                            <Text style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>{activePackage?.product.priceString ?? t("settings.subscription.unavailable")}</Text>
+                                                }
+                                            />
+                                            <SettingItem
+                                                title={t("settings.subscription.price")}
+                                                rightContent={
+                                                    <Text style={{ color: colors.text, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>{activePackage?.product.priceString ?? t("settings.subscription.unavailable")}</Text>
 
-                                        }
-                                    />
+                                                }
+                                            />
+                                        </>
+                                    )}
                                 </SquircleView>
 
                             </View>
@@ -276,6 +296,17 @@ export default function Subscription() {
                                 <NavItem title={t("settings.subscription.startSubscription")} onPress={() => router.push("/settings/premium")} />
                             </SquircleView>
 
+                        ) : isBetaPremium ? (
+                            <SquircleView
+                                style={{ backgroundColor: colors.card, borderRadius: 20 }}
+                            >
+                                <SettingItem
+                                    title={t("settings.subscription.betaAccess")}
+                                    rightContent={
+                                        <Text style={{ color: colors.textSecondary, fontFamily: 'Satoshi-Bold', fontSize: fontSizes.base }}>{t("settings.subscription.enabled")}</Text>
+                                    }
+                                />
+                            </SquircleView>
                         ) : (
 
                             <SquircleView
