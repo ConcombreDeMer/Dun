@@ -378,6 +378,10 @@ auth:
     checking: "Verifying your account..."
 home:
   emptyState: "No tasks for this date"
+  taskLimit:
+    title: "Free limit"
+    message: "With the free plan, you can create up to {{limit}} tasks per day. Unlock Dun Plus to create tasks without limits."
+    cta: "Discover Dun +"
   progress:
     empty: "No tasks yet"
     complete: "Day complete"
@@ -419,6 +423,7 @@ createTask:
     confirm: "Confirm"
   alerts:
     pastDate: "You can't create a task on a past day."
+    dailyLimit: "You've reached the limit of {{limit}} tasks for this day."
 daily:
   loading: "Loading daily..."
   preparing: "Preparing your day..."
