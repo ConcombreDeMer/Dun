@@ -732,6 +732,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
 
                                         <TagSelector
                                             compact
+                                            includeInactiveSelected
                                             mode="selectedMenu"
                                             selectedTagIds={displayedTagIds}
                                             onChange={handleTagsChange}

@@ -18,6 +18,10 @@ export type ProfilePreferencesRow = {
   alertSetupActive: boolean | null;
   alertSetupHour: string | number | null;
   alertSetupMinute: string | number | null;
+  alertInsistanceActive: boolean | null;
+  alertInsistanceDelais: string | number | null;
+  alertInsistanceRepetitions: string | number | null;
+  alertWeekendsActive: boolean | null;
   custom_calendar: number | null;
   custom_progressbar: number | null;
   display_theme: string | null;
@@ -48,6 +52,10 @@ export const PROFILE_SELECT_COLUMNS = [
   "alertSetupActive",
   "alertSetupHour",
   "alertSetupMinute",
+  "alertInsistanceActive",
+  "alertInsistanceDelais",
+  "alertInsistanceRepetitions",
+  "alertWeekendsActive",
   "custom_calendar",
   "custom_progressbar",
   "display_theme",

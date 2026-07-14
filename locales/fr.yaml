@@ -399,6 +399,9 @@ box:
   title: "Boîte à tâches"
   subtitle: "Les tâches sans date restent ici jusqu'à ce que tu les places dans une journée."
   emptyState: "Aucune tâche dans la boîte"
+  recovery:
+    title: "Box en récupération"
+    message: "Ta Box contient encore des tâches créées avec Dun Plus. Tu peux les consulter, les déplacer vers une date ou les supprimer. L'ajout de nouvelles tâches dans la Box reste réservé à Dun Plus."
   premium:
     title: "Boîte à tâches"
     message: "Mets de côté les tâches que tu ne veux pas planifier tout de suite. Utilise le bouton Box sur une tâche, puis retrouve-la ici quand tu es prêt à lui donner une date."
@@ -516,6 +519,8 @@ tags:
     premium: "Tags illimités avec Dun Plus"
     reachedTitle: "Limite de tags atteinte"
     reachedDescription: "Les comptes gratuits peuvent créer jusqu'à {{limit}} tags. Débloque Dun Plus pour en créer davantage."
+    inactiveTitle: "Tags en lecture limitée"
+    inactiveDescription: "Tes tags contiennent encore des tags supplémentaires créés avec Dun Plus. Avec l'offre gratuite, seuls les 2 premiers par ordre alphabétique restent actifs. Les autres sont conservés et peuvent encore être modifiés, supprimés ou désassignés."
   delete:
     title: "Supprimer le tag"
     message: "Supprimer le tag {{name}} ? Il sera retiré des tâches associées."

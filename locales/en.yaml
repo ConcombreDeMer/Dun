@@ -399,6 +399,9 @@ box:
   title: "Task box"
   subtitle: "Undated tasks stay here until you place them on a day."
   emptyState: "No tasks in the box"
+  recovery:
+    title: "Box recovery mode"
+    message: "Your Box still contains tasks created with Dun Plus. You can view them, move them to a date, or delete them. Adding new tasks to the Box remains reserved for Dun Plus."
   premium:
     title: "Task box"
     message: "Set aside tasks you do not want to schedule right away. Use the Box button on a task, then find it here when you are ready to give it a date."
@@ -516,6 +519,8 @@ tags:
     premium: "Unlimited tags with Dun Plus"
     reachedTitle: "Free tag limit reached"
     reachedDescription: "Free accounts can create up to {{limit}} tags. Unlock Dun Plus to create more."
+    inactiveTitle: "Tags in limited mode"
+    inactiveDescription: "Your tags still include extra tags created with Dun Plus. With the free plan, only the first 2 tags in alphabetical order remain active. The others are kept and can still be edited, deleted, or unassigned."
   delete:
     title: "Delete tag"
     message: "Delete the {{name}} tag? It will be removed from linked tasks."

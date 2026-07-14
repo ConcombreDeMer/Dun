@@ -16,6 +16,7 @@ import { syncRevenueCatUser } from "../lib/revenuecat";
 import { SubscriptionProvider } from "../lib/subscription";
 import { supabase } from "../lib/supabase";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
+import { usePremiumDowngradeCompliance } from "../lib/usePremiumDowngradeCompliance";
 import { useStore } from "../store/store";
 
 Sentry.init({
@@ -56,6 +57,11 @@ const getQueryClient = () => {
   }
   return queryClientInstance;
 };
+
+function PremiumDowngradeCompliance() {
+  usePremiumDowngradeCompliance();
+  return null;
+}
 
 function RootLayoutContent() {
   const { colors, actualTheme, isLoading } = useTheme();
@@ -201,6 +207,7 @@ function RootLayoutContent() {
     <QueryClientProvider client={queryClient}>
       <AuthSessionProvider userId={userId}>
         <SubscriptionProvider appUserID={userId}>
+          <PremiumDowngradeCompliance />
 
       {/* <View
         pointerEvents="none"

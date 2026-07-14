@@ -1,19 +1,21 @@
 import { useFont } from "@/lib/FontContext";
 import { useAuthUserId } from "@/lib/AuthSessionContext";
 import { useAppTranslation } from "@/lib/i18n";
-import { getTags, MAX_TAGS_PER_TASK, TAGS_QUERY_KEY, Tag } from "@/lib/tags";
+import { getActiveTagIdsForPlan, getTags, MAX_TAGS_PER_TASK, TAGS_QUERY_KEY, Tag } from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
+import { useSubscription } from "@/lib/subscription";
 import { Button as SwiftButton, Host, Menu, RNHostView } from "@expo/ui/swift-ui";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 
 type TagSelectorProps = {
   selectedTagIds: string[];
   onChange: (tagIds: string[]) => void;
   compact?: boolean;
+  includeInactiveSelected?: boolean;
   mode?: "all" | "selectedMenu";
 };
 
@@ -93,10 +95,17 @@ function TagChip({
   );
 }
 
-export default function TagSelector({ compact = false, mode = "all", selectedTagIds, onChange }: TagSelectorProps) {
+export default function TagSelector({
+  compact = false,
+  includeInactiveSelected = false,
+  mode = "all",
+  selectedTagIds,
+  onChange,
+}: TagSelectorProps) {
   const { colors } = useTheme();
   const { fontSizes } = useFont();
   const { t } = useAppTranslation();
+  const { isPremium } = useSubscription();
   const userId = useAuthUserId();
   const { data: tags = [] } = useQuery({
     queryKey: [...TAGS_QUERY_KEY, userId],
@@ -105,6 +114,8 @@ export default function TagSelector({ compact = false, mode = "all", selectedTag
   });
   const [exitingTagIds, setExitingTagIds] = useState<string[]>([]);
   const [visibleSelectedTagIds, setVisibleSelectedTagIds] = useState(selectedTagIds);
+  const activeTagIds = useMemo(() => getActiveTagIdsForPlan(tags, isPremium), [isPremium, tags]);
+  const selectableTags = useMemo(() => tags.filter((tag) => activeTagIds.has(tag.id)), [activeTagIds, tags]);
 
   useEffect(() => {
     if (mode !== "selectedMenu") {
@@ -143,6 +154,18 @@ export default function TagSelector({ compact = false, mode = "all", selectedTag
     };
   }, [mode, selectedTagIds, visibleSelectedTagIds]);
 
+  useEffect(() => {
+    if (includeInactiveSelected || isPremium || !tags.length) {
+      return;
+    }
+
+    const nextSelectedTagIds = selectedTagIds.filter((tagId) => activeTagIds.has(tagId));
+
+    if (nextSelectedTagIds.length !== selectedTagIds.length) {
+      onChange(nextSelectedTagIds);
+    }
+  }, [activeTagIds, includeInactiveSelected, isPremium, onChange, selectedTagIds, tags.length]);
+
   if (!tags.length) {
     return null;
   }
@@ -151,7 +174,10 @@ export default function TagSelector({ compact = false, mode = "all", selectedTag
   const selectedTags = displayedSelectedTagIds
     .map((tagId) => tags.find((tag) => tag.id === tagId))
     .filter((tag): tag is Tag => !!tag);
-  const availableTags = tags.filter((tag) => !selectedTagIds.includes(tag.id));
+  const displayableTags = selectableTags
+    .concat(includeInactiveSelected ? selectedTags.filter((tag) => !activeTagIds.has(tag.id)) : [])
+    .filter((tag, index, allTags) => allTags.findIndex((candidate) => candidate.id === tag.id) === index);
+  const availableTags = selectableTags.filter((tag) => !selectedTagIds.includes(tag.id));
 
   const toggleTag = async (tagId: string) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -161,7 +187,7 @@ export default function TagSelector({ compact = false, mode = "all", selectedTag
       return;
     }
 
-    if (selectedTagIds.length >= MAX_TAGS_PER_TASK) {
+    if (!activeTagIds.has(tagId) || selectedTagIds.length >= MAX_TAGS_PER_TASK) {
       return;
     }
 
@@ -236,7 +262,7 @@ export default function TagSelector({ compact = false, mode = "all", selectedTag
       )}
 
       <View style={[styles.list, compact && styles.compactList]}>
-        {tags.map((tag) => (
+        {displayableTags.map((tag) => (
           <TagChip
             key={tag.id}
             compact={compact}
