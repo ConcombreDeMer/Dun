@@ -10,10 +10,8 @@ import { useTheme } from "@/lib/ThemeContext";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
-
-const LottieView = require("lottie-react-native").default;
 
 type ExportStatus = "loading" | "success" | "error" | "cancelled";
 
@@ -105,18 +103,12 @@ export default function ExportData() {
   const renderContent = () => {
     if (status === "loading") {
       return (
-        <Animated.View entering={FadeIn.duration(250)} style={styles.stateContent}>
-          <LottieView
-            source={require("../../assets/animations/loading.json")}
-            autoPlay
-            loop
-            style={styles.lottie}
-          />
+        <Animated.View entering={FadeIn.duration(250)} style={styles.loadingContent}>
+          <View style={styles.loader}>
+            <ActivityIndicator color={colors.actionButton} size="large" />
+          </View>
           <Text style={[styles.title, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
             {t("settings.account.exportData.loadingTitle")}
-          </Text>
-          <Text style={[styles.description, { color: colors.textSecondary, fontSize: fontSizes.lg }]}>
-            {t("settings.account.exportData.loadingDescription")}
           </Text>
         </Animated.View>
       );
@@ -195,57 +187,72 @@ export default function ExportData() {
 
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={status === "loading" ? styles.loadingScrollContent : styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Squircle style={[styles.panel, { backgroundColor: colors.card }]}>
-          <View style={styles.characterContainer}>
-            <Animated.Image
-              entering={FadeInUp.springify()}
-              source={getCharacterImageSource(status === "success" ? "6" : "7", actualTheme)}
-              style={styles.character}
-              resizeMode="contain"
-            />
-          </View>
+        {status === "loading" ? (
+          renderContent()
+        ) : (
+          <Squircle style={[styles.panel, { backgroundColor: colors.card }]}>
+            <View style={styles.characterContainer}>
+              <Animated.Image
+                entering={FadeInUp.springify()}
+                source={getCharacterImageSource(status === "success" ? "6" : "7", actualTheme)}
+                style={styles.character}
+                resizeMode="contain"
+              />
+            </View>
 
-          {renderContent()}
-        </Squircle>
+            {renderContent()}
+          </Squircle>
+        )}
       </ScrollView>
 
-      <View
-        style={[
-          styles.buttonsContainer,
-          {
-            backgroundColor: colors.background,
-            boxShadow: `0px -20px 40px 10px ${colors.background}`,
-          },
-        ]}
-      >
-        {status === "success" && (
+      {status === "loading" ? (
+        <View style={[styles.loadingButtonsContainer, { backgroundColor: colors.background }]}>
           <PrimaryButton
-            title={t("settings.account.exportData.download")}
-            image="square.and.arrow.down"
-            onPress={handleDownload}
+            title={t("common.actions.cancel")}
+            type="reverse"
+            onPress={handleCancel}
             size="M"
           />
-        )}
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.buttonsContainer,
+            {
+              backgroundColor: colors.background,
+              boxShadow: `0px -20px 40px 10px ${colors.background}`,
+            },
+          ]}
+        >
+          {status === "success" && (
+            <PrimaryButton
+              title={t("settings.account.exportData.download")}
+              image="square.and.arrow.down"
+              onPress={handleDownload}
+              size="M"
+            />
+          )}
 
-        {status === "error" && (
+          {status === "error" && (
+            <PrimaryButton
+              title={t("settings.account.exportData.retry")}
+              image="arrow.clockwise"
+              onPress={startExport}
+              size="M"
+            />
+          )}
+
           <PrimaryButton
-            title={t("settings.account.exportData.retry")}
-            image="arrow.clockwise"
-            onPress={startExport}
+            title={t("common.actions.cancel")}
+            type="reverse"
+            onPress={handleCancel}
             size="M"
           />
-        )}
-
-        <PrimaryButton
-          title={t("common.actions.cancel")}
-          type="reverse"
-          onPress={handleCancel}
-          size="M"
-        />
-      </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -265,6 +272,11 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 220,
+  },
+  loadingScrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 164,
   },
   panel: {
     borderRadius: 24,
@@ -289,9 +301,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 14,
   },
-  lottie: {
+  loadingContent: {
+    flex: 1,
+    minHeight: 360,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
+  },
+  loader: {
     width: 130,
     height: 130,
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
     fontFamily: "Satoshi-Bold",
@@ -328,6 +349,15 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     minHeight: 164,
+    paddingBottom: 40,
+  },
+  loadingButtonsContainer: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    position: "absolute",
+    bottom: 0,
+    minHeight: 132,
     paddingBottom: 40,
   },
 });

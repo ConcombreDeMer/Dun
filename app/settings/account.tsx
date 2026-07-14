@@ -534,21 +534,8 @@ export default function Account() {
     }, [queryClient, router]);
 
     const handleExportData = useCallback(() => {
-        Alert.alert(
-            t("settings.account.exportData.confirmTitle"),
-            t("settings.account.exportData.confirmMessage"),
-            [
-                {
-                    text: t("common.actions.cancel"),
-                    style: "cancel",
-                },
-                {
-                    text: t("common.actions.confirm"),
-                    onPress: () => router.push("/settings/ExportData"),
-                },
-            ]
-        );
-    }, [router, t]);
+        router.push("/settings/DataTransfer");
+    }, [router]);
 
 
     return (
@@ -899,7 +886,6 @@ export default function Account() {
                     >
                         <NavItem title={t("settings.account.resetPassword")} onPress={() => setShowPasswordModal(true)} transparent />
                         <NavItem title={t("settings.account.changeEmail")} onPress={() => setShowModal(true)} transparent />
-                        <NavItem title={t("settings.account.exportData.action")} onPress={handleExportData} transparent />
                         {newEmail.length > 0 &&
 
                             <Squircle
@@ -944,6 +930,36 @@ export default function Account() {
                     <Text
                         style={{ color: colors.textSecondary, fontSize: fontSizes.xl }}
                     >
+                        {t("settings.account.sections.data")}
+                    </Text>
+                    <SquircleView
+                        style={{ display: 'flex', flexDirection: 'column', gap: 16, backgroundColor: colors.card, borderRadius: 20, paddingVertical: 16 }}
+
+                    >
+                        <NavItem title={t("settings.account.exportData.action")} onPress={handleExportData} transparent />
+                        <SettingItem
+                            title={t("settings.account.deleteData")}
+                            onPress={!isDeletingAccount ? handleDeleteAccount : undefined}
+                            type="danger"
+                            image="trash"
+                            transparent
+                        />
+                        <SettingItem
+                            title={t("settings.account.deleteAccountAction")}
+                            onPress={!isDeletingAccount ? handleDeleteAccount : undefined}
+                            type="danger"
+                            image="trash"
+                            transparent
+                        />
+                    </SquircleView>
+                </View>
+
+                <View
+                    style={{ display: 'flex', gap: 8 }}
+                >
+                    <Text
+                        style={{ color: colors.textSecondary, fontSize: fontSizes.xl }}
+                    >
                         {t("settings.account.sections.dangerZone")}
                     </Text>
 
@@ -953,27 +969,6 @@ export default function Account() {
                         type="danger"
                         image="iphone.and.arrow.forward.outward"
                     />
-
-                    <SquircleView
-                        style={{ display: 'flex', flexDirection: 'column', gap: 24, backgroundColor: colors.card, borderRadius: 20, paddingVertical: 24 }}
-                    >
-
-                        <SettingItem
-                            title={t("settings.account.deleteData")}
-                            onPress={!isDeletingAccount ? handleDeleteAccount : undefined}
-                            type="danger"
-                            image="trash"
-                            transparent
-                        />
-
-                        <SettingItem
-                            title={t("settings.account.deleteAccountAction")}
-                            onPress={!isDeletingAccount ? handleDeleteAccount : undefined}
-                            type="danger"
-                            image="trash"
-                            transparent
-                        />
-                    </SquircleView>
                 </View>
 
 
