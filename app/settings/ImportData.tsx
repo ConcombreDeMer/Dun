@@ -17,6 +17,7 @@ import { useSubscription } from "@/lib/subscription";
 import { TAG_USAGE_STATS_QUERY_KEY, TAGS_QUERY_KEY } from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
 import { useQueryClient } from "@tanstack/react-query";
+import * as DocumentPicker from "expo-document-picker";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useState } from "react";
@@ -24,15 +25,6 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "re
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 
 type ImportStatus = "idle" | "ready" | "importing" | "success" | "error";
-type DocumentPickerModule = typeof import("expo-document-picker");
-
-const getDocumentPicker = (): DocumentPickerModule | null => {
-  try {
-    return require("expo-document-picker") as DocumentPickerModule;
-  } catch {
-    return null;
-  }
-};
 
 export default function ImportData() {
   const router = useRouter();
@@ -66,16 +58,6 @@ export default function ImportData() {
 
   const handlePickFile = useCallback(async () => {
     try {
-      const DocumentPicker = getDocumentPicker();
-
-      if (!DocumentPicker) {
-        Alert.alert(
-          t("common.alerts.errorTitle"),
-          t("settings.account.importData.errors.documentPickerUnavailable")
-        );
-        return;
-      }
-
       const result = await DocumentPicker.getDocumentAsync({
         copyToCacheDirectory: true,
         multiple: false,
