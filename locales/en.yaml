@@ -376,6 +376,8 @@ onboarding:
     alertTitle: "Oops!"
     missingName1: "It looks like you didn't enter your first name. Tell us what we should call you to continue!"
     missingName2: "It looks like you didn't enter your first name. Can you tell us your name?"
+    requiredAnswerTitle: "Answer required"
+    requiredAnswerMessage: "Choose at least one answer to continue."
     greeting: "Hi!\nI'm Dun!\nNice to meet you!"
     pages:
       "1": "I'll explain how to use the app you just downloaded!"
@@ -384,7 +386,175 @@ onboarding:
       "4": "Nice to meet you"
       "5": "Now that introductions are done..."
       "6": "Let's explore the app!"
-    namePlaceholder: "Type your name here..."
+    namePlaceholder: "Type your first name here..."
+    dayUnitShort: "d"
+    sliderOptions:
+      oneDay: "1 day"
+      twoDays: "2 days"
+      threeDays: "3 days"
+      fourDays: "4 days"
+      oneWeek: "1 week"
+      twoWeeks: "2 weeks"
+    info:
+      daily:
+        monthPrefix: "When it happens every day, it is no longer a rough patch: it has become "
+        monthStrong: "your default rhythm"
+        monthSuffix: "."
+        yearPrefix: "The hardest part is not feeling unsatisfied with your days. It is losing "
+        yearStrong: "time"
+        yearSuffix: " you will never get back."
+        decadePrefix: "At this rhythm, over one year, that can add up to "
+        decadeStrong: "{{yearHours}} hours"
+        decadeSuffix: " you could have used to move forward, build something real, and feel proud of your days."
+      impact:
+        monthPrefix: "If we zoom out, that represents "
+        monthStrong: "{{monthDays}} days per month"
+        monthSuffix: " you are not satisfied with."
+        yearPrefix: "Over a year, that number rises to "
+        yearStrong: "{{yearDays}} days"
+        yearSuffix: ", or {{yearMonths}} full months lost."
+        decadePrefix: "Spend a decade at this rhythm and you may regret "
+        decadeStrong: "{{decadeYears}} years"
+        decadeSuffix: " of it."
+      encouraging:
+        monthPrefix: "You already have a solid rhythm: less than half of your days feel off, about "
+        monthStrong: "{{monthDays}} days per month"
+        monthSuffix: " to refine."
+        yearPrefix: "Across a year, that is still "
+        yearStrong: "{{yearDays}} days"
+        yearSuffix: " where Dun can help you gain clarity."
+        decadePrefix: "The goal now is to turn this good foundation into a "
+        decadeStrong: "durable system"
+        decadeSuffix: " that feels precise and easy to keep."
+    longTermCard:
+      title: "A productive routine"
+      duration: "long term"
+    objectiveCard:
+      title: "First goal"
+    longTermAchievement:
+      firstGoal: "1st goal"
+      flow: "Flow"
+      mastery: "Mastery"
+    longTermFeatures:
+      mastery:
+        title: "Regained control of your daily life"
+        body: "It will help you live your days with intention and feel a real sense of regained life and expanded time. You will be able to observe it through a tracking system that helps you see and value your efforts."
+      screenTime:
+        title: "50% less screen time"
+        body: "By completing your tasks instead of scrolling, you will progressively reduce your dopamine loop. You will rediscover the pleasure of acting, moving forward, and feeling proud of concrete results while reducing the habit of opening social networks automatically."
+    trialCard:
+      title: "A system that finally understands you"
+      body: "You will learn to understand yourself and build a system that fits you, because Dun adapts to you, not the other way around. All the resources are given to you, and you alone decide how to use them."
+    trialFooter:
+      prefix: "We let you "
+      strong: "try it"
+      caption: "with the 14-day trial"
+    steps:
+      hello:
+        title: "Hi!"
+        button: "Hi!"
+      meetDun:
+        title: "I’m Dun!\nNice to meet you."
+        part1: "I’m "
+        part2: "!\nNice to meet you."
+      name:
+        title: "What’s your name?"
+        part1: "What’s your "
+        part2: "name"
+      niceToMeetYou:
+        beforeName: "Nice to meet you, "
+        afterName: "!"
+      presentations:
+        title: "Now that introductions\nare done, tell me..."
+        part1: "Now that "
+        part2: "introductions\nare done"
+        part3: ", tell me..."
+      why:
+        title: "What brings you here?"
+        part1: "What brings "
+        part2: "you here"
+        options:
+          procrastinate: "I procrastinate constantly"
+          phone: "I’m addicted to my phone"
+          control: "I do not feel in control of my days"
+          time: "I do not use my time the way I should"
+          projects: "I am not moving forward on my projects"
+          other: "Other..."
+      recurrence:
+        title: "How often are you\nunsatisfied with your\ndays?"
+        part1: "How often are you\n"
+        part2: "unsatisfied"
+        part3: " with your\ndays?"
+        options:
+          everyDay: "Every day"
+          ninetyPercent: "90% of my days"
+          seventyFivePercent: "75% of my days"
+          fiftyPercent: "50% of my days"
+          lessThanHalf: "Less than half of my days"
+      change:
+        title: "That’s a lot,\nbut we can change that!"
+        part1: "That’s a lot,\nbut we can "
+        part2: "change that!"
+      system:
+        title: "And for that, we’ll create\nyour own system"
+        part1: "And for that, we’ll create\n"
+        part2: "your own system"
+      needs:
+        title: "What do you need?"
+        part1: "What do you "
+        part2: "need"
+        options:
+          control: "Take back control of your days"
+          intention: "Bring intention back into your daily life"
+          tasks: "Get through the tasks you keep putting off"
+          projects: "Move forward on your projects"
+          satisfied: "Feel satisfied with your days"
+          phone: "Break free from your phone addiction 📱"
+      rhythm:
+        title: "Be honest, how long\ncan you keep a good\nrhythm right now?"
+        part1: "Be honest, "
+        part2: "how long"
+        part3: "\ncan you keep a good\nrhythm right now?"
+      noted:
+        title: "4 days\n\nGot it!\n\nSo this will be our\nfirst goal..."
+        line: "Got it!"
+        objectivePrefix: "So this will be our\n"
+        objectiveStrong: "first goal..."
+      objective:
+        title: "So here it is!"
+        part1: "So "
+        part2: "here it is!"
+        button: "Accept"
+      determination:
+        title: "How committed are you\nto achieving it?"
+        part1: "How committed are you\n"
+        part2: "to achieving it"
+        part3: "?"
+        options:
+          ultra: "Ultra committed"
+          strong: "Very committed"
+          light: "A little committed"
+          try: "Let’s give it a try"
+      transform:
+        title: "That’s what we want!\n\nAnd you’ll beat it faster\nthan you think\n\nTo turn it into..."
+        part1: "That’s what we want!\n\n"
+        part2: "And you’ll beat it "
+        part3: "faster"
+        part4: "\nthan you think\n\nTo "
+        part5: "turn it"
+        part6: " into..."
+      trial:
+        title: "Build your system\nfor the equivalent\nof one coffee per month"
+        part1: "Build "
+        part2: "your system"
+        part3: "\nfor the equivalent\n"
+        part4: "of one coffee per month"
+      ready:
+        title: "Great!\nWe can get started!"
+        part1: "Great!"
+        part2: "\nWe can "
+        part3: "get started!"
+        button: "Start"
   emailVerification:
     successTitle: "Email verified! 🎉"
     successSubtitle: "Redirecting..."
