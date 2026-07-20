@@ -103,7 +103,8 @@ export type CharacterImageName =
   | '18'
   | '19'
   | '20'
-  | '21';
+  | '21'
+  | '22';
 
 const lightCharacterImages = {
   '0': require('../assets/images/character/0.png'),
@@ -128,6 +129,7 @@ const lightCharacterImages = {
   '19': require('../assets/images/character/19.png'),
   '20': require('../assets/images/character/20.png'),
   '21': require('../assets/images/character/21.png'),
+  '22': require('../assets/images/character/22.png'),
 };
 
 const darkCharacterImages: Partial<typeof lightCharacterImages> = {
@@ -151,6 +153,7 @@ const darkCharacterImages: Partial<typeof lightCharacterImages> = {
   '19': require('../assets/images/character/darkmode/19.png'),
   '20': require('../assets/images/character/darkmode/20.png'),
   '21': require('../assets/images/character/darkmode/21.png'),
+  '22': require('../assets/images/character/darkmode/22.png'),
 };
 
 export const getCharacterImageSource = (imageName: CharacterImageName, theme: 'light' | 'dark') => {

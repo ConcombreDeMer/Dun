@@ -481,6 +481,8 @@ export const resources = {
           "alertTitle": "Oops!",
           "missingName1": "It looks like you didn't enter your first name. Tell us what we should call you to continue!",
           "missingName2": "It looks like you didn't enter your first name. Can you tell us your name?",
+          "requiredAnswerTitle": "Answer required",
+          "requiredAnswerMessage": "Choose at least one answer to continue.",
           "greeting": "Hi!\nI'm Dun!\nNice to meet you!",
           "pages": {
             "1": "I'll explain how to use the app you just downloaded!",
@@ -490,7 +492,210 @@ export const resources = {
             "5": "Now that introductions are done...",
             "6": "Let's explore the app!"
           },
-          "namePlaceholder": "Type your name here..."
+          "namePlaceholder": "Type your first name here...",
+          "dayUnitShort": "d",
+          "sliderOptions": {
+            "oneDay": "1 day",
+            "twoDays": "2 days",
+            "threeDays": "3 days",
+            "fourDays": "4 days",
+            "oneWeek": "1 week",
+            "twoWeeks": "2 weeks"
+          },
+          "info": {
+            "daily": {
+              "monthPrefix": "When it happens every day, it is no longer a rough patch: it has become ",
+              "monthStrong": "your default rhythm",
+              "monthSuffix": ".",
+              "yearPrefix": "The hardest part is not feeling unsatisfied with your days. It is losing ",
+              "yearStrong": "time",
+              "yearSuffix": " you will never get back.",
+              "decadePrefix": "At this rhythm, over one year, that can add up to ",
+              "decadeStrong": "{{yearHours}} hours",
+              "decadeSuffix": " you could have used to move forward, build something real, and feel proud of your days."
+            },
+            "impact": {
+              "monthPrefix": "If we zoom out, that represents ",
+              "monthStrong": "{{monthDays}} days per month",
+              "monthSuffix": " you are not satisfied with.",
+              "yearPrefix": "Over a year, that number rises to ",
+              "yearStrong": "{{yearDays}} days",
+              "yearSuffix": ", or {{yearMonths}} full months lost.",
+              "decadePrefix": "Spend a decade at this rhythm and you may regret ",
+              "decadeStrong": "{{decadeYears}} years",
+              "decadeSuffix": " of it."
+            },
+            "encouraging": {
+              "monthPrefix": "You already have a solid rhythm: less than half of your days feel off, about ",
+              "monthStrong": "{{monthDays}} days per month",
+              "monthSuffix": " to refine.",
+              "yearPrefix": "Across a year, that is still ",
+              "yearStrong": "{{yearDays}} days",
+              "yearSuffix": " where Dun can help you gain clarity.",
+              "decadePrefix": "The goal now is to turn this good foundation into a ",
+              "decadeStrong": "durable system",
+              "decadeSuffix": " that feels precise and easy to keep."
+            }
+          },
+          "longTermCard": {
+            "title": "A productive routine",
+            "duration": "long term"
+          },
+          "objectiveCard": {
+            "title": "First goal"
+          },
+          "longTermAchievement": {
+            "firstGoal": "1st goal",
+            "flow": "Flow",
+            "mastery": "Mastery"
+          },
+          "longTermFeatures": {
+            "mastery": {
+              "title": "Regained control of your daily life",
+              "body": "It will help you live your days with intention and feel a real sense of regained life and expanded time. You will be able to observe it through a tracking system that helps you see and value your efforts."
+            },
+            "screenTime": {
+              "title": "50% less screen time",
+              "body": "By completing your tasks instead of scrolling, you will progressively reduce your dopamine loop. You will rediscover the pleasure of acting, moving forward, and feeling proud of concrete results while reducing the habit of opening social networks automatically."
+            }
+          },
+          "trialCard": {
+            "title": "A system that finally understands you",
+            "body": "You will learn to understand yourself and build a system that fits you, because Dun adapts to you, not the other way around. All the resources are given to you, and you alone decide how to use them."
+          },
+          "trialFooter": {
+            "prefix": "We let you ",
+            "strong": "try it",
+            "caption": "with the 14-day trial"
+          },
+          "steps": {
+            "hello": {
+              "title": "Hi!",
+              "button": "Hi!"
+            },
+            "meetDun": {
+              "title": "I’m Dun!\nNice to meet you.",
+              "part1": "I’m ",
+              "part2": "!\nNice to meet you."
+            },
+            "name": {
+              "title": "What’s your name?",
+              "part1": "What’s your ",
+              "part2": "name"
+            },
+            "niceToMeetYou": {
+              "beforeName": "Nice to meet you, ",
+              "afterName": "!"
+            },
+            "presentations": {
+              "title": "Now that introductions\nare done, tell me...",
+              "part1": "Now that ",
+              "part2": "introductions\nare done",
+              "part3": ", tell me..."
+            },
+            "why": {
+              "title": "What brings you here?",
+              "part1": "What brings ",
+              "part2": "you here",
+              "options": {
+                "procrastinate": "I procrastinate constantly",
+                "phone": "I’m addicted to my phone",
+                "control": "I do not feel in control of my days",
+                "time": "I do not use my time the way I should",
+                "projects": "I am not moving forward on my projects",
+                "other": "Other..."
+              }
+            },
+            "recurrence": {
+              "title": "How often are you\nunsatisfied with your\ndays?",
+              "part1": "How often are you\n",
+              "part2": "unsatisfied",
+              "part3": " with your\ndays?",
+              "options": {
+                "everyDay": "Every day",
+                "ninetyPercent": "90% of my days",
+                "seventyFivePercent": "75% of my days",
+                "fiftyPercent": "50% of my days",
+                "lessThanHalf": "Less than half of my days"
+              }
+            },
+            "change": {
+              "title": "That’s a lot,\nbut we can change that!",
+              "part1": "That’s a lot,\nbut we can ",
+              "part2": "change that!"
+            },
+            "system": {
+              "title": "And for that, we’ll create\nyour own system",
+              "part1": "And for that, we’ll create\n",
+              "part2": "your own system"
+            },
+            "needs": {
+              "title": "What do you need?",
+              "part1": "What do you ",
+              "part2": "need",
+              "options": {
+                "control": "Take back control of your days",
+                "intention": "Bring intention back into your daily life",
+                "tasks": "Get through the tasks you keep putting off",
+                "projects": "Move forward on your projects",
+                "satisfied": "Feel satisfied with your days",
+                "phone": "Break free from your phone addiction 📱"
+              }
+            },
+            "rhythm": {
+              "title": "Be honest, how long\ncan you keep a good\nrhythm right now?",
+              "part1": "Be honest, ",
+              "part2": "how long",
+              "part3": "\ncan you keep a good\nrhythm right now?"
+            },
+            "noted": {
+              "title": "4 days\n\nGot it!\n\nSo this will be our\nfirst goal...",
+              "line": "Got it!",
+              "objectivePrefix": "So this will be our\n",
+              "objectiveStrong": "first goal..."
+            },
+            "objective": {
+              "title": "So here it is!",
+              "part1": "So ",
+              "part2": "here it is!",
+              "button": "Accept"
+            },
+            "determination": {
+              "title": "How committed are you\nto achieving it?",
+              "part1": "How committed are you\n",
+              "part2": "to achieving it",
+              "part3": "?",
+              "options": {
+                "ultra": "Ultra committed",
+                "strong": "Very committed",
+                "light": "A little committed",
+                "try": "Let’s give it a try"
+              }
+            },
+            "transform": {
+              "title": "That’s what we want!\n\nAnd you’ll beat it faster\nthan you think\n\nTo turn it into...",
+              "part1": "That’s what we want!\n\n",
+              "part2": "And you’ll beat it ",
+              "part3": "faster",
+              "part4": "\nthan you think\n\nTo ",
+              "part5": "turn it",
+              "part6": " into..."
+            },
+            "trial": {
+              "title": "Build your system\nfor the equivalent\nof one coffee per month",
+              "part1": "Build ",
+              "part2": "your system",
+              "part3": "\nfor the equivalent\n",
+              "part4": "of one coffee per month"
+            },
+            "ready": {
+              "title": "Great!\nWe can get started!",
+              "part1": "Great!",
+              "part2": "\nWe can ",
+              "part3": "get started!",
+              "button": "Start"
+            }
+          }
         },
         "emailVerification": {
           "successTitle": "Email verified! 🎉",
@@ -1598,6 +1803,8 @@ export const resources = {
           "alertTitle": "Oups !",
           "missingName1": "Il semble que tu n'aies pas entré de prénom. Dis-nous comment tu t'appelles pour continuer !",
           "missingName2": "Il semble que tu n'aies pas entré de prénom. Peux-tu nous dire comment tu t'appelles ?",
+          "requiredAnswerTitle": "Réponse requise",
+          "requiredAnswerMessage": "Choisis au moins une réponse pour continuer.",
           "greeting": "Salut !\nMoi c'est Dun !\nRavi de te rencontrer !",
           "pages": {
             "1": "J'vais t'expliquer comment utiliser l'app que tu viens de télécharger !",
@@ -1607,7 +1814,210 @@ export const resources = {
             "5": "Maintenant que les présentations sont faites...",
             "6": "Allons voir cette app !"
           },
-          "namePlaceholder": "Écris ton prénom ici..."
+          "namePlaceholder": "Écris ton prénom ici...",
+          "dayUnitShort": "j",
+          "sliderOptions": {
+            "oneDay": "1 jour",
+            "twoDays": "2 jours",
+            "threeDays": "3 jours",
+            "fourDays": "4 jours",
+            "oneWeek": "1 semaine",
+            "twoWeeks": "2 semaines"
+          },
+          "info": {
+            "daily": {
+              "monthPrefix": "Quand c’est tous les jours, ce n’est plus une mauvaise passe : c’est ",
+              "monthStrong": "ton rythme par défaut",
+              "monthSuffix": " qui a pris le dessus.",
+              "yearPrefix": "Le plus dur, ce n’est pas de ne pas être satisfait de tes journées. C’est de perdre ",
+              "yearStrong": "un temps",
+              "yearSuffix": " que tu ne pourras jamais récupérer.",
+              "decadePrefix": "À ce rythme, sur un an, cela peut représenter jusqu’à ",
+              "decadeStrong": "{{yearHours}} heures",
+              "decadeSuffix": " que tu aurais pu utiliser pour avancer, construire et te sentir fier de tes journées."
+            },
+            "impact": {
+              "monthPrefix": "Si on prend du recul, cela représente ",
+              "monthStrong": "{{monthDays}} jours par mois",
+              "monthSuffix": " dont tu n’es pas satisfait.",
+              "yearPrefix": "Mais sur une année, ce chiffre s’élève à ",
+              "yearStrong": "{{yearDays}} jours",
+              "yearSuffix": " soit {{yearMonths}} mois entiers de perdus.",
+              "decadePrefix": "Une décennie passée à ce rythme et tu pourrais regretter ",
+              "decadeStrong": "{{decadeYears}} ans",
+              "decadeSuffix": " de celle-ci."
+            },
+            "encouraging": {
+              "monthPrefix": "Tu es déjà sur un bon rythme : moins de la moitié de tes journées te frustrent, soit environ ",
+              "monthStrong": "{{monthDays}} jours par mois",
+              "monthSuffix": " à optimiser.",
+              "yearPrefix": "Sur une année, cela représente encore ",
+              "yearStrong": "{{yearDays}} jours",
+              "yearSuffix": " où Dun peut t’aider à gagner en clarté.",
+              "decadePrefix": "L’objectif maintenant, c’est de transformer cette bonne base en ",
+              "decadeStrong": "système durable",
+              "decadeSuffix": ", précis et facile à tenir."
+            }
+          },
+          "longTermCard": {
+            "title": "Un quotidien productif",
+            "duration": "long terme"
+          },
+          "objectiveCard": {
+            "title": "Premier objectif"
+          },
+          "longTermAchievement": {
+            "firstGoal": "1er objectif",
+            "flow": "Flow",
+            "mastery": "Maîtrise"
+          },
+          "longTermFeatures": {
+            "mastery": {
+              "title": "Une maîtrise retrouvée de son quotidien",
+              "body": "Ça t’amènera à vivre tes journées avec intention et à ressentir un vrai sentiment de vie retrouvée et de temps décuplé. Tu pourras l’observer grâce à un système de suivi te permettant de te rendre compte de tes efforts et de les valoriser."
+            },
+            "screenTime": {
+              "title": "Un temps d’écran diminué de 50%",
+              "body": "En accomplissant tes tâches plutôt qu’en scrollant, tu réduiras progressivement ton système de dopamine. Tu retrouveras le plaisir d’agir, d’avancer et de te sentir fier de résultats concrets, tout en réduisant l’automatisme d’ouvrir les réseaux sociaux."
+            }
+          },
+          "trialCard": {
+            "title": "Un système qui te comprend enfin",
+            "body": "Tu apprendras à te connaître et à construire un système qui t’est propre, car Dun s’adapte à toi et pas l’inverse. Toutes les ressources te sont données, et c’est toi seul qui détermines comment tu vas les utiliser."
+          },
+          "trialFooter": {
+            "prefix": "On te laisse ",
+            "strong": "tester",
+            "caption": "avec la version d’essai 14j"
+          },
+          "steps": {
+            "hello": {
+              "title": "Salut !",
+              "button": "Salut !"
+            },
+            "meetDun": {
+              "title": "Moi, c’est Dun !\nRavi de te rencontrer.",
+              "part1": "Moi, c’est ",
+              "part2": " !\nRavi de te rencontrer."
+            },
+            "name": {
+              "title": "Comment t’appelles-tu ?",
+              "part1": "Comment ",
+              "part2": "t’appelles-tu"
+            },
+            "niceToMeetYou": {
+              "beforeName": "Enchanté ",
+              "afterName": " !"
+            },
+            "presentations": {
+              "title": "Maintenant que les\nprésentations sont\nfaites, dis-moi...",
+              "part1": "Maintenant que les\n",
+              "part2": "présentations sont\nfaites",
+              "part3": ", dis-moi..."
+            },
+            "why": {
+              "title": "Qu’est-ce qui t’amène ?",
+              "part1": "Qu’est-ce qui ",
+              "part2": "t’amène",
+              "options": {
+                "procrastinate": "Je procrastine constamment",
+                "phone": "Je suis accro à mon téléphone",
+                "control": "Je manque de contrôle sur mes journées",
+                "time": "Je n’utilise pas mon temps comme je devrais",
+                "projects": "Je n’avance pas dans mes projets",
+                "other": "Autre..."
+              }
+            },
+            "recurrence": {
+              "title": "À quelle fréquence n’es-tu\npas satisfait de tes\njournées ?",
+              "part1": "À quelle fréquence ",
+              "part2": "n’es-tu\npas satisfait",
+              "part3": " de tes\njournées ?",
+              "options": {
+                "everyDay": "Tous les jours",
+                "ninetyPercent": "90% de mes journées",
+                "seventyFivePercent": "75% de mes journées",
+                "fiftyPercent": "50% de mes journées",
+                "lessThanHalf": "Moins de la moitié de mes journées"
+              }
+            },
+            "change": {
+              "title": "Ça fait beaucoup,\nmais on peut changer ça !",
+              "part1": "Ça fait beaucoup,\nmais on peut ",
+              "part2": "changer ça !"
+            },
+            "system": {
+              "title": "Et pour ça, on va créer\nton propre système",
+              "part1": "Et pour ça, on va créer\n",
+              "part2": "ton propre système"
+            },
+            "needs": {
+              "title": "De quoi as-tu besoin ?",
+              "part1": "De quoi as-tu ",
+              "part2": "besoin",
+              "options": {
+                "control": "Reprendre le contrôle sur tes journées",
+                "intention": "Retrouver de l’intention au quotidien",
+                "tasks": "Faire les tâches que tu laisses traîner",
+                "projects": "Avancer dans tes projets",
+                "satisfied": "Être satisfait de tes journées",
+                "phone": "Te débarrasser de ton addiction au 📱"
+              }
+            },
+            "rhythm": {
+              "title": "Sois honnête, combien\nde temps tiens-tu sur un\nbon rythme en ce\nmoment ?",
+              "part1": "Sois honnête, ",
+              "part2": "combien\nde temps",
+              "part3": " tiens-tu sur un\nbon rythme en ce\nmoment ?"
+            },
+            "noted": {
+              "title": "4 jours\n\nC’est noté !\n\nCe sera donc notre\npremier objectif...",
+              "line": "C’est noté !",
+              "objectivePrefix": "Ce sera donc notre\n",
+              "objectiveStrong": "premier objectif..."
+            },
+            "objective": {
+              "title": "Donc le voici !",
+              "part1": "Donc ",
+              "part2": "le voici !",
+              "button": "Accepter"
+            },
+            "determination": {
+              "title": "À quel point es-tu\ndéterminé à le réaliser ?",
+              "part1": "À quel point es-tu\n",
+              "part2": "déterminé",
+              "part3": " à le réaliser ?",
+              "options": {
+                "ultra": "Ultra déterminé",
+                "strong": "Bien déterminé",
+                "light": "Un petit peu déterminé",
+                "try": "On va essayer hein"
+              }
+            },
+            "transform": {
+              "title": "C’est ce qu’on veut !\n\nEt tu le dépasseras plus\nvite que tu le penses\n\nPour le transformer en...",
+              "part1": "C’est ce qu’on veut !\n\n",
+              "part2": "Et tu le dépasseras ",
+              "part3": "plus\nvite",
+              "part4": " que tu le penses\n\nPour ",
+              "part5": "le transformer",
+              "part6": " en..."
+            },
+            "trial": {
+              "title": "Construis ton système\npour l’équivalent\nd’un café par mois",
+              "part1": "Construis ",
+              "part2": "ton système",
+              "part3": "\npour l’équivalent\n",
+              "part4": "d’un café par mois"
+            },
+            "ready": {
+              "title": "Super !\nOn peut commencer !",
+              "part1": "Super !",
+              "part2": "\nOn peut ",
+              "part3": "commencer !",
+              "button": "Commencer"
+            }
+          }
         },
         "emailVerification": {
           "successTitle": "Email vérifié ! 🎉",

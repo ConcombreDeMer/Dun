@@ -376,6 +376,8 @@ onboarding:
     alertTitle: "Oups !"
     missingName1: "Il semble que tu n'aies pas entré de prénom. Dis-nous comment tu t'appelles pour continuer !"
     missingName2: "Il semble que tu n'aies pas entré de prénom. Peux-tu nous dire comment tu t'appelles ?"
+    requiredAnswerTitle: "Réponse requise"
+    requiredAnswerMessage: "Choisis au moins une réponse pour continuer."
     greeting: "Salut !\nMoi c'est Dun !\nRavi de te rencontrer !"
     pages:
       "1": "J'vais t'expliquer comment utiliser l'app que tu viens de télécharger !"
@@ -385,6 +387,174 @@ onboarding:
       "5": "Maintenant que les présentations sont faites..."
       "6": "Allons voir cette app !"
     namePlaceholder: "Écris ton prénom ici..."
+    dayUnitShort: "j"
+    sliderOptions:
+      oneDay: "1 jour"
+      twoDays: "2 jours"
+      threeDays: "3 jours"
+      fourDays: "4 jours"
+      oneWeek: "1 semaine"
+      twoWeeks: "2 semaines"
+    info:
+      daily:
+        monthPrefix: "Quand c’est tous les jours, ce n’est plus une mauvaise passe : c’est "
+        monthStrong: "ton rythme par défaut"
+        monthSuffix: " qui a pris le dessus."
+        yearPrefix: "Le plus dur, ce n’est pas de ne pas être satisfait de tes journées. C’est de perdre "
+        yearStrong: "un temps"
+        yearSuffix: " que tu ne pourras jamais récupérer."
+        decadePrefix: "À ce rythme, sur un an, cela peut représenter jusqu’à "
+        decadeStrong: "{{yearHours}} heures"
+        decadeSuffix: " que tu aurais pu utiliser pour avancer, construire et te sentir fier de tes journées."
+      impact:
+        monthPrefix: "Si on prend du recul, cela représente "
+        monthStrong: "{{monthDays}} jours par mois"
+        monthSuffix: " dont tu n’es pas satisfait."
+        yearPrefix: "Mais sur une année, ce chiffre s’élève à "
+        yearStrong: "{{yearDays}} jours"
+        yearSuffix: " soit {{yearMonths}} mois entiers de perdus."
+        decadePrefix: "Une décennie passée à ce rythme et tu pourrais regretter "
+        decadeStrong: "{{decadeYears}} ans"
+        decadeSuffix: " de celle-ci."
+      encouraging:
+        monthPrefix: "Tu es déjà sur un bon rythme : moins de la moitié de tes journées te frustrent, soit environ "
+        monthStrong: "{{monthDays}} jours par mois"
+        monthSuffix: " à optimiser."
+        yearPrefix: "Sur une année, cela représente encore "
+        yearStrong: "{{yearDays}} jours"
+        yearSuffix: " où Dun peut t’aider à gagner en clarté."
+        decadePrefix: "L’objectif maintenant, c’est de transformer cette bonne base en "
+        decadeStrong: "système durable"
+        decadeSuffix: ", précis et facile à tenir."
+    longTermCard:
+      title: "Un quotidien productif"
+      duration: "long terme"
+    objectiveCard:
+      title: "Premier objectif"
+    longTermAchievement:
+      firstGoal: "1er objectif"
+      flow: "Flow"
+      mastery: "Maîtrise"
+    longTermFeatures:
+      mastery:
+        title: "Une maîtrise retrouvée de son quotidien"
+        body: "Ça t’amènera à vivre tes journées avec intention et à ressentir un vrai sentiment de vie retrouvée et de temps décuplé. Tu pourras l’observer grâce à un système de suivi te permettant de te rendre compte de tes efforts et de les valoriser."
+      screenTime:
+        title: "Un temps d’écran diminué de 50%"
+        body: "En accomplissant tes tâches plutôt qu’en scrollant, tu réduiras progressivement ton système de dopamine. Tu retrouveras le plaisir d’agir, d’avancer et de te sentir fier de résultats concrets, tout en réduisant l’automatisme d’ouvrir les réseaux sociaux."
+    trialCard:
+      title: "Un système qui te comprend enfin"
+      body: "Tu apprendras à te connaître et à construire un système qui t’est propre, car Dun s’adapte à toi et pas l’inverse. Toutes les ressources te sont données, et c’est toi seul qui détermines comment tu vas les utiliser."
+    trialFooter:
+      prefix: "On te laisse "
+      strong: "tester"
+      caption: "avec la version d’essai 14j"
+    steps:
+      hello:
+        title: "Salut !"
+        button: "Salut !"
+      meetDun:
+        title: "Moi, c’est Dun !\nRavi de te rencontrer."
+        part1: "Moi, c’est "
+        part2: " !\nRavi de te rencontrer."
+      name:
+        title: "Comment t’appelles-tu ?"
+        part1: "Comment "
+        part2: "t’appelles-tu"
+      niceToMeetYou:
+        beforeName: "Enchanté "
+        afterName: " !"
+      presentations:
+        title: "Maintenant que les\nprésentations sont\nfaites, dis-moi..."
+        part1: "Maintenant que les\n"
+        part2: "présentations sont\nfaites"
+        part3: ", dis-moi..."
+      why:
+        title: "Qu’est-ce qui t’amène ?"
+        part1: "Qu’est-ce qui "
+        part2: "t’amène"
+        options:
+          procrastinate: "Je procrastine constamment"
+          phone: "Je suis accro à mon téléphone"
+          control: "Je manque de contrôle sur mes journées"
+          time: "Je n’utilise pas mon temps comme je devrais"
+          projects: "Je n’avance pas dans mes projets"
+          other: "Autre..."
+      recurrence:
+        title: "À quelle fréquence n’es-tu\npas satisfait de tes\njournées ?"
+        part1: "À quelle fréquence "
+        part2: "n’es-tu\npas satisfait"
+        part3: " de tes\njournées ?"
+        options:
+          everyDay: "Tous les jours"
+          ninetyPercent: "90% de mes journées"
+          seventyFivePercent: "75% de mes journées"
+          fiftyPercent: "50% de mes journées"
+          lessThanHalf: "Moins de la moitié de mes journées"
+      change:
+        title: "Ça fait beaucoup,\nmais on peut changer ça !"
+        part1: "Ça fait beaucoup,\nmais on peut "
+        part2: "changer ça !"
+      system:
+        title: "Et pour ça, on va créer\nton propre système"
+        part1: "Et pour ça, on va créer\n"
+        part2: "ton propre système"
+      needs:
+        title: "De quoi as-tu besoin ?"
+        part1: "De quoi as-tu "
+        part2: "besoin"
+        options:
+          control: "Reprendre le contrôle sur tes journées"
+          intention: "Retrouver de l’intention au quotidien"
+          tasks: "Faire les tâches que tu laisses traîner"
+          projects: "Avancer dans tes projets"
+          satisfied: "Être satisfait de tes journées"
+          phone: "Te débarrasser de ton addiction au 📱"
+      rhythm:
+        title: "Sois honnête, combien\nde temps tiens-tu sur un\nbon rythme en ce\nmoment ?"
+        part1: "Sois honnête, "
+        part2: "combien\nde temps"
+        part3: " tiens-tu sur un\nbon rythme en ce\nmoment ?"
+      noted:
+        title: "4 jours\n\nC’est noté !\n\nCe sera donc notre\npremier objectif..."
+        line: "C’est noté !"
+        objectivePrefix: "Ce sera donc notre\n"
+        objectiveStrong: "premier objectif..."
+      objective:
+        title: "Donc le voici !"
+        part1: "Donc "
+        part2: "le voici !"
+        button: "Accepter"
+      determination:
+        title: "À quel point es-tu\ndéterminé à le réaliser ?"
+        part1: "À quel point es-tu\n"
+        part2: "déterminé"
+        part3: " à le réaliser ?"
+        options:
+          ultra: "Ultra déterminé"
+          strong: "Bien déterminé"
+          light: "Un petit peu déterminé"
+          try: "On va essayer hein"
+      transform:
+        title: "C’est ce qu’on veut !\n\nEt tu le dépasseras plus\nvite que tu le penses\n\nPour le transformer en..."
+        part1: "C’est ce qu’on veut !\n\n"
+        part2: "Et tu le dépasseras "
+        part3: "plus\nvite"
+        part4: " que tu le penses\n\nPour "
+        part5: "le transformer"
+        part6: " en..."
+      trial:
+        title: "Construis ton système\npour l’équivalent\nd’un café par mois"
+        part1: "Construis "
+        part2: "ton système"
+        part3: "\npour l’équivalent\n"
+        part4: "d’un café par mois"
+      ready:
+        title: "Super !\nOn peut commencer !"
+        part1: "Super !"
+        part2: "\nOn peut "
+        part3: "commencer !"
+        button: "Commencer"
   emailVerification:
     successTitle: "Email vérifié ! 🎉"
     successSubtitle: "Redirection en cours..."

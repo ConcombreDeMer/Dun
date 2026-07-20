@@ -79,6 +79,10 @@ function RootLayoutContent() {
     "Satoshi-Bold": require("../assets/fonts/Satoshi-Bold.otf"),
     "Satoshi-Black": require("../assets/fonts/Satoshi-Black.otf"),
     "Satoshi-Variable": require("../assets/fonts/Satoshi-Variable.ttf"),
+    "Inter_24pt-Regular": require("../assets/fonts/Inter/static/Inter_24pt-Regular.ttf"),
+    "Inter_24pt-Light": require("../assets/fonts/Inter/static/Inter_24pt-Light.ttf"),
+    "Inter_24pt-SemiBold": require("../assets/fonts/Inter/static/Inter_24pt-SemiBold.ttf"),
+    "Inter_24pt-Bold": require("../assets/fonts/Inter/static/Inter_24pt-Bold.ttf"),
   });
 
   const queryClient = useMemo(() => getQueryClient(), []);

@@ -91,9 +91,11 @@ interface TaskItemProps {
   layoutAnimationKey?: string;
   disableAddedAnimations?: boolean;
   isExtendable?: boolean;
+  disableSwipe?: boolean;
   isTogglePending?: boolean;
   mode?: 'normal' | 'daily' | 'box';
   isReadOnly?: boolean;
+  onPressWhenNotExtendable?: () => void;
   moveToDateKey?: string;
   onDeleteTask?: (item: TaskItemProps["item"]) => Promise<unknown> | unknown;
   onMoveTask?: (item: TaskItemProps["item"], targetDateKey: string | null) => Promise<unknown> | unknown;
@@ -110,8 +112,10 @@ export const TaskItem = ({
   layoutAnimationKey,
   disableAddedAnimations = false,
   isExtendable = true,
+  disableSwipe = false,
   mode = 'normal',
   isReadOnly = false,
+  onPressWhenNotExtendable,
   moveToDateKey,
   onDeleteTask,
   onMoveTask,
@@ -516,7 +520,13 @@ export const TaskItem = ({
   }, [doneProgress, isReadOnly, item, lockPastDaysEnabled, t, handleToggleTask, dotScale]);
 
   const handlePress = useCallback(() => {
-    if (!isExtendable || isReadOnly) return;
+    if (isReadOnly) return;
+
+    if (!isExtendable) {
+      onPressWhenNotExtendable?.();
+      return;
+    }
+
     if (shouldSuppressPressAfterSwipeRef.current) {
       shouldSuppressPressAfterSwipeRef.current = false;
       if (suppressPressAfterSwipeTimeoutRef.current) {
@@ -529,7 +539,7 @@ export const TaskItem = ({
     rowRef.current?.measureInWindow((x, y, width, height) => {
       handleTaskPress(item.id, { x, y, width, height });
     });
-  }, [handleTaskPress, item.id, isExtendable, isReadOnly]);
+  }, [handleTaskPress, isExtendable, isReadOnly, item.id, onPressWhenNotExtendable]);
 
   const handlePressIn = useCallback(() => {
     pressScale.value = withSpring(0.98, {
@@ -679,7 +689,7 @@ export const TaskItem = ({
         onSwipeableOpenStartDrag={suppressNextPressAfterSwipe}
         onSwipeableCloseStartDrag={suppressNextPressAfterSwipe}
         onSwipeableWillOpen={suppressNextPressAfterSwipe}
-        enabled={selectedTaskId === null && !isReadOnly}
+        enabled={selectedTaskId === null && !isReadOnly && !disableSwipe}
         leftThreshold={40}
         rightThreshold={40}
         friction={1.05}
