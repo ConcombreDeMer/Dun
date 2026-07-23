@@ -13,7 +13,7 @@ import { FontProvider } from "../lib/FontContext";
 import { I18nProvider, useAppTranslation, useI18nReady } from "../lib/i18n";
 import { fetchProfile, profileQueryKey } from "../lib/profile";
 import { syncRevenueCatUser } from "../lib/revenuecat";
-import { SubscriptionProvider } from "../lib/subscription";
+import { SubscriptionProvider, useSubscription } from "../lib/subscription";
 import { supabase } from "../lib/supabase";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 import { usePremiumDowngradeCompliance } from "../lib/usePremiumDowngradeCompliance";
@@ -63,6 +63,33 @@ function PremiumDowngradeCompliance() {
   return null;
 }
 
+function PremiumAccessGate({ hasCompletedOnboarding }: { hasCompletedOnboarding: boolean }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { isLoading: isSubscriptionLoading, isPremium } = useSubscription();
+
+  useEffect(() => {
+    if (!hasCompletedOnboarding || isSubscriptionLoading || isPremium) {
+      return;
+    }
+
+    if (pathname === "/settings/premium") {
+      router.replace("/settings/premium?required=1");
+      return;
+    }
+
+    const isAllowedRoute =
+      pathname?.startsWith("/onboarding") ||
+      pathname?.startsWith("/auth");
+
+    if (!isAllowedRoute) {
+      router.replace("/settings/premium?required=1");
+    }
+  }, [hasCompletedOnboarding, isPremium, isSubscriptionLoading, pathname, router]);
+
+  return null;
+}
+
 function RootLayoutContent() {
   const { colors, actualTheme, isLoading } = useTheme();
   const { t } = useAppTranslation();
@@ -71,6 +98,7 @@ function RootLayoutContent() {
   const pathname = usePathname();
   const [session, setSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const previousUserIdRef = useRef<string | null | undefined>(undefined);
 
   const [fontsLoaded] = useFonts({
@@ -100,6 +128,7 @@ function RootLayoutContent() {
     if (previousUserId !== userId) {
       queryClient.clear();
       useStore.getState().clearStore();
+      setHasCompletedOnboarding(false);
       previousUserIdRef.current = userId;
     }
   }, [queryClient, userId]);
@@ -188,6 +217,7 @@ function RootLayoutContent() {
         });
 
         const hasName = profileData?.hasName ?? false;
+        setHasCompletedOnboarding(hasName);
 
         if (!hasName && !isOnboardingRoute) {
           router.replace("/onboarding/tutorial");
@@ -212,6 +242,7 @@ function RootLayoutContent() {
       <AuthSessionProvider userId={userId}>
         <SubscriptionProvider appUserID={userId}>
           <PremiumDowngradeCompliance />
+          <PremiumAccessGate hasCompletedOnboarding={Boolean(session) && hasCompletedOnboarding} />
 
       {/* <View
         pointerEvents="none"

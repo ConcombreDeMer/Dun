@@ -5,16 +5,18 @@ import OnboardingNameSheet from "@/components/onboarding/OnboardingNameSheet";
 import OnboardingOptionList from "@/components/onboarding/OnboardingOptionList";
 import OnboardingSlider from "@/components/onboarding/OnboardingSlider";
 import {
-    createOnboardingSteps,
-    createSliderOptions,
-    type CharacterPlacement,
-    type CharacterPosition,
-    type OnboardingStep,
-    type OnboardingTextPart,
+  createOnboardingSteps,
+  createSliderOptions,
+  type CharacterPlacement,
+  type CharacterPosition,
+  type OnboardingStep,
+  type OnboardingTextPart,
 } from "@/components/onboarding/onboardingSteps";
 import Squircle from "@/components/Squircle";
+import SubscriptionPlanOption from "@/components/SubscriptionPlanOption";
 import { getCharacterImageSource } from "@/lib/imageHelper";
 import { patchProfileCache } from "@/lib/profile";
+import { TrialEligibilityStatus, useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
@@ -23,20 +25,20 @@ import { SymbolView } from "expo-symbols";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    Alert,
-    Keyboard,
-    Pressable,
-    StyleSheet,
-    Text,
-    useWindowDimensions,
-    View,
+  Alert,
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import Animated, {
-    createAnimatedComponent,
-    Easing,
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming,
+  createAnimatedComponent,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 import { useAppTranslation } from "../../lib/i18n";
 
@@ -47,6 +49,7 @@ const LIGHT_THEME = "light" as const;
 const OBJECTIVE_SCREENS_CONTENT_TOP = 190;
 const OBJECTIVE_CARD_HEIGHT = 164;
 const AnimatedImage = createAnimatedComponent(Image);
+type PremiumPlan = "annual" | "monthly";
 const CHARACTER_PLACEMENTS: Record<CharacterPosition, CharacterPlacement> = {
   centered: { top: 184, left: 90, size: 140 },
   medium: { top: 122, left: 92, size: 136 },
@@ -64,7 +67,18 @@ export default function Tutorial() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [infoRevealCount, setInfoRevealCount] = useState(1);
+  const [isCompletingPurchase, setIsCompletingPurchase] = useState(false);
+  const [selectedPremiumPlan, setSelectedPremiumPlan] = useState<PremiumPlan | null>(null);
   const [sliderIndex, setSliderIndex] = useState(3);
+  const [trialEligibility, setTrialEligibility] = useState<TrialEligibilityStatus>("unknown");
+  const {
+    checkTrialEligibility,
+    isLoading: isSubscriptionLoading,
+    isPurchasing,
+    loadOfferings,
+    packages,
+    purchasePackage,
+  } = useSubscription();
   const onboardingSteps = useMemo(() => createOnboardingSteps((key) => t(key)), [t]);
   const sliderOptions = useMemo(() => createSliderOptions((key) => t(key)), [t]);
   const sliderLabels = useMemo(() => sliderOptions.map((option) => option.label), [sliderOptions]);
@@ -94,6 +108,40 @@ export default function Tutorial() {
   const isLastStep = currentIndex === onboardingSteps.length - 1;
   const contentPositionStyle = getContentPositionStyle(step.id);
   const shouldShowFloatingObjectiveCard = isFloatingObjectiveCardStep(step.id);
+  const selectedPackage = selectedPremiumPlan === "annual"
+    ? packages.annual
+    : selectedPremiumPlan === "monthly"
+    ? packages.monthly
+    : undefined;
+  const trialEligibilityProductIdentifier =
+    selectedPackage?.product.identifier ??
+    packages.annual?.product.identifier ??
+    packages.monthly?.product.identifier;
+
+  useEffect(() => {
+    void loadOfferings();
+  }, [loadOfferings]);
+
+  useEffect(() => {
+    const productIdentifier = trialEligibilityProductIdentifier;
+
+    if (!productIdentifier) {
+      setTrialEligibility("unknown");
+      return;
+    }
+
+    let isCancelled = false;
+
+    void checkTrialEligibility(productIdentifier).then((status) => {
+      if (!isCancelled) {
+        setTrialEligibility(status);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [checkTrialEligibility, trialEligibilityProductIdentifier]);
 
   useEffect(() => {
     const placement = CHARACTER_PLACEMENTS[step.characterPosition];
@@ -224,7 +272,7 @@ export default function Tutorial() {
     }, 180);
   };
 
-  const finishOnboarding = async () => {
+  const saveOnboardingProfile = async () => {
     try {
       const trimmedName = name.trim();
       const { data: { user } } = await supabase.auth.getUser();
@@ -247,15 +295,64 @@ export default function Tutorial() {
 
         if (error) {
           console.error("Erreur lors de la mise à jour du nom d'utilisateur : " + error.message);
-          return;
+          return false;
         }
       }
     } catch (error) {
       console.error("Erreur lors de la sauvegarde du name:", error);
+      return false;
     }
 
-    // Future trial trigger hook.
-    router.push("/home");
+    return true;
+  };
+
+  const finishOnboarding = async () => {
+    const didSaveProfile = await saveOnboardingProfile();
+
+    if (!didSaveProfile) {
+      return;
+    }
+
+    router.replace("/settings/premium?required=1");
+  };
+
+  const startTrialFromOnboarding = async () => {
+    if (isCompletingPurchase) {
+      return;
+    }
+
+    if (!selectedPremiumPlan) {
+      Alert.alert(t("common.alerts.errorTitle"), "Choisis une option avant de te lancer.");
+      return;
+    }
+
+    if (!selectedPackage) {
+      Alert.alert(t("common.alerts.errorTitle"), t("settings.premium.offersNotLoaded"));
+      void loadOfferings();
+      return;
+    }
+
+    setIsCompletingPurchase(true);
+
+    try {
+      const didSaveProfile = await saveOnboardingProfile();
+
+      if (!didSaveProfile) {
+        return;
+      }
+
+      const hasPremium = await purchasePackage(selectedPackage);
+
+      if (hasPremium) {
+        router.replace("/");
+      }
+    } catch (e: any) {
+      if (!e.userCancelled) {
+        Alert.alert(t("settings.premium.purchaseErrorTitle"), e.message || t("common.alerts.genericError"));
+      }
+    } finally {
+      setIsCompletingPurchase(false);
+    }
   };
 
   const handleNext = () => {
@@ -278,6 +375,11 @@ export default function Tutorial() {
       return;
     }
 
+    if (step.type === "trial") {
+      void startTrialFromOnboarding();
+      return;
+    }
+
     if (isLastStep) {
       void finishOnboarding();
       return;
@@ -291,9 +393,13 @@ export default function Tutorial() {
   };
 
   const buttonTitle = useMemo(() => {
+    if (step.type === "trial" && (isPurchasing || isCompletingPurchase)) {
+      return t("common.status.loading");
+    }
+
     if (step.buttonTitle) return step.buttonTitle;
     return t("common.actions.next");
-  }, [step, t]);
+  }, [isCompletingPurchase, isPurchasing, step, t]);
 
   const isAcceptButton = step.id === "objective";
 
@@ -352,16 +458,21 @@ export default function Tutorial() {
             setAnswers,
             setIsNameSheetVisible,
             setSliderIndex,
+            isSubscriptionLoading,
+            onSelectPremiumPlan: setSelectedPremiumPlan,
+            packages,
+            selectedPremiumPlan,
             sliderIndex,
             sliderLabels,
             step,
             t: (key) => t(key),
+            trialEligibility,
           })}
         </Animated.View>
 
         <View style={styles.bottom}>
           <OnboardingButton
-            disabled={isTransitioning}
+            disabled={isTransitioning || isPurchasing || isCompletingPurchase}
             onPress={handleNext}
             title={buttonTitle}
             variant={isAcceptButton ? "success" : "primary"}
@@ -428,10 +539,15 @@ type RenderStepContentArgs = {
   setAnswers: (answers: Record<string, string[]>) => void;
   setIsNameSheetVisible: (isVisible: boolean) => void;
   setSliderIndex: (index: number) => void;
+  isSubscriptionLoading: boolean;
+  onSelectPremiumPlan: (plan: PremiumPlan) => void;
+  packages: ReturnType<typeof useSubscription>["packages"];
+  selectedPremiumPlan: PremiumPlan | null;
   sliderIndex: number;
   sliderLabels: string[];
   step: OnboardingStep;
   t: (key: string) => string;
+  trialEligibility: TrialEligibilityStatus;
 };
 
 function renderStepContent({
@@ -444,10 +560,15 @@ function renderStepContent({
   setAnswers,
   setIsNameSheetVisible,
   setSliderIndex,
+  isSubscriptionLoading,
+  onSelectPremiumPlan,
+  packages,
+  selectedPremiumPlan,
   sliderIndex,
   sliderLabels,
   step,
   t,
+  trialEligibility,
 }: RenderStepContentArgs) {
   if (step.type === "info") {
     const recurrenceStats = getRecurrenceStats(answers.recurrence?.[0], recurrenceOptions);
@@ -600,21 +721,50 @@ function renderStepContent({
   }
 
   if (step.type === "trial") {
+    const trialText = trialEligibility === "ineligible"
+      ? "Période d’essai expirée"
+      : "Débloquer la période d’essai 14j";
+
     return (
       <View style={styles.trialStack}>
-        {renderTitle(step, name, selectedRhythm, t)}
-        <OnboardingInfoBubble
-          body={t("onboarding.tutorial.trialCard.body")}
-          size="feature"
-          symbolName="gearshape.fill"
-          title={t("onboarding.tutorial.trialCard.title")}
+        <Text style={[styles.title, styles.largeTitle, styles.trialTitle]}>
+          <Text style={styles.mutedText}>Reprends</Text>
+          <Text style={styles.strongText}> le contrôle</Text>
+        </Text>
+
+        <Image
+          contentFit="contain"
+          source={require("@/assets/images/paywall/phone.png")}
+          style={styles.trialPhone}
         />
-        <View style={styles.trialFooter}>
-          <Text style={styles.trialTitle}>
-            <Text style={styles.mutedText}>{t("onboarding.tutorial.trialFooter.prefix")}</Text>
-            <Text style={styles.strongText}>{t("onboarding.tutorial.trialFooter.strong")}</Text>
-          </Text>
-          <Text style={styles.trialCaption}>{t("onboarding.tutorial.trialFooter.caption")}</Text>
+
+        <View style={styles.trialOfferBlock}>
+          <View style={styles.trialCoffeePill}>
+            <Text style={styles.trialCoffeeText}>Pour l’équivalent d’un café par mois</Text>
+            <Image
+              contentFit="contain"
+              source={require("@/assets/images/paywall/coffee.png")}
+              style={styles.trialCoffeeImage}
+            />
+          </View>
+
+          <View style={styles.trialPlans}>
+            <SubscriptionPlanOption
+              label="Mensuel"
+              onPress={() => onSelectPremiumPlan("monthly")}
+              price={isSubscriptionLoading ? "..." : packages.monthly?.product.priceString || "1,99€"}
+              selected={selectedPremiumPlan === "monthly"}
+            />
+            <SubscriptionPlanOption
+              discount="-40%"
+              label="Annuel"
+              onPress={() => onSelectPremiumPlan("annual")}
+              price={isSubscriptionLoading ? "..." : packages.annual?.product.priceString || "14,99€"}
+              selected={selectedPremiumPlan === "annual"}
+            />
+          </View>
+
+          <Text style={styles.trialCaption}>{trialText}</Text>
         </View>
       </View>
     );
@@ -839,6 +989,7 @@ const styles = StyleSheet.create({
   },
   trialContent: {
     bottom: 104,
+    top: 214,
   },
   bottom: {
     alignSelf: "center",
@@ -957,23 +1108,58 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   trialStack: {
-    gap: 18,
-  },
-  trialFooter: {
-    marginTop: 76,
+    alignItems: "center",
+    paddingTop: 40,
+    flex: 1,
   },
   trialTitle: {
-    color: "#777777",
-    fontFamily: "Inter_24pt-SemiBold",
-    fontSize: 28,
-    lineHeight: 33,
+    textAlign: "center",
+  },
+  trialPhone: {
+    height: 230,
+    marginTop: 10,
+    width: 224,
+  },
+  trialOfferBlock: {
+    alignSelf: "stretch",
+    marginTop: "auto",
+  },
+  trialCoffeePill: {
+    alignItems: "center",
+    alignSelf: "stretch",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 999,
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+    marginTop: 6,
+    minHeight: 46,
+    paddingLeft: 18,
+    paddingRight: 14,
+  },
+  trialCoffeeText: {
+    color: "#4C4C4C",
+    flex: 1,
+    fontFamily: "Satoshi-Regular",
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  trialCoffeeImage: {
+    height: 35,
+    transform: [{ rotate: "18deg" }],
+    width: 35,
+  },
+  trialPlans: {
+    alignSelf: "stretch",
+    gap: 7,
+    marginTop: 16,
   },
   trialCaption: {
-    color: "#444444",
-    fontFamily: "Inter_24pt-SemiBold",
-    fontSize: 14,
-    lineHeight: 18,
-    marginTop: 4,
+    color: "#535353",
+    fontFamily: "Satoshi-Regular",
+    fontSize: 16,
+    lineHeight: 20,
+    marginTop: 20,
     textAlign: "center",
   },
 });

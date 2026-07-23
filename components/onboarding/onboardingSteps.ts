@@ -277,9 +277,9 @@ export function createOnboardingSteps(t: OnboardingTranslator): OnboardingStep[]
   {
     id: "trial",
     type: "trial",
-    character: "22",
-    characterPosition: "medium",
-    buttonTitle: t("common.actions.next"),
+    character: "1",
+    characterPosition: "high",
+    buttonTitle: "Se lancer",
     title: t("onboarding.tutorial.steps.trial.title"),
     titleParts: [
       { text: t("onboarding.tutorial.steps.trial.part1") },
