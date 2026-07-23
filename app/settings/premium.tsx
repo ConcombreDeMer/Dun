@@ -1,67 +1,107 @@
-import Squircle from "@/components/Squircle";
-import { useFont } from "@/lib/FontContext";
+import OnboardingButton from "@/components/onboarding/OnboardingButton";
+import SubscriptionPlanOption from "@/components/SubscriptionPlanOption";
 import { useAppTranslation } from "@/lib/i18n";
-import { getCharacterImageSource } from "@/lib/imageHelper";
-import { useSubscription } from "@/lib/subscription";
-import { useTheme } from "@/lib/ThemeContext";
-import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { SquircleButton } from "expo-squircle-view";
+import { TrialEligibilityStatus, useSubscription } from "@/lib/subscription";
+import { supabase } from "@/lib/supabase";
+import { Image } from "expo-image";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
-    Image,
     StyleSheet,
     Text,
     TouchableOpacity,
     View
 } from "react-native";
+import Animated, {
+    Easing,
+    FadeInUp,
+} from "react-native-reanimated";
+
+type PremiumPlan = "annual" | "monthly";
 
 export default function Premium() {
     const router = useRouter();
-    const { actualTheme } = useTheme();
-    const { fontSizes } = useFont();
     const { t } = useAppTranslation();
-    const [selectedPlan, setSelectedPlan] = useState<'annual' | 'monthly'>('annual');
+    const { required } = useLocalSearchParams<{ required?: string }>();
+    const [selectedPlan, setSelectedPlan] = useState<PremiumPlan | null>(null);
+    const [trialEligibility, setTrialEligibility] = useState<TrialEligibilityStatus>("unknown");
+    const isRequiredPaywall = required === "1";
     const {
+        checkTrialEligibility,
         isLoading,
         isPurchasing,
-        isRestoring,
         loadOfferings,
         packages,
         purchasePackage,
-        restorePurchases,
     } = useSubscription();
+    const selectedPackage = selectedPlan === "annual"
+        ? packages.annual
+        : selectedPlan === "monthly"
+        ? packages.monthly
+        : undefined;
+    const trialEligibilityProductIdentifier =
+        selectedPackage?.product.identifier ??
+        packages.annual?.product.identifier ??
+        packages.monthly?.product.identifier;
+    const trialText = trialEligibility === "ineligible"
+        ? "Période d’essai expirée"
+        : "Débloquer la période d’essai 14j";
+
+    const closeAfterPremiumAccess = () => {
+        if (isRequiredPaywall) {
+            router.replace("/");
+            return;
+        }
+
+        router.back();
+    };
 
     useEffect(() => {
         void loadOfferings();
     }, [loadOfferings]);
 
-    const renderFeatureItem = (icon: string, textElements: React.ReactNode) => (
-        <View style={styles.featureItem}>
-            <SymbolView name={icon as any} weight="semibold" size={36} tintColor="#333" style={styles.featureIcon} />
-            <Text style={[styles.featureText, { fontSize: fontSizes.base }]}>
-                {textElements}
-            </Text>
-        </View>
-    );
+    useEffect(() => {
+        const productIdentifier = trialEligibilityProductIdentifier;
 
+        if (!productIdentifier) {
+            setTrialEligibility("unknown");
+            return;
+        }
+
+        let isCancelled = false;
+
+        void checkTrialEligibility(productIdentifier).then((status) => {
+            if (!isCancelled) {
+                setTrialEligibility(status);
+            }
+        });
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [checkTrialEligibility, trialEligibilityProductIdentifier]);
 
     const buyPremium = async () => {
-        const packageToBuy = selectedPlan === 'annual' ? packages.annual : packages.monthly;
-        if (!packageToBuy) {
+        if (!selectedPlan) {
+            Alert.alert(t("common.alerts.errorTitle"), "Choisis une option avant de te lancer.");
+            return;
+        }
+
+        if (!selectedPackage) {
             Alert.alert(t("common.alerts.errorTitle"), t("settings.premium.offersNotLoaded"));
+            void loadOfferings();
             return;
         }
 
         try {
-            const hasPremium = await purchasePackage(packageToBuy);
+            const hasPremium = await purchasePackage(selectedPackage);
 
             if (hasPremium) {
                 Alert.alert(t("settings.premium.purchaseSuccessTitle"), t("settings.premium.purchaseSuccessMessage"));
-                router.back();
+                closeAfterPremiumAccess();
             }
         } catch (e: any) {
             if (!e.userCancelled) {
@@ -70,381 +110,299 @@ export default function Premium() {
         }
     };
 
-    const restorePremium = async () => {
-        try {
-            const hasPremium = await restorePurchases();
+    const handleLogout = () => {
+        Alert.alert(
+            "Déconnexion",
+            "Tu veux te déconnecter de ce compte ?",
+            [
+                {
+                    text: t("common.actions.cancel"),
+                    style: "cancel",
+                },
+                {
+                    text: "Se déconnecter",
+                    style: "destructive",
+                    onPress: async () => {
+                        const { error } = await supabase.auth.signOut();
 
-            if (hasPremium) {
-                Alert.alert(t("settings.premium.restoreSuccessTitle"), t("settings.premium.restoreSuccessMessage"));
-                router.back();
-                return;
-            }
+                        if (error) {
+                            Alert.alert(t("common.alerts.errorTitle"), error.message || t("common.alerts.genericError"));
+                            return;
+                        }
 
-            Alert.alert(t("settings.premium.restoreEmptyTitle"), t("settings.premium.restoreEmptyMessage"));
-        } catch (e: any) {
-            Alert.alert(t("settings.premium.restoreErrorTitle"), e.message || t("common.alerts.genericError"));
-        }
+                        router.replace("/onboarding/start");
+                    },
+                },
+            ]
+        );
     };
-
-
 
     return (
         <View style={styles.safeArea}>
-
-
-            <LinearGradient
-                colors={['#FFF2D1', '#FFE39C']}
-                style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '120%',
-                    zIndex: -1,
-                }}
-            />
-
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                <SymbolView name="chevron.left" weight="medium" size={20} tintColor="#A09989" />
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                <SymbolView name="rectangle.portrait.and.arrow.right" weight="medium" size={20} tintColor="#151515" />
             </TouchableOpacity>
-            <View
-                style={styles.scrollContainer}
-            >
 
-                <View style={styles.header}>
-                    <Text style={[styles.title, { fontSize: fontSizes['7xl'] }]}>
-                        Dun<Text style={styles.titlePlus}>+</Text>
-                    </Text>
-                </View>
+            {!isRequiredPaywall ? (
+                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                    <SymbolView name="chevron.left" weight="medium" size={20} tintColor="#151515" />
+                </TouchableOpacity>
+            ) : null}
 
-                <View style={styles.characterContainer}>
+            <View style={styles.content}>
+                <Animated.View
+                    entering={FadeInUp.delay(80).duration(420).easing(Easing.out(Easing.cubic))}
+                    style={styles.characterBlock}
+                >
                     <Image
-                        source={getCharacterImageSource('16', actualTheme)}
-                        style={styles.characterImage}
-                        resizeMode="contain"
+                        contentFit="contain"
+                        source={require("@/assets/images/character/1.png")}
+                        style={styles.character}
                     />
-                </View>
+                    <Image
+                        contentFit="contain"
+                        source={require("@/assets/images/character/0.png")}
+                        style={styles.characterShadow}
+                    />
+                </Animated.View>
 
-                <View style={styles.featuresCardContainer}>
-                    <Squircle style={styles.featuresCard}>
-                        {renderFeatureItem('infinity', <Text>{t("settings.premium.featureUnlimited")}</Text>)}
-                        {renderFeatureItem('chart.line.uptrend.xyaxis', <Text>{t("settings.premium.featureAdvancedStats")}</Text>)}
-                        {renderFeatureItem('paintbrush', <Text>{t("settings.premium.featurePersonalize")}</Text>)}
-                    </Squircle>
+                <Animated.Text
+                    entering={FadeInUp.delay(150).duration(430).easing(Easing.out(Easing.cubic))}
+                    style={styles.title}
+                >
+                    <Text style={styles.titleMuted}>Reprends</Text>
+                    <Text style={styles.titleStrong}> le contrôle</Text>
+                </Animated.Text>
 
-                    <Squircle style={styles.futureFeaturesContainer}>
-                        <Text style={[styles.futureFeaturesText, { fontSize: fontSizes.sm }]}>
-                            {t("settings.premium.futureFeatures")}
-                        </Text>
-                        <TouchableOpacity
-                            onPress={() => Alert.alert("Dun+", t("settings.premium.futureFeatures"))}
-                        >
-                            <Text style={[styles.learnMoreText, { fontSize: fontSizes.sm }]}>{t("settings.premium.learnMore")}</Text>
-                        </TouchableOpacity>
-                    </Squircle>
-                </View>
+                <Animated.View
+                    entering={FadeInUp.delay(230).duration(430).easing(Easing.out(Easing.cubic))}
+                    style={styles.phoneStage}
+                >
+                    <Image
+                        contentFit="contain"
+                        source={require("@/assets/images/paywall/phone.png")}
+                        style={styles.phoneImage}
+                    />
+                </Animated.View>
 
-                <View style={styles.plansContainer}>
-                    <SquircleButton
-                        style={[styles.planCard, selectedPlan === 'annual' && styles.planCardActive]}
-                        onPress={() => setSelectedPlan('annual')}
-                        activeOpacity={0.8}
-                    >
-                        <View style={styles.planHeader}>
-                            <Text style={[styles.planTitle, { fontSize: fontSizes.lg }]}>{t("settings.premium.annual")}</Text>
-                            <View style={[styles.radioCircle, selectedPlan === 'annual' && styles.radioCircleActive]}>
-                                {selectedPlan === 'annual' && <View style={styles.radioInnerCircle} />}
-                            </View>
-                        </View>
-                        {isLoading ? (
-                            <ActivityIndicator size="small" color="#554E3A" />
-                        ) : (
-                            <>
-                                <Text style={[styles.planPrice, { fontSize: fontSizes['2xl'] }]}>{packages.annual?.product.priceString || "12,99 €"}</Text>
-                                <Text style={[styles.planDiscount, { fontSize: fontSizes.sm }]}>{t("settings.premium.annualDiscount")}</Text>
-                            </>
-                        )}
-                    </SquircleButton>
+                <Animated.View
+                    entering={FadeInUp.delay(310).duration(430).easing(Easing.out(Easing.cubic))}
+                    style={styles.coffeePill}
+                >
+                    <Text style={styles.coffeeText}>Pour l’équivalent d’un café par mois</Text>
+                    <Image
+                        contentFit="contain"
+                        source={require("@/assets/images/paywall/coffee.png")}
+                        style={styles.coffeeImage}
+                    />
+                </Animated.View>
 
-                    <SquircleButton
-                        style={[styles.planCard, selectedPlan === 'monthly' && styles.planCardActive]}
-                        onPress={() => setSelectedPlan('monthly')}
-                        activeOpacity={0.8}
-                    >
-                        <View style={styles.planHeader}>
-                            <Text style={[styles.planTitle, { fontSize: fontSizes.lg }]}>{t("settings.premium.monthly")}</Text>
-                            <View style={[styles.radioCircle, selectedPlan === 'monthly' && styles.radioCircleActive]}>
-                                {selectedPlan === 'monthly' && <View style={styles.radioInnerCircle} />}
-                            </View>
-                        </View>
-                        {isLoading ? (
-                            <ActivityIndicator size="small" color="#554E3A" />
-                        ) : (
-                            <Text style={[styles.planPrice, { fontSize: fontSizes['2xl'] }]}>{packages.monthly?.product.priceString || "1,99 €"}</Text>
-                        )}
-                    </SquircleButton>
-                </View>
+                <Animated.View
+                    entering={FadeInUp.delay(390).duration(430).easing(Easing.out(Easing.cubic))}
+                    style={styles.plans}
+                >
+                    <SubscriptionPlanOption
+                        label="Mensuel"
+                        onPress={() => setSelectedPlan("monthly")}
+                        price={isLoading ? "..." : packages.monthly?.product.priceString || "1,99€"}
+                        selected={selectedPlan === "monthly"}
+                    />
+                    <SubscriptionPlanOption
+                        discount="-40%"
+                        label="Annuel"
+                        onPress={() => setSelectedPlan("annual")}
+                        price={isLoading ? "..." : packages.annual?.product.priceString || "14,99€"}
+                        selected={selectedPlan === "annual"}
+                    />
+                </Animated.View>
 
-                <SquircleButton 
-                    style={styles.buyButton}
-                    onPress={buyPremium}
+                <Animated.Text
+                    entering={FadeInUp.delay(470).duration(430).easing(Easing.out(Easing.cubic))}
+                    style={styles.trialText}
+                >
+                    {trialText}
+                </Animated.Text>
+
+                <Animated.View
+                    entering={FadeInUp.delay(540).duration(430).easing(Easing.out(Easing.cubic))}
+                    style={styles.buttonSlot}
                 >
                     {isPurchasing ? (
-                        <ActivityIndicator color="#FFF" />
-                    ) : (
-                        <Text style={[styles.buyButtonText, { fontSize: fontSizes['2xl'] }]}>
-                            {t("settings.premium.buy")}
-                        </Text>
-                    )}
-                </SquircleButton>
-                <TouchableOpacity
-                    style={styles.restoreButton}
-                    onPress={restorePremium}
-                    disabled={isRestoring}
-                >
-                    {isRestoring ? (
-                        <ActivityIndicator size="small" color="#554E3A" />
-                    ) : (
-                        <Text style={[styles.restoreButtonText, { fontSize: fontSizes.base }]}>
-                            {t("settings.premium.restorePurchases")}
-                        </Text>
-                    )}
-                </TouchableOpacity>
-            </View>
-
-
-
-            {/* <PopUpContainer
-                isVisible={showDetailsModal}
-                onClose={() => setShowDetailsModal(false)}
-                children={
-                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <View style={{ overflow: 'hidden', height: 400, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-
-                            <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%', paddingHorizontal: 20 }}>
-                                <SymbolView name="exclamationmark.triangle.fill" weight="semibold" size={120} tintColor="#000000" />
-                                <Text style={{ fontFamily: 'Satoshi-Regular', color: colors.text, fontSize: fontSizes['xl'], textAlign: 'center' }}>
-                                    Vous êtes sur le point de résilier votre abonnement à <Text style={{ fontFamily: 'Satoshi-Bold' }}>Dun +</Text>.
-                                </Text>
-
-                                <Text
-                                    style={{ fontFamily: 'Satoshi-Regular', color: colors.textSecondary, fontSize: fontSizes.lg, textAlign: 'center' }}
-                                >
-                                    En cas de confirmation, celui ci prendra fin le <Text style={{ fontFamily: 'Satoshi-Bold' }}> date</Text>, les services premium ne vous seront plus accessibles passé cette date.
-                                </Text>
-
-                            </View>
-
-                            <PrimaryButton
-                                title="Confirmer"
-                                onPress={() => setShowDetailsModal(false)}
-                            />
+                        <View style={styles.loadingButton}>
+                            <ActivityIndicator color="#FFFFFF" />
                         </View>
-                    </TouchableWithoutFeedback>
-                }
-            /> */}
+                    ) : (
+                        <OnboardingButton
+                            disabled={isLoading}
+                            onPress={buyPremium}
+                            title="Se lancer"
+                        />
+                    )}
+                </Animated.View>
 
+                {/* <Animated.View
+                    entering={FadeInUp.delay(610).duration(430).easing(Easing.out(Easing.cubic))}
+                    style={styles.restoreSlot}
+                >
+                    <TouchableOpacity
+                        disabled={isRestoring}
+                        onPress={restorePremium}
+                        style={styles.restoreButton}
+                    >
+                        {isRestoring ? (
+                            <ActivityIndicator size="small" color="#535353" />
+                        ) : (
+                            <Text style={styles.restoreButtonText}>
+                                {t("settings.premium.restorePurchases")}
+                            </Text>
+                        )}
+                    </TouchableOpacity>
+                </Animated.View> */}
+            </View>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     safeArea: {
-        paddingTop: 70,
-        paddingBottom: 40
-    },
-    scrollContainer: {
-        paddingHorizontal: 24,
-        height: '100%',
+        backgroundColor: "#EFEFEF",
+        flex: 1,
     },
     backButton: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: '#F3E8C5',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 10,
-        marginBottom: 20,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
-        position: 'absolute',
-        top: 70,
-        left: 20,
-    },
-    header: {
-        alignItems: 'center',
-    },
-    title: {
-        fontFamily: 'Satoshi-Black',
-        color: '#000',
-        letterSpacing: -1,
-    },
-    titlePlus: {
-        color: '#F4BA00',
-    },
-    characterContainer: {
-        alignItems: 'center',
+        alignItems: "center",
+        backgroundColor: "#FFFFFF",
+        borderRadius: 22,
+        height: 44,
+        justifyContent: "center",
+        position: "absolute",
+        right: 18,
+        top: 58,
+        width: 44,
         zIndex: 10,
     },
-    characterImage: {
-        width: 200,
-        height: 200,
+    logoutButton: {
+        alignItems: "center",
+        backgroundColor: "#FFFFFF",
+        borderRadius: 22,
+        height: 44,
+        justifyContent: "center",
+        left: 18,
+        position: "absolute",
+        top: 58,
+        width: 44,
+        zIndex: 10,
     },
-    featuresCardContainer: {
-        alignItems: 'center',
-        marginTop: -20,
-        zIndex: 11,
-    },
-    featuresCard: {
-        backgroundColor: '#ffffff4d',
-        borderRadius: 28,
-        paddingVertical: 16,
-        paddingHorizontal: 24,
-        width: '100%',
-        shadowColor: "#E2CF91",
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.4,
-        shadowRadius: 15,
-        elevation: 5,
-        borderWidth: 1,
-        borderColor: '#F8F1DB',
-    },
-    featureItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 18,
-    },
-    featureIcon: {
-        marginRight: 16,
-    },
-    featureText: {
-        fontFamily: 'Satoshi-Regular',
-        color: '#7D7661',
+    content: {
+        alignItems: "center",
         flex: 1,
-        lineHeight: 20,
+        paddingHorizontal: 30,
+        paddingTop: 110,
     },
-    boldText: {
-        fontFamily: 'Satoshi-Bold',
-        color: '#554E3A',
+    characterBlock: {
+        alignItems: "center",
+        height: 120,
+        justifyContent: "flex-end",
+        width: "100%",
     },
-    futureFeaturesContainer: {
-        backgroundColor: '#ffffff4d',
-        borderRadius: 16,
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#F8F1DB',
-        shadowColor: "#E2CF91",
-        shadowOffset: { width: 0, height: 5 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 3,
-        marginTop: 10,
+    character: {
+        height: 112,
+        width: 112,
+        zIndex: 2,
     },
-    futureFeaturesText: {
-        fontFamily: 'Satoshi-Regular',
-        color: '#8D8775',
+    characterShadow: {
+        height: 22,
+        marginTop: -4,
+        opacity: 0.32,
+        width: 92,
     },
-    learnMoreText: {
-        fontFamily: 'Satoshi-Medium',
-        color: '#8D8775',
-        textDecorationLine: 'underline',
-        marginTop: 2,
+    title: {
+        fontFamily: "Inter_24pt-SemiBold",
+        fontSize: 30,
+        letterSpacing: 0,
+        lineHeight: 35,
+        marginTop: 18,
+        textAlign: "center",
     },
-    plansContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '100%',
-        gap: 12,
+    titleMuted: {
+        color: "#818181",
+    },
+    titleStrong: {
+        color: "#050505",
+    },
+    phoneStage: {
+        alignItems: "center",
+        height: 250,
+        justifyContent: "flex-end",
+        marginTop: 14,
+        width: "100%",
+    },
+    phoneImage: {
+        height: 250,
+        width: 243,
+    },
+    coffeePill: {
+        alignItems: "center",
+        alignSelf: "stretch",
+        backgroundColor: "#FFFFFF",
+        borderRadius: 999,
+        flexDirection: "row",
+        gap: 10,
+        justifyContent: "space-between",
+        marginTop: 8,
+        minHeight: 46,
+        paddingLeft: 18,
+        paddingRight: 14,
+    },
+    coffeeText: {
+        color: "#4C4C4C",
+        flex: 1,
+        fontFamily: "Satoshi-Regular",
+        fontSize: 14,
+        lineHeight: 22,
+    },
+    coffeeImage: {
+        height: 35,
+        transform: [{ rotate: "18deg" }],
+        width: 35,
+    },
+    plans: {
+        alignSelf: "stretch",
+        gap: 7,
+        marginTop: 16,
+    },
+    trialText: {
+        color: "#535353",
+        fontFamily: "Satoshi-Regular",
+        fontSize: 17,
+        lineHeight: 22,
         marginTop: 20,
+        textAlign: "center",
     },
-    planCard: {
-        flex: 1,
-        backgroundColor: '#FCF3D2',
-        borderRadius: 24,
-        padding: 16,
-        paddingBottom: 20,
-        borderWidth: 2,
-        borderColor: '#F8F1DB',
+    buttonSlot: {
+        marginTop: 10,
+        width: "80%",
     },
-    planCardActive: {
-        borderColor: '#E2CF91',
-    },
-    planHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    planTitle: {
-        fontFamily: 'Satoshi-Bold',
-        color: '#554E3A',
-    },
-    radioCircle: {
-        width: 24,
-        height: 24,
+    loadingButton: {
+        alignItems: "center",
+        backgroundColor: "#050505",
         borderRadius: 12,
-        backgroundColor: '#D1CAAF',
-        justifyContent: 'center',
-        alignItems: 'center',
+        justifyContent: "center",
+        minHeight: 46,
+        width: "100%",
     },
-    radioCircleActive: {
-        backgroundColor: '#E2CF91',
-    },
-    radioInnerCircle: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: '#554E3A',
-    },
-    planPrice: {
-        fontFamily: 'Satoshi-Black',
-        color: '#000',
-        marginBottom: 4,
-    },
-    planDiscount: {
-        fontFamily: 'Satoshi-Medium',
-        color: '#8D8775',
-    },
-    buyButton: {
-        backgroundColor: '#272727',
-        borderRadius: 17,
-        paddingVertical: 18,
-        alignItems: 'center',
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
-        height: 64,
-        width: '80%',
-        alignSelf: 'center',
-        position: 'absolute',
-        bottom: 0,
-    },
-    buyButtonText: {
-        fontFamily: 'Satoshi-Bold',
-        color: '#FFF',
+    restoreSlot: {
+        marginTop: 8,
+        minHeight: 28,
     },
     restoreButton: {
-        alignItems: 'center',
-        alignSelf: 'center',
-        bottom: 74,
-        justifyContent: 'center',
-        minHeight: 34,
-        position: 'absolute',
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: 28,
     },
     restoreButtonText: {
-        color: '#554E3A',
-        fontFamily: 'Satoshi-Medium',
-        textDecorationLine: 'underline',
-    },
-    buyButtonPlus: {
-        color: '#F4BA00',
+        color: "#535353",
+        fontFamily: "Satoshi-Regular",
+        fontSize: 13,
+        textDecorationLine: "underline",
     },
 });

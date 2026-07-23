@@ -8,6 +8,7 @@ import Purchases, {
 import { initializeRevenueCat } from "./revenuecat";
 
 export const REVENUECAT_ENTITLEMENT_ID = "dun_plus";
+export type TrialEligibilityStatus = "eligible" | "ineligible" | "unknown";
 
 const BETA_PREMIUM_ENABLED = ["1", "true", "yes", "on"].includes(
   process.env.EXPO_PUBLIC_BETA_PREMIUM?.trim().toLowerCase() ?? ""
@@ -34,6 +35,7 @@ type SubscriptionContextValue = {
   isPremium: boolean;
   isPurchasing: boolean;
   isRestoring: boolean;
+  checkTrialEligibility: (productIdentifier: string) => Promise<TrialEligibilityStatus>;
   loadOfferings: () => Promise<void>;
   packages: SubscriptionPackages;
   purchasePackage: (packageToBuy: PurchasesPackage) => Promise<boolean>;
@@ -114,7 +116,16 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
   }, [appUserID]);
 
   const loadOfferings = useCallback(async () => {
+    const debugPrefix = "[RevenueCat Offerings]";
+
+    console.log(`${debugPrefix} start`, {
+      appUserID,
+      hasApiKey: Boolean(process.env.EXPO_PUBLIC_REVENUECAT_KEY?.trim()),
+      platform: Platform.OS,
+    });
+
     if (!appUserID) {
+      console.log(`${debugPrefix} skipped: missing appUserID`);
       setCurrentOffering(null);
       setIsConfigured(false);
       return;
@@ -124,6 +135,7 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
     setIsConfigured(ready);
 
     if (!ready) {
+      console.log(`${debugPrefix} skipped: RevenueCat not configured`);
       setCurrentOffering(null);
       return;
     }
@@ -131,11 +143,33 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
     try {
       setError(null);
       const offerings = await Purchases.getOfferings();
+
+      console.log(`${debugPrefix} received`, {
+        allOfferingIdentifiers: Object.keys(offerings.all ?? {}),
+        currentOfferingIdentifier: offerings.current?.identifier ?? null,
+        currentPackageCount: offerings.current?.availablePackages.length ?? 0,
+        currentPackages: offerings.current?.availablePackages.map((pack) => ({
+          identifier: pack.identifier,
+          packageType: pack.packageType,
+          productIdentifier: pack.product.identifier,
+          productTitle: pack.product.title,
+          productPrice: pack.product.priceString,
+          productType: pack.product.productType,
+          subscriptionPeriod: pack.product.subscriptionPeriod,
+        })) ?? [],
+      });
+
       setCurrentOffering(offerings.current);
     } catch (e: any) {
       setCurrentOffering(null);
       setError(e?.message ?? "Unable to load subscription offers.");
-      console.warn("Impossible de charger les offres RevenueCat:", e?.message ?? e);
+      console.warn(`${debugPrefix} failed`, {
+        code: e?.code,
+        message: e?.message,
+        readableErrorCode: e?.readableErrorCode,
+        underlyingErrorMessage: e?.underlyingErrorMessage,
+        userInfo: e?.userInfo,
+      });
     }
   }, [appUserID]);
 
@@ -180,6 +214,36 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
     }
   }, []);
 
+  const checkTrialEligibility = useCallback(async (productIdentifier: string): Promise<TrialEligibilityStatus> => {
+    if (!appUserID || !productIdentifier) {
+      return "unknown";
+    }
+
+    const ready = initializeRevenueCat(appUserID);
+    setIsConfigured(ready);
+
+    if (!ready) {
+      return "unknown";
+    }
+
+    try {
+      const eligibilityByProduct = await Purchases.checkTrialOrIntroductoryPriceEligibility([productIdentifier]);
+      const status = eligibilityByProduct[productIdentifier]?.status;
+
+      if (status === Purchases.INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_INELIGIBLE) {
+        return "ineligible";
+      }
+
+      if (status === Purchases.INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE) {
+        return "eligible";
+      }
+    } catch (e: any) {
+      console.warn("Impossible de vérifier l'éligibilité à l'offre d'introduction:", e?.message ?? e);
+    }
+
+    return "unknown";
+  }, [appUserID]);
+
   const showManageSubscriptions = useCallback(async () => {
     if (Platform.OS !== "ios") {
       Alert.alert("Unavailable", "Subscription management is only configured for iOS right now.");
@@ -209,6 +273,7 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
     isPremium,
     isPurchasing,
     isRestoring,
+    checkTrialEligibility,
     loadOfferings,
     packages,
     purchasePackage,
@@ -225,6 +290,7 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
     isPremium,
     isPurchasing,
     isRestoring,
+    checkTrialEligibility,
     loadOfferings,
     packages,
     purchasePackage,
