@@ -4,7 +4,7 @@ import { useFont } from '@/lib/FontContext';
 import { getCharacterImageSource, getImageSource } from '@/lib/imageHelper';
 import * as Haptics from "expo-haptics";
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Image,
   Keyboard,
@@ -20,8 +20,8 @@ import Animated, {
   FadeOutDown
 } from 'react-native-reanimated';
 import { useAppTranslation } from '../../lib/i18n';
-import { useTheme } from '../../lib/ThemeContext';
 import { supabase } from '../../lib/supabase';
+import { useTheme } from '../../lib/ThemeContext';
 
 
 export default function Register() {
@@ -218,7 +218,7 @@ export default function Register() {
                 style={[
                   styles.dot,
                   {
-                    backgroundColor: index === page ? colors.actionButton : colors.border,
+                    backgroundColor: index === page ? colors.actionButton : colors.button,
                   }
                 ]}
               />

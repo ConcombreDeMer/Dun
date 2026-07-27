@@ -1,5 +1,5 @@
-import { SFSymbol, SymbolView } from 'expo-symbols';
 import { SquircleView } from 'expo-squircle-view';
+import { SFSymbol, SymbolView } from 'expo-symbols';
 import { Pressable, Text, ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { useFont } from "../lib/FontContext";
@@ -105,7 +105,8 @@ export default function PrimaryButton({ title, onPress, disabled = false, image 
             style={[getButtonStyle(), style, animatedStyle]}
             // onPress={onPress}
             // disabled={disabled}
-            cornerSmoothing={1}
+            cornerSmoothing={100}
+            preserveSmoothing={true}
         >
             <Pressable
                 onPress={onPress}
