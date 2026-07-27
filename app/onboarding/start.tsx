@@ -32,11 +32,12 @@ export default function StartScreen() {
     const LottieView = require("lottie-react-native").default;
     const screenWidth = React.useState(Dimensions.get('window').width)[0];
     const screenHeight = React.useState(Dimensions.get('window').height)[0];
+    const hideAuthChoices = true;
 
     const scale = useSharedValue(0.8);
     const opacity = useSharedValue(0);
-    const authButtonsX = useSharedValue(0);
-    const registerButtonsX = useSharedValue(screenWidth);
+    const authButtonsX = useSharedValue(hideAuthChoices ? -screenWidth : 0);
+    const registerButtonsX = useSharedValue(hideAuthChoices ? 0 : screenWidth);
 
     const authButtonsAnimatedStyle = useAnimatedStyle(() => {
         return {
@@ -171,93 +172,95 @@ export default function StartScreen() {
 
             >
 
-                <Animated.View
-                    style={[
-                        {
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            gap: 12,
-                        },
-                        authButtonsAnimatedStyle,
-                    ]}
-                >
-
-                    <SquircleButton
-                        cornerSmoothing={100} // 0-100
-                        preserveSmoothing={true} // false matches figma, true has more rounding
-                        style={[styles.squircleButton, { borderColor: "black", backgroundColor: "transparent" }]}
-                        onPress={goToEmail}
-
+                {!hideAuthChoices && (
+                    <Animated.View
+                        style={[
+                            {
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                gap: 12,
+                            },
+                            authButtonsAnimatedStyle,
+                        ]}
                     >
-                        <SymbolView
-                            name="envelope.fill"
-                            style={{ height: "90%" }}
-                            type="palette"
-                            tintColor="black"
-                        />
 
-                        <Animated.Text
-                            style={{
-                                fontSize: 16,
-                                fontFamily: 'Satoshi-Medium',
-                                color: colors.text,
-                            }}
+                        <SquircleButton
+                            cornerSmoothing={100} // 0-100
+                            preserveSmoothing={true} // false matches figma, true has more rounding
+                            style={[styles.squircleButton, { borderColor: "black", backgroundColor: "transparent" }]}
+                            onPress={goToEmail}
+
                         >
-                            {t('onboarding.start.continueEmail')}
-                        </Animated.Text>
-                    </SquircleButton>
+                            <SymbolView
+                                name="envelope.fill"
+                                style={{ height: "90%" }}
+                                type="palette"
+                                tintColor="black"
+                            />
 
-                    <SquircleButton
-                        cornerSmoothing={100} // 0-100
-                        preserveSmoothing={true} // false matches figma, true has more rounding
-                        style={[styles.squircleButton, { borderColor: "black", backgroundColor: "black" }]}
-                        onPress={showAuthInDevelopmentAlert}
-                    >
-                        <SymbolView
-                            name="applelogo"
-                            style={{ height: "90%" }}
-                            type="palette"
-                            tintColor="white"
-                        />
+                            <Animated.Text
+                                style={{
+                                    fontSize: 16,
+                                    fontFamily: 'Satoshi-Medium',
+                                    color: colors.text,
+                                }}
+                            >
+                                {t('onboarding.start.continueEmail')}
+                            </Animated.Text>
+                        </SquircleButton>
 
-                        <Animated.Text
-                            style={{
-                                fontSize: 16,
-                                fontFamily: 'Satoshi-Medium',
-                                color: "white",
-                            }}
+                        <SquircleButton
+                            cornerSmoothing={100} // 0-100
+                            preserveSmoothing={true} // false matches figma, true has more rounding
+                            style={[styles.squircleButton, { borderColor: "black", backgroundColor: "black" }]}
+                            onPress={showAuthInDevelopmentAlert}
                         >
-                            {t('onboarding.start.continueApple')}
-                        </Animated.Text>
-                    </SquircleButton>
+                            <SymbolView
+                                name="applelogo"
+                                style={{ height: "90%" }}
+                                type="palette"
+                                tintColor="white"
+                            />
 
-                    <SquircleButton
-                        cornerSmoothing={100} // 0-100
-                        preserveSmoothing={true} // false matches figma, true has more rounding
-                        style={[styles.squircleButton, { borderColor: "#C9C9C9", backgroundColor: "#d8d8d8" }]}
-                        onPress={showAuthInDevelopmentAlert}
-                    >
-                        <Image
-                            source={require('@/assets/images/google.png')}
-                            style={{ height: 30, width: 30 }}
-                            resizeMode="cover"
+                            <Animated.Text
+                                style={{
+                                    fontSize: 16,
+                                    fontFamily: 'Satoshi-Medium',
+                                    color: "white",
+                                }}
+                            >
+                                {t('onboarding.start.continueApple')}
+                            </Animated.Text>
+                        </SquircleButton>
+
+                        <SquircleButton
+                            cornerSmoothing={100} // 0-100
+                            preserveSmoothing={true} // false matches figma, true has more rounding
+                            style={[styles.squircleButton, { borderColor: "#C9C9C9", backgroundColor: "#d8d8d8" }]}
+                            onPress={showAuthInDevelopmentAlert}
                         >
+                            <Image
+                                source={require('@/assets/images/google.png')}
+                                style={{ height: 30, width: 30 }}
+                                resizeMode="cover"
+                            >
 
-                        </Image>
+                            </Image>
 
-                        <Animated.Text
-                            style={{
-                                fontSize: 16,
-                                fontFamily: 'Satoshi-Medium',
-                                color: colors.text,
-                            }}
-                        >
-                            {t('onboarding.start.continueGoogle')}
-                        </Animated.Text>
-                    </SquircleButton>
-                </Animated.View>
+                            <Animated.Text
+                                style={{
+                                    fontSize: 16,
+                                    fontFamily: 'Satoshi-Medium',
+                                    color: colors.text,
+                                }}
+                            >
+                                {t('onboarding.start.continueGoogle')}
+                            </Animated.Text>
+                        </SquircleButton>
+                    </Animated.View>
+                )}
 
                 <Animated.View
                     style={[
@@ -274,31 +277,33 @@ export default function StartScreen() {
                         registerButtonsAnimatedStyle,
                     ]}
                 >
-                    <Pressable
-                        onPress={goBack}
-                        style={{
-                            position: 'absolute',
-                            left: "10%",
-                            top: -44,
-                            display: 'flex',
-                            flexDirection: 'row',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            gap: 4,
-                            borderRadius: 20,
-                            borderWidth: 1.5,
-                            borderColor: colors.textSecondary,
-                            width: 30,
-                            height: 30,
-                        }}
-                    >
-                        <SymbolView
-                            name="chevron.left"
-                            type="palette"
-                            tintColor={colors.textSecondary}
-                            style={{ width: 18, height: 18 }}
-                        />
-                    </Pressable>
+                    {!hideAuthChoices && (
+                        <Pressable
+                            onPress={goBack}
+                            style={{
+                                position: 'absolute',
+                                left: "10%",
+                                top: -44,
+                                display: 'flex',
+                                flexDirection: 'row',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                gap: 4,
+                                borderRadius: 20,
+                                borderWidth: 1.5,
+                                borderColor: colors.textSecondary,
+                                width: 30,
+                                height: 30,
+                            }}
+                        >
+                            <SymbolView
+                                name="chevron.left"
+                                type="palette"
+                                tintColor={colors.textSecondary}
+                                style={{ width: 18, height: 18 }}
+                            />
+                        </Pressable>
+                    )}
 
                     <View
                         style={{

@@ -17,7 +17,8 @@ export const resources = {
           "next": "Next",
           "create": "Create",
           "login": "Log in",
-          "logout": "Log out"
+          "logout": "Log out",
+          "retry": "Try again"
         },
         "status": {
           "loading": "Loading..."
@@ -1339,7 +1340,8 @@ export const resources = {
           "next": "Suivant",
           "create": "Créer",
           "login": "Se connecter",
-          "logout": "Se déconnecter"
+          "logout": "Se déconnecter",
+          "retry": "Réessayer"
         },
         "status": {
           "loading": "Chargement..."

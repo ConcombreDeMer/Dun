@@ -15,6 +15,7 @@ common:
     create: "Create"
     login: "Log in"
     logout: "Log out"
+    retry: "Try again"
   status:
     loading: "Loading..."
   labels:

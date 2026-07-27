@@ -14,7 +14,7 @@
       "supportsTablet": false,
       "icon": "./assets/icon.icon",
       "bundleIdentifier": "com.dunapp.Dun",
-      "buildNumber": "2",
+      "buildNumber": "4",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CADisableMinimumFrameDurationOnPhone": true

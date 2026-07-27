@@ -11,6 +11,7 @@ import Animated, {
 import { useTheme } from "@/lib/ThemeContext";
 
 type SubscriptionPlanOptionProps = {
+  disabled?: boolean;
   discount?: string;
   label: string;
   onPress: () => void;
@@ -19,6 +20,7 @@ type SubscriptionPlanOptionProps = {
 };
 
 export default function SubscriptionPlanOption({
+  disabled = false,
   discount,
   label,
   onPress,
@@ -28,11 +30,12 @@ export default function SubscriptionPlanOption({
   return (
     <SquircleButton
       accessibilityRole="button"
-      activeOpacity={0.86}
+      activeOpacity={disabled ? 1 : 0.86}
       cornerSmoothing={100}
+      disabled={disabled}
       onPress={onPress}
       preserveSmoothing={true}
-      style={styles.planRow}
+      style={[styles.planRow, disabled ? styles.planRowDisabled : null]}
     >
       <Text style={styles.planLabel}>{label}</Text>
       <View style={styles.planPriceGroup}>
@@ -99,6 +102,9 @@ const styles = StyleSheet.create({
     height: 56,
     paddingLeft: 22,
     paddingRight: 8,
+  },
+  planRowDisabled: {
+    opacity: 0.62,
   },
   planLabel: {
     color: "#050505",

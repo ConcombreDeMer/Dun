@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -19,6 +20,7 @@ import Animated, {
     Easing,
     FadeInUp,
 } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type PremiumPlan = "annual" | "monthly";
 
@@ -42,6 +44,8 @@ export default function Premium() {
         : selectedPlan === "monthly"
         ? packages.monthly
         : undefined;
+    const hasAvailablePackages = Boolean(packages.monthly || packages.annual);
+    const shouldShowOfferStatus = isLoading || !hasAvailablePackages || !selectedPackage;
     const trialEligibilityProductIdentifier =
         selectedPackage?.product.identifier ??
         packages.annual?.product.identifier ??
@@ -62,6 +66,28 @@ export default function Premium() {
     useEffect(() => {
         void loadOfferings();
     }, [loadOfferings]);
+
+    useEffect(() => {
+        if (selectedPlan === "monthly" && packages.monthly) {
+            return;
+        }
+
+        if (selectedPlan === "annual" && packages.annual) {
+            return;
+        }
+
+        if (packages.monthly) {
+            setSelectedPlan("monthly");
+            return;
+        }
+
+        if (packages.annual) {
+            setSelectedPlan("annual");
+            return;
+        }
+
+        setSelectedPlan(null);
+    }, [packages.annual, packages.monthly, selectedPlan]);
 
     useEffect(() => {
         const productIdentifier = trialEligibilityProductIdentifier;
@@ -85,13 +111,7 @@ export default function Premium() {
     }, [checkTrialEligibility, trialEligibilityProductIdentifier]);
 
     const buyPremium = async () => {
-        if (!selectedPlan) {
-            Alert.alert(t("common.alerts.errorTitle"), "Choisis une option avant de te lancer.");
-            return;
-        }
-
         if (!selectedPackage) {
-            Alert.alert(t("common.alerts.errorTitle"), t("settings.premium.offersNotLoaded"));
             void loadOfferings();
             return;
         }
@@ -138,7 +158,7 @@ export default function Premium() {
     };
 
     return (
-        <View style={styles.safeArea}>
+        <SafeAreaView style={styles.safeArea}>
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                 <SymbolView name="rectangle.portrait.and.arrow.right" weight="medium" size={20} tintColor="#151515" />
             </TouchableOpacity>
@@ -149,96 +169,121 @@ export default function Premium() {
                 </TouchableOpacity>
             ) : null}
 
-            <View style={styles.content}>
-                <Animated.View
-                    entering={FadeInUp.delay(80).duration(420).easing(Easing.out(Easing.cubic))}
-                    style={styles.characterBlock}
-                >
-                    <Image
-                        contentFit="contain"
-                        source={require("@/assets/images/character/1.png")}
-                        style={styles.character}
-                    />
-                    <Image
-                        contentFit="contain"
-                        source={require("@/assets/images/character/0.png")}
-                        style={styles.characterShadow}
-                    />
-                </Animated.View>
-
-                <Animated.Text
-                    entering={FadeInUp.delay(150).duration(430).easing(Easing.out(Easing.cubic))}
-                    style={styles.title}
-                >
-                    <Text style={styles.titleMuted}>Reprends</Text>
-                    <Text style={styles.titleStrong}> le contrôle</Text>
-                </Animated.Text>
-
-                <Animated.View
-                    entering={FadeInUp.delay(230).duration(430).easing(Easing.out(Easing.cubic))}
-                    style={styles.phoneStage}
-                >
-                    <Image
-                        contentFit="contain"
-                        source={require("@/assets/images/paywall/phone.png")}
-                        style={styles.phoneImage}
-                    />
-                </Animated.View>
-
-                <Animated.View
-                    entering={FadeInUp.delay(310).duration(430).easing(Easing.out(Easing.cubic))}
-                    style={styles.coffeePill}
-                >
-                    <Text style={styles.coffeeText}>Pour l’équivalent d’un café par mois</Text>
-                    <Image
-                        contentFit="contain"
-                        source={require("@/assets/images/paywall/coffee.png")}
-                        style={styles.coffeeImage}
-                    />
-                </Animated.View>
-
-                <Animated.View
-                    entering={FadeInUp.delay(390).duration(430).easing(Easing.out(Easing.cubic))}
-                    style={styles.plans}
-                >
-                    <SubscriptionPlanOption
-                        label="Mensuel"
-                        onPress={() => setSelectedPlan("monthly")}
-                        price={isLoading ? "..." : packages.monthly?.product.priceString || "1,99€"}
-                        selected={selectedPlan === "monthly"}
-                    />
-                    <SubscriptionPlanOption
-                        discount="-40%"
-                        label="Annuel"
-                        onPress={() => setSelectedPlan("annual")}
-                        price={isLoading ? "..." : packages.annual?.product.priceString || "14,99€"}
-                        selected={selectedPlan === "annual"}
-                    />
-                </Animated.View>
-
-                <Animated.Text
-                    entering={FadeInUp.delay(470).duration(430).easing(Easing.out(Easing.cubic))}
-                    style={styles.trialText}
-                >
-                    {trialText}
-                </Animated.Text>
-
-                <Animated.View
-                    entering={FadeInUp.delay(540).duration(430).easing(Easing.out(Easing.cubic))}
-                    style={styles.buttonSlot}
-                >
-                    {isPurchasing ? (
-                        <View style={styles.loadingButton}>
-                            <ActivityIndicator color="#FFFFFF" />
-                        </View>
-                    ) : (
-                        <OnboardingButton
-                            disabled={isLoading}
-                            onPress={buyPremium}
-                            title="Se lancer"
+            <ScrollView
+                bounces={false}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                style={styles.scroll}
+            >
+                <View style={styles.content}>
+                    <Animated.View
+                        entering={FadeInUp.delay(80).duration(420).easing(Easing.out(Easing.cubic))}
+                        style={styles.characterBlock}
+                    >
+                        <Image
+                            contentFit="contain"
+                            source={require("@/assets/images/character/1.png")}
+                            style={styles.character}
                         />
-                    )}
-                </Animated.View>
+                        <Image
+                            contentFit="contain"
+                            source={require("@/assets/images/character/0.png")}
+                            style={styles.characterShadow}
+                        />
+                    </Animated.View>
+
+                    <Animated.Text
+                        entering={FadeInUp.delay(150).duration(430).easing(Easing.out(Easing.cubic))}
+                        style={styles.title}
+                    >
+                        <Text style={styles.titleMuted}>Reprends</Text>
+                        <Text style={styles.titleStrong}> le contrôle</Text>
+                    </Animated.Text>
+
+                    <Animated.View
+                        entering={FadeInUp.delay(230).duration(430).easing(Easing.out(Easing.cubic))}
+                        style={styles.phoneStage}
+                    >
+                        <Image
+                            contentFit="contain"
+                            source={require("@/assets/images/paywall/phone.png")}
+                            style={styles.phoneImage}
+                        />
+                    </Animated.View>
+
+                    <Animated.View
+                        entering={FadeInUp.delay(310).duration(430).easing(Easing.out(Easing.cubic))}
+                        style={styles.coffeePill}
+                    >
+                        <Text style={styles.coffeeText}>Pour l’équivalent d’un café par mois</Text>
+                        <Image
+                            contentFit="contain"
+                            source={require("@/assets/images/paywall/coffee.png")}
+                            style={styles.coffeeImage}
+                        />
+                    </Animated.View>
+
+                    <Animated.View
+                        entering={FadeInUp.delay(390).duration(430).easing(Easing.out(Easing.cubic))}
+                        style={styles.plans}
+                    >
+                        <SubscriptionPlanOption
+                            disabled={!packages.monthly}
+                            label="Mensuel"
+                            onPress={() => setSelectedPlan("monthly")}
+                            price={isLoading ? "..." : packages.monthly?.product.priceString ?? "..."}
+                            selected={selectedPlan === "monthly"}
+                        />
+                        <SubscriptionPlanOption
+                            disabled={!packages.annual}
+                            discount="-40%"
+                            label="Annuel"
+                            onPress={() => setSelectedPlan("annual")}
+                            price={isLoading ? "..." : packages.annual?.product.priceString ?? "..."}
+                            selected={selectedPlan === "annual"}
+                        />
+                    </Animated.View>
+
+                    <Animated.Text
+                        entering={FadeInUp.delay(470).duration(430).easing(Easing.out(Easing.cubic))}
+                        style={styles.trialText}
+                    >
+                        {trialText}
+                    </Animated.Text>
+
+                    {shouldShowOfferStatus ? (
+                        <Animated.View
+                            entering={FadeInUp.delay(500).duration(430).easing(Easing.out(Easing.cubic))}
+                            style={styles.offerStatus}
+                        >
+                            <Text style={styles.offerStatusText}>
+                                {isLoading ? t("common.status.loading") : t("settings.premium.offersNotLoaded")}
+                            </Text>
+                            {!isLoading ? (
+                                <TouchableOpacity onPress={() => void loadOfferings()} style={styles.retryButton}>
+                                    <Text style={styles.retryText}>{t("common.actions.retry")}</Text>
+                                </TouchableOpacity>
+                            ) : null}
+                        </Animated.View>
+                    ) : null}
+
+                    <Animated.View
+                        entering={FadeInUp.delay(540).duration(430).easing(Easing.out(Easing.cubic))}
+                        style={styles.buttonSlot}
+                    >
+                        {isPurchasing ? (
+                            <View style={styles.loadingButton}>
+                                <ActivityIndicator color="#FFFFFF" />
+                            </View>
+                        ) : (
+                            <OnboardingButton
+                                disabled={isLoading || !selectedPackage}
+                                onPress={buyPremium}
+                                title="Se lancer"
+                            />
+                        )}
+                    </Animated.View>
+                </View>
 
                 {/* <Animated.View
                     entering={FadeInUp.delay(610).duration(430).easing(Easing.out(Easing.cubic))}
@@ -258,8 +303,8 @@ export default function Premium() {
                         )}
                     </TouchableOpacity>
                 </Animated.View> */}
-            </View>
-        </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 }
 
@@ -276,7 +321,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         position: "absolute",
         right: 18,
-        top: 58,
+        top: 18,
         width: 44,
         zIndex: 10,
     },
@@ -288,25 +333,35 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         left: 18,
         position: "absolute",
-        top: 58,
+        top: 68,
         width: 44,
         zIndex: 10,
     },
+    scroll: {
+        flex: 1,
+    },
+    scrollContent: {
+        alignItems: "center",
+        flexGrow: 1,
+        justifyContent: "center",
+        paddingBottom: 28,
+        paddingHorizontal: 24,
+        paddingTop: 72,
+    },
     content: {
         alignItems: "center",
-        flex: 1,
-        paddingHorizontal: 30,
-        paddingTop: 110,
+        maxWidth: 430,
+        width: "100%",
     },
     characterBlock: {
         alignItems: "center",
-        height: 120,
+        height: 96,
         justifyContent: "flex-end",
         width: "100%",
     },
     character: {
-        height: 112,
-        width: 112,
+        height: 92,
+        width: 92,
         zIndex: 2,
     },
     characterShadow: {
@@ -320,7 +375,7 @@ const styles = StyleSheet.create({
         fontSize: 30,
         letterSpacing: 0,
         lineHeight: 35,
-        marginTop: 18,
+        marginTop: 14,
         textAlign: "center",
     },
     titleMuted: {
@@ -331,14 +386,14 @@ const styles = StyleSheet.create({
     },
     phoneStage: {
         alignItems: "center",
-        height: 250,
+        height: 214,
         justifyContent: "flex-end",
         marginTop: 14,
         width: "100%",
     },
     phoneImage: {
-        height: 250,
-        width: 243,
+        height: 214,
+        width: 208,
     },
     coffeePill: {
         alignItems: "center",
@@ -375,12 +430,36 @@ const styles = StyleSheet.create({
         fontFamily: "Satoshi-Regular",
         fontSize: 17,
         lineHeight: 22,
-        marginTop: 20,
+        marginTop: 16,
         textAlign: "center",
+    },
+    offerStatus: {
+        alignItems: "center",
+        gap: 6,
+        marginTop: 8,
+        minHeight: 42,
+    },
+    offerStatusText: {
+        color: "#6A6A6A",
+        fontFamily: "Satoshi-Regular",
+        fontSize: 13,
+        lineHeight: 17,
+        textAlign: "center",
+    },
+    retryButton: {
+        minHeight: 22,
+        justifyContent: "center",
+    },
+    retryText: {
+        color: "#151515",
+        fontFamily: "Satoshi-Bold",
+        fontSize: 13,
+        textAlign: "center",
+        textDecorationLine: "underline",
     },
     buttonSlot: {
         marginTop: 10,
-        width: "80%",
+        width: "76%",
     },
     loadingButton: {
         alignItems: "center",

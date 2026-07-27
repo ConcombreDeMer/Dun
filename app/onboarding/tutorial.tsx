@@ -28,6 +28,7 @@ import {
   Alert,
   Keyboard,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -40,6 +41,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTranslation } from "../../lib/i18n";
 
 const REFERENCE_WIDTH = 320;
@@ -60,6 +62,7 @@ export default function Tutorial() {
   const { t } = useAppTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [name, setName] = useState("");
   const [isNameSheetVisible, setIsNameSheetVisible] = useState(false);
@@ -106,6 +109,8 @@ export default function Tutorial() {
   const selectedRhythm = selectedRhythmOption.label;
   const selectedRhythmDays = selectedRhythmOption.days;
   const isLastStep = currentIndex === onboardingSteps.length - 1;
+  const isScrollableStep = step.type === "longTerm" || step.type === "trial";
+  const showStageCharacter = !isScrollableStep || step.type === "longTerm";
   const contentPositionStyle = getContentPositionStyle(step.id);
   const shouldShowFloatingObjectiveCard = isFloatingObjectiveCardStep(step.id);
   const selectedPackage = selectedPremiumPlan === "annual"
@@ -113,6 +118,7 @@ export default function Tutorial() {
     : selectedPremiumPlan === "monthly"
     ? packages.monthly
     : undefined;
+  const trialButtonDisabled = isTransitioning || isPurchasing || isCompletingPurchase || (step.type === "trial" && (isSubscriptionLoading || !selectedPackage));
   const trialEligibilityProductIdentifier =
     selectedPackage?.product.identifier ??
     packages.annual?.product.identifier ??
@@ -121,6 +127,28 @@ export default function Tutorial() {
   useEffect(() => {
     void loadOfferings();
   }, [loadOfferings]);
+
+  useEffect(() => {
+    if (selectedPremiumPlan === "monthly" && packages.monthly) {
+      return;
+    }
+
+    if (selectedPremiumPlan === "annual" && packages.annual) {
+      return;
+    }
+
+    if (packages.monthly) {
+      setSelectedPremiumPlan("monthly");
+      return;
+    }
+
+    if (packages.annual) {
+      setSelectedPremiumPlan("annual");
+      return;
+    }
+
+    setSelectedPremiumPlan(null);
+  }, [packages.annual, packages.monthly, selectedPremiumPlan]);
 
   useEffect(() => {
     const productIdentifier = trialEligibilityProductIdentifier;
@@ -321,13 +349,7 @@ export default function Tutorial() {
       return;
     }
 
-    if (!selectedPremiumPlan) {
-      Alert.alert(t("common.alerts.errorTitle"), "Choisis une option avant de te lancer.");
-      return;
-    }
-
     if (!selectedPackage) {
-      Alert.alert(t("common.alerts.errorTitle"), t("settings.premium.offersNotLoaded"));
       void loadOfferings();
       return;
     }
@@ -410,25 +432,27 @@ export default function Tutorial() {
           <Pressable
             accessibilityRole="button"
             onPress={handleBack}
-            style={styles.backButton}
+            style={[styles.backButton, { top: insets.top + 12 }]}
           >
             <SymbolView name="chevron.left" size={22} tintColor="#151515" weight="bold" />
           </Pressable>
         ) : null}
 
-        {step.character !== "9" && !step.hideCharacter ? (
+        {showStageCharacter && step.character !== "9" && !step.hideCharacter ? (
           <AnimatedImage
             contentFit="contain"
             source={getCharacterImageSource("0", LIGHT_THEME)}
             style={[styles.characterShadow, shadowStyle]}
           />
         ) : null}
-        <AnimatedImage
-          contentFit="contain"
-          source={getCharacterImageSource(step.character, LIGHT_THEME)}
-          style={[styles.character, characterStyle]}
-          transition={140}
-        />
+        {showStageCharacter ? (
+          <AnimatedImage
+            contentFit="contain"
+            source={getCharacterImageSource(step.character, LIGHT_THEME)}
+            style={[styles.character, characterStyle]}
+            transition={140}
+          />
+        ) : null}
 
         {shouldShowFloatingObjectiveCard ? (
           <Animated.View
@@ -444,40 +468,90 @@ export default function Tutorial() {
           </Animated.View>
         ) : null}
 
-        <Animated.View
-          pointerEvents={isTransitioning ? "none" : "auto"}
-          style={[styles.content, contentPositionStyle, contentStyle]}
-        >
-          {renderStepContent({
-            answers,
-            isNameSheetVisible,
-            infoRevealCount,
-            name,
-            recurrenceOptions,
-            selectedRhythm,
-            setAnswers,
-            setIsNameSheetVisible,
-            setSliderIndex,
-            isSubscriptionLoading,
-            onSelectPremiumPlan: setSelectedPremiumPlan,
-            packages,
-            selectedPremiumPlan,
-            sliderIndex,
-            sliderLabels,
-            step,
-            t: (key) => t(key),
-            trialEligibility,
-          })}
-        </Animated.View>
+        {isScrollableStep ? (
+          <Animated.View
+            pointerEvents={isTransitioning ? "none" : "auto"}
+            style={[styles.scrollableStep, contentStyle]}
+          >
+            <ScrollView
+              bounces={false}
+              contentContainerStyle={[
+                styles.stepScrollContent,
+                step.type === "longTerm" ? styles.longTermScrollContent : styles.trialScrollContent,
+                { paddingBottom: insets.bottom + 34 },
+              ]}
+              showsVerticalScrollIndicator={false}
+            >
+              {renderStepContent({
+                answers,
+                isNameSheetVisible,
+                infoRevealCount,
+                name,
+                recurrenceOptions,
+                selectedRhythm,
+                setAnswers,
+                setIsNameSheetVisible,
+                setSliderIndex,
+                isSubscriptionLoading,
+                onRetryLoadOfferings: loadOfferings,
+                onSelectPremiumPlan: setSelectedPremiumPlan,
+                packages,
+                selectedPremiumPlan,
+                sliderIndex,
+                sliderLabels,
+                step,
+                t: (key) => t(key),
+                trialEligibility,
+              })}
+              <View style={styles.inlineButton}>
+                <OnboardingButton
+                  disabled={trialButtonDisabled}
+                  onPress={handleNext}
+                  title={buttonTitle}
+                  variant={isAcceptButton ? "success" : "primary"}
+                />
+              </View>
+            </ScrollView>
+          </Animated.View>
+        ) : (
+          <>
+            <Animated.View
+              pointerEvents={isTransitioning ? "none" : "auto"}
+              style={[styles.content, contentPositionStyle, contentStyle]}
+            >
+              {renderStepContent({
+                answers,
+                isNameSheetVisible,
+                infoRevealCount,
+                name,
+                recurrenceOptions,
+                selectedRhythm,
+                setAnswers,
+                setIsNameSheetVisible,
+                setSliderIndex,
+                isSubscriptionLoading,
+                onRetryLoadOfferings: loadOfferings,
+                onSelectPremiumPlan: setSelectedPremiumPlan,
+                packages,
+                selectedPremiumPlan,
+                sliderIndex,
+                sliderLabels,
+                step,
+                t: (key) => t(key),
+                trialEligibility,
+              })}
+            </Animated.View>
 
-        <View style={styles.bottom}>
-          <OnboardingButton
-            disabled={isTransitioning || isPurchasing || isCompletingPurchase}
-            onPress={handleNext}
-            title={buttonTitle}
-            variant={isAcceptButton ? "success" : "primary"}
-          />
-        </View>
+            <View style={[styles.bottom, { bottom: insets.bottom + 28 }]}>
+              <OnboardingButton
+                disabled={trialButtonDisabled}
+                onPress={handleNext}
+                title={buttonTitle}
+                variant={isAcceptButton ? "success" : "primary"}
+              />
+            </View>
+          </>
+        )}
         {isNameSheetVisible ? (
           <OnboardingNameSheet
             isVisible={isNameSheetVisible}
@@ -540,6 +614,7 @@ type RenderStepContentArgs = {
   setIsNameSheetVisible: (isVisible: boolean) => void;
   setSliderIndex: (index: number) => void;
   isSubscriptionLoading: boolean;
+  onRetryLoadOfferings: () => Promise<void>;
   onSelectPremiumPlan: (plan: PremiumPlan) => void;
   packages: ReturnType<typeof useSubscription>["packages"];
   selectedPremiumPlan: PremiumPlan | null;
@@ -561,6 +636,7 @@ function renderStepContent({
   setIsNameSheetVisible,
   setSliderIndex,
   isSubscriptionLoading,
+  onRetryLoadOfferings,
   onSelectPremiumPlan,
   packages,
   selectedPremiumPlan,
@@ -724,6 +800,8 @@ function renderStepContent({
     const trialText = trialEligibility === "ineligible"
       ? "Période d’essai expirée"
       : "Débloquer la période d’essai 14j";
+    const hasAvailablePackages = Boolean(packages.monthly || packages.annual);
+    const shouldShowOfferStatus = isSubscriptionLoading || !hasAvailablePackages || !selectedPremiumPlan;
 
     return (
       <View style={styles.trialStack}>
@@ -750,21 +828,35 @@ function renderStepContent({
 
           <View style={styles.trialPlans}>
             <SubscriptionPlanOption
+              disabled={!packages.monthly}
               label="Mensuel"
               onPress={() => onSelectPremiumPlan("monthly")}
-              price={isSubscriptionLoading ? "..." : packages.monthly?.product.priceString || "1,99€"}
+              price={isSubscriptionLoading ? "..." : packages.monthly?.product.priceString ?? "..."}
               selected={selectedPremiumPlan === "monthly"}
             />
             <SubscriptionPlanOption
+              disabled={!packages.annual}
               discount="-40%"
               label="Annuel"
               onPress={() => onSelectPremiumPlan("annual")}
-              price={isSubscriptionLoading ? "..." : packages.annual?.product.priceString || "14,99€"}
+              price={isSubscriptionLoading ? "..." : packages.annual?.product.priceString ?? "..."}
               selected={selectedPremiumPlan === "annual"}
             />
           </View>
 
           <Text style={styles.trialCaption}>{trialText}</Text>
+          {shouldShowOfferStatus ? (
+            <View style={styles.trialOfferStatus}>
+              <Text style={styles.trialOfferStatusText}>
+                {isSubscriptionLoading ? t("common.status.loading") : t("settings.premium.offersNotLoaded")}
+              </Text>
+              {!isSubscriptionLoading ? (
+                <Pressable onPress={() => void onRetryLoadOfferings()} style={styles.trialRetryButton}>
+                  <Text style={styles.trialRetryText}>{t("common.actions.retry")}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
         </View>
       </View>
     );
@@ -940,7 +1032,6 @@ const styles = StyleSheet.create({
   stage: {
     alignSelf: "center",
     flex: 1,
-    overflow: "hidden",
   },
   backButton: {
     alignItems: "center",
@@ -972,6 +1063,23 @@ const styles = StyleSheet.create({
     right: 22,
     zIndex: 4,
   },
+  scrollableStep: {
+    bottom: 0,
+    left: 22,
+    position: "absolute",
+    right: 22,
+    top: 0,
+    zIndex: 4,
+  },
+  stepScrollContent: {
+    flexGrow: 1,
+  },
+  longTermScrollContent: {
+    paddingTop: 192,
+  },
+  trialScrollContent: {
+    paddingTop: 52,
+  },
   contentLow: {
     bottom: 120,
   },
@@ -993,10 +1101,14 @@ const styles = StyleSheet.create({
   },
   bottom: {
     alignSelf: "center",
-    bottom: 42,
     position: "absolute",
     width: "64%",
     zIndex: 5,
+  },
+  inlineButton: {
+    alignSelf: "center",
+    marginTop: 22,
+    width: "64%",
   },
   title: {
     color: "#7D7D7D",
@@ -1109,20 +1221,18 @@ const styles = StyleSheet.create({
   },
   trialStack: {
     alignItems: "center",
-    paddingTop: 40,
-    flex: 1,
   },
   trialTitle: {
     textAlign: "center",
   },
   trialPhone: {
-    height: 230,
+    height: 214,
     marginTop: 10,
-    width: 224,
+    width: 208,
   },
   trialOfferBlock: {
     alignSelf: "stretch",
-    marginTop: "auto",
+    marginTop: 8,
   },
   trialCoffeePill: {
     alignItems: "center",
@@ -1159,7 +1269,31 @@ const styles = StyleSheet.create({
     fontFamily: "Satoshi-Regular",
     fontSize: 16,
     lineHeight: 20,
-    marginTop: 20,
+    marginTop: 16,
     textAlign: "center",
+  },
+  trialOfferStatus: {
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+    minHeight: 42,
+  },
+  trialOfferStatusText: {
+    color: "#6A6A6A",
+    fontFamily: "Satoshi-Regular",
+    fontSize: 13,
+    lineHeight: 17,
+    textAlign: "center",
+  },
+  trialRetryButton: {
+    justifyContent: "center",
+    minHeight: 22,
+  },
+  trialRetryText: {
+    color: "#151515",
+    fontFamily: "Satoshi-Bold",
+    fontSize: 13,
+    textAlign: "center",
+    textDecorationLine: "underline",
   },
 });

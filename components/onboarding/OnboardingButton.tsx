@@ -36,7 +36,7 @@ export default function OnboardingButton({
   };
 
   return (
-    <Animated.View style={[styles.root, animatedStyle, style]}>
+    <Animated.View style={[styles.root, disabled ? styles.disabled : null, animatedStyle, style]}>
       <Squircle
         style={[
           styles.shell,
@@ -72,6 +72,9 @@ export default function OnboardingButton({
 const styles = StyleSheet.create({
   root: {
     width: "100%",
+  },
+  disabled: {
+    opacity: 0.58,
   },
   shell: {
     borderRadius: 12,

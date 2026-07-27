@@ -15,6 +15,7 @@ common:
     create: "Créer"
     login: "Se connecter"
     logout: "Se déconnecter"
+    retry: "Réessayer"
   status:
     loading: "Chargement..."
   labels:
