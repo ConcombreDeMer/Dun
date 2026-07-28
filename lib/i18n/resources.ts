@@ -484,6 +484,7 @@ export const resources = {
           "missingName2": "It looks like you didn't enter your first name. Can you tell us your name?",
           "requiredAnswerTitle": "Answer required",
           "requiredAnswerMessage": "Choose at least one answer to continue.",
+          "logoutConfirmMessage": "Do you want to log out of this account?",
           "greeting": "Hi!\nI'm Dun!\nNice to meet you!",
           "pages": {
             "1": "I'll explain how to use the app you just downloaded!",
@@ -1807,6 +1808,7 @@ export const resources = {
           "missingName2": "Il semble que tu n'aies pas entré de prénom. Peux-tu nous dire comment tu t'appelles ?",
           "requiredAnswerTitle": "Réponse requise",
           "requiredAnswerMessage": "Choisis au moins une réponse pour continuer.",
+          "logoutConfirmMessage": "Tu veux te déconnecter de ce compte ?",
           "greeting": "Salut !\nMoi c'est Dun !\nRavi de te rencontrer !",
           "pages": {
             "1": "J'vais t'expliquer comment utiliser l'app que tu viens de télécharger !",

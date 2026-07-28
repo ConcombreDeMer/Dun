@@ -379,6 +379,7 @@ onboarding:
     missingName2: "It looks like you didn't enter your first name. Can you tell us your name?"
     requiredAnswerTitle: "Answer required"
     requiredAnswerMessage: "Choose at least one answer to continue."
+    logoutConfirmMessage: "Do you want to log out of this account?"
     greeting: "Hi!\nI'm Dun!\nNice to meet you!"
     pages:
       "1": "I'll explain how to use the app you just downloaded!"

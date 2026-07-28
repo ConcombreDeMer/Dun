@@ -379,6 +379,7 @@ onboarding:
     missingName2: "Il semble que tu n'aies pas entré de prénom. Peux-tu nous dire comment tu t'appelles ?"
     requiredAnswerTitle: "Réponse requise"
     requiredAnswerMessage: "Choisis au moins une réponse pour continuer."
+    logoutConfirmMessage: "Tu veux te déconnecter de ce compte ?"
     greeting: "Salut !\nMoi c'est Dun !\nRavi de te rencontrer !"
     pages:
       "1": "J'vais t'expliquer comment utiliser l'app que tu viens de télécharger !"

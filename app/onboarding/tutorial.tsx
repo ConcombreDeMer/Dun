@@ -1,6 +1,7 @@
 import ObjectiveCard from "@/components/onboarding/ObjectiveCard";
 import OnboardingButton from "@/components/onboarding/OnboardingButton";
 import OnboardingInfoBubble from "@/components/onboarding/OnboardingInfoBubble";
+import OnboardingLogoutMenu from "@/components/onboarding/OnboardingLogoutMenu";
 import OnboardingNameSheet from "@/components/onboarding/OnboardingNameSheet";
 import OnboardingOptionList from "@/components/onboarding/OnboardingOptionList";
 import OnboardingSlider from "@/components/onboarding/OnboardingSlider";
@@ -14,16 +15,18 @@ import {
 } from "@/components/onboarding/onboardingSteps";
 import Squircle from "@/components/Squircle";
 import SubscriptionPlanOption from "@/components/SubscriptionPlanOption";
+import { clearStoredExportData } from "@/lib/exportData";
 import { getCharacterImageSource } from "@/lib/imageHelper";
 import { patchProfileCache } from "@/lib/profile";
 import { TrialEligibilityStatus, useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
+import { useStore } from "@/store/store";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Keyboard,
@@ -62,6 +65,7 @@ export default function Tutorial() {
   const { t } = useAppTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const clearStore = useStore((state) => state.clearStore);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [name, setName] = useState("");
@@ -110,7 +114,7 @@ export default function Tutorial() {
   const selectedRhythmDays = selectedRhythmOption.days;
   const isLastStep = currentIndex === onboardingSteps.length - 1;
   const isScrollableStep = step.type === "longTerm" || step.type === "trial";
-  const showStageCharacter = !isScrollableStep || step.type === "longTerm";
+  const showStageCharacter = !isScrollableStep || step.type === "longTerm" || step.type === "trial";
   const contentPositionStyle = getContentPositionStyle(step.id);
   const shouldShowFloatingObjectiveCard = isFloatingObjectiveCardStep(step.id);
   const selectedPackage = selectedPremiumPlan === "annual"
@@ -414,6 +418,50 @@ export default function Tutorial() {
     goToIndex(currentIndex - 1);
   };
 
+  const logout = useCallback(async () => {
+    try {
+      try {
+        await clearStoredExportData();
+      } catch (exportError) {
+        console.error("Erreur lors du nettoyage de l'export local : ", exportError);
+      }
+
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        Alert.alert(t("common.alerts.errorTitle"), error.message || t("common.alerts.genericError"));
+        return;
+      }
+
+      queryClient.clear();
+      clearStore();
+      router.replace("/onboarding/start");
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion : ", error);
+      Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.genericError"));
+    }
+  }, [clearStore, queryClient, router, t]);
+
+  const confirmLogout = useCallback(() => {
+    Alert.alert(
+      t("common.actions.logout"),
+      t("onboarding.tutorial.logoutConfirmMessage"),
+      [
+        {
+          text: t("common.actions.cancel"),
+          style: "cancel",
+        },
+        {
+          text: t("common.actions.logout"),
+          style: "destructive",
+          onPress: () => {
+            void logout();
+          },
+        },
+      ]
+    );
+  }, [logout, t]);
+
   const buttonTitle = useMemo(() => {
     if (step.type === "trial" && (isPurchasing || isCompletingPurchase)) {
       return t("common.status.loading");
@@ -437,6 +485,13 @@ export default function Tutorial() {
             <SymbolView name="chevron.left" size={22} tintColor="#151515" weight="bold" />
           </Pressable>
         ) : null}
+
+        <View style={[styles.logoutMenu, { top: insets.top + 12 }]}>
+          <OnboardingLogoutMenu
+            label={t("common.actions.logout")}
+            onLogoutPress={confirmLogout}
+          />
+        </View>
 
         {showStageCharacter && step.character !== "9" && !step.hideCharacter ? (
           <AnimatedImage
@@ -1038,10 +1093,21 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: "center",
     left: 22,
+    opacity: 0.3,
     position: "absolute",
     top: 52,
     width: 44,
     zIndex: 10,
+  },
+  logoutMenu: {
+    alignItems: "center",
+    height: 44,
+    justifyContent: "center",
+    opacity: 0.3,
+    position: "absolute",
+    right: 22,
+    width: 44,
+    zIndex: 20,
   },
   character: {
     position: "absolute",
@@ -1078,7 +1144,7 @@ const styles = StyleSheet.create({
     paddingTop: 192,
   },
   trialScrollContent: {
-    paddingTop: 52,
+    paddingTop: 258,
   },
   contentLow: {
     bottom: 120,
@@ -1226,13 +1292,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   trialPhone: {
-    height: 214,
-    marginTop: 10,
-    width: 208,
+    height: 154,
+    marginTop: 6,
+    width: 150,
   },
   trialOfferBlock: {
     alignSelf: "stretch",
-    marginTop: 8,
+    marginTop: 4,
   },
   trialCoffeePill: {
     alignItems: "center",
@@ -1262,14 +1328,14 @@ const styles = StyleSheet.create({
   trialPlans: {
     alignSelf: "stretch",
     gap: 7,
-    marginTop: 16,
+    marginTop: 10,
   },
   trialCaption: {
     color: "#535353",
     fontFamily: "Satoshi-Regular",
     fontSize: 16,
     lineHeight: 20,
-    marginTop: 16,
+    marginTop: 12,
     textAlign: "center",
   },
   trialOfferStatus: {
