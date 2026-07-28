@@ -1,4 +1,5 @@
 import { getTodayAppDateKey, isPastAppDateKey, toAppDateKey } from "./date";
+import { FREE_DAILY_TASK_LIMIT } from "./plan";
 import { supabase } from "./supabase";
 import { copyTaskTags, setTaskTags } from "./tags";
 
@@ -37,8 +38,6 @@ type LateAdjustableTask = {
   late_adjusted_at?: string | null;
   resolved_at?: string | null;
 };
-
-export const FREE_DAILY_TASK_LIMIT = 6;
 
 const TASK_LIST_SELECT = "id, name, description, done, order, date, created_at, completed_at, resolved_at, resolution, carried_from_id, delay_count, late_adjusted_at, Task_Tags(tag_id)";
 const optimisticTaskDoneById = new Map<number, boolean>();

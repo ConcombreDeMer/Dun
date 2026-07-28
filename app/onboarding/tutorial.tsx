@@ -17,6 +17,7 @@ import Squircle from "@/components/Squircle";
 import SubscriptionPlanOption from "@/components/SubscriptionPlanOption";
 import { clearStoredExportData } from "@/lib/exportData";
 import { getCharacterImageSource } from "@/lib/imageHelper";
+import { REQUIRE_PREMIUM_ACCESS } from "@/lib/plan";
 import { patchProfileCache } from "@/lib/profile";
 import { TrialEligibilityStatus, useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
@@ -122,7 +123,9 @@ export default function Tutorial() {
     : selectedPremiumPlan === "monthly"
     ? packages.monthly
     : undefined;
-  const trialButtonDisabled = isTransitioning || isPurchasing || isCompletingPurchase || (step.type === "trial" && (isSubscriptionLoading || !selectedPackage));
+  const trialButtonDisabled = isTransitioning || isPurchasing || isCompletingPurchase || (
+    REQUIRE_PREMIUM_ACCESS && step.type === "trial" && (isSubscriptionLoading || !selectedPackage)
+  );
   const trialEligibilityProductIdentifier =
     selectedPackage?.product.identifier ??
     packages.annual?.product.identifier ??
@@ -345,7 +348,7 @@ export default function Tutorial() {
       return;
     }
 
-    router.replace("/settings/premium?required=1");
+    router.replace(REQUIRE_PREMIUM_ACCESS ? "/settings/premium?required=1" : "/");
   };
 
   const startTrialFromOnboarding = async () => {
@@ -401,7 +404,7 @@ export default function Tutorial() {
       return;
     }
 
-    if (step.type === "trial") {
+    if (step.type === "trial" && REQUIRE_PREMIUM_ACCESS) {
       void startTrialFromOnboarding();
       return;
     }
@@ -465,6 +468,10 @@ export default function Tutorial() {
   const buttonTitle = useMemo(() => {
     if (step.type === "trial" && (isPurchasing || isCompletingPurchase)) {
       return t("common.status.loading");
+    }
+
+    if (step.type === "trial" && !REQUIRE_PREMIUM_ACCESS) {
+      return t("common.actions.next");
     }
 
     if (step.buttonTitle) return step.buttonTitle;

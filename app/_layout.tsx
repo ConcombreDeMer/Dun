@@ -11,6 +11,7 @@ import { AuthSessionProvider } from "../lib/AuthSessionContext";
 import { CreateModalControllerProvider } from "../lib/createModalController";
 import { FontProvider } from "../lib/FontContext";
 import { I18nProvider, useAppTranslation, useI18nReady } from "../lib/i18n";
+import { REQUIRE_PREMIUM_ACCESS } from "../lib/plan";
 import { fetchProfile, profileQueryKey } from "../lib/profile";
 import { syncRevenueCatUser } from "../lib/revenuecat";
 import { SubscriptionProvider, useSubscription } from "../lib/subscription";
@@ -69,7 +70,7 @@ function PremiumAccessGate({ hasCompletedOnboarding }: { hasCompletedOnboarding:
   const { isLoading: isSubscriptionLoading, isPremium } = useSubscription();
 
   useEffect(() => {
-    if (!hasCompletedOnboarding || isSubscriptionLoading || isPremium) {
+    if (!REQUIRE_PREMIUM_ACCESS || !hasCompletedOnboarding || isSubscriptionLoading || isPremium) {
       return;
     }
 

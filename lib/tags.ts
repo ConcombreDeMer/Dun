@@ -1,3 +1,4 @@
+import { FREE_TAG_LIMIT, MAX_TAGS_PER_TASK } from "./plan";
 import { supabase } from "./supabase";
 
 export type Tag = {
@@ -9,8 +10,6 @@ export type Tag = {
 
 export const TAGS_QUERY_KEY = ["tags"] as const;
 export const TAG_USAGE_STATS_QUERY_KEY = ["tag-usage-stats"] as const;
-export const FREE_TAG_LIMIT = 2;
-export const MAX_TAGS_PER_TASK = 3;
 
 export type TagUsageStat = {
   tagId: string;

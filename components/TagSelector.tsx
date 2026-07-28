@@ -1,7 +1,8 @@
 import { useFont } from "@/lib/FontContext";
 import { useAuthUserId } from "@/lib/AuthSessionContext";
 import { useAppTranslation } from "@/lib/i18n";
-import { getActiveTagIdsForPlan, getTags, MAX_TAGS_PER_TASK, TAGS_QUERY_KEY, Tag } from "@/lib/tags";
+import { MAX_TAGS_PER_TASK } from "@/lib/plan";
+import { getActiveTagIdsForPlan, getTags, TAGS_QUERY_KEY, Tag } from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
 import { useSubscription } from "@/lib/subscription";
 import { Button as SwiftButton, Host, Menu, RNHostView } from "@expo/ui/swift-ui";

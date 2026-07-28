@@ -47,6 +47,16 @@ npm start
 # → Scannez QR pour Expo Go
 ```
 
+### Configuration produit
+
+Le modele d'acces premium obligatoire peut etre active rapidement avec une variable publique Expo:
+
+```bash
+EXPO_PUBLIC_REQUIRE_PREMIUM_ACCESS=true
+```
+
+Par defaut, si la variable est absente ou differente de `true`, `1`, `yes` ou `on`, l'application laisse les comptes gratuits acceder au produit avec les limites definies dans `lib/plan.ts`.
+
 ---
 
 ## 📱 Architecture

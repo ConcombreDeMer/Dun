@@ -376,11 +376,11 @@ export default function Stats() {
                 >
                   {t("profile.greeting", { name: profileName })}
                 </Text>
-                {/* {isPremium ? (
+                {isPremium ? (
                   <View style={styles.premiumBadge}>
                     <Text style={styles.premiumBadgeText}>Dun+</Text>
                   </View>
-                ) : null} */}
+                ) : null}
               </View>
 
               {/* {user?.email ? (

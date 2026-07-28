@@ -4,10 +4,11 @@ import { useAuthUserId } from "./AuthSessionContext";
 import { isPastAppDateKey, toAppDateKey } from "./date";
 import { DAYS_QUERY_KEY } from "./daysQueryKeys";
 import { i18n } from "./i18n";
+import { FREE_DAILY_TASK_LIMIT } from "./plan";
 import { useProfile } from "./profile";
 import { useSubscription } from "./subscription";
 import { TAG_USAGE_STATS_QUERY_KEY } from "./tags";
-import { createTask, deleteTask, FREE_DAILY_TASK_LIMIT, isFreeDailyTaskLimitReached, moveTaskDate, resolveOverdueTask } from "./tasks";
+import { createTask, deleteTask, isFreeDailyTaskLimitReached, moveTaskDate, resolveOverdueTask } from "./tasks";
 
 type TaskCacheItem = {
   id: number;
