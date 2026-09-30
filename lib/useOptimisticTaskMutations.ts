@@ -8,7 +8,8 @@ import { FREE_DAILY_TASK_LIMIT } from "./plan";
 import { useProfile } from "./profile";
 import { useSubscription } from "./subscription";
 import { TAG_USAGE_STATS_QUERY_KEY } from "./tags";
-import { createTask, deleteTask, isFreeDailyTaskLimitReached, moveTaskDate, resolveOverdueTask } from "./tasks";
+import { isFreeDailyTaskLimitReached, TaskCreationUncertainError } from "./tasks";
+import { supabaseTaskRepository } from "./taskRepository";
 
 type TaskCacheItem = {
   id: number;
@@ -200,7 +201,7 @@ export const useOptimisticTaskMutations = () => {
     ]);
 
     try {
-      const realTaskId = await createTask({
+      const realTaskId = await supabaseTaskRepository.create({
         name: trimmedName,
         description: trimmedDescription,
         dateKey,
@@ -215,9 +216,14 @@ export const useOptimisticTaskMutations = () => {
       scheduleInvalidate();
       return realTaskId;
     } catch (error) {
-      queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
-        removeTaskFromCache(current, tempId)
-      );
+      if (error instanceof TaskCreationUncertainError) {
+        queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
+          replaceTaskIdInCache(current, tempId, error.createdTaskId)
+        );
+      } else {
+        queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) => removeTaskFromCache(current, tempId));
+      }
+      await queryClient.invalidateQueries({ queryKey: tasksQueryKey });
       throw error;
     } finally {
       if (isMountedRef.current) {
@@ -256,7 +262,7 @@ export const useOptimisticTaskMutations = () => {
     }
 
     try {
-      await deleteTask(taskId, userId ?? undefined);
+      await supabaseTaskRepository.delete(taskId, userId ?? undefined);
       scheduleInvalidate();
     } catch (error) {
       if (deletedTask) {
@@ -268,6 +274,7 @@ export const useOptimisticTaskMutations = () => {
           return isTaskCacheItem(deletedTask) ? [...(current ?? []), deletedTask] : current;
         });
       }
+      await queryClient.invalidateQueries({ queryKey: tasksQueryKey });
       throw error;
     } finally {
       if (isMountedRef.current) {
@@ -318,7 +325,7 @@ export const useOptimisticTaskMutations = () => {
     }
 
     try {
-      await moveTaskDate(taskId, dateKey, userId ?? undefined);
+      await supabaseTaskRepository.moveDate(taskId, dateKey, userId ?? undefined);
       scheduleInvalidate();
     } catch (error) {
       if (movedTask) {
@@ -328,6 +335,7 @@ export const useOptimisticTaskMutations = () => {
             : removeTaskFromCache(current, taskId)
         );
       }
+      await queryClient.invalidateQueries({ queryKey: tasksQueryKey });
       throw error;
     } finally {
       if (isMountedRef.current) {
@@ -456,7 +464,7 @@ export const useOptimisticOverdueTaskMutations = () => {
     }
 
     try {
-      const createdTaskId = await resolveOverdueTask(taskId, resolution, targetDateKey, userId ?? undefined);
+      const createdTaskId = await supabaseTaskRepository.resolveOverdue(taskId, resolution, targetDateKey, userId ?? undefined);
 
       if (resolution === "postponed" && tempId !== null && createdTaskId) {
         queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
@@ -472,6 +480,7 @@ export const useOptimisticOverdueTaskMutations = () => {
       } else {
         queryClient.invalidateQueries({ queryKey: tasksQueryKey });
       }
+      await queryClient.invalidateQueries({ queryKey: tasksQueryKey });
       throw error;
     } finally {
       if (isMountedRef.current) {

@@ -1,5 +1,11 @@
 const APP_DATE_KEY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-const DAILY_ROLLOVER_HOUR = 4;
+
+export function isValidAppDateKey(value: string): boolean {
+  if (!APP_DATE_KEY_REGEX.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day;
+}
 
 export function toAppDateKey(value: Date | string): string {
   if (typeof value === "string" && APP_DATE_KEY_REGEX.test(value)) {
@@ -36,13 +42,13 @@ export function isPastAppDateKey(dateKey: string, todayKey = getTodayAppDateKey(
 }
 
 export function toDailyDateKey(value: Date | string): string {
-  if (typeof value === "string" && APP_DATE_KEY_REGEX.test(value)) {
-    return value;
+  return toAppDateKey(value);
+}
+
+export function getRestEndStatus(restEndDate: string | null | undefined, todayKey: string): "none" | "active" | "expired" {
+  if (!restEndDate) return "none";
+  if (!isValidAppDateKey(restEndDate) || !isValidAppDateKey(todayKey)) {
+    throw new Error("Invalid rest date key");
   }
-
-  const date = typeof value === "string" ? new Date(value) : value;
-  const dailyDate = new Date(date);
-  dailyDate.setHours(dailyDate.getHours() - DAILY_ROLLOVER_HOUR);
-
-  return toAppDateKey(dailyDate);
+  return restEndDate >= todayKey ? "active" : "expired";
 }

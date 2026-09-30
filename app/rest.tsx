@@ -1,13 +1,14 @@
 import PopUpContainer from '@/components/popUpContainer';
 import { useAuthUserId } from '@/lib/AuthSessionContext';
+import { fromAppDateKey, toAppDateKey } from '@/lib/date';
 import { getCharacterImageSource } from '@/lib/imageHelper';
 import { patchProfileCache } from '@/lib/profile';
-import { supabase } from '@/lib/supabase';
+import { supabaseRestRepository } from '@/lib/restRepository';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Dimensions, Image, Keyboard, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, Image, Keyboard, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import DateInput from '../components/dateInput';
 import PrimaryButton from '../components/primaryButton';
@@ -25,36 +26,14 @@ export default function RestScreen() {
     const queryClient = useQueryClient();
     const userId = useAuthUserId();
     const [showCancelModal, setShowCancelModal] = React.useState(false);
-    const [restEndDate, setRestEndDate] = React.useState<Date | null>(null);
     const [selectedDate, setSelectedDate] = React.useState(new Date());
+    const [isSaving, setIsSaving] = React.useState(false);
     const fetchRestEndDate = async () => {
-        try {
-            if (!userId) {
-                return '';
-            }
-
-            const { data, error } = await supabase
-                .from("Profiles")
-                .select("restEndDate")
-                .eq("id", userId)
-                .single();
-
-            if (error) {
-                throw error;
-            }
-
-            const fetchedDate = data?.restEndDate ? new Date(data.restEndDate) : null;
-
-            setRestEndDate(fetchedDate);
-            setSelectedDate(fetchedDate ? fetchedDate : new Date());
-
-            // On retourne la date formatée pour useQuery
-            return fetchedDate ? fetchedDate.toLocaleDateString(language === "en" ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'long' }) : '';
-        }
-        catch (error) {
-            console.error('Erreur lors de la récupération de la date:', error);
-            return '';
-        }
+        if (!userId) throw new Error("Utilisateur non connecté");
+        const restEndDate = await supabaseRestRepository.getEndDate(userId);
+        const fetchedDate = restEndDate ? fromAppDateKey(restEndDate) : null;
+        setSelectedDate(fetchedDate ?? new Date());
+        return fetchedDate ? fetchedDate.toLocaleDateString(language === "en" ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'long' }) : '';
     }
 
     const restEndDateQuery = useQuery({
@@ -87,6 +66,17 @@ export default function RestScreen() {
 
     const step1Style = useAnimatedStyle(() => ({ transform: [{ translateX: step1X.value }] }));
     const step2Style = useAnimatedStyle(() => ({ transform: [{ translateX: step2X.value }] }));
+
+    if (restEndDateQuery.isLoading) {
+        return <View style={[styles.centeredState, { backgroundColor: colors.background }]}><ActivityIndicator color={colors.text} /></View>;
+    }
+
+    if (restEndDateQuery.isError) {
+        return <View style={[styles.centeredState, { backgroundColor: colors.background }]}>
+            <Text style={{ color: colors.text }}>{t("common.alerts.genericError")}</Text>
+            <PrimaryButton title={t("common.actions.retry")} onPress={() => { void restEndDateQuery.refetch(); }} />
+        </View>;
+    }
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -160,6 +150,7 @@ export default function RestScreen() {
                             <DateInput
                                 value={selectedDate}
                                 onChange={setSelectedDate}
+                                minimumDate={new Date()}
                             />
                         </View>
                     </View>
@@ -169,25 +160,25 @@ export default function RestScreen() {
                         <View style={styles.buttonsWrapper}>
                             <PrimaryButton
                                 title={t("common.actions.validate")}
+                                disabled={isSaving}
                                 onPress={async () => {
+                                    if (isSaving) return;
+                                    setIsSaving(true);
                                     try {
-                                        if (userId) {
-                                            const { error } = await supabase
-                                                .from('Profiles')
-                                                .update({ restEndDate: selectedDate })
-                                                .eq('id', userId);
-
-                                            if (error) {
-                                                console.error("Erreur lors de la mise à jour de hasDoneDaily:", error);
-                                            } else {
-                                                patchProfileCache(queryClient, userId, { restEndDate: selectedDate.toISOString() });
-                                            }
-                                        }
+                                        if (!userId) throw new Error("Utilisateur non connecté");
+                                        const nextEndDate = toAppDateKey(selectedDate);
+                                        await supabaseRestRepository.setEndDate(userId, nextEndDate);
+                                        patchProfileCache(queryClient, userId, { restMode: true, restEndDate: nextEndDate });
+                                        queryClient.setQueryData(
+                                            ['restEndDate', userId],
+                                            fromAppDateKey(nextEndDate).toLocaleDateString(language === "en" ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'long' }),
+                                        );
+                                        goBackToStep1();
                                     } catch (error) {
                                         console.error(error);
+                                        Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.genericError"));
                                     } finally {
-                                        restEndDateQuery.refetch();
-                                        goBackToStep1();
+                                        setIsSaving(false);
                                     }
                                 }}
                             />
@@ -242,30 +233,25 @@ export default function RestScreen() {
 
                             <PrimaryButton
                                 title={t("common.actions.confirm")}
+                                disabled={isSaving}
                                 onPress={async () => {
+                                    if (isSaving) return;
+                                    setIsSaving(true);
                                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                                     try {
-                                        if (userId) {
-                                            const { error } = await supabase
-                                                .from('Profiles')
-                                                .update({ restEndDate: null, restMode: false })
-                                                .eq('id', userId);
-
-                                            if (error) {
-                                                console.error("Erreur lors de l'annulation du mode repos:", error);
-                                            } else {
-                                                patchProfileCache(queryClient, userId, { restEndDate: null, restMode: false });
-                                            }
-                                        }
-                                    } catch (error) {
-                                        console.error(error);
-                                    } finally {
-                                        restEndDateQuery.refetch();
+                                        if (!userId) throw new Error("Utilisateur non connecté");
+                                        await supabaseRestRepository.cancel(userId);
+                                        patchProfileCache(queryClient, userId, { restEndDate: null, restMode: false });
                                         if (router.canGoBack()) {
                                             router.back();
                                         } else {
                                             router.replace('/');
                                         }
+                                    } catch (error) {
+                                        console.error(error);
+                                        Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.genericError"));
+                                    } finally {
+                                        setIsSaving(false);
                                     }
                                 }}
                             />
@@ -288,6 +274,13 @@ export default function RestScreen() {
 const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
+    centeredState: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 20,
+        paddingHorizontal: 24,
+    },
     container: {
         flex: 1,
     },

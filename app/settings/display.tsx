@@ -25,6 +25,12 @@ export default function Display() {
     const { t, language, setLanguage, supportedLanguages } = useAppTranslation();
     const { theme, colorTheme, colors, setTheme } = useTheme();
     const { fontSize, setFontSize, fontSizes } = useFont();
+    const saveDisplayChoice = (save: Promise<void>) => {
+        void save.catch((error) => {
+            console.error("Échec de l'enregistrement de l'affichage:", error);
+            Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.genericError"));
+        });
+    };
     const { isPremium, isLoading: isSubscriptionLoading } = useSubscription();
     const {
         preference: calendarPreference,
@@ -117,11 +123,11 @@ export default function Display() {
                 ]}
                 onPress={() => {
                     if (previewTheme === 'system') {
-                        setTheme('system');
+                        saveDisplayChoice(setTheme('system'));
                     } else if (previewTheme === 'dark') {
-                        setTheme('dark');
+                        saveDisplayChoice(setTheme('dark'));
                     } else if (previewTheme === 'light') {
-                        setTheme('light');
+                        saveDisplayChoice(setTheme('light'));
                     }
                 }}
             >
@@ -184,7 +190,7 @@ export default function Display() {
                         borderWidth: isActive ? 0.5 : 0,
                     },
                 ]}
-                onPress={() => setFontSize(size)}
+                onPress={() => saveDisplayChoice(setFontSize(size))}
             >
                 {isActive ? (
                     <SelectionCheckmark />
@@ -217,7 +223,7 @@ export default function Display() {
                         borderWidth: isActive ? 0.5 : 0,
                     },
                 ]}
-                onPress={() => setLanguage(value)}
+                onPress={() => saveDisplayChoice(setLanguage(value))}
             >
                 {isActive ? (
                     <SelectionCheckmark />

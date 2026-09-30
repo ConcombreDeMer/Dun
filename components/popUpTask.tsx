@@ -1,4 +1,3 @@
-import { supabase } from "@/lib/supabase";
 import { Feather } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,8 +15,9 @@ import {
     isLateAdjustmentConfirmationCancelled,
     needsLateAdjustmentConfirmation,
 } from "../lib/lateAdjustmentConfirmation";
-import { getTaskTagIds, setTaskTags, TAG_USAGE_STATS_QUERY_KEY } from "../lib/tags";
-import { markTaskLateAdjustedIfResolved, updateTaskDraft } from "../lib/tasks";
+import { TAG_USAGE_STATS_QUERY_KEY } from "../lib/tags";
+import { supabaseTagRepository } from "../lib/tagRepository";
+import { supabaseTaskRepository } from "../lib/taskRepository";
 import { useTheme } from "../lib/ThemeContext";
 import { useOptimisticTaskMutations } from "../lib/useOptimisticTaskMutations";
 import { useToggleTaskDone } from "../lib/useToggleTaskDone";
@@ -43,6 +43,9 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [selectedTagIds, setSelectedTagIds] = useState<string[] | null>(null);
+    const [tagReconciliationError, setTagReconciliationError] = useState(false);
+    const [saveError, setSaveError] = useState(false);
+    const [taskReconciliationError, setTaskReconciliationError] = useState(false);
     const [taskDate, setTaskDate] = useState<Date | null>(new Date());
     const [last_update_date, setLastUpdateDate] = useState<Date | null>(null);
     const [hasChanges, setHasChanges] = useState(false);
@@ -107,7 +110,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
 
     const taskTagsQuery = useQuery({
         queryKey: ["task-tags", userId, id],
-        queryFn: () => getTaskTagIds(id as number, userId ?? undefined),
+        queryFn: () => supabaseTagRepository.getForTask(id as number, userId ?? undefined),
         enabled: !!id && !!userId,
         gcTime: 1000 * 60 * 5,
         staleTime: 1000 * 60 * 2,
@@ -118,18 +121,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
             throw new Error("Utilisateur non connecté");
         }
 
-        const { data, error } = await supabase
-            .from("Tasks")
-            .select("*")
-            .eq("id", id)
-            .eq("user_id", userId)
-            .single();
-
-        if (error) {
-            throw new Error(error.message);
-        }
-
-        return data;
+        return supabaseTaskRepository.getById(userId, id as number);
     }
 
 
@@ -172,6 +164,32 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
         setHasChanges(false);
     }, []);
 
+    const reconcileTaskFromServer = useCallback(async () => {
+        if (!id || !userId) return;
+        try {
+            const persisted = await supabaseTaskRepository.getById(userId, id);
+            queryClient.setQueryData(["tasks", userId, id], persisted);
+            const persistedDate = persisted.date ? fromAppDateKey(persisted.date) : null;
+            setTask(persisted);
+            setTaskDate(persistedDate);
+            committedTaskDateRef.current = persistedDate;
+            pendingTaskDateRef.current = null;
+            hasPendingTaskDateChangeRef.current = false;
+            lastSavedTextSnapshotRef.current = JSON.stringify({
+                name: persisted.name.trim(), description: persisted.description.trim(),
+            });
+            setLastUpdateDate(persisted.last_update_date ? new Date(persisted.last_update_date) : null);
+            setHasChanges(
+                latestDraftRef.current.name.trim() !== persisted.name.trim()
+                || latestDraftRef.current.description.trim() !== persisted.description.trim()
+            );
+            setTaskReconciliationError(false);
+        } catch (error) {
+            console.error("Impossible de relire la tâche après l'échec:", error);
+            setTaskReconciliationError(true);
+        }
+    }, [id, queryClient, userId]);
+
     const updateTaskMutation = useMutation({
         mutationFn: async (draft: TaskDraft) => {
             if (!draft.name.trim()) {
@@ -183,11 +201,13 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                 throw createLateAdjustmentCancelledError();
             }
 
-            return updateTaskDraft(id, draft, {
+            return supabaseTaskRepository.updateDraft(id, draft, {
                 previousDateKey: task?.date ?? null,
             }, userId ?? undefined);
         },
         onSuccess: ({ draft, savedAt }) => {
+            setSaveError(false);
+            setTaskReconciliationError(false);
             queryClient.invalidateQueries({ queryKey: ["tasks", userId] });
             queryClient.invalidateQueries({ queryKey: ["days", userId] });
             setTask((current: any) => current ? {
@@ -218,6 +238,9 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
             }
 
             console.error("Erreur lors de la sauvegarde:", error);
+            setSaveError(true);
+            void queryClient.invalidateQueries({ queryKey: ["tasks", userId] });
+            void reconcileTaskFromServer();
         }
     });
 
@@ -228,11 +251,12 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                 throw createLateAdjustmentCancelledError();
             }
 
-            await markTaskLateAdjustedIfResolved(id, userId ?? undefined);
-            await setTaskTags(id, tagIds, userId ?? undefined);
+            await supabaseTaskRepository.markLateAdjusted(id, userId ?? undefined);
+            await supabaseTagRepository.setForTask(id, tagIds, userId ?? undefined);
             return tagIds;
         },
         onSuccess: (tagIds) => {
+            setTagReconciliationError(false);
             queryClient.setQueryData(["task-tags", userId, id], tagIds);
             setSelectedTagIds(null);
             markLocalLateAdjusted();
@@ -241,7 +265,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
             queryClient.invalidateQueries({ queryKey: ["days", userId] });
             queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
         },
-        onError: (error: any) => {
+        onError: async (error: any) => {
             if (isLateAdjustmentConfirmationCancelled(error)) {
                 setSelectedTagIds(null);
                 return;
@@ -249,6 +273,11 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
 
             console.error("Erreur lors de la sauvegarde des tags:", error);
             setSelectedTagIds(null);
+            const key = ["task-tags", userId, id];
+            queryClient.setQueryData(key, undefined);
+            const refreshed = await taskTagsQuery.refetch();
+            setTagReconciliationError(refreshed.isError);
+            void queryClient.invalidateQueries({ queryKey: ["tasks", userId] });
             Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
         },
     });
@@ -359,7 +388,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
             clearTimeout(saveTimeoutRef.current);
         }
 
-        if (!changed || !name.trim()) {
+        if (!changed || !name.trim() || saveError) {
             return;
         }
 
@@ -374,7 +403,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                 clearTimeout(saveTimeoutRef.current);
             }
         };
-    }, [task, name, description, enqueueTaskSave]);
+    }, [task, name, description, enqueueTaskSave, saveError]);
 
     useEffect(() => {
         const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
@@ -627,6 +656,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
     };
 
     const handleTagsChange = (tagIds: string[]) => {
+        if (updateTaskTagsMutation.isPending || tagReconciliationError) return;
         void (async () => {
             if (!(await ensureLateAdjustmentConfirmed())) {
                 return;
@@ -730,6 +760,15 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                                             </View>
                                         ) : null}
 
+                                        {(saveError || taskReconciliationError || tagReconciliationError) && (
+                                            <Pressable onPress={() => {
+                                                if (taskReconciliationError) void reconcileTaskFromServer();
+                                                if (tagReconciliationError) void taskTagsQuery.refetch().then((result) => setTagReconciliationError(result.isError));
+                                                if (saveError && !taskReconciliationError) setSaveError(false);
+                                            }}>
+                                                <Text style={{ color: colors.danger }}>{t("common.alerts.genericError")} · {t("common.actions.retry")}</Text>
+                                            </Pressable>
+                                        )}
                                         <TagSelector
                                             compact
                                             includeInactiveSelected
@@ -740,7 +779,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
 
                                         <TextInput
                                             value={name}
-                                            onChangeText={setName}
+                                            onChangeText={(value) => { setSaveError(false); setName(value); }}
                                             editable={isNameEditable}
                                             onFocus={() => {
                                                 setInputLock(false);
@@ -804,7 +843,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                                 >
                                     <TextInput
                                         value={description}
-                                        onChangeText={setDescription}
+                                        onChangeText={(value) => { setSaveError(false); setDescription(value); }}
                                         editable={isDescriptionEditable}
                                         onFocus={() => {
                                             setInputLock(false);

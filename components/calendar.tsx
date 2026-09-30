@@ -19,9 +19,9 @@ import Animated, {
 } from "react-native-reanimated";
 import { useAuthUserId } from "../lib/AuthSessionContext";
 import { calendarDaysQueryKey } from "../lib/daysQueryKeys";
+import { supabaseDayRepository } from "../lib/dayRepository";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
-import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
 import Squircle from "./Squircle";
 import TaskIndicator from "./taskIndicator";
@@ -278,16 +278,7 @@ export default function CalendarComponent({
 			return [];
 		}
 
-		const { data, error } = await supabase
-			.from("Days")
-			.select("*")
-			.eq("user_id", userId)
-			.order("date", { ascending: true });
-        if (error) {
-            console.error('Erreur lors de la récupération des jours:', error);
-            return [];
-        }
-        return data;
+        return supabaseDayRepository.listAll(userId);
     }
 
     const daysQuery = useQuery({
@@ -310,9 +301,10 @@ export default function CalendarComponent({
         const days = daysQuery.data;
 
         days.forEach((day) => {
-            if (day.total === day.done_count && day.total > 0) {
+            const total = day.total ?? 0;
+            if (total === day.done_count && total > 0) {
                 map[day.date] = { type: 3 }; // Toutes les tâches complétées
-            } else if (day.total > 0) {
+            } else if (total > 0) {
                 map[day.date] = { type: 2 }; // Tâches en cours
             } else {
                 map[day.date] = { type: 1 }; // Pas de tâches
@@ -668,6 +660,11 @@ export default function CalendarComponent({
 
 
         <View style={[styles.container]}>
+            {daysQuery.isError && (
+                <TouchableOpacity onPress={() => void daysQuery.refetch()}>
+                    <Text style={{ color: colors.text }}>{t("common.alerts.genericError")} · {t("common.actions.retry")}</Text>
+                </TouchableOpacity>
+            )}
             {/* Slider avec calendrier intérieur */}
             <Squircle
                 style={[styles.sliderBackground, animatedSliderStyle, animatedCalendarScaleStyle]}

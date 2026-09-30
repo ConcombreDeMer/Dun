@@ -242,7 +242,9 @@ export const postponeDailyPendingTask = async (taskId: number, targetDateKey = t
       order,
     })
     .eq("id", taskId)
-    .eq("user_id", resolvedUserId);
+    .eq("user_id", resolvedUserId)
+    .select("id")
+    .single();
 
   if (error) {
     throw new Error(error.message);
@@ -270,21 +272,15 @@ export const deleteDailyPendingTask = async (taskId: number, userId?: string | n
 
   const previousDateKey = taskData.date ? toAppDateKey(taskData.date) : null;
 
-  const { error: tagsError } = await supabase
-    .from("Task_Tags")
-    .delete()
-    .eq("task_id", taskId)
-    .eq("user_id", resolvedUserId);
-
-  if (tagsError) {
-    throw new Error(tagsError.message);
-  }
-
+  // La FK Task_Tags.task_id supprime les liens dans la même transaction SQL.
+  // Les effacer avant la tâche pouvait perdre les tags si cette suppression échouait.
   const { error } = await supabase
     .from("Tasks")
     .delete()
     .eq("id", taskId)
-    .eq("user_id", resolvedUserId);
+    .eq("user_id", resolvedUserId)
+    .select("id")
+    .single();
 
   if (error) {
     throw new Error(error.message);
@@ -322,7 +318,9 @@ export const setDailyPendingTaskDone = async (taskId: number, nextDone: boolean,
       last_update_date: new Date().toISOString(),
     })
     .eq("id", taskId)
-    .eq("user_id", resolvedUserId);
+    .eq("user_id", resolvedUserId)
+    .select("id")
+    .single();
 
   if (error) {
     throw new Error(error.message);
@@ -342,7 +340,9 @@ export const completeDailyReview = async (userId?: string | null) => {
   const { error } = await supabase
     .from("Profiles")
     .update({ hasDoneDaily: true })
-    .eq("id", resolvedUserId);
+    .eq("id", resolvedUserId)
+    .select("id")
+    .single();
 
   if (error) {
     throw new Error(error.message);

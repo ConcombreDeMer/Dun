@@ -23,6 +23,7 @@ import { useAppTranslation } from '../../lib/i18n';
 import { getCharacterImageSource } from '../../lib/imageHelper';
 import { useTheme } from '../../lib/ThemeContext';
 import { supabase } from '../../lib/supabase';
+import { supabaseProfileRepository } from '../../lib/profileRepository';
 import { useStore } from '../../store/store';
 
 export default function LoginScreen() {
@@ -76,35 +77,11 @@ export default function LoginScreen() {
             }
 
             if (data.user) {
-                let profileData = await supabase
-                    .from('Profiles')
-                    .select('*')
-                    .eq('id', data.user.id)
-                    .single();
-
-                // Si pas de profil, créer et récupérer les données
-                if (!profileData.data) {
-                    await supabase.from('Profiles').insert({
-                        id: data.user.id,
-                        email: data.user.email,
-                        name: data.user.user_metadata.name,
-                    });
-
-                    // ✅ Re-fetch pour avoir les bonnes données
-                    profileData = await supabase
-                        .from('Profiles')
-                        .select('*')
-                        .eq('id', data.user.id)
-                        .single();
-                }
-
-                if (profileData.error) {
-                    setError(t('onboarding.login.errors.profile'));
-                    setLoading(false);
-                    return;
-                }
+                const profileData = await supabaseProfileRepository.getOrCreateForLogin(
+                    data.user.id, data.user.email, data.user.user_metadata.name
+                );
                 // Redirection basée sur le profil
-                router.replace(profileData.data.hasName ? '/' : '/onboarding/tutorial');
+                router.replace(profileData.hasName ? '/' : '/onboarding/tutorial');
             }
         } catch (err: any) {
             setError(err.message || t('onboarding.login.errors.generic'));

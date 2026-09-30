@@ -1,9 +1,12 @@
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
-import { View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { toDailyDateKey } from '../lib/date';
+import { getRestEndStatus, toDailyDateKey } from '../lib/date';
+import { supabaseDailyRepository } from '../lib/dailyRepository';
+import { useAppTranslation } from '../lib/i18n';
 import { fetchProfile, patchProfileCache, profileQueryKey } from '../lib/profile';
+import { supabaseRestRepository } from '../lib/restRepository';
 import { useTheme } from '../lib/ThemeContext';
 import { supabase } from '../lib/supabase';
 
@@ -11,6 +14,9 @@ export default function Index() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { colors } = useTheme();
+    const { t } = useAppTranslation();
+    const [routingError, setRoutingError] = useState(false);
+    const [retryCount, setRetryCount] = useState(0);
 
     useEffect(() => {
         const checkRouting = async () => {
@@ -31,43 +37,29 @@ export default function Index() {
                     staleTime: 0,
                 });
 
-                if (profile.restEndDate && profile.restEndDate > new Date().toISOString()) {
+                const restStatus = getRestEndStatus(profile.restEndDate, today);
+                if (restStatus === 'active') {
                     router.replace('/rest');
                     return;
-                } else if (profile.restEndDate && profile.restEndDate <= new Date().toISOString()) {
-                    await supabase
-                        .from('Profiles')
-                        .update({ restMode: false, restEndDate: null })
-                        .eq('id', userId);
+                } else if (restStatus === 'expired') {
+                    const currentRestEndDate = await supabaseRestRepository.expireIfPast(userId, today);
+                    if (getRestEndStatus(currentRestEndDate, today) === 'active') {
+                        router.replace('/rest');
+                        return;
+                    }
                     patchProfileCache(queryClient, userId, {
                         restMode: false,
                         restEndDate: null,
                     });
                 }
 
-                if(profile.dailyEnabled == false) {
+                if (profile.dailyEnabled === false) {
                     router.replace('/home');
                     return;
                 }
 
-                if (profile.last_opened === null) {
-                    await supabase
-                        .from('Profiles')
-                        .update({ last_opened: today, hasDoneDaily: false })
-                        .eq('id', userId);
-                    patchProfileCache(queryClient, userId, {
-                        last_opened: today,
-                        hasDoneDaily: false,
-                    });
-                    router.replace('/daily');
-                    return;
-                }
-
                 if (profile.last_opened !== today) {
-                    await supabase
-                        .from('Profiles')
-                        .update({ last_opened: today, hasDoneDaily: false })
-                        .eq('id', userId);
+                    await supabaseDailyRepository.openDay(userId, today);
                     patchProfileCache(queryClient, userId, {
                         last_opened: today,
                         hasDoneDaily: false,
@@ -86,12 +78,21 @@ export default function Index() {
 
             } catch (error) {
                 console.error('Erreur lors de la vérification initiale:', error);
-                router.replace('/home');
+                setRoutingError(true);
             }
         };
 
         checkRouting();
-    }, [queryClient, router]);
+    }, [queryClient, retryCount, router]);
+
+    if (routingError) {
+        return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, backgroundColor: colors.background }}>
+            <Text style={{ color: colors.text }}>{t('common.alerts.genericError')}</Text>
+            <Pressable accessibilityRole="button" onPress={() => { setRoutingError(false); setRetryCount((value) => value + 1); }}>
+                <Text style={{ color: colors.text }}>{t('common.actions.retry')}</Text>
+            </Pressable>
+        </View>;
+    }
 
     return <View style={{ flex: 1, backgroundColor: colors.background }} />;
 }

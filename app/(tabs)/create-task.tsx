@@ -6,7 +6,7 @@ import TagSelector from "@/components/TagSelector";
 import { useStore } from "@/store/store";
 import * as Haptics from 'expo-haptics';
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
     Alert,
     KeyboardAvoidingView,
@@ -24,6 +24,7 @@ import { useProfile } from "@/lib/profile";
 import { useSubscription } from "@/lib/subscription";
 import { useTheme } from "@/lib/ThemeContext";
 import { useOptimisticTaskMutations } from "@/lib/useOptimisticTaskMutations";
+import { TaskCreationUncertainError } from "@/lib/tasks";
 
 export default function CreateTask() {
     const router = useRouter();
@@ -31,6 +32,10 @@ export default function CreateTask() {
     const [description, setDescription] = useState("");
     const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
     const [createInBox, setCreateInBox] = useState(false);
+    const [createError, setCreateError] = useState<string | null>(null);
+    const [creationUncertain, setCreationUncertain] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const creatingRef = useRef(false);
     const selectedDate = useStore((state) => state.selectedDate) || new Date();
     const setSelectedDate = useStore((state) => state.setSelectedDate);
     const { colors } = useTheme();
@@ -51,52 +56,61 @@ export default function CreateTask() {
     };
 
     const handleCreateTask = async () => {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        if (!name.trim()) {
-            Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.requiredTaskName"));
-            return;
-        }
+        if (creatingRef.current || creationUncertain) return;
+        creatingRef.current = true;
+        setIsSubmitting(true);
+        try {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            if (!name.trim()) {
+                Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.requiredTaskName"));
+                return;
+            }
 
-        if (!createInBox && isSelectedDatePast) {
-            Alert.alert(t("common.alerts.errorTitle"), t("createTask.alerts.pastDate"));
-            return;
-        }
+            if (!createInBox && isSelectedDatePast) {
+                Alert.alert(t("common.alerts.errorTitle"), t("createTask.alerts.pastDate"));
+                return;
+            }
 
-        if (createInBox && !canUseTaskBox) {
-            router.push("/settings/premium");
-            return;
-        }
+            if (createInBox && !canUseTaskBox) {
+                router.push("/settings/premium");
+                return;
+            }
 
-        const nextTask = {
-            name,
-            description,
-            dateKey: createInBox ? null : selectedDateKey,
-            tagIds: selectedTagIds,
-        };
+            const nextTask = {
+                name,
+                description,
+                dateKey: createInBox ? null : selectedDateKey,
+                tagIds: selectedTagIds,
+            };
 
-        setName("");
-        setDescription("");
-        setSelectedTagIds([]);
-        setCreateInBox(false);
-        taskEmitter.emit("taskAdded");
-        leaveCreateTask();
-
-        void createTaskOptimistically(nextTask).catch((error: any) => {
+            setCreateError(null);
+            await createTaskOptimistically(nextTask);
+            taskEmitter.emit("taskAdded");
+            leaveCreateTask();
+        } catch (error: any) {
             console.error("Erreur lors de la création de la tâche:", error);
+            setCreateError(error?.message || t("common.alerts.genericError"));
+            if (error instanceof TaskCreationUncertainError) setCreationUncertain(true);
             Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
-        });
+        } finally {
+            creatingRef.current = false;
+            setIsSubmitting(false);
+        }
     };
 
     const handleCancel = async () => {
+        if (creatingRef.current) return;
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         leaveCreateTask();
     }
 
     const handleDateChange = (date: Date) => {
+        if (creatingRef.current) return;
         setSelectedDate(date);
     };
 
     const handleBoxToggle = async () => {
+        if (creatingRef.current) return;
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         if (!canUseTaskBox) {
             router.push("/settings/premium");
@@ -121,21 +135,23 @@ export default function CreateTask() {
                     <SimpleInput
                         name={t("createTask.fields.title")}
                         value={name}
-                        onChangeText={setName}
+                        onChangeText={(value) => { setName(value); if (!creationUncertain) setCreateError(null); }}
+                        editable={!isSubmitting}
                         bold
                     />
 
                     <SimpleInput
                         name={t("createTask.fields.description")}
                         value={description}
-                        onChangeText={setDescription}
+                        onChangeText={(value) => { setDescription(value); if (!creationUncertain) setCreateError(null); }}
+                        editable={!isSubmitting}
                         multiline
                         bold
                     />
 
                     <TagSelector
                         selectedTagIds={selectedTagIds}
-                        onChange={setSelectedTagIds}
+                        onChange={(value) => { if (isSubmitting) return; setSelectedTagIds(value); if (!creationUncertain) setCreateError(null); }}
                     />
 
                     <Pressable
@@ -148,7 +164,7 @@ export default function CreateTask() {
                                 opacity: pressed || isCreatingTask ? 0.75 : 1,
                             },
                         ]}
-                        disabled={isCreatingTask}
+                        disabled={isSubmitting || isCreatingTask}
                     >
                         <Text style={[styles.boxToggleText, { color: createInBox ? colors.background : colors.text }]}>
                             {createInBox ? t("createTask.fields.taskBoxSelected") : t("createTask.fields.taskBox")}
@@ -159,7 +175,7 @@ export default function CreateTask() {
                         <DateInput
                             value={selectedDate}
                             onChange={handleDateChange}
-                            disabled={isCreatingTask}
+                            disabled={isSubmitting || isCreatingTask}
                             bold
                             showTodayButton
                             minimumDate={lockPastDaysEnabled ? new Date() : undefined}
@@ -170,9 +186,10 @@ export default function CreateTask() {
                 </View>
             </ScrollView>
 
+            {createError ? <Text style={{ color: colors.danger, paddingHorizontal: 23, marginBottom: 74 }}>{createError}</Text> : null}
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignSelf: "center", width: "100%", position: "absolute", bottom: 23 }}>
-                <PrimaryButton size="XS" image="xmark" onPress={handleCancel} />
-                <PrimaryButton size="M" title={t("createTask.buttons.confirm")} onPress={handleCreateTask} disabled={isCreatingTask || (!createInBox && isSelectedDatePast)} />
+                <PrimaryButton size="XS" image="xmark" onPress={handleCancel} disabled={isSubmitting} />
+                <PrimaryButton size="M" title={t("createTask.buttons.confirm")} onPress={handleCreateTask} disabled={isSubmitting || isCreatingTask || creationUncertain || (!createInBox && isSelectedDatePast)} />
             </View>
 
         </KeyboardAvoidingView>

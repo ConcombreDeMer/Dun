@@ -3,6 +3,8 @@ import { createInstance } from "i18next";
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { initReactI18next, useTranslation } from "react-i18next";
 import { supabase } from "./supabase";
+import { supabaseProfileRepository } from "./profileRepository";
+import { createSerialMutationQueue } from "./serialMutationQueue";
 import { resources } from "./i18n/resources";
 
 const LANGUAGE_STORAGE_KEY = "appLanguage";
@@ -11,6 +13,7 @@ const SUPPORTED_LANGUAGES = ["fr", "en"] as const;
 export type AppLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 const I18nReadyContext = createContext(false);
+const saveLanguageInOrder = createSerialMutationQueue();
 export const i18n = createInstance();
 
 const getDeviceLanguage = (): AppLanguage => {
@@ -55,14 +58,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     };
 
     const persistUserLanguage = async (userId: string, language: AppLanguage) => {
-      const { error } = await supabase
-        .from("Profiles")
-        .update({ language })
-        .eq("id", userId);
-
-      if (error) {
-        throw error;
-      }
+      await supabaseProfileRepository.patch(userId, { language });
     };
 
     const getStoredLanguage = async (): Promise<AppLanguage | null> => {
@@ -92,17 +88,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const { data: profile, error: profileError } = await supabase
-          .from("Profiles")
-          .select("language")
-          .eq("id", userId)
-          .single();
-
-        if (profileError) {
-          console.error("Erreur lors de la récupération de la langue du profil:", profileError);
-          await applyLanguage(deviceLanguage);
-          return;
-        }
+        const profile = await supabaseProfileRepository.get(userId, "language");
 
         if (isSupportedLanguage(profile?.language)) {
           await applyLanguage(profile.language);
@@ -159,32 +145,20 @@ export function useAppTranslation() {
   return {
     ...translation,
     language: normalizeLanguage(translation.i18n.resolvedLanguage),
-    setLanguage: async (language: AppLanguage) => {
-      await translation.i18n.changeLanguage(language);
-      await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, language);
-
+    setLanguage: (language: AppLanguage) => saveLanguageInOrder(async () => {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError && sessionError.message !== "Auth session missing!") {
-        console.error("Erreur session lors de la sauvegarde de la langue:", sessionError);
-        return;
+        throw sessionError;
       }
 
       const userId = sessionData.session?.user?.id;
-
-      if (!userId) {
-        return;
-      }
-
-      const { error } = await supabase
-        .from("Profiles")
-        .update({ language })
-        .eq("id", userId);
-
-      if (error) {
-        console.error("Erreur lors de la sauvegarde de la langue en base:", error);
-      }
-    },
+      if (userId) await supabaseProfileRepository.patch(userId, { language });
+      if (userId) {
+        try { await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, language); } catch (storageError) { console.error(storageError); }
+      } else await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+      await translation.i18n.changeLanguage(language);
+    }),
     supportedLanguages: SUPPORTED_LANGUAGES,
   };
 }

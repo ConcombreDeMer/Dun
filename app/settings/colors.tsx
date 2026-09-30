@@ -4,7 +4,7 @@ import SelectionCheckmark from "@/components/SelectionCheckmark";
 import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { useSubscription } from "@/lib/subscription";
@@ -59,7 +59,10 @@ export default function ColorSettings() {
                                     return;
                                 }
 
-                                setColorTheme(option.id);
+                                void setColorTheme(option.id).catch((error) => {
+                                    console.error("Échec de l'enregistrement du coloris:", error);
+                                    Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.genericError"));
+                                });
                             }}
                         >
                             {isLocked && (

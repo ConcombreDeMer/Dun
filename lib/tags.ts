@@ -67,8 +67,26 @@ const getUserId = async () => {
   return user.id;
 };
 
+const taskTagQueues = new Map<string, Promise<void>>();
+
+const serializeTaskTagChange = async <T,>(key: string, change: () => Promise<T>): Promise<T> => {
+  const previous = taskTagQueues.get(key) ?? Promise.resolve();
+  const result = previous.catch(() => undefined).then(change);
+  const settled = result.then(() => undefined, () => undefined);
+  taskTagQueues.set(key, settled);
+  try {
+    return await result;
+  } finally {
+    if (taskTagQueues.get(key) === settled) taskTagQueues.delete(key);
+  }
+};
+
 const normalizeTagIds = (tagIds: string[]) => {
-  return Array.from(new Set(tagIds.filter(Boolean))).slice(0, MAX_TAGS_PER_TASK);
+  const uniqueIds = Array.from(new Set(tagIds.filter(Boolean)));
+  if (uniqueIds.length > MAX_TAGS_PER_TASK) {
+    throw new Error(`Une tâche ne peut avoir que ${MAX_TAGS_PER_TASK} tags`);
+  }
+  return uniqueIds;
 };
 
 export const getTags = async (userId?: string | null) => {
@@ -326,7 +344,9 @@ export const deleteTag = async (id: string, userId?: string | null) => {
     .from("Tags")
     .delete()
     .eq("id", id)
-    .eq("user_id", resolvedUserId);
+    .eq("user_id", resolvedUserId)
+    .select("id")
+    .single();
 
   if (error) {
     throw new Error(error.message);
@@ -336,6 +356,12 @@ export const deleteTag = async (id: string, userId?: string | null) => {
 export const setTaskTags = async (taskId: number, tagIds: string[], userId?: string) => {
   const resolvedUserId = userId ?? await getUserId();
   const nextTagIds = normalizeTagIds(tagIds);
+  return serializeTaskTagChange(`${resolvedUserId}:${taskId}`, async () => {
+  const previousTagIds = await getTaskTagIds(taskId, resolvedUserId);
+
+  if (previousTagIds.length === nextTagIds.length && previousTagIds.every((id) => nextTagIds.includes(id))) {
+    return;
+  }
 
   const { error: deleteError } = await supabase
     .from("Task_Tags")
@@ -360,8 +386,23 @@ export const setTaskTags = async (taskId: number, tagIds: string[], userId?: str
     })));
 
   if (insertError) {
+    // Un INSERT SQL refusé est atomique. Si une autre écriture a déjà remis des
+    // liens, ne pas l'effacer au nom de notre ancienne lecture.
+    const currentTagIds = await getTaskTagIds(taskId, resolvedUserId);
+    if (currentTagIds.length > 0) {
+      throw new Error("Tags modifiés entre-temps ; actualise la tâche avant de réessayer");
+    }
+    const restore = !previousTagIds.length
+      ? null
+      : await supabase.from("Task_Tags").insert(previousTagIds.map((tagId) => ({
+        task_id: taskId, tag_id: tagId, user_id: resolvedUserId,
+      })));
+    if (restore?.error) {
+      throw new Error("Association des tags incomplète ; actualise la tâche avant de réessayer");
+    }
     throw new Error(insertError.message);
   }
+  });
 };
 
 export const copyTaskTags = async (sourceTaskId: number, targetTaskId: number, userId?: string) => {

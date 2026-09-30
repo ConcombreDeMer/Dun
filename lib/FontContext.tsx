@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, ReactNode, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useEffect, useRef, useState } from 'react';
 import { supabase } from './supabase';
+import { supabaseProfileRepository } from './profileRepository';
+import { createSerialMutationQueue } from './serialMutationQueue';
 
 export type FontSize = 'small' | 'medium' | 'large';
 export const DEFAULT_FONT_SIZE: FontSize = 'small';
@@ -55,7 +57,7 @@ export const fontSizeMap: { [key in FontSize]: FontSizes } = {
 interface FontContextType {
     fontSize: FontSize;
     fontSizes: FontSizes;
-    setFontSize: (size: FontSize) => void;
+    setFontSize: (size: FontSize) => Promise<void>;
     isLoading: boolean;
 }
 
@@ -68,6 +70,7 @@ interface FontProviderProps {
 export const FontProvider: React.FC<FontProviderProps> = ({ children }) => {
     const [fontSize, setFontSize] = useState<FontSize>(DEFAULT_FONT_SIZE);
     const [isLoading, setIsLoading] = useState(true);
+    const fontQueue = useRef(createSerialMutationQueue());
 
     useEffect(() => {
         loadFontSize();
@@ -84,15 +87,7 @@ export const FontProvider: React.FC<FontProviderProps> = ({ children }) => {
             
             if (user) {
                 // Charger la taille de font depuis Supabase
-                const { data, error } = await supabase
-                    .from('Profiles')
-                    .select('display_font')
-                    .eq('id', user.id)
-                    .single();
-                
-                if (error) {
-                    console.error('Erreur lors du chargement de la taille de font depuis Supabase:', error);
-                }
+                const data = await supabaseProfileRepository.get(user.id, 'display_font');
                 
                 if (isValidFontSize(data?.display_font)) {
                     setFontSize(data.display_font);
@@ -121,29 +116,15 @@ export const FontProvider: React.FC<FontProviderProps> = ({ children }) => {
         }
     };
 
-    const saveFontSize = async (newFontSize: FontSize) => {
-        try {
-            // Toujours sauvegarder dans AsyncStorage
-            await AsyncStorage.setItem('fontSize', newFontSize);
-            setFontSize(newFontSize);
-            
-            // Sauvegarder dans Supabase si l'utilisateur est connecté
-            const { data: { user } } = await supabase.auth.getUser();
-            
-            if (user) {
-                const { error } = await supabase
-                    .from('Profiles')
-                    .update({ display_font: newFontSize })
-                    .eq('id', user.id);
-                
-                if (error) {
-                    console.error('Erreur lors de la sauvegarde de la taille de font dans Supabase:', error);
-                }
-            }
-        } catch (error) {
-            console.error('Erreur lors de la sauvegarde de la taille de font:', error);
-        }
-    };
+    const saveFontSize = (newFontSize: FontSize) => fontQueue.current(async () => {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        if (user) await supabaseProfileRepository.patch(user.id, { display_font: newFontSize });
+        if (user) {
+            try { await AsyncStorage.setItem('fontSize', newFontSize); } catch (storageError) { console.error(storageError); }
+        } else await AsyncStorage.setItem('fontSize', newFontSize);
+        setFontSize(newFontSize);
+    });
 
     return (
         <FontContext.Provider

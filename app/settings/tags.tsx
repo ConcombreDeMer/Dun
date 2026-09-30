@@ -9,7 +9,8 @@ import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { FREE_TAG_LIMIT } from "@/lib/plan";
 import { useSubscription } from "@/lib/subscription";
-import { createTag, deleteTag, getActiveTagIdsForPlan, getTags, Tag, TAGS_QUERY_KEY, TAG_USAGE_STATS_QUERY_KEY, updateTag } from "@/lib/tags";
+import { getActiveTagIdsForPlan, Tag, TAGS_QUERY_KEY, TAG_USAGE_STATS_QUERY_KEY } from "@/lib/tags";
+import { supabaseTagRepository } from "@/lib/tagRepository";
 import { useTheme } from "@/lib/ThemeContext";
 import { BottomSheet, Button as SwiftButton, Group, Host, Menu, RNHostView } from "@expo/ui/swift-ui";
 import { presentationDetents, presentationDragIndicator } from "@expo/ui/swift-ui/modifiers";
@@ -35,17 +36,19 @@ export default function TagsSettings() {
   const [selectedColor, setSelectedColor] = useState(TAG_COLORS[0]);
   const isEditing = !!editingTag;
 
-  const { data: tags = [], isLoading } = useQuery({
+  const tagsQuery = useQuery({
     queryKey: [...TAGS_QUERY_KEY, userId],
-    queryFn: () => getTags(userId),
+    queryFn: () => supabaseTagRepository.list(userId),
     enabled: !!userId,
   });
+  const tags = tagsQuery.data ?? [];
+  const isLoading = tagsQuery.isLoading;
   const isTagLimitReached = !isPremium && tags.length >= FREE_TAG_LIMIT;
   const hasInactiveTags = !isPremium && tags.length > FREE_TAG_LIMIT;
   const activeTagIds = getActiveTagIdsForPlan(tags, isPremium);
 
   const createTagMutation = useMutation({
-    mutationFn: createTag,
+    mutationFn: supabaseTagRepository.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [...TAGS_QUERY_KEY, userId] });
       queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
@@ -57,7 +60,7 @@ export default function TagsSettings() {
   });
 
   const updateTagMutation = useMutation({
-    mutationFn: updateTag,
+    mutationFn: supabaseTagRepository.update,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [...TAGS_QUERY_KEY, userId] });
       queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
@@ -70,7 +73,7 @@ export default function TagsSettings() {
   });
 
   const deleteTagMutation = useMutation({
-    mutationFn: (id: string) => deleteTag(id, userId),
+    mutationFn: (id: string) => supabaseTagRepository.delete(id, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [...TAGS_QUERY_KEY, userId] });
       queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
@@ -89,6 +92,10 @@ export default function TagsSettings() {
   };
 
   const openCreateSheet = () => {
+    if (tagsQuery.isError && !tagsQuery.data) {
+      Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.genericError"));
+      return;
+    }
     if (isTagLimitReached) {
       router.push("/settings/premium");
       return;
@@ -166,13 +173,18 @@ export default function TagsSettings() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
+        {tagsQuery.isError && (
+          <Pressable onPress={() => void tagsQuery.refetch()}>
+            <Text style={{ color: colors.text }}>{t("common.alerts.genericError")} · {t("common.actions.retry")}</Text>
+          </Pressable>
+        )}
         {isLoading && (
           <Text style={[styles.emptyText, { color: colors.textSecondary, fontSize: fontSizes.lg }]}>
             {t("common.status.loading")}
           </Text>
         )}
 
-        {!isLoading && tags.length === 0 && (
+        {!isLoading && !tagsQuery.isError && tags.length === 0 && (
           <View style={[styles.empty, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <SymbolView name="tag" size={34} tintColor={colors.textSecondary} />
             <Text style={[styles.emptyTitle, { color: colors.text, fontSize: fontSizes["2xl"] }]}>

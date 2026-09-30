@@ -28,8 +28,9 @@ import { getStatsImageSource } from "@/lib/imageHelper";
 import { useProfile } from "@/lib/profile";
 import { SCREEN_HEADER_HEIGHT, SCREEN_HEADER_HORIZONTAL_PADDING, SCREEN_HEADER_TITLE_LINE_HEIGHT, SCREEN_HEADER_TOP_OFFSET } from "@/lib/screenHeader";
 import { useSubscription } from "@/lib/subscription";
-import { supabase } from "@/lib/supabase";
-import { buildTagUsageStats, getTagUsageSourceData, TAG_USAGE_STATS_QUERY_KEY, TagUsageBucket } from "@/lib/tags";
+import { supabaseDayRepository } from "@/lib/dayRepository";
+import { buildTagUsageStats, TAG_USAGE_STATS_QUERY_KEY, TagUsageBucket } from "@/lib/tags";
+import { supabaseTagRepository } from "@/lib/tagRepository";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStatsPreferences } from "@/lib/useStatsPreferences";
 import { useQuery } from "@tanstack/react-query";
@@ -164,17 +165,7 @@ export default function Stats() {
     const today = new Date();
     today.setHours(23, 59, 59, 999);
 
-    const { data, error } = await supabase
-      .from("Days")
-      .select("date,total,done_count,late_adjusted_count")
-      .eq("user_id", userId)
-      .lte("date", today.toISOString())
-      .order("date", { ascending: false });
-    if (error) {
-      console.error('Erreur lors de la récupération des jours:', error);
-      return [];
-    }
-    return data;
+    return supabaseDayRepository.listThrough(userId, today.toISOString());
   };
 
   const daysQuery = useQuery({
@@ -240,7 +231,7 @@ export default function Stats() {
       tagStatsDateRange.startDateKey,
       tagStatsDateRange.endDateKey,
     ],
-    queryFn: () => getTagUsageSourceData({
+    queryFn: () => supabaseTagRepository.usageSource({
       startDateKey: tagStatsDateRange.startDateKey,
       endDateKey: tagStatsDateRange.endDateKey,
       userId,
@@ -338,6 +329,11 @@ export default function Stats() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {daysQuery.isError && (
+        <Pressable onPress={() => void daysQuery.refetch()}>
+          <Text style={{ color: colors.text }}>{t("common.alerts.genericError")} · {t("common.actions.retry")}</Text>
+        </Pressable>
+      )}
       <View
         style={{ position: 'absolute', top: 70, right: 30, zIndex: 10, }}
       >

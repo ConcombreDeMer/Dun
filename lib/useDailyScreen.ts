@@ -1,11 +1,17 @@
 import { useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { toDailyDateKey } from './date';
+import { getRestEndStatus, toDailyDateKey } from './date';
+import { supabaseDailyRepository } from './dailyRepository';
+import { supabaseRestRepository } from './restRepository';
+import { supabaseProfileRepository } from './profileRepository';
+import { patchProfileCache } from './profile';
 import { supabase } from './supabase';
 
 export function useDailyScreen(isAuthLoading: boolean, isAuthenticated: boolean) {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const pendingTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
     useEffect(() => {
@@ -18,49 +24,35 @@ export function useDailyScreen(isAuthLoading: boolean, isAuthenticated: boolean)
 
                 const today = toDailyDateKey(new Date());
 
-                const { data: profile, error } = await supabase
-                    .from('Profiles')
-                    .select('last_opened, hasDoneDaily, restMode, restEndDate, dailyEnabled',)
-                    .eq('id', user.id)
-                    .single();
+                const profile = await supabaseProfileRepository.get(
+                    user.id, 'last_opened, hasDoneDaily, restMode, restEndDate, dailyEnabled'
+                );
 
-                if (error) {
-                    console.error('Erreur lors de la récupération du profil:', error);
-                    return;
-                }
-
-                // if (profile.restMode) {
-                //     router.push('/rest');
-                //     return;
-                // }
-
-                if (profile.restEndDate && profile.restEndDate > new Date().toISOString()) {
+                const restStatus = getRestEndStatus(profile.restEndDate, today);
+                if (restStatus === 'active') {
                     router.push('/rest');
                     return;
-                } else if (profile.restEndDate && profile.restEndDate <= new Date().toISOString()) {
-                    // Si la date de fin de pause est passée, on réinitialise le mode pause
-                    await supabase
-                        .from('Profiles')
-                        .update({ restMode: false, restEndDate: null })
-                        .eq('id', user.id);
+                } else if (restStatus === 'expired') {
+                    const currentRestEndDate = await supabaseRestRepository.expireIfPast(user.id, today);
+                    if (getRestEndStatus(currentRestEndDate, today) === 'active') {
+                        router.push('/rest');
+                        return;
+                    }
+                    patchProfileCache(queryClient, user.id, { restMode: false, restEndDate: null });
                 }
 
                 if (profile.last_opened === null) {
                     // Cas du premier lancement de l'app après inscription : on initialise last_opened et on redirige vers le daily
-                    await supabase
-                        .from('Profiles')
-                        .update({ last_opened: today, hasDoneDaily: false })
-                        .eq('id', user.id);
+                    await supabaseDailyRepository.openDay(user.id, today);
+                    patchProfileCache(queryClient, user.id, { last_opened: today, hasDoneDaily: false });
                     router.push('/daily');
                     return;
                 }
 
                 if (profile.last_opened !== today) {
                     // Nouveau jour : on met à jour la date et on reset le booléen
-                    await supabase
-                        .from('Profiles')
-                        .update({ last_opened: today, hasDoneDaily: false })
-                        .eq('id', user.id);
+                    await supabaseDailyRepository.openDay(user.id, today);
+                    patchProfileCache(queryClient, user.id, { last_opened: today, hasDoneDaily: false });
 
                     const timeoutId = setTimeout(() => {
                         router.push('/daily');
@@ -97,5 +89,5 @@ export function useDailyScreen(isAuthLoading: boolean, isAuthenticated: boolean)
             pendingTimeoutsRef.current = [];
             subscription.remove();
         };
-    }, [isAuthLoading, isAuthenticated, router]);
+    }, [isAuthLoading, isAuthenticated, queryClient, router]);
 }

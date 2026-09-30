@@ -4,7 +4,8 @@ import { Alert } from "react-native";
 import { useAuthUserId } from "./AuthSessionContext";
 import { DAYS_QUERY_KEY } from "./daysQueryKeys";
 import { TAG_USAGE_STATS_QUERY_KEY } from "./tags";
-import { clearOptimisticTaskDone, getOptimisticTaskDone, setOptimisticTaskDone, setTaskDone } from "./tasks";
+import { clearOptimisticTaskDone, getOptimisticTaskDone, setOptimisticTaskDone } from "./tasks";
+import { supabaseTaskRepository } from "./taskRepository";
 
 type ToggleTaskDoneOptions = {
   queryKeys: QueryKey[];
@@ -120,7 +121,7 @@ export const useToggleTaskDone = ({
           return;
         }
 
-        await setTaskDone(taskId, desiredDone, userId ?? undefined);
+        await supabaseTaskRepository.setDone(taskId, desiredDone, userId ?? undefined);
         finalSavedDone = desiredDone;
 
         if (desiredDoneByTaskIdRef.current.get(taskId) === desiredDone) {
@@ -154,6 +155,10 @@ export const useToggleTaskDone = ({
         onError?.(taskId, rollbackDone);
       }
 
+      queryKeys.forEach((queryKey) => {
+        void queryClient.invalidateQueries({ queryKey });
+      });
+
       Alert.alert(errorTitle, errorMessage);
     } finally {
       inFlightTaskIdsRef.current = new Set(inFlightTaskIdsRef.current);
@@ -164,6 +169,7 @@ export const useToggleTaskDone = ({
     errorTitle,
     onError,
     onSuccess,
+    queryClient,
     scheduleInvalidate,
     unmarkTaskPending,
     updateTaskDoneEverywhere,

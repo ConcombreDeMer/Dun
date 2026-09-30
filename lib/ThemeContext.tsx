@@ -1,8 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePathname } from 'expo-router';
-import React, { createContext, ReactNode, useCallback, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import { supabase } from './supabase';
+import { supabaseProfileRepository } from './profileRepository';
+import { createSerialMutationQueue } from './serialMutationQueue';
 
 export type Theme = 'light' | 'dark' | 'system';
 export type ColorTheme = 'neutral' | 'sage' | 'ocean' | 'sunset' | 'sand';
@@ -290,9 +292,9 @@ interface ThemeContextType {
     colorTheme: ColorTheme;
     actualTheme: 'light' | 'dark';
     colors: Colors;
-    toggleTheme: () => void;
-    setTheme: (theme: Theme) => void;
-    setColorTheme: (colorTheme: ColorTheme) => void;
+    toggleTheme: () => Promise<void>;
+    setTheme: (theme: Theme) => Promise<void>;
+    setColorTheme: (colorTheme: ColorTheme) => Promise<void>;
     isLoading: boolean;
 }
 
@@ -307,6 +309,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const [theme, setTheme] = useState<Theme>('system');
     const [colorTheme, setColorThemeState] = useState<ColorTheme>('neutral');
     const [isLoading, setIsLoading] = useState(true);
+    const themeQueue = useRef(createSerialMutationQueue());
+    const colorQueue = useRef(createSerialMutationQueue());
     const pathname = usePathname();
     const isOnboarding = pathname?.includes('/onboarding') ?? false;
 
@@ -320,15 +324,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
             
             if (user) {
                 // Charger le thème depuis Supabase
-                const { data, error } = await supabase
-                    .from('Profiles')
-                    .select('display_theme, display_color')
-                    .eq('id', user.id)
-                    .single();
-                
-                if (error) {
-                    console.error('Erreur lors du chargement du thème depuis Supabase:', error);
-                }
+                const data = await supabaseProfileRepository.get(user.id, 'display_theme, display_color');
                 
                 if (data && (data.display_theme === 'light' || data.display_theme === 'dark' || data.display_theme === 'system')) {
                     loadedTheme = data.display_theme as Theme;
@@ -368,56 +364,30 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         loadTheme();
     }, [loadTheme]);
 
-    const saveTheme = async (newTheme: Theme) => {
-        try {
-            // Toujours sauvegarder dans AsyncStorage
-            await AsyncStorage.setItem('theme', newTheme);
-            setTheme(newTheme);
-            
-            // Sauvegarder dans Supabase si l'utilisateur est connecté
-            const { data: { user } } = await supabase.auth.getUser();
-            
-            if (user) {
-                const { error } = await supabase
-                    .from('Profiles')
-                    .update({ display_theme: newTheme })
-                    .eq('id', user.id);
-                
-                if (error) {
-                    console.error('Erreur lors de la sauvegarde du thème dans Supabase:', error);
-                }
-            }
-        } catch (error) {
-            console.error('Erreur lors de la sauvegarde du thème:', error);
-        }
-    };
+    const saveTheme = (newTheme: Theme) => themeQueue.current(async () => {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        if (user) await supabaseProfileRepository.patch(user.id, { display_theme: newTheme });
+        if (user) {
+            try { await AsyncStorage.setItem('theme', newTheme); } catch (storageError) { console.error(storageError); }
+        } else await AsyncStorage.setItem('theme', newTheme);
+        setTheme(newTheme);
+    });
 
     const toggleTheme = () => {
         const newTheme = theme === 'light' ? 'dark' : 'light';
-        saveTheme(newTheme);
+        return saveTheme(newTheme);
     };
 
-    const saveColorTheme = async (newColorTheme: ColorTheme) => {
-        try {
-            await AsyncStorage.setItem('colorTheme', newColorTheme);
-            setColorThemeState(newColorTheme);
-
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (user) {
-                const { error } = await supabase
-                    .from('Profiles')
-                    .update({ display_color: getDatabaseColorTheme(newColorTheme) })
-                    .eq('id', user.id);
-
-                if (error) {
-                    console.error('Erreur lors de la sauvegarde du coloris dans Supabase:', error);
-                }
-            }
-        } catch (error) {
-            console.error('Erreur lors de la sauvegarde du coloris:', error);
-        }
-    };
+    const saveColorTheme = (newColorTheme: ColorTheme) => colorQueue.current(async () => {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        if (user) await supabaseProfileRepository.patch(user.id, { display_color: getDatabaseColorTheme(newColorTheme) });
+        if (user) {
+            try { await AsyncStorage.setItem('colorTheme', newColorTheme); } catch (storageError) { console.error(storageError); }
+        } else await AsyncStorage.setItem('colorTheme', newColorTheme);
+        setColorThemeState(newColorTheme);
+    });
 
     const getActualTheme = (t: Theme): 'light' | 'dark' => {
         if (t === 'system') {

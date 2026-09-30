@@ -10,24 +10,23 @@ import TextCalendarComponent from "@/components/textCalendar";
 import { useAuthUserId } from "@/lib/AuthSessionContext";
 import { toAppDateKey } from "@/lib/date";
 import { useAppTranslation } from "@/lib/i18n";
-import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "@/lib/notificationService";
 import { FREE_DAILY_TASK_LIMIT } from "@/lib/plan";
 import { patchProfileCache, useProfile } from "@/lib/profile";
+import { supabaseProfileRepository } from "@/lib/profileRepository";
 import { useSubscription } from "@/lib/subscription";
-import { supabase } from "@/lib/supabase";
-import { fetchTaskList, type TaskListItem } from "@/lib/tasks";
+import { supabaseTaskRepository, useTaskList } from "@/lib/taskRepository";
 import { useTheme } from "@/lib/ThemeContext";
 import { DEFAULT_CALENDAR_PREFERENCE, useCalendarPreference, type CalendarPreference } from "@/lib/useCalendarPreference";
 import { DEFAULT_PROGRESS_BAR_PREFERENCE, useProgressBarPreference, type ProgressBarPreference } from "@/lib/useProgressBarPreference";
 import { useToggleTaskDone } from "@/lib/useToggleTaskDone";
 import { useStore } from "@/store/store";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReAnimated, { Easing, FadeInUp, FadeOutUp, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -438,7 +437,7 @@ export default function Home() {
   const setStoreUser = useStore((state) => state.setUser);
   const userId = useAuthUserId();
   const profileQuery = useProfile();
-  const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
+  const { query: taskQuery, queryKey: tasksQueryKey } = useTaskList(userId);
   const taskToggleQueryKeys = useMemo(() => [tasksQueryKey], [tasksQueryKey]);
   const { isTaskPending, toggleTaskDone } = useToggleTaskDone({
     queryKeys: taskToggleQueryKeys,
@@ -542,33 +541,7 @@ export default function Home() {
     }
 
     setUserName(profile.name?.trim() || t("settings.root.defaultUserName"));
-
-    const syncReminder = async () => {
-      try {
-        if (profile.alertSetupActive) {
-          const hasPermission = await requestNotificationPermissions();
-          if (hasPermission) {
-            await scheduleDailyReminder(
-              parseInt(`${profile.alertSetupHour ?? 0}`),
-              parseInt(`${profile.alertSetupMinute ?? 0}`)
-            );
-          }
-        } else {
-          await cancelDailyReminder();
-        }
-      } catch (error) {
-        console.error("Erreur lors de la synchronisation des notifications:", error);
-      }
-    };
-
-    syncReminder();
-  }, [
-    profileQuery.data?.alertSetupActive,
-    profileQuery.data?.alertSetupHour,
-    profileQuery.data?.alertSetupMinute,
-    profileQuery.data?.name,
-    t,
-  ]);
+  }, [profileQuery.data, t]);
 
   // const logStoreState = useCallback(() => {
   //   console.log("Store modifié : ", useStore.getState());
@@ -596,18 +569,6 @@ export default function Home() {
 
     setSelectedDate(normalizedStoredDate);
   }, [dateKey, storedDate]);
-
-  const getTasks = async () => {
-    return fetchTaskList(queryClient.getQueryData<TaskListItem[]>(tasksQueryKey) ?? [], userId);
-  }
-
-  const taskQuery = useQuery({
-    queryKey: tasksQueryKey,
-    queryFn: getTasks,
-    enabled: !!userId,
-    gcTime: 1000 * 60 * 30, // 30 minutes de cache
-    staleTime: 1000 * 60 * 15,
-  });
 
   const tasksByDate = useMemo(() => {
     const map = new Map<string, any[]>();
@@ -649,6 +610,7 @@ export default function Home() {
 
 
   const handleDragEnd = useCallback(async ({ data }: { data: any[] }) => {
+    if (!userId) return;
     // Calculer les nouveaux ordres pour correspondre au tri décroissant (le premier élément doit avoir l'ordre le plus élevé)
     const updatedData = data.map((task, index) => ({
       ...task,
@@ -671,34 +633,13 @@ export default function Home() {
 
     // Mettre à jour les ordres individuellement (évite les problèmes RLS avec upsert)
     try {
-      if (!userId) {
-        return;
-      }
-
-      for (const task of changedTasks) {
-        const { error } = await supabase
-          .from("Tasks")
-          .update({ order: task.order })
-          .eq("id", task.id)
-          .eq("user_id", userId);
-
-        if (error) {
-          console.error("Erreur lors de la mise à jour de l'ordre:", error);
-          if (previousTasks) {
-            queryClient.setQueryData(tasksQueryKey, previousTasks);
-          } else {
-            queryClient.invalidateQueries({ queryKey: tasksQueryKey });
-          }
-          return;
-        }
-      }
+      await supabaseTaskRepository.saveOrder(userId, changedTasks);
     } catch (error) {
       console.error("Erreur:", error);
       if (previousTasks) {
         queryClient.setQueryData(tasksQueryKey, previousTasks);
-      } else {
-        queryClient.invalidateQueries({ queryKey: tasksQueryKey });
       }
+      await queryClient.invalidateQueries({ queryKey: tasksQueryKey });
     }
   }, [dateKey, queryClient, tasksQueryKey, userId]);
 
@@ -850,24 +791,16 @@ export default function Home() {
 
   const closeTutorial = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setUserHasSeenTutorial(true);
     try {
-      if (userId) {
-        const { error } = await supabase
-          .from("Profiles")
-          .update({ hasSeenTutorial: true })
-          .eq("id", userId);
-
-        if (error) {
-          console.error('Erreur lors de la mise à jour du profil utilisateur:', error);
-        } else {
-          patchProfileCache(queryClient, userId, { hasSeenTutorial: true });
-        }
-      }
+      if (!userId) throw new Error("Utilisateur non connecté");
+      await supabaseProfileRepository.patch(userId, { hasSeenTutorial: true });
+      patchProfileCache(queryClient, userId, { hasSeenTutorial: true });
+      setUserHasSeenTutorial(true);
     } catch (error) {
       console.error('Erreur lors de la mise à jour du profil utilisateur:', error);
+      Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.genericError"));
     }
-  }, [queryClient, userId]);
+  }, [queryClient, t, userId]);
 
   const handleHorizontalMomentumEnd = useCallback((event: any) => {
     const nextIndex = Math.round(event.nativeEvent.contentOffset.x / windowWidth);
@@ -974,6 +907,14 @@ export default function Home() {
         <ReAnimated.View
           style={[styles.listContainer, listAnimatedStyle]}
         >
+          {taskQuery.isError ? (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 16 }}>
+              <Text style={{ color: colors.text }}>{t("common.alerts.genericError")}</Text>
+              <Pressable accessibilityRole="button" onPress={() => { void taskQuery.refetch(); }}>
+                <Text style={{ color: colors.text }}>{t("common.actions.retry")}</Text>
+              </Pressable>
+            </View>
+          ) : (
           <FlatList
             ref={horizontalListRef}
             data={DAY_PAGER_INDEXES}
@@ -1001,6 +942,7 @@ export default function Home() {
             removeClippedSubviews
             scrollEventThrottle={16}
           />
+          )}
         </ReAnimated.View>
 
         {selectedTask && selectedTaskLayout ? (

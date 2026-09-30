@@ -18,6 +18,7 @@ export type TaskListItem = {
   carried_from_id?: number | null;
   delay_count?: number | null;
   late_adjusted_at?: string | null;
+  last_update_date?: string | null;
   Task_Tags?: { tag_id: string }[];
 };
 
@@ -29,6 +30,13 @@ export type TaskDraftUpdate = {
 };
 
 export type OverdueTaskResolution = "deleted" | "postponed" | "late_completed" | "ignored";
+
+export class TaskCreationUncertainError extends Error {
+  constructor(public readonly createdTaskId: number, reason: string) {
+    super(`Création non confirmée pour la tâche ${createdTaskId}. Vérifie la liste et modifie ses tags avant de réessayer. ${reason}`);
+    this.name = "TaskCreationUncertainError";
+  }
+}
 
 type UpdateTaskDraftOptions = {
   previousDateKey?: string | null;
@@ -145,7 +153,7 @@ export const fetchTaskList = async (cachedTasks: TaskListItem[] = [], userId?: s
 
   if (error) {
     console.error("Erreur lors de la récupération des tâches:", error);
-    return [];
+    throw error;
   }
 
   return applyOptimisticTaskDone(
@@ -182,7 +190,7 @@ export const markTaskLateAdjustedIfResolved = async (taskId: number, userId?: st
     .from("Tasks")
     .update({ late_adjusted_at: lateAdjustedAt })
     .eq("id", taskId)
-    .eq("user_id", resolvedUserId);
+    .eq("user_id", resolvedUserId).select("id").single();
 
   if (error) {
     throw new Error(error.message);
@@ -271,8 +279,16 @@ export const createTask = async ({
   if (tagIds.length) {
     try {
       await setTaskTags(data.id as number, tagIds, resolvedUserId);
-    } catch (error) {
-      console.error("Erreur lors de l'association des tags à la tâche:", error);
+    } catch (tagError) {
+      try {
+        const rollback = await supabase.from("Tasks").delete()
+          .eq("id", data.id).eq("user_id", resolvedUserId).select("id").single();
+        if (rollback.error) throw rollback.error;
+      } catch (rollbackError) {
+        const reason = rollbackError instanceof Error ? rollbackError.message : String(rollbackError);
+        throw new TaskCreationUncertainError(data.id as number, reason);
+      }
+      throw tagError;
     }
   }
 
@@ -310,7 +326,7 @@ export const setTaskDone = async (taskId: number, nextDone: boolean, userId?: st
       ...(lateAdjustedAt ? { late_adjusted_at: lateAdjustedAt } : {}),
     })
     .eq("id", taskId)
-    .eq("user_id", resolvedUserId);
+    .eq("user_id", resolvedUserId).select("id").single();
 
   if (error) {
     throw new Error(error.message);
@@ -387,7 +403,7 @@ export const updateTaskDraft = async (
     .from("Tasks")
     .update(updatePayload)
     .eq("id", taskId)
-    .eq("user_id", resolvedUserId);
+    .eq("user_id", resolvedUserId).select("id").single();
 
   if (error) {
     throw new Error(error.message);
@@ -429,7 +445,7 @@ export const normalizeTaskOrderForDate = async (dateKey: string | null, userId?:
         .from("Tasks")
         .update({ order: nextOrder })
         .eq("id", task.id)
-        .eq("user_id", resolvedUserId);
+        .eq("user_id", resolvedUserId).select("id").single();
 
       if (updateError) {
         throw new Error(updateError.message);
@@ -468,7 +484,7 @@ export const deleteTask = async (taskId: number, userId?: string) => {
         ...(lateAdjustedAt ? { late_adjusted_at: lateAdjustedAt } : {}),
       })
       .eq("id", taskId)
-      .eq("user_id", resolvedUserId);
+      .eq("user_id", resolvedUserId).select("id").single();
 
     if (error) {
       throw new Error(error.message);
@@ -481,7 +497,7 @@ export const deleteTask = async (taskId: number, userId?: string) => {
     .from("Tasks")
     .delete()
     .eq("id", taskId)
-    .eq("user_id", resolvedUserId);
+    .eq("user_id", resolvedUserId).select("id").single();
 
   if (error) {
     throw new Error(error.message);
@@ -525,7 +541,7 @@ export const moveTaskDate = async (taskId: number, dateKey: string | null, userI
       ...(lateAdjustedAt ? { late_adjusted_at: lateAdjustedAt } : {}),
     })
     .eq("id", taskId)
-    .eq("user_id", resolvedUserId);
+    .eq("user_id", resolvedUserId).select("id").single();
 
   if (error) {
     throw new Error(error.message);
@@ -576,7 +592,7 @@ export const resolveOverdueTask = async (
         resolution: "postponed",
       })
       .eq("id", taskId)
-      .eq("user_id", resolvedUserId);
+      .eq("user_id", resolvedUserId).select("id").single();
 
     if (updateError) {
       throw new Error(updateError.message);
@@ -624,7 +640,7 @@ export const resolveOverdueTask = async (
       resolution,
     })
     .eq("id", taskId)
-    .eq("user_id", resolvedUserId);
+    .eq("user_id", resolvedUserId).select("id").single();
 
   if (error) {
     throw new Error(error.message);
@@ -730,7 +746,7 @@ export const syncDaySnapshot = async (dateKey: string, userId?: string) => {
       .from("Days")
       .update({ total, done_count: doneCount, late_adjusted_count: lateAdjustedCount })
       .eq("id", existingDay.id)
-      .eq("user_id", resolvedUserId);
+      .eq("user_id", resolvedUserId).select("id").single();
 
     if (error) {
       throw new Error(error.message);

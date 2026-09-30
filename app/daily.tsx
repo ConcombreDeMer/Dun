@@ -3,7 +3,8 @@ import ExtendedButton from '@/components/extendedButton';
 import PrimaryButton from '@/components/primaryButton';
 import { TaskItem } from '@/components/TaskItem';
 import { useAuthUserId } from '@/lib/AuthSessionContext';
-import { completeDailyReview, deleteDailyPendingTask, getDailyData, postponeDailyPendingTask, setDailyPendingTaskDone, type DailyData, type DailyPendingTask } from '@/lib/daily';
+import { type DailyData, type DailyPendingTask } from '@/lib/daily';
+import { supabaseDailyRepository } from '@/lib/dailyRepository';
 import { dailyCompletionDays as mockDailyCompletionDays, dailyMotivation as mockDailyMotivation, dailyPendingTasks as mockDailyPendingTasks, dailyStreak as mockDailyStreak, dailyUserName as mockDailyUserName, previousDayCompletion as mockPreviousDayCompletion } from '@/lib/dailyMock';
 import { useFont } from '@/lib/FontContext';
 import { useAppTranslation } from '@/lib/i18n';
@@ -226,7 +227,7 @@ export default function DailyScreen() {
     }, []);
 
     const refreshDailyData = useCallback(async (syncPendingTasks = false) => {
-        const nextDailyData = useMock ? getMockDailyData() : await getDailyData(userId);
+        const nextDailyData = useMock ? getMockDailyData() : await supabaseDailyRepository.load(userId);
         setDailyData(nextDailyData);
         setDisplayedStreak(nextDailyData.streak);
 
@@ -255,18 +256,24 @@ export default function DailyScreen() {
     }, []);
 
     const handleDeletePendingTask = useCallback(async (task: { id: number }) => {
-        await runDailyMutation(async () => {
+        try {
+          await runDailyMutation(async () => {
             if (useMock) {
                 removePendingTask(task);
                 return;
             }
 
-            await deleteDailyPendingTask(task.id, userId);
+            await supabaseDailyRepository.deletePendingTask(task.id, userId);
             removePendingTask(task);
             await queryClient.invalidateQueries({ queryKey: ['tasks', userId] });
             await queryClient.invalidateQueries({ queryKey: ['days', userId] });
             await refreshDailyData(true);
-        });
+          });
+        } catch (error) {
+          await queryClient.invalidateQueries({ queryKey: ['tasks', userId] });
+          await refreshDailyData(true).catch(() => {});
+          throw error;
+        }
     }, [queryClient, refreshDailyData, removePendingTask, runDailyMutation, userId]);
 
     const handlePostponePendingTask = useCallback(async (task: { id: number }, targetDateKey: string | null) => {
@@ -274,18 +281,24 @@ export default function DailyScreen() {
             return;
         }
 
-        await runDailyMutation(async () => {
+        try {
+          await runDailyMutation(async () => {
             if (useMock) {
                 removePendingTask(task);
                 return;
             }
 
-            await postponeDailyPendingTask(task.id, targetDateKey, userId);
+            await supabaseDailyRepository.postponePendingTask(task.id, targetDateKey, userId);
             removePendingTask(task);
             await queryClient.invalidateQueries({ queryKey: ['tasks', userId] });
             await queryClient.invalidateQueries({ queryKey: ['days', userId] });
             await refreshDailyData(true);
-        });
+          });
+        } catch (error) {
+          await queryClient.invalidateQueries({ queryKey: ['tasks', userId] });
+          await refreshDailyData(true).catch(() => {});
+          throw error;
+        }
     }, [queryClient, refreshDailyData, removePendingTask, runDailyMutation, userId]);
 
     const handleTogglePendingTask = useCallback((taskId: number, currentDone: boolean) => {
@@ -305,18 +318,20 @@ export default function DailyScreen() {
                 return;
             }
 
-            await setDailyPendingTaskDone(taskId, nextDone, userId);
+            await supabaseDailyRepository.setPendingTaskDone(taskId, nextDone, userId);
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: ['tasks', userId] }),
                 queryClient.invalidateQueries({ queryKey: ['days', userId] }),
             ]);
             await refreshDailyData(false);
         })
-            .catch((error) => {
+            .catch(async (error) => {
                 console.error('Erreur lors de la mise à jour de la tâche daily:', error);
                 setPendingTasks((tasks) => tasks.map((task) =>
                     task.id === taskId ? { ...task, done: currentDone } : task
                 ));
+                await queryClient.invalidateQueries({ queryKey: ['tasks', userId] });
+                await refreshDailyData(true).catch(() => {});
                 Alert.alert(t('common.alerts.errorTitle'), t('daily.updateTaskError'));
             })
             .finally(() => {
@@ -348,7 +363,7 @@ export default function DailyScreen() {
                 return;
             }
 
-            await completeDailyReview(userId);
+            await supabaseDailyRepository.completeReview(userId);
             patchProfileCache(queryClient, userId, { hasDoneDaily: true });
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: ['tasks', userId] }),
@@ -369,7 +384,7 @@ export default function DailyScreen() {
             try {
                 setIsDailyLoading(true);
                 setDailyError(null);
-                const nextDailyData = useMock ? getMockDailyData() : await getDailyData(userId);
+                const nextDailyData = useMock ? getMockDailyData() : await supabaseDailyRepository.load(userId);
 
                 if (!isMounted) {
                     return;

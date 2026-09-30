@@ -21,6 +21,7 @@ import { REQUIRE_PREMIUM_ACCESS } from "@/lib/plan";
 import { patchProfileCache } from "@/lib/profile";
 import { TrialEligibilityStatus, useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
+import { supabaseProfileRepository } from "@/lib/profileRepository";
 import { useStore } from "@/store/store";
 import { useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
@@ -313,16 +314,8 @@ export default function Tutorial() {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user) {
-        const { error } = await supabase
-          .from("Profiles")
-          .update({ hasName: true, name: trimmedName })
-          .eq("id", user.id);
-
-        if (error) {
-          console.error("Erreur lors de la sauvegarde du name dans Supabase:", error);
-        } else {
-          patchProfileCache(queryClient, user.id, { hasName: true, name: trimmedName });
-        }
+        await supabaseProfileRepository.patch(user.id, { hasName: true, name: trimmedName });
+        patchProfileCache(queryClient, user.id, { hasName: true, name: trimmedName });
       }
 
       if (trimmedName) {

@@ -15,9 +15,9 @@ import ReAnimated, {
 } from "react-native-reanimated";
 import { useAuthUserId } from "../lib/AuthSessionContext";
 import { calendarDaysQueryKey } from "../lib/daysQueryKeys";
+import { supabaseDayRepository } from "../lib/dayRepository";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
-import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
 import Squircle from "./Squircle";
 
@@ -169,18 +169,7 @@ export default function TextCalendarComponent({
             return [];
         }
 
-        const { data, error } = await supabase
-            .from("Days")
-            .select("*")
-            .eq("user_id", userId)
-            .order("date", { ascending: true });
-
-        if (error) {
-            console.error("Erreur lors de la récupération des jours:", error);
-            return [];
-        }
-
-        return data;
+        return supabaseDayRepository.listAll(userId);
     };
 
     const daysQuery = useQuery({
@@ -401,6 +390,11 @@ export default function TextCalendarComponent({
 
     return (
         <View style={styles.container}>
+            {daysQuery.isError && (
+                <Pressable onPress={() => void daysQuery.refetch()}>
+                    <Text style={{ color: colors.text }}>{t("common.alerts.genericError")} · {t("common.actions.retry")}</Text>
+                </Pressable>
+            )}
             <View style={styles.topRow}>
                 <Pressable
                     onPress={toggleExpanded}

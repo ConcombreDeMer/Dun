@@ -14,7 +14,8 @@ import { useAppTranslation } from "../lib/i18n";
 import { confirmLateAdjustment, needsLateAdjustmentConfirmation } from "../lib/lateAdjustmentConfirmation";
 import { useProfile } from "../lib/profile";
 import { useSubscription } from "../lib/subscription";
-import { getTags, TAGS_QUERY_KEY } from "../lib/tags";
+import { TAGS_QUERY_KEY } from "../lib/tags";
+import { supabaseTagRepository } from "../lib/tagRepository";
 import { useTheme } from "../lib/ThemeContext";
 import { useOptimisticTaskMutations } from "../lib/useOptimisticTaskMutations";
 import Squircle from "./Squircle";
@@ -127,7 +128,7 @@ export const TaskItem = ({
   const userId = useAuthUserId();
   const { data: tags = [] } = useQuery({
     queryKey: [...TAGS_QUERY_KEY, userId],
-    queryFn: () => getTags(userId),
+    queryFn: () => supabaseTagRepository.list(userId),
     enabled: !!userId,
   });
   const profileQuery = useProfile();
@@ -175,16 +176,19 @@ export const TaskItem = ({
   }, []);
 
   const handleDeleteAfterSwipe = useCallback(() => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const mutation = onDeleteTask
       ? Promise.resolve(onDeleteTask(item))
       : deleteTaskOptimistically(item.id, item);
 
-    void mutation.catch((error: any) => {
+    void mutation.then(() => {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }).catch((error: any) => {
+      itemOpacity.value = withTiming(1, { duration: 180 });
+      translateX.value = withTiming(0, { duration: 180 });
       console.error("Erreur lors de la suppression:", error);
       Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
     });
-  }, [deleteTaskOptimistically, item, onDeleteTask, t]);
+  }, [deleteTaskOptimistically, item, itemOpacity, onDeleteTask, t, translateX]);
 
   const handleSwipeLeft = useCallback(() => {
     void (async () => {
@@ -202,16 +206,19 @@ export const TaskItem = ({
   }, [handleDeleteAfterSwipe, isReadOnly, isTaskDeletePending, item, lockPastDaysEnabled, t, translateX, itemOpacity, screenWidth]);
 
   const moveTaskToDate = useCallback((nextDateKey: string | null) => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const mutation = onMoveTask
       ? Promise.resolve(onMoveTask(item, nextDateKey))
       : moveTaskDateOptimistically(item.id, nextDateKey, item);
 
-    void mutation.catch((error: any) => {
+    void mutation.then(() => {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }).catch((error: any) => {
+      itemOpacity.value = withTiming(1, { duration: 180 });
+      translateX.value = withTiming(0, { duration: 180 });
       console.error("Erreur lors du déplacement:", error);
       Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
     });
-  }, [item, moveTaskDateOptimistically, onMoveTask, t]);
+  }, [item, itemOpacity, moveTaskDateOptimistically, onMoveTask, t, translateX]);
 
   const handleMoveAction = useCallback((targetDateKey: string | null) => {
     void (async () => {

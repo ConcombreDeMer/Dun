@@ -5,7 +5,7 @@ import { parseIntegerInput } from "./notificationLimits";
 import { cancelDailyReminder, scheduleDailyReminder } from "./notificationService";
 import { patchProfileCache, profileQueryKey, useProfile } from "./profile";
 import { useSubscription } from "./subscription";
-import { supabase } from "./supabase";
+import { supabaseProfileRepository } from "./profileRepository";
 import { useTheme } from "./ThemeContext";
 
 const isNeutralColorTheme = (value: string | null | undefined) => {
@@ -56,7 +56,7 @@ export const usePremiumDowngradeCompliance = () => {
     handledSignatureRef.current = signature;
 
     void (async () => {
-      const patch: Record<string, unknown> = {};
+      const patch: { alertInsistanceActive?: boolean; alertWeekendsActive?: boolean } = {};
 
       if (needsNotificationReset) {
         patch.alertInsistanceActive = false;
@@ -70,14 +70,7 @@ export const usePremiumDowngradeCompliance = () => {
         }
 
         if (Object.keys(patch).length > 0) {
-          const { error } = await supabase
-            .from("Profiles")
-            .update(patch)
-            .eq("id", userId);
-
-          if (error) {
-            throw error;
-          }
+          await supabaseProfileRepository.patch(userId, patch);
 
           patchProfileCache(queryClient, userId, {
             alertInsistanceActive: false,
@@ -98,10 +91,10 @@ export const usePremiumDowngradeCompliance = () => {
               minute >= 0 &&
               minute <= 59
             ) {
-              await scheduleDailyReminder(hour, minute, false, "", "", false);
+              await scheduleDailyReminder(userId, hour, minute, false, "", "", false);
             }
           } else {
-            await cancelDailyReminder();
+            await cancelDailyReminder(userId);
           }
         }
 

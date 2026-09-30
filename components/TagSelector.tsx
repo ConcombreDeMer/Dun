@@ -2,7 +2,8 @@ import { useFont } from "@/lib/FontContext";
 import { useAuthUserId } from "@/lib/AuthSessionContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { MAX_TAGS_PER_TASK } from "@/lib/plan";
-import { getActiveTagIdsForPlan, getTags, TAGS_QUERY_KEY, Tag } from "@/lib/tags";
+import { getActiveTagIdsForPlan, TAGS_QUERY_KEY, Tag } from "@/lib/tags";
+import { supabaseTagRepository } from "@/lib/tagRepository";
 import { useTheme } from "@/lib/ThemeContext";
 import { useSubscription } from "@/lib/subscription";
 import { Button as SwiftButton, Host, Menu, RNHostView } from "@expo/ui/swift-ui";
@@ -110,7 +111,7 @@ export default function TagSelector({
   const userId = useAuthUserId();
   const { data: tags = [] } = useQuery({
     queryKey: [...TAGS_QUERY_KEY, userId],
-    queryFn: () => getTags(userId),
+    queryFn: () => supabaseTagRepository.list(userId),
     enabled: !!userId,
   });
   const [exitingTagIds, setExitingTagIds] = useState<string[]>([]);

@@ -10,18 +10,17 @@ import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { SCREEN_HEADER_HEIGHT, SCREEN_HEADER_HORIZONTAL_PADDING, SCREEN_HEADER_TITLE_LINE_HEIGHT } from "@/lib/screenHeader";
 import { useSubscription } from "@/lib/subscription";
-import { supabase } from "@/lib/supabase";
-import { fetchTaskList, type TaskListItem } from "@/lib/tasks";
+import { supabaseTaskRepository, useTaskList } from "@/lib/taskRepository";
 import { useTheme } from "@/lib/ThemeContext";
 import { useToggleTaskDone } from "@/lib/useToggleTaskDone";
 import { useStore } from "@/store/store";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Image, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReAnimated, { Easing, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -45,20 +44,12 @@ export default function Box() {
   const overlayProgress = useSharedValue(0);
   const queryClient = useQueryClient();
   const userId = useAuthUserId();
-  const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
+  const { query: taskQuery, queryKey: tasksQueryKey } = useTaskList(userId);
   const taskToggleQueryKeys = useMemo(() => [tasksQueryKey], [tasksQueryKey]);
   const { isTaskPending, toggleTaskDone } = useToggleTaskDone({
     queryKeys: taskToggleQueryKeys,
     errorTitle: t("common.alerts.errorTitle"),
     errorMessage: t("common.alerts.genericError"),
-  });
-
-  const taskQuery = useQuery({
-    queryKey: tasksQueryKey,
-    queryFn: () => fetchTaskList(queryClient.getQueryData<TaskListItem[]>(tasksQueryKey) ?? [], userId),
-    enabled: !!userId,
-    gcTime: 1000 * 60 * 30,
-    staleTime: 1000 * 60 * 15,
   });
 
   const boxTasks = useMemo(() => {
@@ -136,7 +127,7 @@ export default function Box() {
   }, []);
 
   const handleDragEnd = useCallback(async ({ data }: { data: any[] }) => {
-    if (!canUseTaskBox) {
+    if (!canUseTaskBox || !userId) {
       return;
     }
 
@@ -158,24 +149,14 @@ export default function Box() {
     });
 
     try {
-      for (const task of updatedData) {
-        const { error } = await supabase
-          .from("Tasks")
-          .update({ order: task.order })
-          .eq("id", task.id)
-          .eq("user_id", userId);
-
-        if (error) {
-          throw error;
-        }
-      }
+      await supabaseTaskRepository.saveOrder(userId, updatedData);
     } catch (error) {
       console.error("Erreur lors de la mise à jour de l'ordre de la box:", error);
+      setOptimisticTaskOrder(null);
       if (previousTasks) {
         queryClient.setQueryData(tasksQueryKey, previousTasks);
-      } else {
-        queryClient.invalidateQueries({ queryKey: tasksQueryKey });
       }
+      await queryClient.invalidateQueries({ queryKey: tasksQueryKey });
     }
   }, [canUseTaskBox, queryClient, tasksQueryKey, unlockCustomListAnimationsSoon, userId]);
 
@@ -281,7 +262,14 @@ export default function Box() {
           <SymbolView name="archivebox.fill" size={48} tintColor={colors.textSecondary} style={{ alignSelf: 'center', marginBottom: 20, marginTop: 60 }} />
         </View>
 
-        {taskQuery.isLoading && !canUseTaskBox ? (
+        {taskQuery.isError ? (
+          <View style={styles.loadingContainer}>
+            <Text style={{ color: colors.text }}>{t("common.alerts.genericError")}</Text>
+            <Pressable accessibilityRole="button" onPress={() => { void taskQuery.refetch(); }}>
+              <Text style={{ color: colors.text }}>{t("common.actions.retry")}</Text>
+            </Pressable>
+          </View>
+        ) : taskQuery.isLoading && !canUseTaskBox ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.text} />
           </View>

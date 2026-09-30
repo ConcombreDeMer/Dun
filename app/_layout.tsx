@@ -13,11 +13,13 @@ import { FontProvider } from "../lib/FontContext";
 import { I18nProvider, useAppTranslation, useI18nReady } from "../lib/i18n";
 import { REQUIRE_PREMIUM_ACCESS } from "../lib/plan";
 import { fetchProfile, profileQueryKey } from "../lib/profile";
+import { reconcileReminderOwner, setReminderSessionUser } from "../lib/notificationService";
 import { syncRevenueCatUser } from "../lib/revenuecat";
 import { SubscriptionProvider, useSubscription } from "../lib/subscription";
 import { supabase } from "../lib/supabase";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 import { usePremiumDowngradeCompliance } from "../lib/usePremiumDowngradeCompliance";
+import { useReminderSessionSync } from "../lib/useReminderSessionSync";
 import { useStore } from "../store/store";
 
 Sentry.init({
@@ -61,6 +63,11 @@ const getQueryClient = () => {
 
 function PremiumDowngradeCompliance() {
   usePremiumDowngradeCompliance();
+  return null;
+}
+
+function ReminderSessionSync() {
+  useReminderSessionSync();
   return null;
 }
 
@@ -152,6 +159,7 @@ function RootLayoutContent() {
   // Initialiser l'authentification et écouter les changements
   useEffect(() => {
     let authListener: any = null;
+    let sawAuthEvent = false;
 
     const initAuth = async () => {
       // Essayer de récupérer la session existante
@@ -162,6 +170,11 @@ function RootLayoutContent() {
       }
 
       const session = sessionData?.session ?? null;
+      if (sawAuthEvent) return;
+      setReminderSessionUser(session?.user.id ?? null);
+      void reconcileReminderOwner(session?.user.id ?? null).catch((error) => {
+        console.error("Échec du nettoyage des rappels au démarrage:", error);
+      });
       setSession(session);
       setIsAuthLoading(false);
     };
@@ -170,6 +183,12 @@ function RootLayoutContent() {
     initAuth();
 
     const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      sawAuthEvent = true;
+      const nextUserId = newSession?.user.id ?? null;
+      setReminderSessionUser(nextUserId);
+      void reconcileReminderOwner(nextUserId).catch((error) => {
+        console.error("Échec du nettoyage des rappels au changement de compte:", error);
+      });
       setSession(newSession ?? null);
       setIsAuthLoading(false);
 
@@ -242,6 +261,7 @@ function RootLayoutContent() {
     <QueryClientProvider client={queryClient}>
       <AuthSessionProvider userId={userId}>
         <SubscriptionProvider appUserID={userId}>
+          <ReminderSessionSync />
           <PremiumDowngradeCompliance />
           <PremiumAccessGate hasCompletedOnboarding={Boolean(session) && hasCompletedOnboarding} />
 

@@ -5,9 +5,12 @@ import SecondaryButton from "@/components/secondaryButton";
 import Squircle from "@/components/Squircle";
 import SwitchItem from "@/components/switchItem";
 import { useFont } from "@/lib/FontContext";
+import { toAppDateKey } from "@/lib/date";
 import { useAppTranslation } from "@/lib/i18n";
 import { getCharacterImageSource } from "@/lib/imageHelper";
 import { patchProfileCache } from "@/lib/profile";
+import { supabaseProfileRepository } from "@/lib/profileRepository";
+import { supabaseRestRepository } from "@/lib/restRepository";
 import { SCREEN_HEADER_HEIGHT, SCREEN_HEADER_HORIZONTAL_PADDING, SCREEN_HEADER_TITLE_LINE_HEIGHT, SCREEN_HEADER_TOP_OFFSET } from "@/lib/screenHeader";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
@@ -87,17 +90,13 @@ export default function Settings() {
 
     const fetchInformation = async () => {
         if (user) {
-            const { data, error } = await supabase
-                .from("Profiles")
-                .select("dailyEnabled, lockPastDaysEnabled")
-                .eq("id", user.id)
-                .single();
-            if (error) {
-                console.error("Erreur lors de la récupération des informations de l'utilisateur:", error);
-            } else {
+            try {
+                const data = await supabaseProfileRepository.get(user.id, "dailyEnabled, lockPastDaysEnabled");
                 console.log("Informations de l'utilisateur récupérées:", data);
-                setDailyEnabled(data.dailyEnabled);
+                setDailyEnabled(data.dailyEnabled ?? false);
                 setLockPastDaysEnabled(data.lockPastDaysEnabled ?? true);
+            } catch (error) {
+                console.error("Erreur lors de la récupération des informations de l'utilisateur:", error);
             }
         }
     };
@@ -110,20 +109,16 @@ export default function Settings() {
 
     const updateDaily = useCallback(async (value: boolean) => {
         if (user) {
-            setDailyEnabled(value);
-            const { error } = await supabase
-                .from("Profiles")
-                .update({ dailyEnabled: value })
-                .eq("id", user.id);
-            if (error) {
-                console.error("Erreur lors de la mise à jour des informations de l'utilisateur:", error);
-                setDailyEnabled(!value);
-            } else {
+            try {
+                await supabaseProfileRepository.patch(user.id, { dailyEnabled: value });
+                setDailyEnabled(value);
                 patchProfileCache(queryClient, user.id, { dailyEnabled: value });
-                console.log("Informations de l'utilisateur mises à jour avec succès");
+            } catch (error) {
+                console.error("Erreur lors de la mise à jour du Daily:", error);
+                Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.genericError"));
             }
         }
-    }, [queryClient, user]);
+    }, [queryClient, t, user]);
 
     const toggleDaily = async (value: boolean) => {
         if (!value && !isPremium) {
@@ -137,20 +132,16 @@ export default function Settings() {
 
     const updatePastDaysLock = useCallback(async (value: boolean) => {
         if (user) {
-            setLockPastDaysEnabled(value);
-            const { error } = await supabase
-                .from("Profiles")
-                .update({ lockPastDaysEnabled: value })
-                .eq("id", user.id);
-            if (error) {
-                console.error("Erreur lors de la mise à jour du verrouillage des jours passés:", error);
-                setLockPastDaysEnabled(!value);
-            } else {
+            try {
+                await supabaseProfileRepository.patch(user.id, { lockPastDaysEnabled: value });
+                setLockPastDaysEnabled(value);
                 patchProfileCache(queryClient, user.id, { lockPastDaysEnabled: value });
-                console.log("Verrouillage des jours passés mis à jour avec succès");
+            } catch (error) {
+                console.error("Erreur lors de la mise à jour du verrouillage des jours passés:", error);
+                Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.genericError"));
             }
         }
-    }, [queryClient, user]);
+    }, [queryClient, t, user]);
 
     const togglePastDaysLock = async (value: boolean) => {
         if (!value && !isPremium) {
@@ -202,31 +193,17 @@ export default function Settings() {
     }, [dailyEnabled, isPremium, isSubscriptionLoading, updateDaily, user]);
 
     const handleRestMode = async () => {
-        // setShowReposModal(false);
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { error } = await supabase
-                    .from('Profiles')
-                    .update({ restMode: true, restEndDate: tomorrow })
-                    .eq('id', user.id);
-
-                if (error) {
-                    console.error("Erreur lors de la mise à jour de hasDoneDaily:", error);
-                } else {
-                    patchProfileCache(queryClient, user.id, {
-                        restMode: true,
-                        restEndDate: tomorrow.toISOString(),
-                    });
-                }
-            }
-        } catch (error) {
-            console.error(error);
-        } finally {
+            if (!user) throw new Error("Utilisateur non connecté");
+            const restEndDate = toAppDateKey(new Date());
+            await supabaseRestRepository.setEndDate(user.id, restEndDate);
+            patchProfileCache(queryClient, user.id, { restMode: true, restEndDate });
             setShowReposModal(false);
             router.push('/rest');
+        } catch (error) {
+            console.error(error);
+            Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.genericError"));
         }
     }
 

@@ -7,8 +7,8 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { SquircleView } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
-import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { useAppTranslation } from "@/lib/i18n";
 import {
     NOTIFICATION_REMINDER_LIMITS,
@@ -16,16 +16,23 @@ import {
     parseIntegerInput,
     sanitizeNumericInput,
 } from "@/lib/notificationLimits";
-import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "@/lib/notificationService";
+import { cancelDailyReminder, hasPendingDailyReminder, markReminderSyncPending, requestNotificationPermissions, scheduleDailyReminder, syncDailyReminderForProfile } from "@/lib/notificationService";
 import { useSubscription } from "@/lib/subscription";
+import { patchProfileCache } from "@/lib/profile";
+import { supabaseProfileRepository } from "@/lib/profileRepository";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
-import { useStore } from "@/store/store";
+import { useAuthUserId } from "@/lib/AuthSessionContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 export default function NotificationsSettings() {
 
-    const store = useStore();
+    const userId = useAuthUserId();
+    const activeUserIdRef = useRef(userId);
+    activeUserIdRef.current = userId;
+    const savingRef = useRef(false);
+    const queryClient = useQueryClient();
     const router = useRouter();
     const { t } = useAppTranslation();
     const { colors } = useTheme();
@@ -35,6 +42,7 @@ export default function NotificationsSettings() {
         isLoading: isSubscriptionLoading,
     } = useSubscription();
     const [isLoading, setIsLoading] = useState(true);
+    const [profileLoaded, setProfileLoaded] = useState(false);
 
 
     const [initialAlertHour, setInitialAlertHour] = useState('');
@@ -57,6 +65,8 @@ export default function NotificationsSettings() {
     const [weekendEnabled, setWeekendEnabled] = useState(false);
     
     const [isModified, setIsModified] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [syncPending, setSyncPending] = useState(false);
 
     const normalizeInsistanceDelais = (value: string | number | null | undefined) =>
         normalizeIntegerInput(
@@ -74,8 +84,12 @@ export default function NotificationsSettings() {
 
 
     useEffect(() => {
-        initAlertSettings();
-    }, []);
+        setIsLoading(true);
+        setProfileLoaded(false);
+        setSyncPending(false);
+        if (userId && !isSubscriptionLoading) void initAlertSettings(userId);
+        else if (!userId) setIsLoading(false);
+    }, [userId, isSubscriptionLoading]);
 
     useEffect(() => {
         if (isSubscriptionLoading) {
@@ -97,37 +111,43 @@ export default function NotificationsSettings() {
         weekendEnabled,
     ]);
 
-    const initAlertSettings = async () => {
-        const { data, error } = await supabase
-            .from('Profiles')
-            .select('alertSetupHour, alertSetupMinute, alertSetupActive, alertInsistanceActive, alertInsistanceDelais, alertInsistanceRepetitions, alertWeekendsActive')
-            .eq('id', store.user.id)
-            .single();
-
-        if (error) {
-            console.error("Erreur lors de la récupération des préférences de notification:", error);
-        } else if (data) {
-
+    const initAlertSettings = async (currentUserId: string) => {
+        try {
+            const data = await supabaseProfileRepository.get(
+                currentUserId,
+                'alertSetupHour, alertSetupMinute, alertSetupActive, alertInsistanceActive, alertInsistanceDelais, alertInsistanceRepetitions, alertWeekendsActive'
+            );
+            if (currentUserId !== activeUserIdRef.current) return;
+            setProfileLoaded(true);
             const nextInsistanceDelais = normalizeInsistanceDelais(data.alertInsistanceDelais);
             const nextInsistanceRepetitions = normalizeInsistanceRepetitions(data.alertInsistanceRepetitions);
-
-            setInitialAlertHour(data.alertSetupHour || '');
-            setInitialAlertMinute(data.alertSetupMinute || '');
+            setInitialAlertHour(data.alertSetupHour?.toString() || '');
+            setInitialAlertMinute(data.alertSetupMinute?.toString() || '');
             setInitialAlertsEnabled(data.alertSetupActive || false);
             setInitialInsistanceEnabled(data.alertInsistanceActive || false);
             setInitialInsistanceDelais(nextInsistanceDelais);
             setInitialInsistanceRepetitions(nextInsistanceRepetitions);
             setInitialWeekendEnabled(data.alertWeekendsActive || false);
-
-            setAlertHour(data.alertSetupHour || '');
-            setAlertMinute(data.alertSetupMinute || '');
+            setAlertHour(data.alertSetupHour?.toString() || '');
+            setAlertMinute(data.alertSetupMinute?.toString() || '');
             setAlertsEnabled(data.alertSetupActive || false);
             setInsistanceEnabled(data.alertInsistanceActive || false);
             setInsistanceDelais(nextInsistanceDelais);
             setInsistanceRepetitions(nextInsistanceRepetitions);
             setWeekendEnabled(data.alertWeekendsActive || false);
+            await syncDailyReminderForProfile(currentUserId, {
+                ...data,
+                alertInsistanceActive: canUseNotificationReminders && Boolean(data.alertInsistanceActive),
+            });
+            setSyncPending(await hasPendingDailyReminder(currentUserId));
+        } catch (error) {
+            if (currentUserId !== activeUserIdRef.current) return;
+            setSyncPending(true);
+            console.error("Erreur lors de la récupération des préférences de notification:", error);
+            Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.genericError"));
+        } finally {
+            if (currentUserId === activeUserIdRef.current) setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
 
@@ -145,6 +165,8 @@ export default function NotificationsSettings() {
 
 
     const save = async () => {
+        if (savingRef.current || isLoading || !profileLoaded || !userId) return;
+        const savingUserId = userId;
         const nextInsistanceEnabled = canUseNotificationReminders ? insistanceEnabled : false;
         const nextWeekendEnabled = canUseNotificationWeekends ? weekendEnabled : false;
         const hourNum = parseIntegerInput(alertHour);
@@ -192,10 +214,14 @@ export default function NotificationsSettings() {
             ? `${repetitionsNum}`
             : normalizeInsistanceRepetitions(insistanceRepetitions);
 
-        // Envoyer les préférences de notification à Supabase
-        const { error: updateError } = await supabase
-            .from('Profiles')
-            .update({ 
+        savingRef.current = true;
+        setIsSaving(true);
+        try {
+            if (alertsEnabled) {
+                const hasPermission = await requestNotificationPermissions();
+                if (!hasPermission) throw new Error("Notifications non autorisées");
+            }
+            const patch = {
                 alertSetupHour: alertHour, 
                 alertSetupMinute: alertMinute, 
                 alertSetupActive: alertsEnabled,
@@ -203,16 +229,19 @@ export default function NotificationsSettings() {
                 alertInsistanceDelais: nextInsistanceDelais,
                 alertInsistanceRepetitions: nextInsistanceRepetitions,
                 alertWeekendsActive: nextWeekendEnabled
-            })
-            .eq('id', store.user.id);
-        if (updateError) {
-            console.error("Erreur lors de la mise à jour de l'heure de notification:", updateError);
-        }
-        // Mettre à jour les notifications sur l'appareil
-        if (alertsEnabled) {
-            const hasPermission = await requestNotificationPermissions();
-            if (hasPermission && hourNum !== null && minuteNum !== null) {
+            };
+            await markReminderSyncPending(savingUserId);
+            await supabaseProfileRepository.patch(savingUserId, patch);
+            patchProfileCache(queryClient, savingUserId, patch);
+            const { data: { user: currentUser }, error: sessionError } = await supabase.auth.getUser();
+            if (sessionError) throw sessionError;
+            if (currentUser?.id !== savingUserId || activeUserIdRef.current !== savingUserId) {
+                throw new Error("Compte modifié pendant l'enregistrement des rappels");
+            }
+            if (alertsEnabled) {
+                if (hourNum !== null && minuteNum !== null) {
                 await scheduleDailyReminder(
+                    savingUserId,
                     hourNum,
                     minuteNum,
                     nextInsistanceEnabled,
@@ -220,10 +249,11 @@ export default function NotificationsSettings() {
                     nextInsistanceRepetitions,
                     nextWeekendEnabled
                 );
+                }
+            } else {
+                await cancelDailyReminder(savingUserId);
             }
-        } else {
-            await cancelDailyReminder();
-        }
+            setSyncPending(false);
         // Mettre à jour les valeurs initiales pour refléter les nouvelles préférences
         setInitialAlertHour(alertHour);
         setInitialAlertMinute(alertMinute);
@@ -237,6 +267,15 @@ export default function NotificationsSettings() {
         setInsistanceRepetitions(nextInsistanceRepetitions);
         setWeekendEnabled(nextWeekendEnabled);
         setIsModified(false);
+        } catch (error) {
+            if (activeUserIdRef.current !== savingUserId) return;
+            setSyncPending(true);
+            console.error("Erreur lors de l'enregistrement des notifications:", error);
+            Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.genericError"));
+        } finally {
+            savingRef.current = false;
+            setIsSaving(false);
+        }
     };
 
     const toggleNotifications = async () => {
@@ -519,7 +558,7 @@ export default function NotificationsSettings() {
                 title={t("common.actions.save")}
                 onPress={save}
                 style={{ width: '90%', alignSelf: 'center', marginTop: 30 }}
-                disabled={!isModified}
+                disabled={(!isModified && !syncPending) || isSaving || isLoading || !profileLoaded || !userId}
             />
 
 

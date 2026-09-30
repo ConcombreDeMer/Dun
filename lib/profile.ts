@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useAuthUserId } from "./AuthSessionContext";
-import { supabase } from "./supabase";
+import { supabaseProfileRepository } from "./profileRepository";
 
 export type ProfilePreferencesRow = {
   id: string;
@@ -27,6 +27,7 @@ export type ProfilePreferencesRow = {
   display_theme: string | null;
   display_color: string | null;
   display_font: string | null;
+  language: string | null;
   stats_include_today: boolean | null;
   stats_include_following: boolean | null;
   stats_include_empty: boolean | null;
@@ -61,6 +62,7 @@ export const PROFILE_SELECT_COLUMNS = [
   "display_theme",
   "display_color",
   "display_font",
+  "language",
   "stats_include_today",
   "stats_include_following",
   "stats_include_empty",
@@ -68,17 +70,7 @@ export const PROFILE_SELECT_COLUMNS = [
 ].join(", ");
 
 export const fetchProfile = async (userId: string) => {
-  const { data, error } = await supabase
-    .from("Profiles")
-    .select(PROFILE_SELECT_COLUMNS)
-    .eq("id", userId)
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data as unknown as ProfilePreferencesRow;
+  return supabaseProfileRepository.get(userId, PROFILE_SELECT_COLUMNS);
 };
 
 export const patchProfileCache = (
@@ -115,18 +107,8 @@ export const useUpdateProfile = () => {
 
   return useMutation({
     mutationFn: async (patch: Partial<Omit<ProfilePreferencesRow, "id">>) => {
-      if (!userId) {
-        return;
-      }
-
-      const { error } = await supabase
-        .from("Profiles")
-        .update(patch)
-        .eq("id", userId);
-
-      if (error) {
-        throw error;
-      }
+      if (!userId) throw new Error("Utilisateur non connecté");
+      await supabaseProfileRepository.patch(userId, patch);
     },
     onMutate: async (patch) => {
       await queryClient.cancelQueries({ queryKey });
@@ -142,6 +124,9 @@ export const useUpdateProfile = () => {
       if (context?.previousProfile) {
         queryClient.setQueryData(queryKey, context.previousProfile);
       }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey });
     },
   });
 };
