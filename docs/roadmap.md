@@ -7,6 +7,16 @@ Cette roadmap applique l'offre décrite dans [`offre-commerciale-v1-pour-agents.
 - Personne n'utilise l'app aujourd'hui, donc aucune donnée réelle n'est à préserver. L'étape « les personnes ayant déjà un compte choisissent un nouvel objectif lors de la migration » de l'offre devient sans objet ; on peut la retirer du document commercial ou la laisser comme cas théorique.
 - La journée se clôt à minuit partout : Daily, objectif et statistiques suivent la même règle.
 
+## État d'avancement
+
+- **Phase en cours** : 0 — Assainir.
+- **Dernière étape terminée** : [P0-00 — Workflow des agents](etapes/P0-00-workflow-agents.md).
+- **Prochaine étape** : la première case non cochée de la phase 0.
+
+Cette section est mise à jour à la fin de chaque étape par l'agent principal (voir [Workflow](#workflow)).
+
+---
+
 **Durée estimée : environ 15 semaines.** Les estimations servent à prioriser, pas à s'engager : chaque phase a un critère de fin vérifiable, et c'est ce critère qui compte.
 
 | Phase | Contenu | Semaines |
@@ -80,12 +90,8 @@ src/
 
 ### Documentation et Git
 - [ ] Réécrire le README : installation, commandes, architecture réelle, environnements.
-- [ ] Créer `AGENTS.md` : conventions, commandes de vérification, interdits (pas d'accès direct à Supabase dans un écran, pas d'`any`, pas de règle métier hors de `domain/`), définition de « terminé ».
-- [ ] Créer `docs/conventions.md` :
-  - fichiers de composants en PascalCase, hooks en `useCamelCase`, routes en kebab-case ;
-  - SQL en snake_case ;
-  - commits conventionnels (`feat`, `fix`, `refactor`, `docs`, `test`, `chore`) ;
-  - branches `type/sujet`.
+- [x] Écrire les instructions des agents et les conventions dans `CLAUDE.md`, avec le skill `/etape-suivante` et le sous-agent `implementeur` → [P0-00](etapes/P0-00-workflow-agents.md)
+- [ ] Mettre à jour la section « Vérification » de `CLAUDE.md` une fois `npm run check` créé.
 - [ ] Supprimer les branches fusionnées ou abandonnées : `codex/*`, `create-task-v2`, `create-task-v3`, etc. Archiver par un tag celles qu'on veut garder pour mémoire.
 
 **Terminé quand :** la CI est verte sur `master` et `npm run check` passe sans aucun avertissement.
@@ -120,7 +126,7 @@ src/
 
 ### Tâches et statistiques
 - [ ] Verrouillage des jours passés (activable) : quelles actions sont permises sur une tâche d'un jour clos.
-- [ ] **Une seule sémantique pour « reporter »** : déplacer la tâche et incrémenter `delay_count`. Écrire la décision dans `docs/conventions.md`.
+- [ ] **Une seule sémantique pour « reporter »** : déplacer la tâche et incrémenter `delay_count`. Écrire la décision dans `CLAUDE.md`.
 - [ ] Statistiques de la semaine, du mois et de l'année : complétion, charge, journées parfaites, série. Les périodes sont identifiées par `week | month | year`, plus par des libellés.
 
 **Terminé quand :** chaque puce des sections « Objectif, journées et Repos » de l'offre correspond à au moins un test nommé d'après elle, et la couverture de `src/domain` est de 100 %.
@@ -265,28 +271,25 @@ Aucun utilisateur à préserver : on repart de zéro dans le projet prod.
 
 ---
 
-## Nouveau workflow
+## Workflow
 
-### Organisation
-- **Une tâche = une issue GitHub** dans un tableau Project avec les colonnes À faire / En cours / En revue / Fait. Chaque issue a un critère d'acceptation qui renvoie, quand c'est pertinent, à une ligne de l'offre.
-- **Un jalon par phase.** Une phase ne commence que lorsque le critère de fin de la précédente est atteint.
+La procédure détaillée est dans le skill [`/etape-suivante`](../.claude/skills/etape-suivante/SKILL.md). Les règles permanentes sont dans [`CLAUDE.md`](../CLAUDE.md).
+
+### Une étape, de bout en bout
+1. **Plan.** `/etape-suivante` : l'agent principal lit cette roadmap et le dernier fichier d'étape, choisit la prochaine étape (de la taille d'une PR) et soumet un plan à Yanis.
+2. **Préparation.** Une fois le plan validé, l'agent crée la branche et le fichier d'étape dans [`docs/etapes/`](etapes/README.md).
+3. **Implémentation.** Le sous-agent `implementeur` réalise le plan.
+4. **Revue.** L'agent principal relit le diff, relance lui-même la vérification et classe chaque problème en bloquant ou non bloquant.
+5. **Correction.** S'il reste un problème bloquant, le même sous-agent corrige, puis une nouvelle revue a lieu. Au bout de 3 tours, Yanis est consulté.
+6. **Documentation.** L'agent principal met à jour le fichier d'étape et cette roadmap **dans la même branche**, puis résume la situation et donne la commande de commit.
+7. **Publication.** Yanis teste, commite, pousse, ouvre et fusionne la PR. L'étape suivante part du `master` à jour.
+
+### Règles
+- **Une étape à la fois.** On ne lance pas l'étape suivante tant que la PR précédente n'est pas fusionnée.
+- **Un jalon par phase.** Une phase ne commence que lorsque le critère « Terminé quand » de la précédente est atteint.
+- **Les règles métier commencent par les tests**, tirés de l'offre.
+- **Toute décision produit est écrite** dans l'offre, cette roadmap ou un fichier d'étape, jamais seulement dans une conversation.
+- **Commits conventionnels, une PR par étape, CI verte avant fusion** (dès que la CI existe). La fusion se fait en squash.
 - **Un build TestFlight interne à la fin de chaque phase**, testé sur un vrai iPhone.
 
-### Git
-- Une branche courte par issue (`feat/box-sans-limite`, `refactor/domain-streak`), avec des commits conventionnels.
-- Une **PR même en solo**. Elle est relue avec `/code-review`, et la CI doit être verte pour fusionner. Fusion en squash pour garder un historique lisible.
-- Supprimer la branche après la fusion.
-- Yanis commite, pousse et ouvre les PR lui-même. Les agents préparent le travail et fournissent la commande de commit.
-
-### Travail avec les agents IA
-- **Un agent à la fois sur un périmètre donné**, en partant d'`AGENTS.md` et de l'issue. Pas de branches parallèles qui touchent les mêmes fichiers.
-- **Les règles métier commencent par les tests.** L'agent écrit d'abord les tests tirés de l'offre, Yanis les valide, puis l'agent écrit le code.
-- **Un agent ne déclare une tâche terminée qu'après `npm run check`.**
-- **Toute décision produit nouvelle va dans le document d'offre ou dans `docs/`**, jamais seulement dans une conversation.
-
-### Définition de « terminé »
-- [ ] Le critère d'acceptation de l'issue est atteint.
-- [ ] Les tests sont ajoutés ou mis à jour, et `npm run check` passe.
-- [ ] Il n'y a aucun accès direct au stockage depuis un écran, et aucun `any` nouveau.
-- [ ] Les textes sont en FR et en EN dans `locales/`.
-- [ ] La fonction a été testée sur simulateur, en clair et en sombre.
+La définition de « terminé » est dans [`CLAUDE.md`](../CLAUDE.md#définition-de--terminé-).
