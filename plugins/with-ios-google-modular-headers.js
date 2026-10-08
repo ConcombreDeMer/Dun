@@ -8,6 +8,7 @@ const GOOGLE_UTILITIES_POD =
 const RECAPTCHA_INTEROP_POD =
   "  pod 'RecaptchaInterop', :modular_headers => true";
 
+/** @type {import('@expo/config-plugins').ConfigPlugin} */
 module.exports = function withIosGoogleModularHeaders(config) {
   return withDangerousMod(config, [
     "ios",

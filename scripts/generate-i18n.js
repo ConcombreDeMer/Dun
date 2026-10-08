@@ -17,7 +17,7 @@ const resources = files.reduce((acc, file) => {
     translation: yaml.load(contents),
   };
   return acc;
-}, {});
+}, /** @type {Record<string, { translation: unknown }>} */ ({}));
 
 const generated = `export const resources = ${JSON.stringify(resources, null, 2)} as const;\n\nexport type ResourceLanguage = keyof typeof resources;\n`;
 

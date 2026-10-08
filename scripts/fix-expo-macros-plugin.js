@@ -47,7 +47,7 @@ try {
     process.exit(0);
   }
 } catch (error) {
-  if (error.code !== "ENOENT") {
+  if (/** @type {NodeJS.ErrnoException} */ (error).code !== "ENOENT") {
     throw error;
   }
 }

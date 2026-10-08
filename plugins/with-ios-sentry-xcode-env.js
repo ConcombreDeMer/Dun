@@ -11,6 +11,7 @@ fi
 
 `;
 
+/** @type {import('@expo/config-plugins').ConfigPlugin} */
 module.exports = function withIosSentryXcodeEnv(config) {
   config = withDangerousMod(config, [
     "ios",

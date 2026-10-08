@@ -6,11 +6,18 @@
       "@/*": [
         "./*"
       ]
-    }
+    },
+    "noEmit": true
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "lib/**/*.ts",
+    "lib/**/*.tsx",
+    "store/**/*.ts",
+    "test-swipe.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
   ]
