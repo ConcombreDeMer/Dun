@@ -8,20 +8,33 @@ module.exports = defineConfig([
     ignores: ['dist/*'],
     rules: {
       /*
-       * Expo currently pulls in the broader React Hooks lint set, including
-       * React Compiler-oriented rules. This app is not compiled with React
-       * Compiler yet, and these rules produce noisy false positives for common
-       * React Native/Reanimated patterns such as SharedValue `.value` writes
-       * and Animated.Value refs.
+       * Expo pulls in the broader React Hooks lint set, including the
+       * React Compiler-oriented rules. React Compiler IS enabled in this app
+       * (`app.json`, `experiments.reactCompiler: true`).
        *
-       * Keep the two hook correctness rules enabled through expoConfig, but
-       * disable the compiler-only checks until the toolchain can understand
-       * these React Native patterns reliably.
+       * These compiler-oriented rules stay disabled because they produce
+       * false positives on common React Native / Reanimated patterns, such as
+       * SharedValue `.value` writes and Animated.Value refs, not because the
+       * compiler is missing.
+       *
+       * The two hook correctness rules (`rules-of-hooks`, `exhaustive-deps`)
+       * stay enabled through expoConfig.
        */
       'react-hooks/immutability': 'off',
       'react-hooks/refs': 'off',
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/static-components': 'off',
+    },
+  },
+  {
+    /*
+     * App code must log through `lib/logger.ts`, which only writes in
+     * development (`__DEV__`).
+     */
+    files: ['app/**', 'components/**', 'lib/**', 'store/**'],
+    ignores: ['lib/logger.ts'],
+    rules: {
+      'no-console': 'error',
     },
   },
 ]);

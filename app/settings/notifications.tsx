@@ -21,6 +21,7 @@ import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStore } from "@/store/store";
+import { logger } from "@/lib/logger";
 
 
 export default function NotificationsSettings() {
@@ -75,6 +76,7 @@ export default function NotificationsSettings() {
 
     useEffect(() => {
         initAlertSettings();
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only fetch; initAlertSettings is recreated on every render, adding it would refetch in a loop
     }, []);
 
     useEffect(() => {
@@ -105,7 +107,7 @@ export default function NotificationsSettings() {
             .single();
 
         if (error) {
-            console.error("Erreur lors de la récupération des préférences de notification:", error);
+            logger.error("Erreur lors de la récupération des préférences de notification:", error);
         } else if (data) {
 
             const nextInsistanceDelais = normalizeInsistanceDelais(data.alertInsistanceDelais);
@@ -141,7 +143,22 @@ export default function NotificationsSettings() {
             insistanceRepetitions !== initialInsistanceRepetitions ||
             weekendEnabled !== initialWeekendEnabled;
         setIsModified(modified);
-    }, [alertHour, alertMinute, alertsEnabled, insistanceEnabled, insistanceDelais, insistanceRepetitions, weekendEnabled]);
+    }, [
+        alertHour,
+        alertMinute,
+        alertsEnabled,
+        insistanceEnabled,
+        insistanceDelais,
+        insistanceRepetitions,
+        weekendEnabled,
+        initialAlertHour,
+        initialAlertMinute,
+        initialAlertsEnabled,
+        initialInsistanceEnabled,
+        initialInsistanceDelais,
+        initialInsistanceRepetitions,
+        initialWeekendEnabled,
+    ]);
 
 
     const save = async () => {
@@ -206,7 +223,7 @@ export default function NotificationsSettings() {
             })
             .eq('id', store.user.id);
         if (updateError) {
-            console.error("Erreur lors de la mise à jour de l'heure de notification:", updateError);
+            logger.error("Erreur lors de la mise à jour de l'heure de notification:", updateError);
         }
         // Mettre à jour les notifications sur l'appareil
         if (alertsEnabled) {

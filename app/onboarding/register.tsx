@@ -1,6 +1,5 @@
 import PrimaryButton from '@/components/primaryButton';
 import SimpleInput from '@/components/textInput';
-import { useFont } from '@/lib/FontContext';
 import { getCharacterImageSource, getImageSource } from '@/lib/imageHelper';
 import * as Haptics from "expo-haptics";
 import { useRouter } from 'expo-router';
@@ -22,16 +21,14 @@ import Animated, {
 import { useAppTranslation } from '../../lib/i18n';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../lib/ThemeContext';
+import { logger } from "@/lib/logger";
 
 
 export default function Register() {
 
-  const LottieView = require("lottie-react-native").default;
   const router = useRouter();
   const { colors, actualTheme } = useTheme();
   const { t } = useAppTranslation();
-  const [showForm, setShowForm] = useState(false);
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -40,7 +37,6 @@ export default function Register() {
   const [errorMessage, setErrorMessage] = useState('');
   const [page, setPage] = useState(0);
   const styles = createStyles(colors);
-  const { fontSizes } = useFont();
 
 
   const inputAnimationTitle = FadeInUp.springify().delay(500).duration(1500);
@@ -77,7 +73,7 @@ export default function Register() {
       });
 
       if (signUpError) {
-        console.error('Erreur Supabase:', signUpError.message);
+        logger.error('Erreur Supabase:', signUpError.message);
         setError(signUpError.message);
         setLoading(false);
         return;
@@ -102,7 +98,7 @@ export default function Register() {
         setLoading(false);
       }
     } catch (err: any) {
-      console.error('Exception lors de l\'inscription:', err);
+      logger.error('Exception lors de l\'inscription:', err);
       setError(err.message || t('onboarding.register.errors.signupException'));
       setLoading(false);
     }
@@ -134,7 +130,7 @@ export default function Register() {
         .rpc('email_exists', { email_input: email.trim() });
 
       if (fetchError) {
-        console.error('Erreur:', fetchError);
+        logger.error('Erreur:', fetchError);
         setErrorMessage(t('onboarding.register.errors.checkingEmail'));
         return;
       }
@@ -174,7 +170,7 @@ export default function Register() {
 
   const handleBackPress = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (page == 1) {
+    if (page === 1) {
       router.back();
     } else {
       setPage(page - 1);
@@ -283,7 +279,7 @@ export default function Register() {
           </View>
         )} */}
 
-        {page == 1 && (
+        {page === 1 && (
           <View style={styles.formContainer}>
 
 
@@ -337,7 +333,7 @@ export default function Register() {
           </View>
         )}
 
-        {(page == 2 || page == 3) && (
+        {(page === 2 || page === 3) && (
           <View style={styles.formContainer}>
 
             <Animated.View
@@ -386,7 +382,7 @@ export default function Register() {
                 </Animated.Text>
               ) : null}
             </Animated.View>
-            {page == 3 && (
+            {page === 3 && (
               <Animated.View
                 entering={inputAnimationNoDelay}
                 exiting={FadeOutDown.springify()}

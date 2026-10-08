@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useEffect, useState } from 'react';
 import { supabase } from './supabase';
+import { logger } from "@/lib/logger";
 
 export type FontSize = 'small' | 'medium' | 'large';
 export const DEFAULT_FONT_SIZE: FontSize = 'small';
@@ -91,7 +92,7 @@ export const FontProvider: React.FC<FontProviderProps> = ({ children }) => {
                     .single();
                 
                 if (error) {
-                    console.error('Erreur lors du chargement de la taille de font depuis Supabase:', error);
+                    logger.error('Erreur lors du chargement de la taille de font depuis Supabase:', error);
                 }
                 
                 if (isValidFontSize(data?.display_font)) {
@@ -114,7 +115,7 @@ export const FontProvider: React.FC<FontProviderProps> = ({ children }) => {
                 setFontSize(DEFAULT_FONT_SIZE);
             }
         } catch (error) {
-            console.error('Erreur lors du chargement de la taille de font:', error);
+            logger.error('Erreur lors du chargement de la taille de font:', error);
             setFontSize(DEFAULT_FONT_SIZE);
         } finally {
             setIsLoading(false);
@@ -137,11 +138,11 @@ export const FontProvider: React.FC<FontProviderProps> = ({ children }) => {
                     .eq('id', user.id);
                 
                 if (error) {
-                    console.error('Erreur lors de la sauvegarde de la taille de font dans Supabase:', error);
+                    logger.error('Erreur lors de la sauvegarde de la taille de font dans Supabase:', error);
                 }
             }
         } catch (error) {
-            console.error('Erreur lors de la sauvegarde de la taille de font:', error);
+            logger.error('Erreur lors de la sauvegarde de la taille de font:', error);
         }
     };
 

@@ -18,6 +18,7 @@ import { getTags, TAGS_QUERY_KEY } from "../lib/tags";
 import { useTheme } from "../lib/ThemeContext";
 import { useOptimisticTaskMutations } from "../lib/useOptimisticTaskMutations";
 import Squircle from "./Squircle";
+import { logger } from "@/lib/logger";
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
@@ -181,7 +182,7 @@ export const TaskItem = ({
       : deleteTaskOptimistically(item.id, item);
 
     void mutation.catch((error: any) => {
-      console.error("Erreur lors de la suppression:", error);
+      logger.error("Erreur lors de la suppression:", error);
       Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
     });
   }, [deleteTaskOptimistically, item, onDeleteTask, t]);
@@ -208,7 +209,7 @@ export const TaskItem = ({
       : moveTaskDateOptimistically(item.id, nextDateKey, item);
 
     void mutation.catch((error: any) => {
-      console.error("Erreur lors du déplacement:", error);
+      logger.error("Erreur lors du déplacement:", error);
       Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
     });
   }, [item, moveTaskDateOptimistically, onMoveTask, t]);

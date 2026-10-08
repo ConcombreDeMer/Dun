@@ -29,6 +29,7 @@ import {
     View
 } from "react-native";
 import Purchases from "react-native-purchases";
+import { logger } from "@/lib/logger";
 
 
 export default function Settings() {
@@ -61,14 +62,12 @@ export default function Settings() {
                 // Si lors de la création vous avez mis "Dun Pro" comme Identifier, gardez-le.
                 // S'il ne marche pas, essayez en minuscules sans espace (ex: dun_pro)
                 if (typeof customerInfo.entitlements.active['dun_plus'] !== "undefined") {
-                    console.log("Le user est abonné !");
                     if (isMounted) setIsSubscribed(true);
                 } else {
-                    console.log("Le user n'est pas abonné.");
                     if (isMounted) setIsSubscribed(false);
                 }
             } catch (error) {
-                console.error("Erreur de chargement:", error);
+                logger.error("Erreur de chargement:", error);
             } finally {
                 if (isMounted) {
                     fetchInformation();
@@ -82,10 +81,11 @@ export default function Settings() {
         return () => {
             isMounted = false;
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only load (user + RevenueCat); adding fetchInformation would re-run it on every user change
     }, []);
 
 
-    const fetchInformation = async () => {
+    const fetchInformation = useCallback(async () => {
         if (user) {
             const { data, error } = await supabase
                 .from("Profiles")
@@ -93,20 +93,19 @@ export default function Settings() {
                 .eq("id", user.id)
                 .single();
             if (error) {
-                console.error("Erreur lors de la récupération des informations de l'utilisateur:", error);
+                logger.error("Erreur lors de la récupération des informations de l'utilisateur:", error);
             } else {
-                console.log("Informations de l'utilisateur récupérées:", data);
                 setDailyEnabled(data.dailyEnabled);
                 setLockPastDaysEnabled(data.lockPastDaysEnabled ?? true);
             }
         }
-    };
+    }, [user]);
 
     useEffect(() => {
         if (user) {
             fetchInformation();
         }
-    }, [user]);
+    }, [user, fetchInformation]);
 
     const updateDaily = useCallback(async (value: boolean) => {
         if (user) {
@@ -116,11 +115,10 @@ export default function Settings() {
                 .update({ dailyEnabled: value })
                 .eq("id", user.id);
             if (error) {
-                console.error("Erreur lors de la mise à jour des informations de l'utilisateur:", error);
+                logger.error("Erreur lors de la mise à jour des informations de l'utilisateur:", error);
                 setDailyEnabled(!value);
             } else {
                 patchProfileCache(queryClient, user.id, { dailyEnabled: value });
-                console.log("Informations de l'utilisateur mises à jour avec succès");
             }
         }
     }, [queryClient, user]);
@@ -143,11 +141,10 @@ export default function Settings() {
                 .update({ lockPastDaysEnabled: value })
                 .eq("id", user.id);
             if (error) {
-                console.error("Erreur lors de la mise à jour du verrouillage des jours passés:", error);
+                logger.error("Erreur lors de la mise à jour du verrouillage des jours passés:", error);
                 setLockPastDaysEnabled(!value);
             } else {
                 patchProfileCache(queryClient, user.id, { lockPastDaysEnabled: value });
-                console.log("Verrouillage des jours passés mis à jour avec succès");
             }
         }
     }, [queryClient, user]);
@@ -214,7 +211,7 @@ export default function Settings() {
                     .eq('id', user.id);
 
                 if (error) {
-                    console.error("Erreur lors de la mise à jour de hasDoneDaily:", error);
+                    logger.error("Erreur lors de la mise à jour de hasDoneDaily:", error);
                 } else {
                     patchProfileCache(queryClient, user.id, {
                         restMode: true,
@@ -223,7 +220,7 @@ export default function Settings() {
                 }
             }
         } catch (error) {
-            console.error(error);
+            logger.error(error);
         } finally {
             setShowReposModal(false);
             router.push('/rest');

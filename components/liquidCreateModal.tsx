@@ -23,6 +23,7 @@ import { useProfile } from "../lib/profile";
 import { useSubscription } from "../lib/subscription";
 import { useTheme } from "../lib/ThemeContext";
 import TagSelector from "./TagSelector";
+import { logger } from "@/lib/logger";
 
 interface LiquidCreateModalProps {
   accessoryId?: string;
@@ -291,7 +292,7 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
       setCreateButtonState("success");
       playCreateSuccessAnimation();
     }).catch((error: any) => {
-      console.error("Erreur lors de la création de la tâche:", error);
+      logger.error("Erreur lors de la création de la tâche:", error);
       resetCreateButtonAnimation();
       setTaskTitle((current) => (current.trim() ? current : nextTitle));
       setSelectedTagIds((current) => (current.length ? current : nextTagIds));
@@ -302,12 +303,6 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
       inputRef.current?.focus();
       isCreatingTaskRef.current = false;
     }, 80);
-  };
-
-  const openPage = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    shouldOpenDetailsAfterDismissRef.current = true;
-    requestClose();
   };
 
   const toggleCreateInBox = async () => {

@@ -5,6 +5,7 @@ import { useAuthUserId } from "./AuthSessionContext";
 import { DAYS_QUERY_KEY } from "./daysQueryKeys";
 import { TAG_USAGE_STATS_QUERY_KEY } from "./tags";
 import { clearOptimisticTaskDone, getOptimisticTaskDone, setOptimisticTaskDone, setTaskDone } from "./tasks";
+import { logger } from "@/lib/logger";
 
 type ToggleTaskDoneOptions = {
   queryKeys: QueryKey[];
@@ -141,7 +142,7 @@ export const useToggleTaskDone = ({
         scheduleInvalidate();
       }
     } catch (error) {
-      console.error("Erreur lors de la mise à jour de la tâche:", error);
+      logger.error("Erreur lors de la mise à jour de la tâche:", error);
       const rollbackDone = rollbackDoneByTaskIdRef.current.get(taskId);
 
       desiredDoneByTaskIdRef.current.delete(taskId);

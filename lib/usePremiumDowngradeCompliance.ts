@@ -7,6 +7,7 @@ import { patchProfileCache, profileQueryKey, useProfile } from "./profile";
 import { useSubscription } from "./subscription";
 import { supabase } from "./supabase";
 import { useTheme } from "./ThemeContext";
+import { logger } from "@/lib/logger";
 
 const isNeutralColorTheme = (value: string | null | undefined) => {
   return !value || value === "neutral" || value === "neutre";
@@ -108,7 +109,7 @@ export const usePremiumDowngradeCompliance = () => {
         queryClient.invalidateQueries({ queryKey: profileQueryKey(userId) });
       } catch (error) {
         handledSignatureRef.current = null;
-        console.error("Erreur lors de la remise en conformité premium:", error);
+        logger.error("Erreur lors de la remise en conformité premium:", error);
       }
     })();
   }, [

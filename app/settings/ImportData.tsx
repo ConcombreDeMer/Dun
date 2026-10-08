@@ -23,6 +23,7 @@ import { SymbolView } from "expo-symbols";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
+import { logger } from "@/lib/logger";
 
 type ImportStatus = "idle" | "ready" | "importing" | "success" | "error";
 
@@ -75,7 +76,7 @@ export default function ImportData() {
       setImportResult(null);
       setStatus("ready");
     } catch (error) {
-      console.error("Erreur lors de la lecture de l'import:", error);
+      logger.error("Erreur lors de la lecture de l'import:", error);
       setStatus("error");
       Alert.alert(t("common.alerts.errorTitle"), t("settings.account.importData.errors.read"));
     }
@@ -106,7 +107,7 @@ export default function ImportData() {
                 setStatus("success");
               })
               .catch((error) => {
-                console.error("Erreur lors de l'import des donnees:", error);
+                logger.error("Erreur lors de l'import des donnees:", error);
                 setStatus("error");
                 Alert.alert(t("common.alerts.errorTitle"), t("settings.account.importData.errors.import"));
               });

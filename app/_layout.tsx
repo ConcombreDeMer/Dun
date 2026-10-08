@@ -19,6 +19,7 @@ import { supabase } from "../lib/supabase";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 import { usePremiumDowngradeCompliance } from "../lib/usePremiumDowngradeCompliance";
 import { useStore } from "../store/store";
+import { logger } from "@/lib/logger";
 
 Sentry.init({
   dsn: 'https://22e24a375245f570d6a9c3e6ebfb71af@o4511662072594432.ingest.de.sentry.io/4511662116896848',
@@ -158,7 +159,7 @@ function RootLayoutContent() {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError && sessionError.message !== "Auth session missing!") {
-        console.error("Erreur session:", sessionError);
+        logger.error("Erreur session:", sessionError);
       }
 
       const session = sessionData?.session ?? null;
@@ -177,7 +178,7 @@ function RootLayoutContent() {
         try {
           await syncRevenueCatUser(null);
         } catch (e) {
-          console.error("Erreur RevenueCat logOut:", e);
+          logger.error("Erreur RevenueCat logOut:", e);
         }
       }
     });
@@ -226,7 +227,7 @@ function RootLayoutContent() {
           router.replace("/home");
         }
       } catch (error) {
-        console.error("Erreur redirection:", error);
+        logger.error("Erreur redirection:", error);
       }
     };
 

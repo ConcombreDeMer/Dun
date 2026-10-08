@@ -20,6 +20,7 @@ import { useAppTranslation } from "../lib/i18n";
 import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
 import Squircle from "./Squircle";
+import { logger } from "@/lib/logger";
 
 interface TextCalendarProps {
     onDateSelect?: (date: Date) => void;
@@ -176,7 +177,7 @@ export default function TextCalendarComponent({
             .order("date", { ascending: true });
 
         if (error) {
-            console.error("Erreur lors de la récupération des jours:", error);
+            logger.error("Erreur lors de la récupération des jours:", error);
             return [];
         }
 

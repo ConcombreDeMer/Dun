@@ -6,6 +6,7 @@ import { toDailyDateKey } from '../lib/date';
 import { fetchProfile, patchProfileCache, profileQueryKey } from '../lib/profile';
 import { useTheme } from '../lib/ThemeContext';
 import { supabase } from '../lib/supabase';
+import { logger } from "@/lib/logger";
 
 export default function Index() {
     const router = useRouter();
@@ -45,7 +46,7 @@ export default function Index() {
                     });
                 }
 
-                if(profile.dailyEnabled == false) {
+                if(profile.dailyEnabled === false) {
                     router.replace('/home');
                     return;
                 }
@@ -85,7 +86,7 @@ export default function Index() {
                 router.replace('/home');
 
             } catch (error) {
-                console.error('Erreur lors de la vérification initiale:', error);
+                logger.error('Erreur lors de la vérification initiale:', error);
                 router.replace('/home');
             }
         };

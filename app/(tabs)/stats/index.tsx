@@ -41,6 +41,7 @@ import { SymbolView } from "expo-symbols";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
+import { logger } from "@/lib/logger";
 
 
 type Slide = {
@@ -171,7 +172,7 @@ export default function Stats() {
       .lte("date", today.toISOString())
       .order("date", { ascending: false });
     if (error) {
-      console.error('Erreur lors de la récupération des jours:', error);
+      logger.error('Erreur lors de la récupération des jours:', error);
       return [];
     }
     return data;
@@ -306,7 +307,6 @@ export default function Stats() {
     setActiveSlideIndex(Number.MAX_SAFE_INTEGER);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setPeriod(selectedPeriod);
-    console.log('Période sélectionnée :', selectedPeriod);
   }, [period]);
 
   const handleSlideIndexChange = useCallback((index: number) => {

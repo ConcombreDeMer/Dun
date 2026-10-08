@@ -2,6 +2,7 @@ import { getTodayAppDateKey, isPastAppDateKey, toAppDateKey } from "./date";
 import { FREE_DAILY_TASK_LIMIT } from "./plan";
 import { supabase } from "./supabase";
 import { copyTaskTags, setTaskTags } from "./tags";
+import { logger } from "@/lib/logger";
 
 export type TaskListItem = {
   id: number;
@@ -71,7 +72,7 @@ const getLockPastDaysEnabled = async (userId: string) => {
     .single();
 
   if (error) {
-    console.error("Erreur lors de la récupération du verrouillage des jours passés:", error);
+    logger.error("Erreur lors de la récupération du verrouillage des jours passés:", error);
     return true;
   }
 
@@ -144,7 +145,7 @@ export const fetchTaskList = async (cachedTasks: TaskListItem[] = [], userId?: s
     .order("order", { ascending: false });
 
   if (error) {
-    console.error("Erreur lors de la récupération des tâches:", error);
+    logger.error("Erreur lors de la récupération des tâches:", error);
     return [];
   }
 
@@ -272,7 +273,7 @@ export const createTask = async ({
     try {
       await setTaskTags(data.id as number, tagIds, resolvedUserId);
     } catch (error) {
-      console.error("Erreur lors de l'association des tags à la tâche:", error);
+      logger.error("Erreur lors de l'association des tags à la tâche:", error);
     }
   }
 

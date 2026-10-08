@@ -12,7 +12,7 @@ import { toAppDateKey } from "@/lib/date";
 import { useAppTranslation } from "@/lib/i18n";
 import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "@/lib/notificationService";
 import { FREE_DAILY_TASK_LIMIT } from "@/lib/plan";
-import { patchProfileCache, useProfile } from "@/lib/profile";
+import { useProfile } from "@/lib/profile";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { fetchTaskList, type TaskListItem } from "@/lib/tasks";
@@ -31,9 +31,9 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, useWindowDime
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReAnimated, { Easing, FadeInUp, FadeOutUp, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { logger } from "@/lib/logger";
 
 
-const LottieView = require("lottie-react-native").default;
 const DAY_PAGER_SIZE = 20001;
 const DAY_PAGER_CENTER_INDEX = Math.floor(DAY_PAGER_SIZE / 2);
 const DAY_PAGER_INDEXES = Array.from({ length: DAY_PAGER_SIZE }, (_, index) => index);
@@ -426,8 +426,8 @@ export default function Home() {
   const storedDate = useStore((state) => state.selectedDate);
   const pagerOriginDateRef = useRef(startOfDay(storedDate || new Date()));
   const [selectedDate, setSelectedDate] = useState<Date>(pagerOriginDateRef.current);
-  const [userName, setUserName] = useState<string>('');
-  const [userHasSeenTutorial, setUserHasSeenTutorial] = useState<boolean>(false);
+  const [, setUserName] = useState<string>('');
+  const [, setUserHasSeenTutorial] = useState<boolean>(false);
   const { t } = useAppTranslation();
   const { colors, theme } = useTheme();
   const setStoreDate = useStore((state) => state.setSelectedDate);
@@ -557,11 +557,12 @@ export default function Home() {
           await cancelDailyReminder();
         }
       } catch (error) {
-        console.error("Erreur lors de la synchronisation des notifications:", error);
+        logger.error("Erreur lors de la synchronisation des notifications:", error);
       }
     };
 
     syncReminder();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deps limited to the profile fields read, so reminders are not rescheduled on every profile refetch
   }, [
     profileQuery.data?.alertSetupActive,
     profileQuery.data?.alertSetupHour,
@@ -570,13 +571,6 @@ export default function Home() {
     t,
   ]);
 
-  // const logStoreState = useCallback(() => {
-  //   console.log("Store modifié : ", useStore.getState());
-  // }, [store.alertSetupHour, store.alertSetupMinute]);
-
-  // useEffect(() => {
-  //   logStoreState();
-  // }, [logStoreState]);
   useEffect(() => {
     setUserHasSeenTutorial(Boolean(profileQuery.data?.hasSeenTutorial));
   }, [profileQuery.data?.hasSeenTutorial]);
@@ -683,7 +677,7 @@ export default function Home() {
           .eq("user_id", userId);
 
         if (error) {
-          console.error("Erreur lors de la mise à jour de l'ordre:", error);
+          logger.error("Erreur lors de la mise à jour de l'ordre:", error);
           if (previousTasks) {
             queryClient.setQueryData(tasksQueryKey, previousTasks);
           } else {
@@ -693,7 +687,7 @@ export default function Home() {
         }
       }
     } catch (error) {
-      console.error("Erreur:", error);
+      logger.error("Erreur:", error);
       if (previousTasks) {
         queryClient.setQueryData(tasksQueryKey, previousTasks);
       } else {
@@ -848,27 +842,6 @@ export default function Home() {
     };
   }, [selectedTaskLayout, windowHeight, windowWidth]);
 
-  const closeTutorial = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setUserHasSeenTutorial(true);
-    try {
-      if (userId) {
-        const { error } = await supabase
-          .from("Profiles")
-          .update({ hasSeenTutorial: true })
-          .eq("id", userId);
-
-        if (error) {
-          console.error('Erreur lors de la mise à jour du profil utilisateur:', error);
-        } else {
-          patchProfileCache(queryClient, userId, { hasSeenTutorial: true });
-        }
-      }
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour du profil utilisateur:', error);
-    }
-  }, [queryClient, userId]);
-
   const handleHorizontalMomentumEnd = useCallback((event: any) => {
     const nextIndex = Math.round(event.nativeEvent.contentOffset.x / windowWidth);
     const targetDate = addDays(pagerOriginDateRef.current, nextIndex - DAY_PAGER_CENTER_INDEX);
@@ -950,7 +923,7 @@ export default function Home() {
   return (
 
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style={theme == "dark" ? "light" : "auto"} />
+      <StatusBar style={theme === "dark" ? "light" : "auto"} />
       <View
         style={[styles.container, { backgroundColor: colors.background, paddingBottom: 0 }]}
       >

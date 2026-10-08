@@ -1,6 +1,5 @@
 import { useFont } from "@/lib/FontContext";
 import { useTheme } from "@/lib/ThemeContext";
-import { useRouter } from "expo-router";
 import { memo } from "react";
 import { Image, StyleSheet, Text } from "react-native";
 import Animated, { FadeInLeft, FadeOut } from "react-native-reanimated";
@@ -15,14 +14,8 @@ interface StatsCardProps {
 
 export default memo(function StatsCard({ image, title, value, loading }: StatsCardProps) {
 
-    const router = useRouter();
     const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
-
-    const handleExplicationPress = () => {
-        // Logique pour afficher une explication ou une info-bulle
-        router.push('/stats/chargeExplain');
-    }
 
 
 
