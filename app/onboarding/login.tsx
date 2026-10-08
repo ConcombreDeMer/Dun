@@ -23,7 +23,6 @@ import { useAppTranslation } from '../../lib/i18n';
 import { getCharacterImageSource } from '../../lib/imageHelper';
 import { useTheme } from '../../lib/ThemeContext';
 import { supabase } from '../../lib/supabase';
-import { useStore } from '../../store/store';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -36,11 +35,7 @@ export default function LoginScreen() {
     const [error, setError] = useState('');
     const styles = createStyles(colors);
 
-
-    const store = useStore();
-
     const handleLogin = async () => {
-        console.log('Tentative de connexion avec email:', email);
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setError('');
 

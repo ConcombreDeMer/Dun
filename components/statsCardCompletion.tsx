@@ -18,22 +18,6 @@ export default memo(function StatsCardCompletion({ image, title, value, loading 
     const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
 
-    const analyzeCompletionColor = () => {
-        const compValue = parseInt(value.toString());
-        switch (true) {
-            case compValue < 30:
-                return '#ff174591'; // Rouge foncé (très mauvais)
-            case compValue >= 30 && compValue < 50:
-                return '#FF4C4C'; // Rouge (mauvais)
-            case compValue >= 50 && compValue < 70:
-                return '#ffcd6fff'; // Orange (à améliorer)
-            case compValue >= 70 && compValue < 85:
-                return '#FFD700'; // Jaune/Or (bon)
-            case compValue >= 85:
-                return '#74ca77ff'; // Vert (excellent)
-        }
-    }
-
     const handleCompletionPress = () => {
         router.push('/stats/completionExplain');
     }

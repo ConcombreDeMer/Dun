@@ -10,7 +10,7 @@ Cette roadmap applique l'offre décrite dans [`offre-commerciale-v1-pour-agents.
 ## État d'avancement
 
 - **Phase en cours** : 0 — Assainir.
-- **Dernière étape terminée** : [P0-00 — Workflow des agents](etapes/P0-00-workflow-agents.md).
+- **Dernière étape terminée** : [P0-01 — Ménage](etapes/P0-01-menage.md).
 - **Prochaine étape** : la première case non cochée de la phase 0.
 
 Cette section est mise à jour à la fin de chaque étape par l'agent principal (voir [Workflow](#workflow)).
@@ -70,11 +70,11 @@ src/
 **But :** repartir d'un dépôt propre, avec des garde-fous automatiques.
 
 ### Ménage
-- [ ] Supprimer le code mort : `errorModal`, `statsStatut`, `progressBar`, `loading`, `createModal`, `popUpModal`, `checkboxAnimated`, `useDailyScreen`, `lib/eventEmitter.ts` et son unique appel.
-- [ ] Supprimer `test-swipe.tsx`, `build/`, `assets/images/background/bg.svg` et `bg.jpg`, ainsi que les fichiers Inter inutilisés (garder les 4 graisses chargées).
-- [ ] Retirer le script `reset-project`. Documenter le correctif `postinstall` ou le supprimer s'il n'est plus nécessaire avec Expo 56.
-- [ ] Supprimer les `console.log`, garder `console.warn` et `console.error` en développement seulement. N'activer `Purchases.setLogLevel(DEBUG)` qu'en `__DEV__`.
-- [ ] Corriger les 90 avertissements de lint et le commentaire faux de `eslint.config.js` sur React Compiler.
+- [x] Supprimer le code mort : `errorModal`, `statsStatut`, `progressBar`, `loading`, `createModal`, `popUpModal`, `checkboxAnimated`, `useDailyScreen`, `lib/eventEmitter.ts` et son unique appel. → [P0-01](etapes/P0-01-menage.md)
+- [x] Supprimer `test-swipe.tsx`, `build/`, `assets/images/background/bg.svg` et `bg.jpg`, ainsi que les fichiers Inter inutilisés (garder les 4 graisses chargées). → [P0-01](etapes/P0-01-menage.md)
+- [x] Retirer le script `reset-project`. Documenter le correctif `postinstall` ou le supprimer s'il n'est plus nécessaire avec Expo 56. → [P0-01](etapes/P0-01-menage.md)
+- [x] Supprimer les `console.log`, garder `console.warn` et `console.error` en développement seulement. N'activer `Purchases.setLogLevel(DEBUG)` qu'en `__DEV__`. → [P0-01](etapes/P0-01-menage.md)
+- [x] Corriger les 90 avertissements de lint et le commentaire faux de `eslint.config.js` sur React Compiler. → [P0-01](etapes/P0-01-menage.md)
 
 ### Outillage
 - [ ] Exclure `supabase/functions` de `tsconfig.json` et lui donner sa propre configuration Deno.

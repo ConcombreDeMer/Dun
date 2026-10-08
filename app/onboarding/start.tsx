@@ -29,13 +29,9 @@ export default function StartScreen() {
     const { colors, actualTheme } = useTheme();
     const { t } = useAppTranslation();
     const styles = createStyles(colors);
-    const LottieView = require("lottie-react-native").default;
     const screenWidth = React.useState(Dimensions.get('window').width)[0];
-    const screenHeight = React.useState(Dimensions.get('window').height)[0];
     const hideAuthChoices = true;
 
-    const scale = useSharedValue(0.8);
-    const opacity = useSharedValue(0);
     const authButtonsX = useSharedValue(hideAuthChoices ? -screenWidth : 0);
     const registerButtonsX = useSharedValue(hideAuthChoices ? 0 : screenWidth);
 

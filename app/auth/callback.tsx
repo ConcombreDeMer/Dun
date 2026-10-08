@@ -1,15 +1,15 @@
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/ThemeContext';
 import { useAppTranslation } from '@/lib/i18n';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
+import { logger } from "@/lib/logger";
 
 export default function AuthCallbackScreen() {
     const router = useRouter();
     const { colors } = useTheme();
     const { t } = useAppTranslation();
-    const params = useLocalSearchParams();
 
     useEffect(() => {
         const handleDeepLink = async () => {
@@ -21,7 +21,7 @@ export default function AuthCallbackScreen() {
                 const { data: { session }, error } = await supabase.auth.getSession();
                 
                 if (error) {
-                    console.error('Erreur lors de la récupération de la session:', error);
+                    logger.error('Erreur lors de la récupération de la session:', error);
                     router.replace('/onboarding/start');
                     return;
                 }
@@ -38,17 +38,16 @@ export default function AuthCallbackScreen() {
                     }
                 } else {
                     // Pas de session, redirection vers le login
-                    console.log('Pas de session trouvée');
                     router.replace('/onboarding/login');
                 }
             } catch (err) {
-                console.error('Erreur lors du traitement du callback:', err);
+                logger.error('Erreur lors du traitement du callback:', err);
                 router.replace('/onboarding/start');
             }
         };
 
         handleDeepLink();
-    }, []);
+    }, [router]);
 
     return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>

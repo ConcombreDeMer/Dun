@@ -11,6 +11,7 @@ import Animated, {
 import { useAppTranslation } from '../../lib/i18n';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../lib/ThemeContext';
+import { logger } from "@/lib/logger";
 
 export default function ReVerifEmail() {
     const { colors } = useTheme();
@@ -39,7 +40,7 @@ export default function ReVerifEmail() {
 
     const handleRetry = async () => {
         if (!email) {
-            console.error('Email not provided');
+            logger.error('Email not provided');
             return;
         }
 
@@ -53,7 +54,7 @@ export default function ReVerifEmail() {
             });
 
             if (error) {
-                console.error('Erreur lors de l\'envoi de l\'email:', error);
+                logger.error('Erreur lors de l\'envoi de l\'email:', error);
                 const errorMessage = error.message || '';
                 
                 // Extraire le temps d'attente de l'erreur
@@ -73,7 +74,7 @@ export default function ReVerifEmail() {
                 });
             }
         } catch (error) {
-            console.error('Erreur:', error);
+            logger.error('Erreur:', error);
         }
     };
 

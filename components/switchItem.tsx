@@ -13,9 +13,9 @@ interface SwitchItemProps {
 }
 
 export default function SwitchItem({ image, title, event, currentValue, activeColor = "#000" }: SwitchItemProps) {
-    const { colors, actualTheme } = useTheme();
+    const { colors } = useTheme();
     const { fontSizes } = useFont();
-    const [isEnabled, setIsEnabled] = useState(false);
+    const [, setIsEnabled] = useState(false);
     const iconTintColor = colors.text;
 
     const toggleSwitch = (value: boolean) => {

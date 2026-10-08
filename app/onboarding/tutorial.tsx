@@ -47,6 +47,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTranslation } from "../../lib/i18n";
+import { logger } from "@/lib/logger";
 
 const REFERENCE_WIDTH = 320;
 const REFERENCE_HEIGHT = 700;
@@ -319,7 +320,7 @@ export default function Tutorial() {
           .eq("id", user.id);
 
         if (error) {
-          console.error("Erreur lors de la sauvegarde du name dans Supabase:", error);
+          logger.error("Erreur lors de la sauvegarde du name dans Supabase:", error);
         } else {
           patchProfileCache(queryClient, user.id, { hasName: true, name: trimmedName });
         }
@@ -329,12 +330,12 @@ export default function Tutorial() {
         const { error } = await supabase.auth.updateUser({ data: { name: trimmedName } });
 
         if (error) {
-          console.error("Erreur lors de la mise à jour du nom d'utilisateur : " + error.message);
+          logger.error("Erreur lors de la mise à jour du nom d'utilisateur : " + error.message);
           return false;
         }
       }
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde du name:", error);
+      logger.error("Erreur lors de la sauvegarde du name:", error);
       return false;
     }
 
@@ -426,7 +427,7 @@ export default function Tutorial() {
       try {
         await clearStoredExportData();
       } catch (exportError) {
-        console.error("Erreur lors du nettoyage de l'export local : ", exportError);
+        logger.error("Erreur lors du nettoyage de l'export local : ", exportError);
       }
 
       const { error } = await supabase.auth.signOut();
@@ -440,7 +441,7 @@ export default function Tutorial() {
       clearStore();
       router.replace("/onboarding/start");
     } catch (error) {
-      console.error("Erreur lors de la déconnexion : ", error);
+      logger.error("Erreur lors de la déconnexion : ", error);
       Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.genericError"));
     }
   }, [clearStore, queryClient, router, t]);

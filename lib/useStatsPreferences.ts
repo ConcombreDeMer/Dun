@@ -5,6 +5,7 @@ import {
   StatsPreferences,
 } from "./calculateStats";
 import { useProfile, useUpdateProfile } from "./profile";
+import { logger } from "@/lib/logger";
 
 type ProfileStatsPreferencesRow = {
   stats_include_today: boolean | null;
@@ -95,7 +96,7 @@ export const useStatsPreferences = () => {
         setOptimisticPreferences({ ...currentPreferences, [key]: previousValue });
       }
 
-      console.error("Erreur lors de la mise à jour des préférences stats:", error);
+      logger.error("Erreur lors de la mise à jour des préférences stats:", error);
     } finally {
       if (mutationIdsRef.current[key] === mutationId) {
         setPending(key, false);

@@ -38,6 +38,7 @@ import Animated, {
     withTiming
 } from 'react-native-reanimated';
 import { useTheme } from '../lib/ThemeContext';
+import { logger } from "@/lib/logger";
 
 const subIntroTextReappearDelay = 180;
 const introTextReappearDelay = 180;
@@ -190,11 +191,9 @@ export default function DailyScreen() {
     const streakIconSource = getStreakIconSource(displayedStreak);
     const streakIconKey = getStreakIconKey(displayedStreak);
     const shouldAnimateStreakChange = displayedStreak !== dailyStreak;
-    const panelBackgroundColor = actualTheme === 'light' ? colors.taskDone : colors.card;
     const panelTextColor = actualTheme === 'light' ? colors.background : colors.text;
     const panelTextMutedColor = alphaColor(panelTextColor, 0.58);
     const panelTextSoftColor = alphaColor(panelTextColor, 0.72);
-    const panelSurfaceColor = colors.button;
     const panelActionTextColor = colors.text;
     const progressTrackColor = alphaColor(panelTextColor, 0.18);
     const progressFillColor = '#70D895';
@@ -208,7 +207,6 @@ export default function DailyScreen() {
     const introSubtitleColor = alphaColor(colors.text, 0.4);
     const dateLabelColor = alphaColor(colors.text, 0.28);
     const dateNumberColor = alphaColor(colors.text, 0.58);
-    const sliderHandleColor = colors.button;
     const iconOnPanelColor = alphaColor(panelTextColor, 0.58);
     const introTitle = t('daily.intro.title', { name: dailyData?.userName || t('daily.fallbackUser') });
     const pendingTaskListLayoutKey = useMemo(
@@ -313,7 +311,7 @@ export default function DailyScreen() {
             await refreshDailyData(false);
         })
             .catch((error) => {
-                console.error('Erreur lors de la mise à jour de la tâche daily:', error);
+                logger.error('Erreur lors de la mise à jour de la tâche daily:', error);
                 setPendingTasks((tasks) => tasks.map((task) =>
                     task.id === taskId ? { ...task, done: currentDone } : task
                 ));
@@ -356,7 +354,7 @@ export default function DailyScreen() {
             ]);
             closeDailyRoute();
         } catch (error) {
-            console.error('Erreur lors de la finalisation du daily:', error);
+            logger.error('Erreur lors de la finalisation du daily:', error);
             setIsCompletingDaily(false);
             Alert.alert(t('common.alerts.errorTitle'), t('daily.prepareError'));
         }
@@ -379,7 +377,7 @@ export default function DailyScreen() {
                 setPendingTasks(nextDailyData.pendingTasks);
                 setDisplayedStreak(nextDailyData.streak);
             } catch (error) {
-                console.error('Erreur lors du chargement du daily:', error);
+                logger.error('Erreur lors du chargement du daily:', error);
 
                 if (isMounted) {
                     setDailyError(t('daily.loadError'));

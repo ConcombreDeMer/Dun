@@ -11,8 +11,6 @@ import {
     View
 } from "react-native";
 import Animated, {
-    Extrapolate,
-    interpolate,
     useAnimatedStyle,
     useSharedValue,
     withSpring,
@@ -25,6 +23,7 @@ import { supabase } from "../lib/supabase";
 import { useTheme } from "../lib/ThemeContext";
 import Squircle from "./Squircle";
 import TaskIndicator from "./taskIndicator";
+import { logger } from "@/lib/logger";
 
 const SLIDER_COLLAPSED_HEIGHT = 96;
 const CALENDAR_CONTENT_MARGIN_TOP = 12;
@@ -254,6 +253,7 @@ export default function CalendarComponent({
             setSelectedDate(initialDate);
             setCurrentMonth(initialDate);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- sync only when initialDate changes; adding selectedDate would revert every local selection to initialDate
     }, [initialDate]);
 
     const [isExpanded, setIsExpanded] = useState(false);
@@ -284,7 +284,7 @@ export default function CalendarComponent({
 			.eq("user_id", userId)
 			.order("date", { ascending: true });
         if (error) {
-            console.error('Erreur lors de la récupération des jours:', error);
+            logger.error('Erreur lors de la récupération des jours:', error);
             return [];
         }
         return data;
@@ -402,7 +402,7 @@ export default function CalendarComponent({
         return () => {
             panResponderRef.current = null;
         };
-    }, [slider]);
+    }, [slider, calendarScaleRef, heightValue, onExpandedChange]);
 
     // Obtenir les jours du mois - MEMOIZED
     const getDaysInMonth = useCallback((date: Date) => {
@@ -518,7 +518,7 @@ export default function CalendarComponent({
                     if (isFirstScroll) {
                         isInitialScrollRef.current = false;
                     }
-                } catch (e) {
+                } catch {
                     // Ignorer les erreurs si l'index est invalide
                 }
             }, isFirstScroll ? 100 : 0);
@@ -539,15 +539,6 @@ export default function CalendarComponent({
         onDateSelect?.(nextDate);
     }, [onDateSelect]);
 
-    // Gestion de la rétraction
-    const toggleExpanded = async () => {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        const nextExpanded = !isExpanded;
-        setIsExpanded(nextExpanded);
-        onExpandedChange?.(nextExpanded);
-        heightValue.value = withSpring(nextExpanded ? 1 : 0);
-    };
-
     // Animation style pour la hauteur du slider background
     const animatedSliderStyle = useAnimatedStyle(() => {
         const height = SLIDER_COLLAPSED_HEIGHT + heightValue.value * animatedExpandedContentHeight.value;
@@ -561,19 +552,6 @@ export default function CalendarComponent({
         return {
             opacity: heightValue.value,
             height: heightValue.value * animatedCalendarHeight.value,
-        };
-    });
-
-    // Animation de rotation du chevron
-    const animatedChevronStyle = useAnimatedStyle(() => {
-        const rotation = interpolate(
-            heightValue.value,
-            [0, 1],
-            [0, 180],
-            Extrapolate.CLAMP
-        );
-        return {
-            transform: [{ rotate: `${rotation}deg` }],
         };
     });
 
@@ -591,43 +569,6 @@ export default function CalendarComponent({
             transform: [{ scale: calendarScaleRef.value }],
         };
     });
-
-    // Obtenir les semaines du mois
-    const getWeeksInMonth = useCallback(() => {
-        const daysInMonth = getDaysInMonth(currentMonth);
-        const firstDayOfMonth = getFirstDayOfMonth(currentMonth);
-        const weeks: (number | null)[][] = [];
-        let currentWeek: (number | null)[] = Array(firstDayOfMonth).fill(null);
-
-        for (let i = 1; i <= daysInMonth; i++) {
-            currentWeek.push(i);
-            if (currentWeek.length === 7) {
-                weeks.push(currentWeek);
-                currentWeek = [];
-            }
-        }
-
-        if (currentWeek.length > 0) {
-            weeks.push(currentWeek);
-        }
-
-        return weeks;
-    }, [currentMonth, getDaysInMonth, getFirstDayOfMonth]);
-
-    // Afficher la semaine en format readable
-    const getWeekDisplay = useCallback((weekIndex: number) => {
-        const weeks = getWeeksInMonth();
-        if (weekIndex >= weeks.length) return "";
-
-        const week = [...weeks[weekIndex]];
-        const firstDay = week.find((day) => day !== null);
-        const lastDay = [...week].reverse().find((day) => day !== null);
-
-        if (firstDay && lastDay) {
-            return `${firstDay}-${lastDay} ${getMonthName(currentMonth)}`;
-        }
-        return "";
-    }, [getWeeksInMonth, getMonthName, currentMonth]);
 
     // Créer les enfants de la grille des jours - MEMOIZED
     const dayGridItems = useMemo(() => {
@@ -661,7 +602,7 @@ export default function CalendarComponent({
                 />
             );
         });
-    }, [calendarDays, currentMonth, selectedDate, colors, actualTheme, taskIndicatorByDay, fontSizes, handleDateSelect]);
+    }, [calendarDays, currentMonth, selectedDate, colors, taskIndicatorByDay, fontSizes, handleDateSelect]);
 
     return (
 

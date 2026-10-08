@@ -3,6 +3,7 @@ import { usePathname } from 'expo-router';
 import React, { createContext, ReactNode, useCallback, useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import { supabase } from './supabase';
+import { logger } from "@/lib/logger";
 
 export type Theme = 'light' | 'dark' | 'system';
 export type ColorTheme = 'neutral' | 'sage' | 'ocean' | 'sunset' | 'sand';
@@ -327,7 +328,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
                     .single();
                 
                 if (error) {
-                    console.error('Erreur lors du chargement du thème depuis Supabase:', error);
+                    logger.error('Erreur lors du chargement du thème depuis Supabase:', error);
                 }
                 
                 if (data && (data.display_theme === 'light' || data.display_theme === 'dark' || data.display_theme === 'system')) {
@@ -356,7 +357,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
             setTheme(loadedTheme);
             setColorThemeState(loadedColorTheme ?? 'neutral');
         } catch (error) {
-            console.error('Erreur lors du chargement du thème:', error);
+            logger.error('Erreur lors du chargement du thème:', error);
             setTheme('light');
             setColorThemeState('neutral');
         } finally {
@@ -384,11 +385,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
                     .eq('id', user.id);
                 
                 if (error) {
-                    console.error('Erreur lors de la sauvegarde du thème dans Supabase:', error);
+                    logger.error('Erreur lors de la sauvegarde du thème dans Supabase:', error);
                 }
             }
         } catch (error) {
-            console.error('Erreur lors de la sauvegarde du thème:', error);
+            logger.error('Erreur lors de la sauvegarde du thème:', error);
         }
     };
 
@@ -411,11 +412,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
                     .eq('id', user.id);
 
                 if (error) {
-                    console.error('Erreur lors de la sauvegarde du coloris dans Supabase:', error);
+                    logger.error('Erreur lors de la sauvegarde du coloris dans Supabase:', error);
                 }
             }
         } catch (error) {
-            console.error('Erreur lors de la sauvegarde du coloris:', error);
+            logger.error('Erreur lors de la sauvegarde du coloris:', error);
         }
     };
 

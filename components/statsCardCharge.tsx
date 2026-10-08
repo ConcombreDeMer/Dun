@@ -19,22 +19,6 @@ export default memo(function StatsCardCharge({ image, title, value, loading }: S
     const { colors, actualTheme } = useTheme();
     const { fontSizes } = useFont();
 
-    const analyzeChargeColor = () => {
-        const charge = Number(value);
-        switch (true) {
-            case charge < 2:
-                return '#ff174591'; // Rouge foncé (trop faible)
-            case charge >= 2 && charge < 3:
-                return '#FF4C4C'; // Rouge (faible)
-            case charge >= 3 && charge < 5:
-                return '#ffcd6fff'; // Orange (acceptable)
-            case charge >= 5 && charge <= 7:
-                return '#74ca77ff'; // Vert (idéal)
-            case charge > 7:
-                return '#FF6B35'; // Orange-rouge (avertissement surcharge)
-        }
-    }
-
     const handleExplicationPress = () => {
         // Logique pour afficher une explication ou une info-bulle
         router.push('/stats/chargeExplain');

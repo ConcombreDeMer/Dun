@@ -6,6 +6,7 @@ import Purchases, {
   PurchasesPackage,
 } from "react-native-purchases";
 import { initializeRevenueCat } from "./revenuecat";
+import { logger } from "@/lib/logger";
 
 export const REVENUECAT_ENTITLEMENT_ID = "dun_plus";
 export type TrialEligibilityStatus = "eligible" | "ineligible" | "unknown";
@@ -109,7 +110,7 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
       setCustomerInfo(nextCustomerInfo);
     } catch (e: any) {
       setError(e?.message ?? "Unable to load subscription information.");
-      console.warn("Impossible de rafraîchir l'abonnement RevenueCat:", e?.message ?? e);
+      logger.warn("Impossible de rafraîchir l'abonnement RevenueCat:", e?.message ?? e);
     } finally {
       setIsLoading(false);
     }
@@ -118,14 +119,7 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
   const loadOfferings = useCallback(async () => {
     const debugPrefix = "[RevenueCat Offerings]";
 
-    console.log(`${debugPrefix} start`, {
-      appUserID,
-      hasApiKey: Boolean(process.env.EXPO_PUBLIC_REVENUECAT_KEY?.trim()),
-      platform: Platform.OS,
-    });
-
     if (!appUserID) {
-      console.log(`${debugPrefix} skipped: missing appUserID`);
       setCurrentOffering(null);
       setIsConfigured(false);
       return;
@@ -135,7 +129,6 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
     setIsConfigured(ready);
 
     if (!ready) {
-      console.log(`${debugPrefix} skipped: RevenueCat not configured`);
       setCurrentOffering(null);
       return;
     }
@@ -144,26 +137,11 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
       setError(null);
       const offerings = await Purchases.getOfferings();
 
-      console.log(`${debugPrefix} received`, {
-        allOfferingIdentifiers: Object.keys(offerings.all ?? {}),
-        currentOfferingIdentifier: offerings.current?.identifier ?? null,
-        currentPackageCount: offerings.current?.availablePackages.length ?? 0,
-        currentPackages: offerings.current?.availablePackages.map((pack) => ({
-          identifier: pack.identifier,
-          packageType: pack.packageType,
-          productIdentifier: pack.product.identifier,
-          productTitle: pack.product.title,
-          productPrice: pack.product.priceString,
-          productType: pack.product.productType,
-          subscriptionPeriod: pack.product.subscriptionPeriod,
-        })) ?? [],
-      });
-
       setCurrentOffering(offerings.current);
     } catch (e: any) {
       setCurrentOffering(null);
       setError(e?.message ?? "Unable to load subscription offers.");
-      console.warn(`${debugPrefix} failed`, {
+      logger.warn(`${debugPrefix} failed`, {
         code: e?.code,
         message: e?.message,
         readableErrorCode: e?.readableErrorCode,
@@ -238,7 +216,7 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
         return "eligible";
       }
     } catch (e: any) {
-      console.warn("Impossible de vérifier l'éligibilité à l'offre d'introduction:", e?.message ?? e);
+      logger.warn("Impossible de vérifier l'éligibilité à l'offre d'introduction:", e?.message ?? e);
     }
 
     return "unknown";

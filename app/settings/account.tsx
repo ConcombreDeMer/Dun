@@ -7,7 +7,7 @@ import SettingItem from "@/components/settingItem";
 import Squircle from "@/components/Squircle";
 import SimpleInput from "@/components/textInput";
 import { useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { SquircleButton, SquircleView } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useState } from "react";
@@ -32,6 +32,7 @@ import { useProfile, useUpdateProfile } from "@/lib/profile";
 import { deleteUserAccount, supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStore } from "@/store/store";
+import { logger } from "@/lib/logger";
 
 
 interface UserData {
@@ -41,11 +42,10 @@ interface UserData {
 
 export default function Account() {
     const router = useRouter();
-    const { theme, colors, actualTheme } = useTheme();
+    const { colors, actualTheme } = useTheme();
     const { t } = useAppTranslation();
     const [isLoading, setIsLoading] = useState(true);
     const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-    const { id } = useLocalSearchParams();
     const [hasChanges, setHasChanges] = useState(false);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -56,13 +56,11 @@ export default function Account() {
 
     // Nouveaux états pour le mot de passe
     const [showPasswordModal, setShowPasswordModal] = useState(false);
-    const [oldPassword, setOldPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+    const [, setOldPassword] = useState('');
+    const [, setNewPassword] = useState('');
     const [userData, setUserData] = useState<UserData>();
     const [newEmail, setNewEmail] = useState('');
     const [showModal, setShowModal] = useState(false);
-    const [modalConfig, setModalConfig] = useState({ title: '', message: '' });
     const queryClient = useQueryClient();
     const store = useStore();
     const profileQuery = useProfile();
@@ -102,9 +100,6 @@ export default function Account() {
     });
     const passPage2AnimatedStyle = useAnimatedStyle(() => {
         return { transform: [{ translateX: passPage2X.value }] };
-    });
-    const passPage3AnimatedStyle = useAnimatedStyle(() => {
-        return { transform: [{ translateX: passPage3X.value }] };
     });
 
     const handleNext1 = async () => {
@@ -152,7 +147,7 @@ export default function Account() {
             .rpc('email_exists', { email_input: newEmailInput.trim() });
 
         if (fetchError) {
-            console.error('Erreur:', fetchError);
+            logger.error('Erreur:', fetchError);
             Alert.alert(t('common.alerts.errorTitle'), t('settings.account.errors.checkingEmail'));
             setIsCheckingEmail(false);
             return;
@@ -172,7 +167,7 @@ export default function Account() {
         setIsCheckingEmail(false);
 
         if (updateError) {
-            console.error("Erreur lors de la mise à jour de l'email : " + updateError.message);
+            logger.error("Erreur lors de la mise à jour de l'email : " + updateError.message);
             Alert.alert(t("common.alerts.errorTitle"), t("settings.account.errors.changeEmail"));
             return;
         }
@@ -200,7 +195,7 @@ export default function Account() {
             page2X.value = screenWidth;
             page3X.value = screenWidth * 2;
         }
-    }, [showModal]);
+    }, [showModal, page1X, page2X, page3X, screenWidth]);
 
     // --- Fonctions pour la modale Mdp ---
     const handlePassNext1 = async () => {
@@ -232,22 +227,12 @@ export default function Account() {
             { redirectTo: "https://dun-app.com/resetPassword" }
         );
         if (resetError) {
-            console.error("Erreur lors de l'envoi de l'email de réinitialisation : " + resetError.message);
+            logger.error("Erreur lors de l'envoi de l'email de réinitialisation : " + resetError.message);
             Alert.alert(t("common.alerts.errorTitle"), t("settings.account.errors.resetPassword"));
             return;
         }
 
 
-    };
-
-    const handlePassNext2 = async () => {
-        setShowPasswordModal(false);
-    };
-
-    const handlePassBack1 = () => {
-        passPage1X.value = withSpring(0);
-        passPage2X.value = withSpring(screenWidth);
-        passPage3X.value = withSpring(screenWidth * 2);
     };
 
     useEffect(() => {
@@ -258,7 +243,7 @@ export default function Account() {
             setOldPassword('');
             setNewPassword('');
         }
-    }, [showPasswordModal]);
+    }, [showPasswordModal, passPage1X, passPage2X, passPage3X, screenWidth]);
 
 
     useEffect(() => {
@@ -277,7 +262,7 @@ export default function Account() {
                     }
                 }
             } catch (error) {
-                console.error("Erreur lors de la récupération des données utilisateur:", error);
+                logger.error("Erreur lors de la récupération des données utilisateur:", error);
             } finally {
                 if (isMounted) {
                     setIsLoading(false);
@@ -294,7 +279,6 @@ export default function Account() {
 
     useEffect(() => {
         if (!userData) return;
-        // console.log("userData", userData);
         setEmail(userData.email || '');
         setName(userData.name || '');
     }, [userData]);
@@ -319,39 +303,6 @@ export default function Account() {
         });
     }, [profileQuery.data, userData]);
 
-    const formatLastUpdateDate = (date: Date | null): string => {
-        if (!date) return "";
-
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffSeconds = Math.floor(diffMs / 1000);
-        const diffMinutes = Math.floor(diffSeconds / 60);
-
-        // Si la différence est inférieure à 10 minutes
-
-        if (diffSeconds == 0) {
-            return `à l'instant`;
-        }
-
-        if (diffMinutes < 10) {
-            if (diffSeconds < 60) {
-                return `il y a ${diffSeconds} secondes`;
-            } else {
-                return `il y a ${diffMinutes} minutes`;
-            }
-        }
-
-        // Sinon, afficher le format complet
-        const day = date.getDate().toString().padStart(2, "0");
-        const month = (date.getMonth() + 1).toString().padStart(2, "0");
-        const year = date.getFullYear();
-        const hours = date.getHours().toString().padStart(2, "0");
-        const minutes = date.getMinutes().toString().padStart(2, "0");
-        const secondes = date.getSeconds().toString().padStart(2, "0");
-
-        return `${day}/${month}/${year} à ${hours}:${minutes}:${secondes}`;
-    };
-
     useEffect(() => {
         if (userData) {
             if (name !== userData.name || email !== userData.email) {
@@ -365,10 +316,6 @@ export default function Account() {
             setHasChanges(false);
         }
     }, [name, email, userData]);
-
-    useEffect(() => {
-        // console.log("hasChanges", hasChanges);
-    }, [hasChanges]);
 
     //  utiliser onAuthStateChange pour détecter les changements d'email
     useEffect(() => {
@@ -409,7 +356,7 @@ export default function Account() {
                 .rpc('email_exists', { email_input: email.trim() });
 
             if (fetchError) {
-                console.error('Erreur:', fetchError);
+                logger.error('Erreur:', fetchError);
                 alert(t('settings.account.errors.checkingEmail'));
                 return;
             }
@@ -431,7 +378,7 @@ export default function Account() {
             try {
                 await updateProfile.mutateAsync({ name: trimmedName });
             } catch (error) {
-                console.error("Erreur lors de la mise à jour du profil utilisateur :", error);
+                logger.error("Erreur lors de la mise à jour du profil utilisateur :", error);
                 return;
             }
 
@@ -439,7 +386,7 @@ export default function Account() {
                 { data: { name: trimmedName } }
             )
             if (error) {
-                console.error("Erreur lors de la mise à jour du nom d'utilisateur : " + error.message);
+                logger.error("Erreur lors de la mise à jour du nom d'utilisateur : " + error.message);
             }
             setUserData((currentUserData) =>
                 currentUserData ? { ...currentUserData, name: trimmedName } : currentUserData
@@ -453,28 +400,17 @@ export default function Account() {
         router.push("/settings/changeEmail");
     }, [router]);
 
-    const sendChangeEmailConfirmation = useCallback(async () => {
-        const { data, error } = await supabase.auth.updateUser(
-            { email: email },
-            { emailRedirectTo: "dun://settings/changeEmail" }
-        )
-        if (error) {
-            console.error("Erreur lors de la mise à jour de l'email : " + error.message);
-            return;
-        }
-    }, [email]);
-
     const handleLogout = useCallback(async () => {
         try {
             try {
                 await clearStoredExportData();
             } catch (exportError) {
-                console.error("Erreur lors du nettoyage de l'export local : ", exportError);
+                logger.error("Erreur lors du nettoyage de l'export local : ", exportError);
             }
 
             const { error } = await supabase.auth.signOut();
             if (error) {
-                console.error("Erreur lors de la déconnexion : " + error.message);
+                logger.error("Erreur lors de la déconnexion : " + error.message);
                 return;
             }
             // Nettoyer le cache des requêtes
@@ -483,9 +419,9 @@ export default function Account() {
             store.clearStore();
             router.replace("/onboarding/start");
         } catch (error) {
-            console.error("Erreur lors de la déconnexion : ", error);
+            logger.error("Erreur lors de la déconnexion : ", error);
         }
-    }, [queryClient, router]);
+    }, [queryClient, router, store]);
 
     const handleDeleteAccount = useCallback(async () => {
         Alert.alert(
@@ -506,7 +442,7 @@ export default function Account() {
                             try {
                                 await clearStoredExportData();
                             } catch (exportError) {
-                                console.error("Erreur lors du nettoyage de l'export local : ", exportError);
+                                logger.error("Erreur lors du nettoyage de l'export local : ", exportError);
                             }
                             Alert.alert(t("common.alerts.successTitle"), t("settings.account.deleteAccount.success"), [
                                 {
@@ -518,7 +454,7 @@ export default function Account() {
                                 },
                             ]);
                         } catch (error) {
-                            console.error("Erreur lors de la suppression du compte:", error);
+                            logger.error("Erreur lors de la suppression du compte:", error);
                             Alert.alert(
                                 t("common.alerts.errorTitle"),
                                 t("settings.account.errors.deleteAccount")
@@ -531,7 +467,7 @@ export default function Account() {
                 },
             ]
         );
-    }, [queryClient, router]);
+    }, [queryClient, router, t]);
 
     const handleExportData = useCallback(() => {
         router.push("/settings/DataTransfer");

@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
+import { logger } from "@/lib/logger";
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -57,13 +58,13 @@ export async function deleteUserAccount() {
     if (profileError) throw profileError;
 
     // Appeler la RPC pour supprimer le compte d'auth
-    const { data, error: rpcError } = await supabase.rpc("delete_account");
+    const { error: rpcError } = await supabase.rpc("delete_account");
     
     if (rpcError) throw rpcError;
 
     return { success: true };
   } catch (error) {
-    console.error("Erreur lors de la suppression du compte:", error);
+    logger.error("Erreur lors de la suppression du compte:", error);
     throw error;
   }
 }

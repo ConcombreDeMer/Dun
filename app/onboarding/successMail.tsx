@@ -1,18 +1,9 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../lib/ThemeContext';
+import LottieView from 'lottie-react-native';
 import Animated, {
-  FadeIn,
-  FadeOut,
-  SlideInUp,
-  SlideOutDown,
-  ZoomIn,
-  ZoomOut,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
   FadeInUp,
-  FadeOutDown,
   FadeInDown,
 } from 'react-native-reanimated';
 import { useAppTranslation } from '../../lib/i18n';
@@ -22,8 +13,7 @@ import { useAppTranslation } from '../../lib/i18n';
 export default function SuccessMail() {
   const router = useRouter();
   const { t } = useAppTranslation();
-  const LottieView = require('lottie-react-native').default;
-  const { colors, theme } = useTheme();
+  const { colors } = useTheme();
 
   return (
     <View style={styles.container}>

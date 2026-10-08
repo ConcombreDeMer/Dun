@@ -12,6 +12,7 @@ import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
+import { logger } from "@/lib/logger";
 
 type ExportStatus = "loading" | "success" | "error" | "cancelled";
 
@@ -56,7 +57,7 @@ export default function ExportData() {
           return;
         }
 
-        console.error("Erreur lors de l'export des données:", error);
+        logger.error("Erreur lors de l'export des données:", error);
         setStatus("error");
         Alert.alert(t("common.alerts.errorTitle"), t("settings.account.exportData.errors.export"));
       });
@@ -83,7 +84,7 @@ export default function ExportData() {
         message: t("settings.account.exportData.shareMessage"),
       });
     } catch (error) {
-      console.error("Erreur lors du téléchargement de l'export:", error);
+      logger.error("Erreur lors du téléchargement de l'export:", error);
       Alert.alert(t("common.alerts.errorTitle"), t("settings.account.exportData.errors.download"));
     }
   }, [fileName, fileUri, t]);
@@ -94,7 +95,7 @@ export default function ExportData() {
     try {
       await deleteExportFile(fileUri);
     } catch (error) {
-      console.error("Erreur lors de la suppression de l'export:", error);
+      logger.error("Erreur lors de la suppression de l'export:", error);
     } finally {
       router.back();
     }

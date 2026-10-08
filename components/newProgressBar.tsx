@@ -221,14 +221,6 @@ function NewProgressBar({
         pressProgress.value = withTiming(0, { duration: 160 });
     };
 
-    const dayStatus = useMemo(() => {
-        if (totalTasks === 0) return t('home.progress.empty');
-        if (remainingTasks === 0) return t('home.progress.complete');
-        if (clampedProgress >= 70) return t('home.progress.close');
-        if (clampedProgress >= 35) return t('home.progress.inMotion');
-        return t('home.progress.start');
-    }, [clampedProgress, remainingTasks, t, totalTasks]);
-
     const renderSummary = () => {
         const taskLabel = plural(remainingTasks, t('home.progress.task'), t('home.progress.tasks'));
 

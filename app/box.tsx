@@ -25,6 +25,7 @@ import { ActivityIndicator, Image, StyleSheet, Text, useWindowDimensions, View }
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ReAnimated, { Easing, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { logger } from "@/lib/logger";
 
 const getTaskRenderKey = (task: any) => task.clientKey ?? task.id;
 
@@ -170,7 +171,7 @@ export default function Box() {
         }
       }
     } catch (error) {
-      console.error("Erreur lors de la mise à jour de l'ordre de la box:", error);
+      logger.error("Erreur lors de la mise à jour de l'ordre de la box:", error);
       if (previousTasks) {
         queryClient.setQueryData(tasksQueryKey, previousTasks);
       } else {

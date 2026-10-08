@@ -23,6 +23,7 @@ import { useOptimisticTaskMutations } from "../lib/useOptimisticTaskMutations";
 import { useToggleTaskDone } from "../lib/useToggleTaskDone";
 import { useProfile } from "../lib/profile";
 import TagSelector from "./TagSelector";
+import { logger } from "@/lib/logger";
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
@@ -217,7 +218,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                 return;
             }
 
-            console.error("Erreur lors de la sauvegarde:", error);
+            logger.error("Erreur lors de la sauvegarde:", error);
         }
     });
 
@@ -247,7 +248,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
                 return;
             }
 
-            console.error("Erreur lors de la sauvegarde des tags:", error);
+            logger.error("Erreur lors de la sauvegarde des tags:", error);
             setSelectedTagIds(null);
             Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
         },
@@ -529,7 +530,7 @@ export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () =
 
                             onClose(() => {
                                 void deleteTaskOptimistically(id).catch((error: any) => {
-                                    console.error("Erreur lors de la suppression:", error);
+                                    logger.error("Erreur lors de la suppression:", error);
                                     Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
                                 });
                             });

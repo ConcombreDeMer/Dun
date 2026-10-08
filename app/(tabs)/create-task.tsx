@@ -18,12 +18,12 @@ import {
     View
 } from "react-native";
 import { isPastAppDateKey, toAppDateKey } from "@/lib/date";
-import { taskEmitter } from "@/lib/eventEmitter";
 import { useAppTranslation } from "@/lib/i18n";
 import { useProfile } from "@/lib/profile";
 import { useSubscription } from "@/lib/subscription";
 import { useTheme } from "@/lib/ThemeContext";
 import { useOptimisticTaskMutations } from "@/lib/useOptimisticTaskMutations";
+import { logger } from "@/lib/logger";
 
 export default function CreateTask() {
     const router = useRouter();
@@ -78,11 +78,10 @@ export default function CreateTask() {
         setDescription("");
         setSelectedTagIds([]);
         setCreateInBox(false);
-        taskEmitter.emit("taskAdded");
         leaveCreateTask();
 
         void createTaskOptimistically(nextTask).catch((error: any) => {
-            console.error("Erreur lors de la création de la tâche:", error);
+            logger.error("Erreur lors de la création de la tâche:", error);
             Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
         });
     };

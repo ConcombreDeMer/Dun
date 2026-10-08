@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import Purchases, { LOG_LEVEL } from "react-native-purchases";
+import { logger } from "@/lib/logger";
 
 let hasConfiguredRevenueCat = false;
 let configuredApiKey: string | null = null;
@@ -17,7 +18,7 @@ export function initializeRevenueCat(appUserID?: string | null) {
   const apiKey = getRevenueCatApiKey();
 
   if (!apiKey) {
-    console.warn("Cle API RevenueCat manquante dans les variables d'environnement (.env)");
+    logger.warn("Cle API RevenueCat manquante dans les variables d'environnement (.env)");
     return false;
   }
 
@@ -31,7 +32,7 @@ export function initializeRevenueCat(appUserID?: string | null) {
     return true;
   }
 
-  Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+  if (__DEV__) Purchases.setLogLevel(LOG_LEVEL.DEBUG);
   Purchases.configure(
     normalizedAppUserID
       ? { apiKey, appUserID: normalizedAppUserID }

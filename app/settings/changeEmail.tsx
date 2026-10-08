@@ -1,18 +1,19 @@
 import SecondaryButton from "@/components/secondaryButton";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import PrimaryButton from "@/components/primaryButton";
 import { useAppTranslation } from "@/lib/i18n";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/ThemeContext";
+import { logger } from "@/lib/logger";
 
 
 export default function ChangeEmail() {
 
     const { colors } = useTheme();
     const { t } = useAppTranslation();
-    const [isLoading, setIsLoading] = useState(true);
+    const [, setIsLoading] = useState(true);
     const [userData, setUserData] = useState<{ name: string; email: string }>({ name: '', email: '' });
     const [newEmail, setNewEmail] = useState<string>('');
     const [timeRemaining, setTimeRemaining] = useState<{ minutes: number; seconds: number }>({ minutes: 8, seconds: 35 });
@@ -20,33 +21,7 @@ export default function ChangeEmail() {
     const [isExpired, setIsExpired] = useState(false);
     const router = useRouter();
 
-    const fetchUserData = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                console.log("user", user);
-                setUserData(
-                    {
-                        name: user.user_metadata.name || '',
-                        email: user.email || '',
-                    }
-                );
-                if (user.new_email) {
-                    setNewEmail(user.new_email);
-                }
-                if (user.email_change_sent_at) {
-                    console.log("user.email_change_sent_at", user.email_change_sent_at);
-                    getCountDownTime(user.email_change_sent_at);
-                }
-            }
-        } catch (error) {
-            console.error("Erreur lors de la récupération des données utilisateur:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const getCountDownTime = (date: string) => {
+    const getCountDownTime = useCallback((date: string) => {
         // Parse la date ISO directement (convertie automatiquement en heure locale)
         const sentDate = new Date(date);
 
@@ -61,7 +36,31 @@ export default function ChangeEmail() {
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
         setTimeRemaining({ minutes, seconds });
-    };
+    }, []);
+
+    const fetchUserData = useCallback(async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                setUserData(
+                    {
+                        name: user.user_metadata.name || '',
+                        email: user.email || '',
+                    }
+                );
+                if (user.new_email) {
+                    setNewEmail(user.new_email);
+                }
+                if (user.email_change_sent_at) {
+                    getCountDownTime(user.email_change_sent_at);
+                }
+            }
+        } catch (error) {
+            logger.error("Erreur lors de la récupération des données utilisateur:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [getCountDownTime]);
 
     useEffect(() => {
         if (timeRemaining.minutes <= 0 && timeRemaining.seconds <= 0) {
@@ -71,7 +70,7 @@ export default function ChangeEmail() {
 
     useEffect(() => {
         fetchUserData();
-    }, []);
+    }, [fetchUserData]);
 
 
     // Timer countdown
@@ -98,7 +97,7 @@ export default function ChangeEmail() {
             alert(t("settings.changeEmail.cancelSuccess"));
             fetchUserData();
         } catch (error) {
-            console.error("Erreur lors de l'annulation du changement d'email :", error);
+            logger.error("Erreur lors de l'annulation du changement d'email :", error);
             alert(t("settings.changeEmail.cancelError"));
         }
         router.back();
@@ -110,7 +109,7 @@ export default function ChangeEmail() {
             // Resend confirmation emails
             // This would typically call your backend
         } catch (error) {
-            console.error("Erreur lors du renvoi:", error);
+            logger.error("Erreur lors du renvoi:", error);
         } finally {
             setIsResending(false);
         }

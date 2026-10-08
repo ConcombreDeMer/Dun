@@ -24,6 +24,7 @@ import { useFont } from '../../lib/FontContext';
 import { useAppTranslation } from '../../lib/i18n';
 import { useTheme } from '../../lib/ThemeContext';
 import { supabase } from '../../lib/supabase';
+import { logger } from "@/lib/logger";
 
 export default function EmailVerificationScreen() {
     const router = useRouter();
@@ -33,9 +34,8 @@ export default function EmailVerificationScreen() {
     const { email } = useLocalSearchParams<{ email: string }>();
 
     const [loading, setLoading] = useState(false);
-    const [checkingVerification, setCheckingVerification] = useState(false);
     const [timeLeft, setTimeLeft] = useState(3600); // 1 heure
-    const [isVerified, setIsVerified] = useState(false);
+    const [isVerified] = useState(false);
     const [retryError, setRetryError] = useState('');
     const [retryWaitTime, setRetryWaitTime] = useState(0);
     const [retrySuccess, setRetrySuccess] = useState('');
@@ -106,7 +106,7 @@ export default function EmailVerificationScreen() {
             });
 
             if (error) {
-                console.error('Erreur lors de l\'envoi:', error);
+                logger.error('Erreur lors de l\'envoi:', error);
                 const errorMessage = error.message || '';
 
                 // Extraire le temps d'attente de l'erreur
@@ -124,7 +124,7 @@ export default function EmailVerificationScreen() {
                 setRetrySuccess(t('onboarding.emailVerification.resent'));
             }
         } catch (err) {
-            console.error('Erreur:', err);
+            logger.error('Erreur:', err);
             setRetryError(t('onboarding.emailVerification.genericError'));
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
         } finally {

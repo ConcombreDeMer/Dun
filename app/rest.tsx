@@ -14,6 +14,7 @@ import PrimaryButton from '../components/primaryButton';
 import { useFont } from '../lib/FontContext';
 import { useAppTranslation } from '../lib/i18n';
 import { useTheme } from '../lib/ThemeContext';
+import { logger } from "@/lib/logger";
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -25,7 +26,7 @@ export default function RestScreen() {
     const queryClient = useQueryClient();
     const userId = useAuthUserId();
     const [showCancelModal, setShowCancelModal] = React.useState(false);
-    const [restEndDate, setRestEndDate] = React.useState<Date | null>(null);
+    const [, setRestEndDate] = React.useState<Date | null>(null);
     const [selectedDate, setSelectedDate] = React.useState(new Date());
     const fetchRestEndDate = async () => {
         try {
@@ -52,7 +53,7 @@ export default function RestScreen() {
             return fetchedDate ? fetchedDate.toLocaleDateString(language === "en" ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'long' }) : '';
         }
         catch (error) {
-            console.error('Erreur lors de la récupération de la date:', error);
+            logger.error('Erreur lors de la récupération de la date:', error);
             return '';
         }
     }
@@ -178,13 +179,13 @@ export default function RestScreen() {
                                                 .eq('id', userId);
 
                                             if (error) {
-                                                console.error("Erreur lors de la mise à jour de hasDoneDaily:", error);
+                                                logger.error("Erreur lors de la mise à jour de hasDoneDaily:", error);
                                             } else {
                                                 patchProfileCache(queryClient, userId, { restEndDate: selectedDate.toISOString() });
                                             }
                                         }
                                     } catch (error) {
-                                        console.error(error);
+                                        logger.error(error);
                                     } finally {
                                         restEndDateQuery.refetch();
                                         goBackToStep1();
@@ -252,13 +253,13 @@ export default function RestScreen() {
                                                 .eq('id', userId);
 
                                             if (error) {
-                                                console.error("Erreur lors de l'annulation du mode repos:", error);
+                                                logger.error("Erreur lors de l'annulation du mode repos:", error);
                                             } else {
                                                 patchProfileCache(queryClient, userId, { restEndDate: null, restMode: false });
                                             }
                                         }
                                     } catch (error) {
-                                        console.error(error);
+                                        logger.error(error);
                                     } finally {
                                         restEndDateQuery.refetch();
                                         if (router.canGoBack()) {
