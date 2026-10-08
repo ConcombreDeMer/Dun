@@ -1,0 +1,292 @@
+# Roadmap V1 de Dun
+
+Cette roadmap applique l'offre décrite dans [`offre-commerciale-v1-pour-agents.md`](../offre-commerciale-v1-pour-agents.md) et corrige les problèmes relevés dans [`audit.md`](audit.md).
+
+**Hypothèses.**
+- Développement solo, à temps plein.
+- Personne n'utilise l'app aujourd'hui, donc aucune donnée réelle n'est à préserver. L'étape « les personnes ayant déjà un compte choisissent un nouvel objectif lors de la migration » de l'offre devient sans objet ; on peut la retirer du document commercial ou la laisser comme cas théorique.
+- La journée se clôt à minuit partout : Daily, objectif et statistiques suivent la même règle.
+
+**Durée estimée : environ 15 semaines.** Les estimations servent à prioriser, pas à s'engager : chaque phase a un critère de fin vérifiable, et c'est ce critère qui compte.
+
+| Phase | Contenu | Semaines |
+|---|---|---|
+| 0 | Assainir le dépôt et l'outillage | 1 |
+| 1 | Noyau métier testé | 2-3 |
+| 2 | Données locales, app sans compte | 3-7 |
+| 3 | Offre gratuit / Dun+ | 7-9 |
+| 4 | Cloud Dun+ | 9-13 |
+| 5 | Publication | 13-15 |
+
+**L'ordre est volontaire.**
+1. On fixe d'abord les règles (phase 1), parce que le stockage local (phase 2) et la synchronisation (phase 4) en dépendent.
+2. L'app gratuite hors ligne est complète avant d'ajouter le cloud. Ainsi, Dun+ s'ajoute par-dessus un socle stable au lieu de le conditionner.
+
+---
+
+## Architecture cible
+
+```
+src/
+  app/            Routes Expo Router. Écrans fins : ils assemblent des composants
+                  de fonctionnalité, sans logique métier ni accès direct aux données.
+  domain/         TypeScript pur, sans React ni stockage : clés de date (minuit),
+                  état d'une journée, série, objectif, Repos, statistiques, report.
+                  Testé à 100 %.
+  data/           expo-sqlite + Drizzle ORM : schéma typé, migrations embarquées,
+                  requêtes en direct (useLiveQuery). Un repository par entité.
+  sync/           Outbox, push et pull vers Supabase. Activé seulement avec Dun+.
+  entitlements/   Table « fonction → gratuit / Dun+ » et can(feature), calculé
+                  depuis RevenueCat. Seule source de vérité des droits.
+  features/       tasks, box, daily, rest, goal, tags, reminders, stats,
+                  settings, profile, paywall, account, backup.
+  ui/             Design system : boutons, cartes, interrupteurs, feuilles, typographie, couleurs.
+  i18n/           Ressources générées depuis locales/*.yaml.
+```
+
+**Choix structurants.**
+- **SQLite local comme source de vérité, pour tout le monde.** Les écrans lisent la base locale par requêtes en direct : quand elle change, l'écran se met à jour, sans invalidation de cache ni mise à jour optimiste à maintenir. React Query reste réservé au réseau (offres RevenueCat, état de la synchronisation).
+- **Drizzle** apporte un schéma typé, des migrations versionnées embarquées dans l'app et des requêtes vérifiées par TypeScript.
+- **Des identifiants UUID v7 générés sur l'appareil.** Une tâche existe avant même d'être envoyée au serveur, sans identifiant temporaire à remplacer.
+- **`updated_at` et `deleted_at` sur chaque ligne.** La suppression est logique : la synchronisation peut ainsi propager les suppressions.
+- **Un ordre par indexation fractionnaire** (clé texte entre deux voisines). Insérer ou déplacer une tâche ne modifie qu'une ligne, sans renuméroter toute la journée.
+- **Synchronisation en « dernière écriture gagnante », par ligne.** Pour un seul utilisateur sur plusieurs appareils, les conflits sont rares ; inutile de construire un moteur de fusion complexe.
+- **Les journées closes sont enregistrées** (`day_records`) avec leur date locale et leur résultat. Une journée close garde sa date, même après un voyage (offre : « Une journée déjà enregistrée garde sa date »).
+
+---
+
+## Phase 0 — Assainir (semaine 1)
+
+**But :** repartir d'un dépôt propre, avec des garde-fous automatiques.
+
+### Ménage
+- [ ] Supprimer le code mort : `errorModal`, `statsStatut`, `progressBar`, `loading`, `createModal`, `popUpModal`, `checkboxAnimated`, `useDailyScreen`, `lib/eventEmitter.ts` et son unique appel.
+- [ ] Supprimer `test-swipe.tsx`, `build/`, `assets/images/background/bg.svg` et `bg.jpg`, ainsi que les fichiers Inter inutilisés (garder les 4 graisses chargées).
+- [ ] Retirer le script `reset-project`. Documenter le correctif `postinstall` ou le supprimer s'il n'est plus nécessaire avec Expo 56.
+- [ ] Supprimer les `console.log`, garder `console.warn` et `console.error` en développement seulement. N'activer `Purchases.setLogLevel(DEBUG)` qu'en `__DEV__`.
+- [ ] Corriger les 90 avertissements de lint et le commentaire faux de `eslint.config.js` sur React Compiler.
+
+### Outillage
+- [ ] Exclure `supabase/functions` de `tsconfig.json` et lui donner sa propre configuration Deno.
+- [ ] Ajouter Prettier et formater tout le dépôt en un seul commit dédié.
+- [ ] Ajouter Jest (`jest-expo`) et `@testing-library/react-native`, avec un premier test.
+- [ ] Ajouter les scripts `typecheck`, `lint`, `test`, `format:check` et `check` (qui enchaîne les quatre).
+- [ ] Supprimer le `.github/workflows/quality.yml` non suivi et le remplacer par une CI simple : `npm ci`, puis `npm run check`, à chaque PR et sur `master`. Garder `.nvmrc`.
+
+### Environnements
+- [ ] Ajouter les profils EAS `development`, `preview` et `production`, avec les variables d'environnement EAS au lieu de lignes commentées dans `.env`.
+- [ ] Créer deux projets Supabase, dev et prod, et documenter le passage de l'un à l'autre.
+- [ ] Vérifier que les commits `1e20054` et `8ff5dc7` n'ont jamais été poussés. Dans le doute, régénérer le secret client Google OAuth.
+
+### Documentation et Git
+- [ ] Réécrire le README : installation, commandes, architecture réelle, environnements.
+- [ ] Créer `AGENTS.md` : conventions, commandes de vérification, interdits (pas d'accès direct à Supabase dans un écran, pas d'`any`, pas de règle métier hors de `domain/`), définition de « terminé ».
+- [ ] Créer `docs/conventions.md` :
+  - fichiers de composants en PascalCase, hooks en `useCamelCase`, routes en kebab-case ;
+  - SQL en snake_case ;
+  - commits conventionnels (`feat`, `fix`, `refactor`, `docs`, `test`, `chore`) ;
+  - branches `type/sujet`.
+- [ ] Supprimer les branches fusionnées ou abandonnées : `codex/*`, `create-task-v2`, `create-task-v3`, etc. Archiver par un tag celles qu'on veut garder pour mémoire.
+
+**Terminé quand :** la CI est verte sur `master` et `npm run check` passe sans aucun avertissement.
+
+---
+
+## Phase 1 — Noyau métier testé (semaines 2 et 3)
+
+**But :** traduire chaque règle de l'offre en fonctions pures testées, dans `src/domain`. Ce code ne dépend ni de React ni du stockage. Il devient la spécification exécutable de Dun.
+
+### Dates et journées
+- [ ] `dateKey(date, timeZone)` : clé `YYYY-MM-DD` de la journée locale, clôture à minuit. Supprimer `DAILY_ROLLOVER_HOUR`.
+- [ ] Une nouvelle journée suit le fuseau de l'iPhone ; une journée déjà enregistrée garde sa date. Tests avec un passage de Paris à New York et retour.
+- [ ] `dayStatus(tasks, restPeriods, dateKey, now)` → `success | failed | empty | rest | provisional` :
+  - seule une journée **close** à 100 % est un succès ;
+  - une journée en cours à 100 % est provisoire ;
+  - une journée vide hors Repos est un échec, de même qu'une journée incomplète.
+
+### Série et objectif
+- [ ] `streak(dayStatuses)` : **une seule règle**, utilisée par l'objectif et par les statistiques. Le Repos est neutre : il ne compte pas, mais ne rompt pas la série.
+- [ ] `goalProgress(goal, dayStatuses)` :
+  - cibles 1, 2, 3, 4, 7 ou 14 ;
+  - la journée de confirmation compte si elle se clôt à 100 %, même si des tâches ont été faites avant la confirmation ;
+  - la première réussite datée et la série en cours sont distinctes.
+
+### Repos
+- [ ] `isRestDay(restPeriods, dateKey)` :
+  - un Repos activé pendant une journée ouverte rend toute la journée neutre ;
+  - la date de fin est incluse ;
+  - une annulation avant minuit rend la journée en cours normale ;
+  - aucun Repos n'est appliqué rétroactivement à une journée close.
+
+### Tâches et statistiques
+- [ ] Verrouillage des jours passés (activable) : quelles actions sont permises sur une tâche d'un jour clos.
+- [ ] **Une seule sémantique pour « reporter »** : déplacer la tâche et incrémenter `delay_count`. Écrire la décision dans `docs/conventions.md`.
+- [ ] Statistiques de la semaine, du mois et de l'année : complétion, charge, journées parfaites, série. Les périodes sont identifiées par `week | month | year`, plus par des libellés.
+
+**Terminé quand :** chaque puce des sections « Objectif, journées et Repos » de l'offre correspond à au moins un test nommé d'après elle, et la couverture de `src/domain` est de 100 %.
+
+---
+
+## Phase 2 — Données locales, app sans compte (semaines 3 à 7)
+
+**But :** l'app gratuite complète fonctionne hors ligne, sans compte et sans aucun appel à Supabase.
+
+### Base locale
+- [ ] Écrire le schéma Drizzle : `tasks` (date nulle = Box), `tags`, `task_tags`, `day_records`, `rest_periods`, `goal`, `settings`, `reminders`, `outbox`. Toutes les tables ont `id` UUID, `created_at`, `updated_at` et `deleted_at`.
+- [ ] Écrire un repository par entité. Les écrans ne parlent qu'aux hooks de `features/`, qui appellent `domain/` et `data/`.
+- [ ] Clôturer les journées : au lancement et au retour au premier plan, enregistrer les journées closes depuis la dernière ouverture dans `day_records`.
+
+### Fonctionnalités à reconstruire sur la base locale
+Pour chacune : la découper en composants de moins de 300 lignes et supprimer l'ancien code Supabase.
+- [ ] Home : calendrier, liste du jour, progression.
+- [ ] Création et édition de tâche ; une seule modale au lieu de `popUpTask` et `liquidCreateModal`.
+- [ ] Box, sans limite.
+- [ ] Daily : revue des tâches en retard, reporter, terminer en retard, supprimer.
+- [ ] Repos : activer, annuler, consulter la date de fin.
+- [ ] Tags : créer, modifier, supprimer, 3 maximum par tâche.
+- [ ] Statistiques de la semaine.
+- [ ] Réglages d'affichage : thème, langue, taille du texte, calendrier, progression, palette. Fusionner `ThemeContext` et `FontContext` dans un seul module de préférences lu depuis `settings`.
+- [ ] Rappel quotidien local : heure et jours choisis, week-end compris.
+
+### Onboarding et sauvegarde
+- [ ] Onboarding sans compte, qui enregistre le nom **et l'objectif**. Supprimer l'étape `trial` et les écrans d'inscription obligatoires (ils reviendront en phase 4 pour activer le cloud).
+- [ ] Export manuel en fichier JSON local (via la feuille de partage), et restauration depuis ce fichier, avec un format versionné.
+- [ ] Supprimer Zustand s'il ne sert plus, ainsi que `AuthSessionContext` et les appels `supabase` dans `app/`.
+
+**Terminé quand :** sur une installation neuve en mode avion, on peut faire l'onboarding, créer des tâches et des tags, utiliser la Box, réussir une journée, passer le Daily le lendemain, activer le Repos, voir les statistiques de la semaine, exporter puis restaurer. Tout cela sans erreur et sans aucune requête réseau (vérifié dans Sentry et dans les journaux).
+
+---
+
+## Phase 3 — Offre gratuit / Dun+ (semaines 7 à 9)
+
+**But :** appliquer exactement le tableau de l'offre, depuis un seul endroit.
+
+### Table des droits
+- [ ] `src/entitlements/features.ts` : la table « fonction → `free` | `plus` » recopiée de l'offre, et `can(feature, { isPlus })`.
+- [ ] Supprimer `FREE_DAILY_TASK_LIMIT`, `REQUIRE_PREMIUM_ACCESS`, `EXPO_PUBLIC_BETA_PREMIUM`, `PremiumAccessGate`, `usePremiumDowngradeCompliance`, `getActiveTagIdsForPlan` et tous les `useEffect` qui écrivent pour « corriger » un droit.
+
+### Répartition
+| Gratuit | Dun+ |
+|---|---|
+| Tâches et Box sans limite, calendrier, historique | Synchronisation entre appareils |
+| Daily, verrouillage et Repos activables | — |
+| Objectif de l'onboarding | — |
+| 5 tags créés au maximum, 3 par tâche | Tags sans plafond, 3 par tâche |
+| Rappel quotidien, week-end compris | Répétitions du rappel |
+| Statistiques de la semaine | Mois, année, analyses détaillées |
+| Thèmes, langue, taille du texte, calendrier en curseur, progression linéaire | Palettes, calendrier en texte, progression circulaire |
+| Export et restauration manuels | Synchronisation et restauration cloud |
+
+### Expiration (fin effective du droit, pas simple annulation du renouvellement)
+- [ ] Les données locales restent intactes.
+- [ ] Les tags existants restent actifs et modifiables ; la création est refusée tant qu'il y en a au moins 5.
+- [ ] La palette et les dispositions Dun+ déjà choisies restent affichées ; seul le choix d'une **nouvelle** variante Dun+ est verrouillé.
+- [ ] Les répétitions de rappel s'arrêtent ; le rappel quotidien continue. Il faut reprogrammer les notifications au changement de droit.
+
+### Écrans
+- [ ] Onglet **Profil / Mon système** : objectif, Daily, Repos, rappels, tags. La roue dentée garde les paramètres généraux. Pas de carte « Delay ».
+- [ ] **Paywall** :
+  - il présente uniquement les avantages Dun+ disponibles ;
+  - prix total, durée, essai éventuel, renouvellement, gestion et restauration, tous tirés des produits Apple via RevenueCat ;
+  - liens vers les conditions d'utilisation et la politique de confidentialité.
+- [ ] Relire onboarding, réglages, aide et paywall : aucune mention des routines ou de fonctions absentes.
+
+**Terminé quand :** chaque ligne du tableau a un test sur `can()`, et une vérification manuelle est faite dans trois états (gratuit, Dun+ actif, Dun+ expiré) avec un compte sandbox.
+
+---
+
+## Phase 4 — Cloud Dun+ (semaines 9 à 13)
+
+**But :** une copie cloud et une synchronisation réservées à Dun+, vérifiées côté serveur.
+
+### Nouveau schéma Supabase
+Aucun utilisateur à préserver : on repart de zéro dans le projet prod.
+- [ ] Tables en snake_case, calquées sur le schéma local : `user_id uuid not null references auth.users on delete cascade`, `NOT NULL` partout où c'est pertinent, `updated_at` et `deleted_at`.
+- [ ] RLS stricte `user_id = (select auth.uid())`, aucun `GRANT` pour `anon` sur les données, aucune fonction `SECURITY DEFINER` exposée au client, `search_path` figé partout.
+- [ ] Générer les types avec `supabase gen types` et les mettre à jour en CI.
+- [ ] Sortir `Beta` et `support_issues*` dans un projet séparé, ou les supprimer s'ils ne servent plus.
+- [ ] Une base locale (`supabase start`), un seed et une migration initiale propre, à la place de l'export brut.
+
+### Droit Dun+ côté serveur
+- [ ] Une fonction serveur `revenuecat-webhook` alimente une table `entitlements` (`user_id`, `active`, `expires_at`, `ended_at`). Elle vérifie la signature du webhook.
+- [ ] Les écritures cloud passent par une fonction `sync-push` qui refuse toute écriture sans droit actif. On peut aussi utiliser une règle RLS qui consulte `entitlements`.
+
+### Compte et synchronisation
+- [ ] Le compte (Apple, Google, email) est demandé seulement pour activer ou récupérer la copie cloud. L'identifiant RevenueCat est relié au compte.
+- [ ] **Push** : l'outbox locale est envoyée par lots, puis vidée après accusé de réception.
+- [ ] **Pull** : un curseur `updated_at` par table ; la dernière écriture gagne.
+- [ ] Première activation : envoyer toute la base locale. Nouvel appareil : restaurer la copie cloud.
+- [ ] Un indicateur de synchronisation dans Profil, avec l'heure de la dernière synchronisation et les erreurs éventuelles.
+
+### Expiration et suppression
+- [ ] À la fin effective du droit, la synchronisation s'arrête. La copie cloud reste lisible et récupérable pendant 90 jours.
+- [ ] Passé ce délai, un job `pg_cron` revérifie le droit, puis supprime les données de productivité cloud.
+- [ ] Suppression de compte par une fonction serveur atomique (données et utilisateur `auth`). Elle n'affecte pas les données locales sauf demande explicite.
+
+**Terminé quand :**
+- deux simulateurs connectés au même compte convergent après des modifications hors ligne de part et d'autre ;
+- une écriture sans droit actif est refusée par le serveur, et pas seulement masquée par l'interface ;
+- la purge à J+90 est vérifiée sur la base locale avec une date simulée ;
+- la suppression de compte ne laisse aucune ligne.
+
+---
+
+## Phase 5 — Publication (semaines 13 à 15)
+
+- [ ] **Tests de bout en bout** avec Maestro sur simulateur iOS :
+  - onboarding ;
+  - journée complète et Daily ;
+  - Repos ;
+  - achat sandbox ;
+  - expiration ;
+  - restauration cloud ;
+  - export et import.
+
+  Les lancer en CI sur les PR de `master` si le coût reste raisonnable, sinon avant chaque build.
+- [ ] **Sentry** : releases, sourcemaps envoyées par EAS, environnement `production` / `preview`.
+- [ ] **Accessibilité** : Dynamic Type (la taille du texte de l'app comprise), libellés VoiceOver sur les cases à cocher et les boutons-icônes, contrastes des palettes.
+- [ ] **Performance** : démarrage à froid, listes longues (un an de tâches), animations du calendrier.
+- [ ] **App Store** :
+  - fiche, captures et textes limités aux fonctions livrées ;
+  - étiquettes de confidentialité (données locales, compte optionnel, Sentry) ;
+  - politique de confidentialité et conditions publiées.
+- [ ] Bêta TestFlight externe, puis correction des retours.
+- [ ] Rédiger `docs/release-checklist.md` et la valider entièrement.
+
+**Terminé quand :** la checklist de publication est entièrement cochée et le build de production est soumis.
+
+---
+
+## Après la V1
+
+1. **Routines et tâches récurrentes**, première mise à jour. Elles ne sont mentionnées nulle part avant leur livraison.
+2. Widgets iOS (série, journée en cours).
+3. Android, si la demande le justifie : l'architecture locale le rend possible sans refonte.
+
+---
+
+## Nouveau workflow
+
+### Organisation
+- **Une tâche = une issue GitHub** dans un tableau Project avec les colonnes À faire / En cours / En revue / Fait. Chaque issue a un critère d'acceptation qui renvoie, quand c'est pertinent, à une ligne de l'offre.
+- **Un jalon par phase.** Une phase ne commence que lorsque le critère de fin de la précédente est atteint.
+- **Un build TestFlight interne à la fin de chaque phase**, testé sur un vrai iPhone.
+
+### Git
+- Une branche courte par issue (`feat/box-sans-limite`, `refactor/domain-streak`), avec des commits conventionnels.
+- Une **PR même en solo**. Elle est relue avec `/code-review`, et la CI doit être verte pour fusionner. Fusion en squash pour garder un historique lisible.
+- Supprimer la branche après la fusion.
+- Yanis commite, pousse et ouvre les PR lui-même. Les agents préparent le travail et fournissent la commande de commit.
+
+### Travail avec les agents IA
+- **Un agent à la fois sur un périmètre donné**, en partant d'`AGENTS.md` et de l'issue. Pas de branches parallèles qui touchent les mêmes fichiers.
+- **Les règles métier commencent par les tests.** L'agent écrit d'abord les tests tirés de l'offre, Yanis les valide, puis l'agent écrit le code.
+- **Un agent ne déclare une tâche terminée qu'après `npm run check`.**
+- **Toute décision produit nouvelle va dans le document d'offre ou dans `docs/`**, jamais seulement dans une conversation.
+
+### Définition de « terminé »
+- [ ] Le critère d'acceptation de l'issue est atteint.
+- [ ] Les tests sont ajoutés ou mis à jour, et `npm run check` passe.
+- [ ] Il n'y a aucun accès direct au stockage depuis un écran, et aucun `any` nouveau.
+- [ ] Les textes sont en FR et en EN dans `locales/`.
+- [ ] La fonction a été testée sur simulateur, en clair et en sombre.
