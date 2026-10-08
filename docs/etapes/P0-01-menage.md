@@ -206,18 +206,19 @@ Non testé : la connexion par lien email (`app/auth/callback.tsx`, #3) et la fen
 - Une seule étape pour les 5 cases du ménage (choix de Yanis).
 - Correctif `postinstall` gardé et documenté, pas supprimé (plan validé tel quel).
 - Les `require()` d'assets ne sont pas signalés par la config ESLint : ils restent tels quels.
+- Fusion de la PR par commit de merge, sans squash. Décision de Yanis, rendue permanente dans la roadmap (section Workflow > Règles).
 
 ### Problèmes non bloquants
 | ID | Problème | Décision de Yanis |
 |---|---|---|
-| R1-2 | États qui ne servent plus qu'à leur setter | à décider |
-| R1-3 | Style des imports du logger | à décider |
-| R1-4 | `npx eslint .` signale des erreurs dans `scripts/` et `supabase/` | à décider |
-| R2-1 | Plantage natif intermittent à la fin du Daily (Fabric / Reanimated) | à décider |
+| R1-2 | États qui ne servent plus qu'à leur setter | ignoré : ces écrans seront réécrits en phase 2 |
+| R1-3 | Style des imports du logger | ignoré : Prettier uniformisera à l'étape suivante |
+| R1-4 | `npx eslint .` signale des erreurs dans `scripts/` et `supabase/` | ajouté à la roadmap (phase 0, case de la configuration Deno) |
+| R2-1 | Plantage natif intermittent à la fin du Daily (Fabric / Reanimated) | à reproduire sur `master` au prochain Daily et à chercher dans Sentry ; s'il précède l'étape, l'ajouter à la phase 5 |
 
 ## Pour l'étape suivante
 - **Supabase en pause.** Le projet Supabase gratuit se met en pause après une période d'inactivité. L'app reste alors bloquée sur l'écran de démarrage (erreur « hostname could not be found » dans Metro). Il faut le relancer depuis le tableau de bord Supabase. La case « Créer deux projets Supabase, dev et prod » de la phase 0 réglera la question durablement.
-- **Plantage à la fin du Daily (R2-1).** Le reproduire sur `master` au prochain Daily, pour confirmer qu'il précède l'étape.
+- **Plantage à la fin du Daily (R2-1).** Le reproduire sur `master` au prochain Daily et le chercher dans Sentry. S'il précède l'étape, proposer à Yanis de l'ajouter à la phase 5.
 - **Piloter le simulateur.** L'app réagit avec du retard en mode debug, et les appuis trop brefs sont ignorés : utiliser un appui d'environ 0,15 s et attendre 2 à 3 s entre deux actions. Le Daily se rouvre par `exp+dun://daily`, avec quelques secondes de délai.
 - **Metro et simulateur.** Le build de dev installé (`com.dunapp.Dun`) n'a pas de dev-client et cherche Metro sur le port 8081, parfois occupé par un autre projet de Yanis (Peanut). Pour tester sans le perturber :
   1. `npx expo start --port 8082` ;

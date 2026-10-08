@@ -77,7 +77,7 @@ src/
 - [x] Corriger les 90 avertissements de lint et le commentaire faux de `eslint.config.js` sur React Compiler. → [P0-01](etapes/P0-01-menage.md)
 
 ### Outillage
-- [ ] Exclure `supabase/functions` de `tsconfig.json` et lui donner sa propre configuration Deno.
+- [ ] Exclure `supabase/functions` de `tsconfig.json` et lui donner sa propre configuration Deno. Corriger au passage les erreurs que `npx eslint .` signale hors de `npm run lint` : `no-undef '__dirname'` dans `scripts/*.js` et `import/no-unresolved` sur les imports Deno (voir [P0-01, R1-4](etapes/P0-01-menage.md)).
 - [ ] Ajouter Prettier et formater tout le dépôt en un seul commit dédié.
 - [ ] Ajouter Jest (`jest-expo`) et `@testing-library/react-native`, avec un premier test.
 - [ ] Ajouter les scripts `typecheck`, `lint`, `test`, `format:check` et `check` (qui enchaîne les quatre).
@@ -289,7 +289,7 @@ La procédure détaillée est dans le skill [`/etape-suivante`](../.claude/skill
 - **Un jalon par phase.** Une phase ne commence que lorsque le critère « Terminé quand » de la précédente est atteint.
 - **Les règles métier commencent par les tests**, tirés de l'offre.
 - **Toute décision produit est écrite** dans l'offre, cette roadmap ou un fichier d'étape, jamais seulement dans une conversation.
-- **Commits conventionnels, une PR par étape, CI verte avant fusion** (dès que la CI existe). La fusion se fait en squash.
+- **Commits conventionnels, une PR par étape, CI verte avant fusion** (dès que la CI existe). La fusion se fait par commit de merge, sans squash : l'historique de la branche est conservé, d'où l'importance de commits propres et conventionnels.
 - **Un build TestFlight interne à la fin de chaque phase**, testé sur un vrai iPhone.
 
 La définition de « terminé » est dans [`CLAUDE.md`](../CLAUDE.md#définition-de--terminé-).
