@@ -1,27 +1,30 @@
-// https://docs.expo.dev/guides/using-eslint/
 const { defineConfig } = require('eslint/config');
 const expoConfig = require('eslint-config-expo/flat');
 
 module.exports = defineConfig([
+  { ignores: ['node_modules/**', 'ios/**', 'android/**', '.expo/**', 'dist/**', 'coverage/**'] },
   expoConfig,
   {
-    ignores: ['dist/*'],
+    // React Compiler is enabled in app.json. Pre-existing diagnostics remain
+    // visible warnings pending their owning feature's review, not silenced.
     rules: {
-      /*
-       * Expo currently pulls in the broader React Hooks lint set, including
-       * React Compiler-oriented rules. This app is not compiled with React
-       * Compiler yet, and these rules produce noisy false positives for common
-       * React Native/Reanimated patterns such as SharedValue `.value` writes
-       * and Animated.Value refs.
-       *
-       * Keep the two hook correctness rules enabled through expoConfig, but
-       * disable the compiler-only checks until the toolchain can understand
-       * these React Native patterns reliably.
-       */
-      'react-hooks/immutability': 'off',
-      'react-hooks/refs': 'off',
-      'react-hooks/set-state-in-effect': 'off',
-      'react-hooks/static-components': 'off',
+      'react-hooks/immutability': 'warn',
+      'react-hooks/refs': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/static-components': 'warn',
     },
+  },
+  {
+    files: ['scripts/**/*.js', 'plugins/**/*.js', '*.config.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: { __dirname: 'readonly', __filename: 'readonly', module: 'readonly', require: 'readonly', process: 'readonly', console: 'readonly', Buffer: 'readonly' },
+    },
+  },
+  {
+    files: ['supabase/functions/**/*.ts'],
+    languageOptions: { globals: { Deno: 'readonly' } },
+    // Deno checks URL imports and locks their content. Node's resolver cannot.
+    rules: { 'import/no-unresolved': ['error', { ignore: ['^https://'] }] },
   },
 ]);

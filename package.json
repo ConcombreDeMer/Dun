@@ -8,9 +8,17 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint",
+    "lint": "eslint . --no-cache",
     "i18n:generate": "node ./scripts/generate-i18n.js",
-    "postinstall": "node ./scripts/fix-expo-macros-plugin.js"
+    "postinstall": "node ./scripts/fix-expo-macros-plugin.js",
+    "typecheck:app": "tsc -p tsconfig.json --noEmit --incremental false",
+    "typecheck:node": "tsc -p tsconfig.node.json --noEmit --incremental false",
+    "typecheck:tests": "tsc -p tsconfig.tests.json --noEmit --incremental false",
+    "typecheck:functions": "deno check --config supabase/functions/deno.json --frozen-lockfile supabase/functions/beta-signup/index.ts",
+    "test:ci": "TZ=${TZ:-Europe/Paris} jest --ci --runInBand --no-cache",
+    "test:regressions": "TZ=Europe/Paris DUN_STRICT_REGRESSIONS=1 jest --ci --runInBand --no-cache tests/regressions",
+    "quality": "npm run tools:check && npm run typecheck:app && npm run typecheck:node && npm run typecheck:tests && npm run typecheck:functions && npm run lint && npm run test:ci",
+    "tools:check": "node scripts/check-tools.js"
   },
   "dependencies": {
     "@expo/ui": "^56.0.14",
@@ -67,9 +75,16 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@react-native/jest-preset": "0.85.3",
+    "@types/jest": "29.5.14",
+    "@types/js-yaml": "4.0.9",
+    "@types/node": "24.19.0",
     "@types/react": "~19.2.14",
+    "deno": "2.9.6",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~56.0.4",
+    "jest": "29.7.0",
+    "jest-expo": "56.0.5",
     "typescript": "~6.0.3"
   },
   "private": true,
@@ -81,5 +96,10 @@
         ]
       }
     }
-  }
+  },
+  "engines": {
+    "node": "24.21.0",
+    "npm": "11.6.2"
+  },
+  "packageManager": "npm@11.6.2"
 }

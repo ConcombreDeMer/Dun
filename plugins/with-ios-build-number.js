@@ -1,9 +1,11 @@
 const { withInfoPlist, withXcodeProject } = require("@expo/config-plugins");
 
+/** @param {import('@expo/config-types').ExpoConfig} config */
 function getIosBuildNumber(config) {
   return config.ios?.buildNumber;
 }
 
+/** @type {import('@expo/config-plugins').ConfigPlugin} */
 function withIosInfoPlistBuildNumber(config) {
   return withInfoPlist(config, (config) => {
     const buildNumber = getIosBuildNumber(config);
@@ -16,6 +18,7 @@ function withIosInfoPlistBuildNumber(config) {
   });
 }
 
+/** @type {import('@expo/config-plugins').ConfigPlugin} */
 function withIosXcodeBuildNumber(config) {
   return withXcodeProject(config, (config) => {
     const buildNumber = getIosBuildNumber(config);
@@ -41,6 +44,7 @@ function withIosXcodeBuildNumber(config) {
   });
 }
 
+/** @type {import('@expo/config-plugins').ConfigPlugin} */
 module.exports = function withIosBuildNumber(config) {
   config = withIosInfoPlistBuildNumber(config);
   config = withIosXcodeBuildNumber(config);

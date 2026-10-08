@@ -1,341 +1,51 @@
-<div align="center">
-  <img src="./assets/images/icon.png" alt="Dun App Icon" width="120" height="120" style="border-radius: 24px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2)">
-  
-  # ✨ Dun ✨
-  
-  <p align="center">
-    <strong>Restez productif, jour après jour</strong>
-  </p>
-  
-  <div align="center">
-    <img alt="Expo" src="https://img.shields.io/badge/Expo-54.0-000.svg?style=flat-square&logo=expo">
-    <img alt="React Native" src="https://img.shields.io/badge/React%20Native-0.81-61dafb.svg?style=flat-square&logo=react">
-    <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.9-3178c6.svg?style=flat-square&logo=typescript">
-    <img alt="License" src="https://img.shields.io/badge/License-Proprietary-red.svg?style=flat-square">
-  </div>
+# Dun
 
-  <p align="center">
-    Une application minimaliste et moderne pour gérer vos tâches quotidiennes avec style. Suivez vos progrès avec un système intuitif et une expérience utilisateur fluide.
-  </p>
+Application d'organisation quotidienne pour iPhone, en reprise de développement.
 
-  [✨ Features](#-features-principales) • [🚀 Démarrage](#-démarrage-rapide) • [📱 Architecture](#-architecture) • [🎨 Design](#-design-system)
+## Références
 
-</div>
+- [ROADMAP_PRODUCTION.md](ROADMAP_PRODUCTION.md) : suivi principal, preuves E01–E20 et décisions Q/L.
+- [Spécification V1](docs/product-v1.md) : gratuit local sans compte, Dun+, journée à **minuit**.
+- [Contrat de données](docs/data-contract-v1.md) : cible avant SQLite et bascule des écrans.
+- [Contrôles et résultats](docs/quality.md) : installation, tests, défauts préexistants et limites.
+- [ROADMAP.md](ROADMAP.md) : traçabilité des anciens identifiants DUN, subordonnée à la référence consolidée.
 
----
+Le code actuel dépend encore de Supabase pour les données métier. La V1 locale/hors ligne, le cloud autorisé côté serveur et les nouvelles règles produit ne sont pas encore livrés. React Query/Zustand ne constituent pas une sauvegarde persistante. La présence de RLS n'est pas une preuve d'isolation complète : voir E03/E20.
 
-## 🚀 Démarrage rapide
+## Stack et outillage
 
-### Prérequis
-- [Node.js](https://nodejs.org/) (v18+) — Environnement JavaScript
-- [Expo CLI](https://docs.expo.dev/get-started/installation/) — Framework React Native
-- iOS Simulator ou Android Emulator (optionnel)
+Versions verrouillées au début de la reprise : Expo 56.0.5, React Native 0.85.3, React 19.2.3, Expo Router 56.2.7, TypeScript 6.0.3. `package.json` et `package-lock.json` font foi. Aucun changement de SDK dans ces lots.
 
-### Installation en 3 étapes
+Contrôles : Node **24.21.0** (`.nvmrc`), npm **11.6.2** ; Deno **2.9.6** et Jest fournis comme dépendances de développement. Si nécessaire, sélectionner Node avec son gestionnaire habituel puis installer cette version de npm. Les tests ne nécessitent aucune clé Supabase, RevenueCat, Apple ou Sentry.
 
-```bash
-# 1️⃣ Installez les dépendances
-npm install
+```sh
+npm ci
+npm run quality
+npm run i18n:generate
+git diff --exit-code -- lib/i18n/resources.ts
+```
 
-# 2️⃣ Lancez l'application
+`quality` lance les typechecks app/Node/tests/Deno, le lint de tout le code et Jest. Les imports publics Deno sont téléchargés au premier contrôle et vérifiés contre `supabase/functions/deno.lock`. Le `postinstall` maintient le lien macros existant sous `node_modules`, sans générer `ios/`.
+
+`npm run test:regressions` exécute volontairement les trois attentes V1 encore non respectées : son échec est documenté, pas un contrôle vert de conformité. Voir [quality.md](docs/quality.md).
+
+## Développement et traductions
+
+```sh
 npm start
-
-# 3️⃣ Choisissez votre plateforme
-# → Appuyez sur 'i' pour iOS
-# → Appuyez sur 'a' pour Android  
-# → Appuyez sur 'w' pour Web
-# → Scannez QR pour Expo Go
+npm run ios
 ```
 
-### Configuration produit
+L'app emploie des modules natifs ; le parcours de référence utilise un build de développement iOS. Ne pas supposer qu'Expo Go suffit. `npm run ios` peut modifier le projet natif généré ; il ne fait pas partie des contrôles sans build.
 
-Le modele d'acces premium obligatoire peut etre active rapidement avec une variable publique Expo:
+Modifier les YAML dans `locales/`, puis lancer `npm run i18n:generate` et inclure `lib/i18n/resources.ts`. `npm run lint` n'est pas un typecheck : les commandes sont distinctes.
 
-```bash
-EXPO_PUBLIC_REQUIRE_PREMIUM_ACCESS=true
-```
+`reset-project` est un script historique dont la cible est absente ; ne pas l'utiliser comme procédure de reprise. Aucun nettoyage/reset de données implicite.
 
-Par defaut, si la variable est absente ou differente de `true`, `1`, `yes` ou `on`, l'application laisse les comptes gratuits acceder au produit avec les limites definies dans `lib/plan.ts`.
+## Environnements et livraison
 
----
+E20 relève **app locale sur Dun, CLI Supabase liée à Dun Prod**. Ne pas lancer de migration distante depuis ce dépôt sans procédure de cible explicite et autorisation dédiée. Les secrets restent hors Git ; ne jamais recopier `.env` dans un rapport ou une fixture.
 
-## 📱 Architecture
+Livraison retenue : workspace et scheme Xcode à documenter dans PROD-025, configuration Release → Archive → validation/envoi via Organizer → traitement et installation TestFlight → App Store Connect. EAS est facultatif ; `eas.json` n'atteste pas la configuration Xcode. `ios/` et `android/` sont ignorés et non suivis ; préserver tout projet local. Aucune archive reproductible/signée n'est certifiée par les contrôles JS.
 
-### Stack Technologique
-
-| Catégorie | Technologie | Rôle |
-|-----------|-------------|------|
-| **Framework** | Expo v54 + React Native 0.81 | Mobile cross-platform |
-| **Routage** | Expo Router (file-based) | Navigation déclarative |
-| **Language** | TypeScript v5.9 | Typage strict |
-| **Auth** | Supabase | Authentification & sessions |
-| **DB** | PostgreSQL (Supabase) | Données persistantes |
-| **State** | Zustand + React Query | Gestion d'état global & serveur |
-| **Animations** | Reanimated v4 + Lottie | Animations fluides 60fps |
-| **UI** | React Navigation + Gesture Handler | Navigation native & gestes |
-| **Fonts** | Satoshi Variable | Typographie premium |
-
-### Arborescence du Projet
-
-```
-📦 dun/
-├── 📂 app/                          # Routes (Expo Router)
-│   ├── 📄 _layout.tsx               # Layout principal + ThemeProvider
-│   ├── 📄 index.tsx                 # 🏠 Écran principal (tâches)
-│   ├── 📄 create-task.tsx           # ➕ Créer une tâche
-│   ├── 📄 edit-task.tsx             # ✏️ Modifier une tâche
-│   ├── 📄 details.tsx               # 📊 Détails d'une journée
-│   ├── 📄 settings.tsx              # ⚙️ Paramètres
-│   ├── 📂 auth/
-│   │   └── 📄 callback.tsx          # 🔐 Callback OAuth/Email
-│   ├── 📂 onboarding/               # 🎯 Flow d'inscription
-│   │   ├── 📄 start.tsx
-│   │   ├── 📄 login.tsx
-│   │   ├── 📄 register.tsx
-│   │   └── ...
-│   └── 📂 stats/                    # 📈 Dashboard statistiques
-├── 📂 components/                   # Composants réutilisables
-│   ├── 📄 TaskItem.tsx              # Item liste de tâche
-│   ├── 📄 calendar.tsx              # Sélecteur de date
-│   ├── 📄 progressBar.tsx           # Barre de progression
-│   ├── 📄 navbar.tsx                # Navigation inférieure
-│   └── ...
-├── 📂 lib/                          # Logique partagée
-│   ├── 📄 ThemeContext.tsx          # 🎨 Gestion thème
-│   ├── 📄 FontContext.tsx           # 🔤 Gestion polices
-│   ├── 📄 supabase.ts               # 🔗 Client Supabase
-│   └── 📄 imageHelper.ts            # 🖼️ Utils images
-├── 📂 store/                        # État global (Zustand)
-│   └── 📄 store.ts
-└── 📂 assets/                       # Ressources statiques
-    ├── 📂 fonts/                    # Polices Satoshi
-    ├── 📂 images/                   # Images & icônes
-    ├── 📂 animations/               # Animations Lottie
-    └── 📂 icon.icon/                # App icon
-```
-
----
-
-## 🎨 Design System
-
-### 🌓 Thème et Couleurs
-
-L'application supporte **3 modes** de thème avec une palette cohérente:
-
-<table>
-<tr>
-<td align="center"><b>Light Mode</b></td>
-<td align="center"><b>Dark Mode</b></td>
-<td align="center"><b>System</b></td>
-</tr>
-<tr>
-<td>
-  ☀️ Interface claire<br/>
-  Minimaliste & aérée<br/>
-  Idéale le jour
-</td>
-<td>
-  🌙 Interface sombre<br/>
-  Dégradés subtils<br/>
-  Confortable la nuit
-</td>
-<td>
-  🔄 Suit le système<br/>
-  Adaptation auto<br/>
-  Sans friction
-</td>
-</tr>
-</table>
-
-**Configuration**: `lib/ThemeContext.tsx`
-```tsx
-const { colors, theme, actualTheme, toggleTheme } = useTheme();
-```
-
-### 🔤 Typographie
-
-Utilisation exclusive de **Satoshi Variable** (5 poids):
-
-| Poids | Type | Utilisation |
-|-------|------|-------------|
-| **400** | Regular | Corps de texte courant |
-| **500** | Medium | Interactions, sous-titres |
-| **700** | Bold | Titres secondaires |
-| **900** | Black | Titres principaux |
-| **Variable** | Multi-poids | Animations sans rerender |
-
----
-
-## 🔐 Authentification
-
-Intégration **Supabase Auth** complète avec plusieurs flux:
-
-```
-┌─────────────┐
-│  Onboarding │
-└──────┬──────┘
-       ↓
-   ┌───────────────────────────┐
-   │  Inscription / Connexion  │
-   └──────┬────────────────────┘
-          ↓
-   ┌──────────────────────────┐
-   │  Vérification Email OTP  │
-   └──────┬───────────────────┘
-          ↓
-   ┌──────────────────────────┐
-   │  Dashboard Principal     │
-   └──────────────────────────┘
-```
-
-### Fonctionnalités supportées
-- ✅ **Email/Password** — Authentification basique
-- ✅ **OTP Email** — Vérification par code
-- ✅ **Password Reset** — Récupération de compte
-- ✅ **OAuth** — Support futur (Google, GitHub, etc.)
-- ✅ **Session Persistence** — AsyncStorage + Supabase sync
-
----
-
-## ✨ Features Principales
-
-<div align="flex-start">
-
-### 📝 Gestion des Tâches
-Créez, modifiez et complétez vos tâches avec une UX premium
-- ✅ Créer des tâches quotidiennes
-- ✅ Marquer comme complétées
-- ✅ Drag & drop pour réorganiser
-- ✅ Modifier/Supprimer en temps réel
-- ✅ Sync Supabase instantanée
-
-### 📅 Calendrier Interactif  
-Naviguez les jours avec fluidité
-- 📅 Sélection de date fluide
-- 📊 Historique des jours
-- 📈 Statistiques de completion
-- 🏆 Vue par semaine/mois
-
-### ⚙️ Paramètres Avancés
-Personnalisez votre expérience
-- 🌓 Thème (Light/Dark/System)
-- 📧 Gestion du compte
-- 🔔 Préférences notifications
-- 🎨 Personnalisation UI
-
-### 📈 Statistiques Détaillées
-Suivez votre productivité
-- 📉 Graphiques de progression
-- 🔥 Système de "streak"
-- 📋 Analyse de completion
-- 📊 Tendances hebdomadaires
-
-</div>
-
----
-
-## 🔄 Gestion des Données
-
-### ⚡ React Query - Server State Management
-
-```tsx
-// Pattern: Requête avec cache automatique
-const taskQuery = useQuery({
-  queryKey: ['tasks', dateKey],      // Cache key
-  queryFn: getTasks,                 // Fonction fetch
-});
-
-// Optimistic updates → UX sans latence
-queryClient.setQueryData(['tasks', dateKey], newData);
-```
-
-**Avantages**:
-- 🚀 Caching automatique
-- 🔁 Refetch intelligent  
-- 🧠 Deduplication des requêtes
-- 📱 Gestion hors ligne
-
-### 🛠️ Zustand - Client State Management
-
-```tsx
-// État global léger et performant
-const selectedDate = useStore((state) => state.selectedDate);
-const setSelectedDate = useStore((state) => state.setSelectedDate);
-```
-
-**Avantages**:
-- ⚡ Minimaliste (~200 bytes)
-- 🎯 Sélecteurs optimisés
-- 💾 Persistance AsyncStorage
-- 🔌 Devtools intégrés
-
----
-
-## 🎬 Performance & Animations
-
-<table>
-<tr><th>Aspect</th><th>Technologie</th><th>Bénéfice</th></tr>
-<tr><td>🎥 Animations</td><td>Reanimated v4</td><td>60fps sur thread natif</td></tr>
-<tr><td>👆 Gestes</td><td>Gesture Handler</td><td>Drag & drop ultra-fluide</td></tr>
-<tr><td>📦 Cache</td><td>React Query</td><td>Sync intelligente serveur</td></tr>
-<tr><td>⏱️ UX</td><td>Optimistic Updates</td><td>Pas de latence perceptible</td></tr>
-<tr><td>🎞️ Lottie</td><td>Animations JSON</td><td>Petites, vectorielles</td></tr>
-</table>
-
----
-
-## 📦 Scripts NPM
-
-```bash
-# 🚀 Développement
-npm start              # Lance Expo avec menu interactif
-npm run ios           # Compile & lance sur iOS Simulator
-npm run android       # Compile & lance sur Android Emulator
-npm run web           # Démarre la version web
-
-# 🔍 Qualité de code
-npm run lint          # ESLint + check TypeScript
-npm run reset-project # Réinitialise le projet (backup recommandé)
-```
-
----
-
-## 🗄️ Base de Données (Supabase PostgreSQL)
-
-### 📋 Tables Principales
-
-| Table | Purpose | Clé Étrangère |
-|-------|---------|---------------|
-| **Profiles** | Profils utilisateurs (thème, langue, preferences) | `id` = user_id |
-| **Tasks** | Tâches quotidiennes avec ordre & status | `user_id`, `date` |
-| **Days** | Historique journalier + statistiques | `user_id`, `date` |
-
-### 🔒 Sécurité avec RLS
-
-Row Level Security (RLS) est activé sur **toutes les tables** pour:
-- ✅ Isolation complète par utilisateur
-- ✅ Requêtes multiples en sécurité
-- ✅ Zéro risque de data leak
-- ✅ Validation côté DB
-
-```sql
--- Exemple: Chaque utilisateur ne voit que ses tâches
-CREATE POLICY user_tasks ON Tasks
-  USING (auth.uid() = user_id);
-```
-
----
-
-### 🚀 Prêt à vous lancer ?
-
-```bash
-npm install && npm start
-```
-
-**Made with ❤️ using Expo + React Native**
-
-[⬆ back to top](#-dun)
-
-</div>
-
-**Made with ❤️ by Nay**
+Lancement France, app et présentation FR/EN. Matériel disponible : iPhone 15 Pro Max ; autres tailles/versions au simulateur et second appareil/bêta-testeur à organiser. Achats, notifications et convergence physique restent à tester dans les lots prévus.
