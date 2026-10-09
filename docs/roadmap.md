@@ -10,8 +10,8 @@ Cette roadmap applique l'offre décrite dans [`offre-commerciale-v1-pour-agents.
 ## État d'avancement
 
 - **Phase en cours** : 0 — Assainir.
-- **Dernière étape terminée** : [P0-01 — Ménage](etapes/P0-01-menage.md).
-- **Prochaine étape** : la première case non cochée de la phase 0.
+- **Dernière étape terminée** : [P0-02 — Outillage](etapes/P0-02-outillage.md).
+- **Prochaine étape** : la première case non cochée de la phase 0 (section « Environnements »).
 
 Cette section est mise à jour à la fin de chaque étape par l'agent principal (voir [Workflow](#workflow)).
 
@@ -77,11 +77,11 @@ src/
 - [x] Corriger les 90 avertissements de lint et le commentaire faux de `eslint.config.js` sur React Compiler. → [P0-01](etapes/P0-01-menage.md)
 
 ### Outillage
-- [ ] Exclure `supabase/functions` de `tsconfig.json` et lui donner sa propre configuration Deno. Corriger au passage les erreurs que `npx eslint .` signale hors de `npm run lint` : `no-undef '__dirname'` dans `scripts/*.js` et `import/no-unresolved` sur les imports Deno (voir [P0-01, R1-4](etapes/P0-01-menage.md)).
-- [ ] Ajouter Prettier et formater tout le dépôt en un seul commit dédié.
-- [ ] Ajouter Jest (`jest-expo`) et `@testing-library/react-native`, avec un premier test.
-- [ ] Ajouter les scripts `typecheck`, `lint`, `test`, `format:check` et `check` (qui enchaîne les quatre).
-- [ ] Supprimer le `.github/workflows/quality.yml` non suivi et le remplacer par une CI simple : `npm ci`, puis `npm run check`, à chaque PR et sur `master`. Garder `.nvmrc`.
+- [x] Exclure `supabase/functions` de `tsconfig.json` et lui donner sa propre configuration Deno. Corriger au passage les erreurs que `npx eslint .` signale hors de `npm run lint` : `no-undef '__dirname'` dans `scripts/*.js` et `import/no-unresolved` sur les imports Deno (voir [P0-01, R1-4](etapes/P0-01-menage.md)). → [P0-02](etapes/P0-02-outillage.md)
+- [x] Ajouter Prettier et formater tout le dépôt en un seul commit dédié. → [P0-02](etapes/P0-02-outillage.md)
+- [x] Ajouter Jest (`jest-expo`) et `@testing-library/react-native`, avec un premier test. → [P0-02](etapes/P0-02-outillage.md)
+- [x] Ajouter les scripts `typecheck`, `lint`, `test`, `format:check` et `check` (qui enchaîne les quatre). → [P0-02](etapes/P0-02-outillage.md)
+- [x] Supprimer le `.github/workflows/quality.yml` non suivi et le remplacer par une CI simple : `npm ci`, puis `npm run check`, à chaque PR et sur `master`. Garder `.nvmrc`. → [P0-02](etapes/P0-02-outillage.md)
 
 ### Environnements
 - [ ] Ajouter les profils EAS `development`, `preview` et `production`, avec les variables d'environnement EAS au lieu de lignes commentées dans `.env`.
@@ -91,7 +91,7 @@ src/
 ### Documentation et Git
 - [ ] Réécrire le README : installation, commandes, architecture réelle, environnements.
 - [x] Écrire les instructions des agents et les conventions dans `CLAUDE.md`, avec le skill `/etape-suivante` et le sous-agent `implementeur` → [P0-00](etapes/P0-00-workflow-agents.md)
-- [ ] Mettre à jour la section « Vérification » de `CLAUDE.md` une fois `npm run check` créé.
+- [x] Mettre à jour la section « Vérification » de `CLAUDE.md` une fois `npm run check` créé. → [P0-02](etapes/P0-02-outillage.md)
 - [ ] Supprimer les branches fusionnées ou abandonnées : `codex/*`, `create-task-v2`, `create-task-v3`, etc. Archiver par un tag celles qu'on veut garder pour mémoire.
 
 **Terminé quand :** la CI est verte sur `master` et `npm run check` passe sans aucun avertissement.
@@ -152,6 +152,7 @@ Pour chacune : la découper en composants de moins de 300 lignes et supprimer l'
 - [ ] Tags : créer, modifier, supprimer, 3 maximum par tâche.
 - [ ] Statistiques de la semaine.
 - [ ] Réglages d'affichage : thème, langue, taille du texte, calendrier, progression, palette. Fusionner `ThemeContext` et `FontContext` dans un seul module de préférences lu depuis `settings`.
+- [ ] Écran Affichage : le titre « Affichage » chevauche son sous-titre (constaté en [P0-02, R2-1](etapes/P0-02-outillage.md)).
 - [ ] Rappel quotidien local : heure et jours choisis, week-end compris.
 
 ### Onboarding et sauvegarde
