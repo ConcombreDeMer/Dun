@@ -189,6 +189,18 @@ Vérifié et correct après correction :
 - `npm run check` : sortie 0, 5 tests, aucun avertissement. CA9 : 111 fichiers, 0 écart. CA8 (copie propre, sans variables Supabase) : `npm ci && npm run check` passe.
 - R2-1 est ajouté à la phase 2 de `docs/roadmap.md`, juste après la case des réglages d'affichage.
 
+## Revue de la PR #28
+
+Revue faite sur la PR, avec la CI verte (job `check`) et aucun problème bloquant. Le contrôle CA9 a été refait indépendamment contre le commit parent `2013d7d` : 0 écart sur les 111 fichiers.
+
+| ID | Gravité | Fichier:ligne | Problème | Correction attendue |
+|---|---|---|---|---|
+| R4-1 | Non bloquant | `docs/etapes/P0-02-outillage.md` (« Vérification finale ») | Le fichier annonçait encore que la CI tournerait sur la PR, alors que c'est fait. | Remplacer par le constat (CI verte sur la PR #28), sans cocher le critère de fin de phase. La ligne de la section « Plan validé » reste telle quelle. |
+| R4-2 | Non bloquant | `.prettierignore`, `supabase/functions/beta-signup/index.ts` | Prettier formate `supabase/functions`, que `deno.json` désigne comme relevant de l'outillage Deno. | Décision de Yanis : option A. Prettier garde ce dossier jusqu'à la phase 4 ; on ne touche ni à `.prettierignore` ni à `index.ts`. Motifs : aucun conflit aujourd'hui (Deno n'est ni installé ni lancé en CI, `deno.json` ne règle pas le formatage) ; le formatage du fichier est vérifié pur (CA9) ; la phase 4 décidera du sort de la fonction. |
+| R4-3 | Non bloquant | `docs/etapes/P0-02-outillage.md` (« Décisions ») | « Prettier limité au code (JS, TS, JSON) » est inexact : `prettier --check .` vérifie aussi le YAML hors de `locales/`, entre autres. | Reformuler : tout ce que Prettier prend en charge, sauf le Markdown, `locales/`, `assets/` et les fichiers générés. |
+
+Les trois points ne touchent que ce fichier d'étape. Ce tour, demandé par Yanis après la remise du travail, ne compte pas dans la limite des 3 tours de correction.
+
 ## Résultat
 
 ### Ce qui a été fait
@@ -219,16 +231,17 @@ Vérifié et correct après correction :
 - Simulation de la CI sur une copie propre : `npm ci && npm run check` passe.
 - Formatage pur vérifié sur les 111 fichiers (CA9).
 - Simulateur iOS : aucune régression constatée, en clair et en sombre.
-- La CI GitHub elle-même tournera sur la PR, une fois la branche poussée.
+- CI GitHub verte sur la PR [#28](https://github.com/ConcombreDeMer/Dun/pull/28) (job `check`, commit `c97eb11`). Le critère de fin de phase (« CI verte sur `master` ») ne sera rempli qu'après la fusion.
 
 ### Décisions
-- `.nvmrc` à 24 (LTS) ; Prettier limité au code (JS, TS, JSON) ; une seule étape pour toute la section Outillage (Yanis, à la planification).
+- `.nvmrc` à 24 (LTS) ; Prettier formate tout ce qu'il prend en charge, sauf le Markdown, `locales/`, `assets/` et les fichiers générés ; une seule étape pour toute la section Outillage (Yanis, à la planification).
 - Test de `Headline` : `@/lib/supabase` mocké dans le test (Yanis, tour 1).
 - `assets/` exclu de Prettier (Yanis, tour 1).
 - Écarts au plan acceptés :
   - `"types": ["jest"]`, nécessaire avec TypeScript 6 ;
   - ignore ESLint global dans un objet à part ;
   - `@react-native/jest-preset` aligné sur `0.85.3`.
+- `supabase/functions` reste formaté par Prettier jusqu'à la phase 4 (Yanis, revue de la PR #28).
 - Roadmap, case CI : `quality.yml` et `.nvmrc` n'existaient plus. Les fichiers ont été créés neufs.
 
 ### Problèmes non bloquants
@@ -238,6 +251,9 @@ Vérifié et correct après correction :
 | R1-4 | `actions/checkout` et `actions/setup-node` en v4, alors que la v7 existe ; la v4 tourne sur Node 20, retiré par GitHub | corrigé (tour 3) |
 | R1-5 | `ignores: ["dist/*"]` d'ESLint n'est pas un ignore global (préexistant) | corrigé (tour 3) |
 | R2-1 | Titre « Affichage » qui chevauche son sous-titre (préexistant) | ajouté à la roadmap (phase 2, réglages d'affichage) |
+| R4-1 | Le fichier d'étape annonçait encore la CI à venir | corrigé (revue de la PR #28) |
+| R4-2 | `supabase/functions` est formaté par Prettier alors que `deno.json` désigne l'outillage Deno | option A : Prettier garde ce dossier jusqu'à la phase 4 |
+| R4-3 | « Prettier limité au code (JS, TS, JSON) » est inexact | corrigé (revue de la PR #28) |
 
 ## Pour l'étape suivante
 - **Vérification** : `npm run check`, à faire passer sans avertissement. Pour corriger le formatage : `npm run format`.
@@ -248,4 +264,5 @@ Vérifié et correct après correction :
 - **TypeScript 6** ne charge plus les `@types` automatiquement : un nouveau paquet de types global doit être ajouté à `compilerOptions.types`.
 - **Formatage** : le commit de formatage est listé dans `.git-blame-ignore-revs`. Garder la fusion par commit de merge, pour que son hash reste valide.
 - **Node** : la CI tourne en Node 24 (`.nvmrc`). Passer la machine locale en Node 24 pour éviter les écarts.
-- **Deno** : `supabase/functions` n'est ni typé, ni linté, ni testé en CI. À reprendre en phase 4 avec la fonction elle-même.
+- **Deno** : `supabase/functions` n'est ni typé, ni linté, ni testé en CI. À reprendre en phase 4 avec la fonction elle-même. Si la phase 4 adopte `deno fmt`, ajouter alors `supabase/functions/` à `.prettierignore`.
+- **Fusion** : le dépôt autorise encore le squash et le rebase. `.git-blame-ignore-revs` ne reste valide qu'avec « Create a merge commit ». Désactiver squash et rebase dans les réglages du dépôt reste une décision de Yanis.
