@@ -1,6 +1,6 @@
-import { Stack } from 'expo-router';
-import { useAppTranslation } from '../../lib/i18n';
-import { useTheme } from '../../lib/ThemeContext';
+import { Stack } from "expo-router";
+import { useAppTranslation } from "../../lib/i18n";
+import { useTheme } from "../../lib/ThemeContext";
 
 export default function OnboardingLayout() {
   const { colors } = useTheme();
@@ -14,7 +14,7 @@ export default function OnboardingLayout() {
         },
         headerTintColor: colors.text,
         headerTitleStyle: {
-          fontWeight: 'bold',
+          fontWeight: "bold",
           fontSize: 18,
           color: colors.text,
         },
@@ -24,41 +24,40 @@ export default function OnboardingLayout() {
       <Stack.Screen
         name="start"
         options={{
-          title: t('onboarding.start.title'),
+          title: t("onboarding.start.title"),
         }}
       />
       <Stack.Screen
         name="login"
         options={{
-          title: t('onboarding.login.title'),
+          title: t("onboarding.login.title"),
         }}
       />
       <Stack.Screen
         name="register"
         options={{
-          title: t('onboarding.register.title'),
+          title: t("onboarding.register.title"),
         }}
       />
       <Stack.Screen
         name="successMail"
         options={{
-          title: t('onboarding.successMail.title'),
+          title: t("onboarding.successMail.title"),
         }}
       />
       <Stack.Screen
         name="emailVerif"
         options={{
-          title: t('onboarding.emailVerification.title'),
+          title: t("onboarding.emailVerification.title"),
         }}
       />
 
       <Stack.Screen
         name="tutorial"
         options={{
-          title: t('onboarding.tutorial.title'),
+          title: t("onboarding.tutorial.title"),
         }}
       />
-
     </Stack>
   );
 }

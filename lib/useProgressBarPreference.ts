@@ -2,10 +2,15 @@ import { useProfile, useUpdateProfile } from "./profile";
 
 export type ProgressBarPreference = 1 | 2;
 
-export const PROGRESS_BAR_PREFERENCE_QUERY_KEY = ["profile", "custom_progressbar"] as const;
+export const PROGRESS_BAR_PREFERENCE_QUERY_KEY = [
+  "profile",
+  "custom_progressbar",
+] as const;
 export const DEFAULT_PROGRESS_BAR_PREFERENCE: ProgressBarPreference = 2;
 
-const normalizeProgressBarPreference = (value: unknown): ProgressBarPreference => {
+const normalizeProgressBarPreference = (
+  value: unknown,
+): ProgressBarPreference => {
   if (value === 1 || value === 2) {
     return value;
   }
@@ -16,7 +21,9 @@ const normalizeProgressBarPreference = (value: unknown): ProgressBarPreference =
 export const useProgressBarPreference = () => {
   const profileQuery = useProfile();
   const updateProfileMutation = useUpdateProfile();
-  const preference = normalizeProgressBarPreference(profileQuery.data?.custom_progressbar);
+  const preference = normalizeProgressBarPreference(
+    profileQuery.data?.custom_progressbar,
+  );
 
   return {
     preference,

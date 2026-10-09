@@ -14,7 +14,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-
 export async function cancelPendingEmailChange() {
   const { data, error } = await supabase.rpc("cancel_email_change");
   if (error) throw error;
@@ -26,8 +25,10 @@ export async function cancelPendingEmailChange() {
 }
 
 export async function deleteUserAccount() {
-  const { data: { user } } = await supabase.auth.getUser();
-  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) {
     throw new Error("Utilisateur non trouvé");
   }
@@ -38,7 +39,7 @@ export async function deleteUserAccount() {
       .from("Tasks")
       .delete()
       .eq("user_id", user.id);
-    
+
     if (tasksError) throw tasksError;
 
     // Supprimer tous les Days de l'utilisateur
@@ -46,7 +47,7 @@ export async function deleteUserAccount() {
       .from("Days")
       .delete()
       .eq("user_id", user.id);
-    
+
     if (daysError) throw daysError;
 
     // Supprimer le profil de l'utilisateur
@@ -54,12 +55,12 @@ export async function deleteUserAccount() {
       .from("Profiles")
       .delete()
       .eq("id", user.id);
-    
+
     if (profileError) throw profileError;
 
     // Appeler la RPC pour supprimer le compte d'auth
     const { error: rpcError } = await supabase.rpc("delete_account");
-    
+
     if (rpcError) throw rpcError;
 
     return { success: true };

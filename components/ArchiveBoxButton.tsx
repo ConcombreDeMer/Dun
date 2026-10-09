@@ -1,7 +1,7 @@
-import * as Haptics from 'expo-haptics';
-import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
-import { Pressable, StyleProp, StyleSheet, ViewStyle } from 'react-native';
+import * as Haptics from "expo-haptics";
+import { SymbolView } from "expo-symbols";
+import { useState } from "react";
+import { Pressable, StyleProp, StyleSheet, ViewStyle } from "react-native";
 import Animated, {
   Easing,
   interpolate,
@@ -9,9 +9,9 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-} from 'react-native-reanimated';
-import { useAppTranslation } from '../lib/i18n';
-import { useTheme } from '../lib/ThemeContext';
+} from "react-native-reanimated";
+import { useAppTranslation } from "../lib/i18n";
+import { useTheme } from "../lib/ThemeContext";
 
 type ArchiveBoxButtonProps = {
   onPress: () => void;
@@ -22,7 +22,11 @@ type ArchiveBoxButtonProps = {
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const SIZE = 28;
 
-export default function ArchiveBoxButton({ onPress, offsetY = 0, style }: ArchiveBoxButtonProps) {
+export default function ArchiveBoxButton({
+  onPress,
+  offsetY = 0,
+  style,
+}: ArchiveBoxButtonProps) {
   const { colors } = useTheme();
   const { t } = useAppTranslation();
   const pressProgress = useSharedValue(0);
@@ -62,7 +66,7 @@ export default function ArchiveBoxButton({ onPress, offsetY = 0, style }: Archiv
 
   return (
     <AnimatedPressable
-      accessibilityLabel={t('box.title')}
+      accessibilityLabel={t("box.title")}
       hitSlop={10}
       onPress={handlePress}
       onPressIn={handlePressIn}
@@ -70,7 +74,7 @@ export default function ArchiveBoxButton({ onPress, offsetY = 0, style }: Archiv
       style={[styles.button, style, animatedStyle]}
     >
       <SymbolView
-        name={isPressed ? 'archivebox.fill' : 'archivebox'}
+        name={isPressed ? "archivebox.fill" : "archivebox"}
         size={SIZE}
         style={styles.icon}
         tintColor={colors.textSecondary}
@@ -82,9 +86,9 @@ export default function ArchiveBoxButton({ onPress, offsetY = 0, style }: Archiv
 
 const styles = StyleSheet.create({
   button: {
-    alignItems: 'center',
+    alignItems: "center",
     height: SIZE,
-    justifyContent: 'center',
+    justifyContent: "center",
     width: SIZE,
   },
   icon: {

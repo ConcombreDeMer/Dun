@@ -46,19 +46,24 @@ export type TagUsageSourceData = {
 
 type TaskTagUsageRow = {
   tag_id: string;
-  Tasks?: {
-    id: number;
-    done: boolean | null;
-    date: string | null;
-  } | {
-    id: number;
-    done: boolean | null;
-    date: string | null;
-  }[] | null;
+  Tasks?:
+    | {
+        id: number;
+        done: boolean | null;
+        date: string | null;
+      }
+    | {
+        id: number;
+        done: boolean | null;
+        date: string | null;
+      }[]
+    | null;
 };
 
 const getUserId = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     throw new Error("Utilisateur non connecté");
@@ -68,11 +73,14 @@ const getUserId = async () => {
 };
 
 const normalizeTagIds = (tagIds: string[]) => {
-  return Array.from(new Set(tagIds.filter(Boolean))).slice(0, MAX_TAGS_PER_TASK);
+  return Array.from(new Set(tagIds.filter(Boolean))).slice(
+    0,
+    MAX_TAGS_PER_TASK,
+  );
 };
 
 export const getTags = async (userId?: string | null) => {
-  const resolvedUserId = userId ?? await getUserId();
+  const resolvedUserId = userId ?? (await getUserId());
   const { data, error } = await supabase
     .from("Tags")
     .select("id, user_id, name, color")
@@ -95,7 +103,7 @@ export const getActiveTagIdsForPlan = (tags: Tag[], isPremium: boolean) => {
 };
 
 export const getTaskTagIds = async (taskId: number, userId?: string) => {
-  const resolvedUserId = userId ?? await getUserId();
+  const resolvedUserId = userId ?? (await getUserId());
   const { data, error } = await supabase
     .from("Task_Tags")
     .select("tag_id")
@@ -118,7 +126,7 @@ export const getTagUsageSourceData = async ({
   startDateKey?: string | null;
   userId?: string | null;
 } = {}): Promise<TagUsageSourceData> => {
-  const resolvedUserId = userId ?? await getUserId();
+  const resolvedUserId = userId ?? (await getUserId());
   const tags = await getTags(resolvedUserId);
   const tagIds = new Set(tags.map((tag) => tag.id));
   const rows: TagUsageSourceRow[] = [];
@@ -185,17 +193,24 @@ export const buildTagUsageStats = ({
   startDateKey?: string | null;
 }) => {
   const { rows, tags } = sourceData;
-  const usageByTagId = new Map(tags.map((tag) => [tag.id, {
-    done: 0,
-    total: 0,
-    points: (buckets ?? []).map((bucket) => ({
-      id: bucket.id,
-      label: bucket.label,
-      done: 0,
-      total: 0,
-    })),
-  }]));
-  const includedDateKeySet = includedDateKeys ? new Set(includedDateKeys) : null;
+  const usageByTagId = new Map(
+    tags.map((tag) => [
+      tag.id,
+      {
+        done: 0,
+        total: 0,
+        points: (buckets ?? []).map((bucket) => ({
+          id: bucket.id,
+          label: bucket.label,
+          done: 0,
+          total: 0,
+        })),
+      },
+    ]),
+  );
+  const includedDateKeySet = includedDateKeys
+    ? new Set(includedDateKeys)
+    : null;
   const bucketIndexByDateKey = new Map<string, number>();
 
   for (const [index, bucket] of (buckets ?? []).entries()) {
@@ -236,7 +251,11 @@ export const buildTagUsageStats = ({
 
   return tags
     .map<TagUsageStat>((tag) => {
-      const usage = usageByTagId.get(tag.id) ?? { done: 0, total: 0, points: [] };
+      const usage = usageByTagId.get(tag.id) ?? {
+        done: 0,
+        total: 0,
+        points: [],
+      };
 
       return {
         tagId: tag.id,
@@ -276,8 +295,16 @@ export const getTagUsageStats = async ({
   });
 };
 
-export const createTag = async ({ name, color, userId }: { name: string; color: string; userId?: string | null }) => {
-  const resolvedUserId = userId ?? await getUserId();
+export const createTag = async ({
+  name,
+  color,
+  userId,
+}: {
+  name: string;
+  color: string;
+  userId?: string | null;
+}) => {
+  const resolvedUserId = userId ?? (await getUserId());
   const trimmedName = name.trim();
 
   if (!trimmedName) {
@@ -297,8 +324,18 @@ export const createTag = async ({ name, color, userId }: { name: string; color: 
   return data as Tag;
 };
 
-export const updateTag = async ({ id, name, color, userId }: { id: string; name: string; color: string; userId?: string | null }) => {
-  const resolvedUserId = userId ?? await getUserId();
+export const updateTag = async ({
+  id,
+  name,
+  color,
+  userId,
+}: {
+  id: string;
+  name: string;
+  color: string;
+  userId?: string | null;
+}) => {
+  const resolvedUserId = userId ?? (await getUserId());
   const trimmedName = name.trim();
 
   if (!trimmedName) {
@@ -321,7 +358,7 @@ export const updateTag = async ({ id, name, color, userId }: { id: string; name:
 };
 
 export const deleteTag = async (id: string, userId?: string | null) => {
-  const resolvedUserId = userId ?? await getUserId();
+  const resolvedUserId = userId ?? (await getUserId());
   const { error } = await supabase
     .from("Tags")
     .delete()
@@ -333,8 +370,12 @@ export const deleteTag = async (id: string, userId?: string | null) => {
   }
 };
 
-export const setTaskTags = async (taskId: number, tagIds: string[], userId?: string) => {
-  const resolvedUserId = userId ?? await getUserId();
+export const setTaskTags = async (
+  taskId: number,
+  tagIds: string[],
+  userId?: string,
+) => {
+  const resolvedUserId = userId ?? (await getUserId());
   const nextTagIds = normalizeTagIds(tagIds);
 
   const { error: deleteError } = await supabase
@@ -351,21 +392,25 @@ export const setTaskTags = async (taskId: number, tagIds: string[], userId?: str
     return;
   }
 
-  const { error: insertError } = await supabase
-    .from("Task_Tags")
-    .insert(nextTagIds.map((tagId) => ({
+  const { error: insertError } = await supabase.from("Task_Tags").insert(
+    nextTagIds.map((tagId) => ({
       task_id: taskId,
       tag_id: tagId,
       user_id: resolvedUserId,
-    })));
+    })),
+  );
 
   if (insertError) {
     throw new Error(insertError.message);
   }
 };
 
-export const copyTaskTags = async (sourceTaskId: number, targetTaskId: number, userId?: string) => {
-  const resolvedUserId = userId ?? await getUserId();
+export const copyTaskTags = async (
+  sourceTaskId: number,
+  targetTaskId: number,
+  userId?: string,
+) => {
+  const resolvedUserId = userId ?? (await getUserId());
   const { data, error } = await supabase
     .from("Task_Tags")
     .select("tag_id")
@@ -379,6 +424,6 @@ export const copyTaskTags = async (sourceTaskId: number, targetTaskId: number, u
   await setTaskTags(
     targetTaskId,
     (data ?? []).map((item) => item.tag_id as string),
-    resolvedUserId
+    resolvedUserId,
   );
 };

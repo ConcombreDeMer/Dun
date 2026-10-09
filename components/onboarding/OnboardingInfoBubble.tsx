@@ -24,7 +24,14 @@ export default function OnboardingInfoBubble({
   const isFeature = size === "feature";
 
   return (
-    <Squircle style={[styles.bubble, isLarge ? styles.largeBubble : null, isFeature ? styles.featureBubble : null, style]}>
+    <Squircle
+      style={[
+        styles.bubble,
+        isLarge ? styles.largeBubble : null,
+        isFeature ? styles.featureBubble : null,
+        style,
+      ]}
+    >
       {symbolName ? (
         <SymbolView
           name={symbolName}
@@ -33,11 +40,37 @@ export default function OnboardingInfoBubble({
           type="monochrome"
         />
       ) : icon ? (
-        <Text style={[styles.icon, isLarge ? styles.largeIcon : null, isFeature ? styles.featureIcon : null]}>{icon}</Text>
+        <Text
+          style={[
+            styles.icon,
+            isLarge ? styles.largeIcon : null,
+            isFeature ? styles.featureIcon : null,
+          ]}
+        >
+          {icon}
+        </Text>
       ) : null}
       <View style={styles.copy}>
-        {title ? <Text style={[styles.title, isLarge ? styles.largeTitle : null, isFeature ? styles.featureTitle : null]}>{title}</Text> : null}
-        <Text style={[styles.body, isLarge ? styles.largeBody : null, isFeature ? styles.featureBody : null]}>{body}</Text>
+        {title ? (
+          <Text
+            style={[
+              styles.title,
+              isLarge ? styles.largeTitle : null,
+              isFeature ? styles.featureTitle : null,
+            ]}
+          >
+            {title}
+          </Text>
+        ) : null}
+        <Text
+          style={[
+            styles.body,
+            isLarge ? styles.largeBody : null,
+            isFeature ? styles.featureBody : null,
+          ]}
+        >
+          {body}
+        </Text>
       </View>
     </Squircle>
   );

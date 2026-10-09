@@ -1,7 +1,14 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { SymbolView } from "expo-symbols";
 import { useEffect } from "react";
-import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
+import {
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+} from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -26,7 +33,11 @@ const GOLD = "#F4BA00";
 const GOLD_LIGHT = "#FFD766";
 const GOLD_TEXT = "#2C2405";
 
-export default function PremiumCTAButton({ title, onPress, style }: PremiumCTAButtonProps) {
+export default function PremiumCTAButton({
+  title,
+  onPress,
+  style,
+}: PremiumCTAButtonProps) {
   const { fontSizes } = useFont();
   const pressScale = useSharedValue(1);
   const shimmerProgress = useSharedValue(-1);
@@ -38,10 +49,10 @@ export default function PremiumCTAButton({ title, onPress, style }: PremiumCTABu
           duration: 1450,
           easing: Easing.inOut(Easing.cubic),
         }),
-        withDelay(2600, withTiming(-1, { duration: 1 }))
+        withDelay(2600, withTiming(-1, { duration: 1 })),
       ),
       -1,
-      false
+      false,
     );
   }, [shimmerProgress]);
 
@@ -80,9 +91,16 @@ export default function PremiumCTAButton({ title, onPress, style }: PremiumCTABu
           start={{ x: 0, y: 0 }}
           style={StyleSheet.absoluteFill}
         />
-        <Animated.View pointerEvents="none" style={[styles.shimmer, shimmerAnimatedStyle]}>
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.shimmer, shimmerAnimatedStyle]}
+        >
           <LinearGradient
-            colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.55)", "rgba(255,255,255,0)"]}
+            colors={[
+              "rgba(255,255,255,0)",
+              "rgba(255,255,255,0.55)",
+              "rgba(255,255,255,0)",
+            ]}
             end={{ x: 1, y: 0 }}
             start={{ x: 0, y: 0 }}
             style={StyleSheet.absoluteFill}
@@ -97,7 +115,9 @@ export default function PremiumCTAButton({ title, onPress, style }: PremiumCTABu
         >
           <View style={styles.content}>
             <SymbolView name="sparkles" size={17} tintColor={GOLD_TEXT} />
-            <Text style={[styles.text, { fontSize: fontSizes.base }]}>{title}</Text>
+            <Text style={[styles.text, { fontSize: fontSizes.base }]}>
+              {title}
+            </Text>
           </View>
         </Pressable>
       </Squircle>

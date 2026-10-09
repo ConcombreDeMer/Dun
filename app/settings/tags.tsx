@@ -9,18 +9,51 @@ import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { FREE_TAG_LIMIT } from "@/lib/plan";
 import { useSubscription } from "@/lib/subscription";
-import { createTag, deleteTag, getActiveTagIdsForPlan, getTags, Tag, TAGS_QUERY_KEY, TAG_USAGE_STATS_QUERY_KEY, updateTag } from "@/lib/tags";
+import {
+  createTag,
+  deleteTag,
+  getActiveTagIdsForPlan,
+  getTags,
+  Tag,
+  TAGS_QUERY_KEY,
+  TAG_USAGE_STATS_QUERY_KEY,
+  updateTag,
+} from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
-import { BottomSheet, Button as SwiftButton, Group, Host, Menu, RNHostView } from "@expo/ui/swift-ui";
-import { presentationDetents, presentationDragIndicator } from "@expo/ui/swift-ui/modifiers";
+import {
+  BottomSheet,
+  Button as SwiftButton,
+  Group,
+  Host,
+  Menu,
+  RNHostView,
+} from "@expo/ui/swift-ui";
+import {
+  presentationDetents,
+  presentationDragIndicator,
+} from "@expo/ui/swift-ui/modifiers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
-const TAG_COLORS = ["#4F8EF7", "#62B36F", "#F05D5E", "#F6A23D", "#8B6FF6", "#3A3A3A"];
+const TAG_COLORS = [
+  "#4F8EF7",
+  "#62B36F",
+  "#F05D5E",
+  "#F6A23D",
+  "#8B6FF6",
+  "#3A3A3A",
+];
 export default function TagsSettings() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -52,7 +85,10 @@ export default function TagsSettings() {
       closeSheet();
     },
     onError: (error: any) => {
-      Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
+      Alert.alert(
+        t("common.alerts.errorTitle"),
+        error?.message || t("common.alerts.genericError"),
+      );
     },
   });
 
@@ -65,7 +101,10 @@ export default function TagsSettings() {
       closeSheet();
     },
     onError: (error: any) => {
-      Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
+      Alert.alert(
+        t("common.alerts.errorTitle"),
+        error?.message || t("common.alerts.genericError"),
+      );
     },
   });
 
@@ -77,7 +116,10 @@ export default function TagsSettings() {
       queryClient.invalidateQueries({ queryKey: ["tasks", userId] });
     },
     onError: (error: any) => {
-      Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
+      Alert.alert(
+        t("common.alerts.errorTitle"),
+        error?.message || t("common.alerts.genericError"),
+      );
     },
   });
 
@@ -124,7 +166,7 @@ export default function TagsSettings() {
           style: "destructive",
           onPress: () => deleteTagMutation.mutate(tag.id),
         },
-      ]
+      ],
     );
   };
 
@@ -142,7 +184,12 @@ export default function TagsSettings() {
     }
 
     if (editingTag) {
-      updateTagMutation.mutate({ id: editingTag.id, name, color: selectedColor, userId });
+      updateTagMutation.mutate({
+        id: editingTag.id,
+        name,
+        color: selectedColor,
+        userId,
+      });
       return;
     }
 
@@ -152,10 +199,7 @@ export default function TagsSettings() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <SecondaryButton
-          onPress={() => router.back()}
-          image="chevron.left"
-        />
+        <SecondaryButton onPress={() => router.back()} image="chevron.left" />
         <Headline
           title={t("tags.headline.title")}
           subtitle={t("tags.headline.subtitle")}
@@ -167,18 +211,38 @@ export default function TagsSettings() {
         showsVerticalScrollIndicator={false}
       >
         {isLoading && (
-          <Text style={[styles.emptyText, { color: colors.textSecondary, fontSize: fontSizes.lg }]}>
+          <Text
+            style={[
+              styles.emptyText,
+              { color: colors.textSecondary, fontSize: fontSizes.lg },
+            ]}
+          >
             {t("common.status.loading")}
           </Text>
         )}
 
         {!isLoading && tags.length === 0 && (
-          <View style={[styles.empty, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View
+            style={[
+              styles.empty,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
             <SymbolView name="tag" size={34} tintColor={colors.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
+            <Text
+              style={[
+                styles.emptyTitle,
+                { color: colors.text, fontSize: fontSizes["2xl"] },
+              ]}
+            >
               {t("tags.empty.title")}
             </Text>
-            <Text style={[styles.emptyText, { color: colors.textSecondary, fontSize: fontSizes.base }]}>
+            <Text
+              style={[
+                styles.emptyText,
+                { color: colors.textSecondary, fontSize: fontSizes.base },
+              ]}
+            >
               {t("tags.empty.description")}
             </Text>
           </View>
@@ -188,70 +252,121 @@ export default function TagsSettings() {
           const isInactive = !activeTagIds.has(tag.id);
 
           return (
-          <Squircle
-            key={tag.id}
-            style={[
-              styles.tagRow,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                opacity: isInactive ? 0.6 : 1,
-              },
-            ]}
-          >
-            <View style={styles.tagInfo}>
-              <View style={[styles.tagColor, { backgroundColor: tag.color }]} />
-              <Text style={[styles.tagName, { color: colors.text, fontSize: fontSizes.lg }]}>
-                {tag.name}
-              </Text>
-            </View>
+            <Squircle
+              key={tag.id}
+              style={[
+                styles.tagRow,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  opacity: isInactive ? 0.6 : 1,
+                },
+              ]}
+            >
+              <View style={styles.tagInfo}>
+                <View
+                  style={[styles.tagColor, { backgroundColor: tag.color }]}
+                />
+                <Text
+                  style={[
+                    styles.tagName,
+                    { color: colors.text, fontSize: fontSizes.lg },
+                  ]}
+                >
+                  {tag.name}
+                </Text>
+              </View>
 
-            <Host matchContents style={styles.menuHost}>
-              <Menu
-                label={
-                  <RNHostView matchContents>
-                    <View style={[styles.menuButton, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                      <SymbolView name="ellipsis" size={18} tintColor={colors.text} />
-                    </View>
-                  </RNHostView>
-                }
-              >
-                <SwiftButton
-                  label={t("common.actions.edit")}
-                  systemImage="pencil"
-                  onPress={() => openEditSheet(tag)}
-                />
-                <SwiftButton
-                  label={t("common.actions.delete")}
-                  systemImage="trash"
-                  role="destructive"
-                  onPress={() => confirmDeleteTag(tag)}
-                />
-              </Menu>
-            </Host>
-          </Squircle>
+              <Host matchContents style={styles.menuHost}>
+                <Menu
+                  label={
+                    <RNHostView matchContents>
+                      <View
+                        style={[
+                          styles.menuButton,
+                          {
+                            backgroundColor: colors.background,
+                            borderColor: colors.border,
+                          },
+                        ]}
+                      >
+                        <SymbolView
+                          name="ellipsis"
+                          size={18}
+                          tintColor={colors.text}
+                        />
+                      </View>
+                    </RNHostView>
+                  }
+                >
+                  <SwiftButton
+                    label={t("common.actions.edit")}
+                    systemImage="pencil"
+                    onPress={() => openEditSheet(tag)}
+                  />
+                  <SwiftButton
+                    label={t("common.actions.delete")}
+                    systemImage="trash"
+                    role="destructive"
+                    onPress={() => confirmDeleteTag(tag)}
+                  />
+                </Menu>
+              </Host>
+            </Squircle>
           );
         })}
 
         {!isLoading && !isPremium ? (
           <View style={styles.limitSection}>
             <View style={styles.limitHeader}>
-              <Text style={[styles.limitLabel, { color: colors.text, fontSize: fontSizes.base }]}>
-                {t("tags.limit.counter", { count: Math.min(tags.length, FREE_TAG_LIMIT), limit: FREE_TAG_LIMIT })}
+              <Text
+                style={[
+                  styles.limitLabel,
+                  { color: colors.text, fontSize: fontSizes.base },
+                ]}
+              >
+                {t("tags.limit.counter", {
+                  count: Math.min(tags.length, FREE_TAG_LIMIT),
+                  limit: FREE_TAG_LIMIT,
+                })}
               </Text>
-              <View style={[styles.limitBadge, { backgroundColor: isTagLimitReached ? "#F4BA00" : colors.card, borderColor: colors.border }]}>
-                <Text style={[styles.limitBadgeText, { color: isTagLimitReached ? "#2C2405" : colors.textSecondary, fontSize: fontSizes.sm }]}>
+              <View
+                style={[
+                  styles.limitBadge,
+                  {
+                    backgroundColor: isTagLimitReached
+                      ? "#F4BA00"
+                      : colors.card,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.limitBadgeText,
+                    {
+                      color: isTagLimitReached
+                        ? "#2C2405"
+                        : colors.textSecondary,
+                      fontSize: fontSizes.sm,
+                    },
+                  ]}
+                >
                   {tags.length}/{FREE_TAG_LIMIT}
                 </Text>
               </View>
             </View>
 
-            <View style={[styles.limitTrack, { backgroundColor: colors.border }]}>
+            <View
+              style={[styles.limitTrack, { backgroundColor: colors.border }]}
+            >
               <View
                 style={[
                   styles.limitTrackFill,
                   {
-                    backgroundColor: isTagLimitReached ? "#F4BA00" : colors.text,
+                    backgroundColor: isTagLimitReached
+                      ? "#F4BA00"
+                      : colors.text,
                     width: `${Math.min(100, (tags.length / FREE_TAG_LIMIT) * 100)}%`,
                   },
                 ]}
@@ -260,7 +375,10 @@ export default function TagsSettings() {
 
             {isTagLimitReached ? (
               <Squircle
-                style={[styles.limitNotice, { backgroundColor: colors.card, borderColor: "#F4BA00" }]}
+                style={[
+                  styles.limitNotice,
+                  { backgroundColor: colors.card, borderColor: "#F4BA00" },
+                ]}
                 cornerSmoothing={100}
                 preserveSmoothing={true}
               >
@@ -268,13 +386,27 @@ export default function TagsSettings() {
                   <SymbolView name="tag.fill" size={22} tintColor="#2C2405" />
                 </View>
                 <View style={styles.limitNoticeText}>
-                  <Text style={[styles.limitNoticeTitle, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
-                    {hasInactiveTags ? t("tags.limit.inactiveTitle") : t("tags.limit.reachedTitle")}
+                  <Text
+                    style={[
+                      styles.limitNoticeTitle,
+                      { color: colors.text, fontSize: fontSizes["2xl"] },
+                    ]}
+                  >
+                    {hasInactiveTags
+                      ? t("tags.limit.inactiveTitle")
+                      : t("tags.limit.reachedTitle")}
                   </Text>
-                  <Text style={[styles.limitNoticeDescription, { color: colors.textSecondary, fontSize: fontSizes.base }]}>
+                  <Text
+                    style={[
+                      styles.limitNoticeDescription,
+                      { color: colors.textSecondary, fontSize: fontSizes.base },
+                    ]}
+                  >
                     {hasInactiveTags
                       ? t("tags.limit.inactiveDescription")
-                      : t("tags.limit.reachedDescription", { limit: FREE_TAG_LIMIT })}
+                      : t("tags.limit.reachedDescription", {
+                          limit: FREE_TAG_LIMIT,
+                        })}
                   </Text>
                 </View>
                 <PremiumCTAButton
@@ -307,11 +439,23 @@ export default function TagsSettings() {
               }}
               fitToContents
             >
-              <Group modifiers={[presentationDragIndicator("visible"), presentationDetents([{ height: 330 }, "medium"])]}>
+              <Group
+                modifiers={[
+                  presentationDragIndicator("visible"),
+                  presentationDetents([{ height: 330 }, "medium"]),
+                ]}
+              >
                 <RNHostView matchContents>
                   <View style={[styles.sheet]}>
-                    <Text style={[styles.sheetTitle, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
-                      {isEditing ? t("tags.form.editTitle") : t("tags.form.title")}
+                    <Text
+                      style={[
+                        styles.sheetTitle,
+                        { color: colors.text, fontSize: fontSizes["2xl"] },
+                      ]}
+                    >
+                      {isEditing
+                        ? t("tags.form.editTitle")
+                        : t("tags.form.title")}
                     </Text>
 
                     <SimpleInput
@@ -334,7 +478,9 @@ export default function TagsSettings() {
                               styles.colorOption,
                               {
                                 backgroundColor: color,
-                                borderColor: isSelected ? colors.text : colors.border,
+                                borderColor: isSelected
+                                  ? colors.text
+                                  : colors.border,
                                 borderWidth: isSelected ? 3 : 1,
                               },
                             ]}
@@ -344,9 +490,16 @@ export default function TagsSettings() {
                     </View>
 
                     <PrimaryButton
-                      title={isEditing ? t("common.actions.edit") : t("common.actions.create")}
+                      title={
+                        isEditing
+                          ? t("common.actions.edit")
+                          : t("common.actions.create")
+                      }
                       onPress={handleSubmitTag}
-                      disabled={createTagMutation.isPending || updateTagMutation.isPending}
+                      disabled={
+                        createTagMutation.isPending ||
+                        updateTagMutation.isPending
+                      }
                     />
                   </View>
                 </RNHostView>

@@ -1,6 +1,11 @@
 import { toAppDateKey, toDailyDateKey } from "./date";
 import { supabase } from "./supabase";
-import { finalizeDailyReview, getNextTaskOrder, normalizeTaskOrderForDate, syncDaySnapshot } from "./tasks";
+import {
+  finalizeDailyReview,
+  getNextTaskOrder,
+  normalizeTaskOrderForDate,
+  syncDaySnapshot,
+} from "./tasks";
 
 export type DailyCompletionDay = {
   dayLabel: string;
@@ -46,10 +51,20 @@ type DaySnapshot = {
 
 type DailyMotivation = DailyData["motivation"];
 
-const frenchWeekdayAbbreviations = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+const frenchWeekdayAbbreviations = [
+  "Dim",
+  "Lun",
+  "Mar",
+  "Mer",
+  "Jeu",
+  "Ven",
+  "Sam",
+];
 
 const getUserId = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     throw new Error("Utilisateur non connecté");
@@ -91,7 +106,10 @@ const getDayLabel = (dateKey: string) => {
   return frenchWeekdayAbbreviations[new Date(year, month - 1, day).getDay()];
 };
 
-const buildMotivation = (completedTasks: number, totalTasks: number): DailyMotivation => {
+const buildMotivation = (
+  completedTasks: number,
+  totalTasks: number,
+): DailyMotivation => {
   if (totalTasks === 0) {
     return {
       titleKey: "daily.motivation.empty.title",
@@ -114,7 +132,10 @@ const buildMotivation = (completedTasks: number, totalTasks: number): DailyMotiv
   };
 };
 
-const computeBaseStreak = (daysByDate: Map<string, DaySnapshot>, yesterdayKey: string) => {
+const computeBaseStreak = (
+  daysByDate: Map<string, DaySnapshot>,
+  yesterdayKey: string,
+) => {
   let streak = 0;
   let cursor = addDays(yesterdayKey, -1);
 
@@ -126,8 +147,10 @@ const computeBaseStreak = (daysByDate: Map<string, DaySnapshot>, yesterdayKey: s
   return streak;
 };
 
-export const getDailyData = async (userId?: string | null): Promise<DailyData> => {
-  const resolvedUserId = userId ?? await getUserId();
+export const getDailyData = async (
+  userId?: string | null,
+): Promise<DailyData> => {
+  const resolvedUserId = userId ?? (await getUserId());
   const todayKey = toDailyDateKey(new Date());
   const yesterdayKey = addDays(todayKey, -1);
   const firstCompletionDayKey = addDays(todayKey, -7);
@@ -138,11 +161,7 @@ export const getDailyData = async (userId?: string | null): Promise<DailyData> =
     { data: days, error: daysError },
     { data: pendingTasks, error: pendingTasksError },
   ] = await Promise.all([
-    supabase
-      .from("Profiles")
-      .select("name")
-      .eq("id", resolvedUserId)
-      .single(),
+    supabase.from("Profiles").select("name").eq("id", resolvedUserId).single(),
     supabase
       .from("Days")
       .select("date, total, done_count")
@@ -152,7 +171,9 @@ export const getDailyData = async (userId?: string | null): Promise<DailyData> =
       .order("date", { ascending: false }),
     supabase
       .from("Tasks")
-      .select("id, name, description, done, order, date, delay_count, late_adjusted_at, resolved_at, Task_Tags(tag_id)")
+      .select(
+        "id, name, description, done, order, date, delay_count, late_adjusted_at, resolved_at, Task_Tags(tag_id)",
+      )
       .eq("user_id", resolvedUserId)
       .eq("done", false)
       .is("resolved_at", null)
@@ -189,7 +210,10 @@ export const getDailyData = async (userId?: string | null): Promise<DailyData> =
 
   const previousDay = daysByDate.get(yesterdayKey);
   const previousDayTotal = Math.max(previousDay?.total ?? 0, 0);
-  const previousDayDone = Math.min(Math.max(previousDay?.done_count ?? 0, 0), previousDayTotal);
+  const previousDayDone = Math.min(
+    Math.max(previousDay?.done_count ?? 0, 0),
+    previousDayTotal,
+  );
   const previousDayPercent = getDayPercent(previousDay);
 
   return {
@@ -204,13 +228,19 @@ export const getDailyData = async (userId?: string | null): Promise<DailyData> =
     motivation: buildMotivation(previousDayDone, previousDayTotal),
     pendingTasks: (pendingTasks ?? []).map((task) => ({
       ...task,
-      late_days: task.date ? getDateDiffInDays(toAppDateKey(task.date), todayKey) : null,
+      late_days: task.date
+        ? getDateDiffInDays(toAppDateKey(task.date), todayKey)
+        : null,
     })),
   };
 };
 
-export const postponeDailyPendingTask = async (taskId: number, targetDateKey = toDailyDateKey(new Date()), userId?: string | null) => {
-  const resolvedUserId = userId ?? await getUserId();
+export const postponeDailyPendingTask = async (
+  taskId: number,
+  targetDateKey = toDailyDateKey(new Date()),
+  userId?: string | null,
+) => {
+  const resolvedUserId = userId ?? (await getUserId());
   const { data: taskData, error: fetchError } = await supabase
     .from("Tasks")
     .select("date, delay_count")
@@ -255,8 +285,11 @@ export const postponeDailyPendingTask = async (taskId: number, targetDateKey = t
   ]);
 };
 
-export const deleteDailyPendingTask = async (taskId: number, userId?: string | null) => {
-  const resolvedUserId = userId ?? await getUserId();
+export const deleteDailyPendingTask = async (
+  taskId: number,
+  userId?: string | null,
+) => {
+  const resolvedUserId = userId ?? (await getUserId());
   const { data: taskData, error: fetchError } = await supabase
     .from("Tasks")
     .select("date")
@@ -296,8 +329,12 @@ export const deleteDailyPendingTask = async (taskId: number, userId?: string | n
   }
 };
 
-export const setDailyPendingTaskDone = async (taskId: number, nextDone: boolean, userId?: string | null) => {
-  const resolvedUserId = userId ?? await getUserId();
+export const setDailyPendingTaskDone = async (
+  taskId: number,
+  nextDone: boolean,
+  userId?: string | null,
+) => {
+  const resolvedUserId = userId ?? (await getUserId());
   const { data: taskData, error: fetchError } = await supabase
     .from("Tasks")
     .select("date, resolved_at")
@@ -334,7 +371,7 @@ export const setDailyPendingTaskDone = async (taskId: number, nextDone: boolean,
 };
 
 export const completeDailyReview = async (userId?: string | null) => {
-  const resolvedUserId = userId ?? await getUserId();
+  const resolvedUserId = userId ?? (await getUserId());
   const todayKey = toDailyDateKey(new Date());
 
   await finalizeDailyReview(todayKey, resolvedUserId);

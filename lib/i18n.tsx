@@ -1,6 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createInstance } from "i18next";
-import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { initReactI18next, useTranslation } from "react-i18next";
 import { supabase } from "./supabase";
 import { resources } from "./i18n/resources";
@@ -55,7 +61,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, language);
     };
 
-    const persistUserLanguage = async (userId: string, language: AppLanguage) => {
+    const persistUserLanguage = async (
+      userId: string,
+      language: AppLanguage,
+    ) => {
       const { error } = await supabase
         .from("Profiles")
         .update({ language })
@@ -80,10 +89,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     const resolveLanguageFromProfile = async () => {
       try {
         const deviceLanguage = getDeviceLanguage();
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        const { data: sessionData, error: sessionError } =
+          await supabase.auth.getSession();
 
         if (sessionError && sessionError.message !== "Auth session missing!") {
-          logger.error("Erreur lors de la récupération de la session pour la langue:", sessionError);
+          logger.error(
+            "Erreur lors de la récupération de la session pour la langue:",
+            sessionError,
+          );
         }
 
         const userId = sessionData.session?.user?.id;
@@ -100,7 +113,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
           .single();
 
         if (profileError) {
-          logger.error("Erreur lors de la récupération de la langue du profil:", profileError);
+          logger.error(
+            "Erreur lors de la récupération de la langue du profil:",
+            profileError,
+          );
           await applyLanguage(deviceLanguage);
           return;
         }
@@ -121,7 +137,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       try {
         await bootstrapLanguage();
       } catch (error) {
-        logger.error("Erreur lors de l'initialisation locale de la langue:", error);
+        logger.error(
+          "Erreur lors de l'initialisation locale de la langue:",
+          error,
+        );
       } finally {
         if (isMounted) {
           setIsReady(true);
@@ -147,7 +166,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  return <I18nReadyContext.Provider value={isReady}>{children}</I18nReadyContext.Provider>;
+  return (
+    <I18nReadyContext.Provider value={isReady}>
+      {children}
+    </I18nReadyContext.Provider>
+  );
 }
 
 export function useI18nReady() {
@@ -164,10 +187,14 @@ export function useAppTranslation() {
       await translation.i18n.changeLanguage(language);
       await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, language);
 
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.getSession();
 
       if (sessionError && sessionError.message !== "Auth session missing!") {
-        logger.error("Erreur session lors de la sauvegarde de la langue:", sessionError);
+        logger.error(
+          "Erreur session lors de la sauvegarde de la langue:",
+          sessionError,
+        );
         return;
       }
 
@@ -183,7 +210,10 @@ export function useAppTranslation() {
         .eq("id", userId);
 
       if (error) {
-        logger.error("Erreur lors de la sauvegarde de la langue en base:", error);
+        logger.error(
+          "Erreur lors de la sauvegarde de la langue en base:",
+          error,
+        );
       }
     },
     supportedLanguages: SUPPORTED_LANGUAGES,
@@ -194,6 +224,8 @@ function normalizeLanguage(language?: string): AppLanguage {
   return isSupportedLanguage(language) ? language : "fr";
 }
 
-function isSupportedLanguage(language: string | null | undefined): language is AppLanguage {
+function isSupportedLanguage(
+  language: string | null | undefined,
+): language is AppLanguage {
   return SUPPORTED_LANGUAGES.includes(language as AppLanguage);
 }

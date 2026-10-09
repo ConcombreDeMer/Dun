@@ -17,7 +17,7 @@ module.exports = function withIosSentryXcodeEnv(config) {
     async (config) => {
       const envLocalPath = path.join(
         config.modRequest.platformProjectRoot,
-        ".xcode.env.local"
+        ".xcode.env.local",
       );
       const envLocalSource = `set -a
 if [[ -f "$PROJECT_DIR/../.env.local" ]]; then
@@ -54,7 +54,9 @@ set +a`;
         !phase.shellScript.includes(".xcode.env.local")
       ) {
         const shellScript = JSON.parse(phase.shellScript);
-        phase.shellScript = JSON.stringify(`${ENV_SOURCE_SCRIPT}${shellScript}`);
+        phase.shellScript = JSON.stringify(
+          `${ENV_SOURCE_SCRIPT}${shellScript}`,
+        );
       }
     }
 

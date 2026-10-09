@@ -77,9 +77,11 @@ export default function Tutorial() {
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [infoRevealCount, setInfoRevealCount] = useState(1);
   const [isCompletingPurchase, setIsCompletingPurchase] = useState(false);
-  const [selectedPremiumPlan, setSelectedPremiumPlan] = useState<PremiumPlan | null>(null);
+  const [selectedPremiumPlan, setSelectedPremiumPlan] =
+    useState<PremiumPlan | null>(null);
   const [sliderIndex, setSliderIndex] = useState(3);
-  const [trialEligibility, setTrialEligibility] = useState<TrialEligibilityStatus>("unknown");
+  const [trialEligibility, setTrialEligibility] =
+    useState<TrialEligibilityStatus>("unknown");
   const {
     checkTrialEligibility,
     isLoading: isSubscriptionLoading,
@@ -88,21 +90,40 @@ export default function Tutorial() {
     packages,
     purchasePackage,
   } = useSubscription();
-  const onboardingSteps = useMemo(() => createOnboardingSteps((key) => t(key)), [t]);
-  const sliderOptions = useMemo(() => createSliderOptions((key) => t(key)), [t]);
-  const sliderLabels = useMemo(() => sliderOptions.map((option) => option.label), [sliderOptions]);
+  const onboardingSteps = useMemo(
+    () => createOnboardingSteps((key) => t(key)),
+    [t],
+  );
+  const sliderOptions = useMemo(
+    () => createSliderOptions((key) => t(key)),
+    [t],
+  );
+  const sliderLabels = useMemo(
+    () => sliderOptions.map((option) => option.label),
+    [sliderOptions],
+  );
   const recurrenceOptions = useMemo(
-    () => onboardingSteps.find((onboardingStep) => onboardingStep.id === "recurrence")?.options ?? [],
-    [onboardingSteps]
+    () =>
+      onboardingSteps.find(
+        (onboardingStep) => onboardingStep.id === "recurrence",
+      )?.options ?? [],
+    [onboardingSteps],
   );
   const contentProgress = useSharedValue(1);
-  const initialPlacement = CHARACTER_PLACEMENTS[onboardingSteps[0].characterPosition];
+  const initialPlacement =
+    CHARACTER_PLACEMENTS[onboardingSteps[0].characterPosition];
   const characterTop = useSharedValue(initialPlacement.top);
   const characterLeft = useSharedValue(initialPlacement.left);
   const characterSize = useSharedValue(initialPlacement.size);
-  const characterOpacity = useSharedValue(onboardingSteps[0].hideCharacter ? 0 : 1);
-  const characterLift = useSharedValue(onboardingSteps[0].hideCharacter ? -18 : 0);
-  const objectiveCardTop = useSharedValue(getObjectiveFloatingCardTop(onboardingSteps[0].id, height));
+  const characterOpacity = useSharedValue(
+    onboardingSteps[0].hideCharacter ? 0 : 1,
+  );
+  const characterLift = useSharedValue(
+    onboardingSteps[0].hideCharacter ? -18 : 0,
+  );
+  const objectiveCardTop = useSharedValue(
+    getObjectiveFloatingCardTop(onboardingSteps[0].id, height),
+  );
   const objectiveCardOpacity = useSharedValue(0);
   const objectiveCardTranslateY = useSharedValue(0);
   const wasShowingFloatingObjectiveCard = useRef(false);
@@ -116,17 +137,23 @@ export default function Tutorial() {
   const selectedRhythmDays = selectedRhythmOption.days;
   const isLastStep = currentIndex === onboardingSteps.length - 1;
   const isScrollableStep = step.type === "longTerm" || step.type === "trial";
-  const showStageCharacter = !isScrollableStep || step.type === "longTerm" || step.type === "trial";
+  const showStageCharacter =
+    !isScrollableStep || step.type === "longTerm" || step.type === "trial";
   const contentPositionStyle = getContentPositionStyle(step.id);
   const shouldShowFloatingObjectiveCard = isFloatingObjectiveCardStep(step.id);
-  const selectedPackage = selectedPremiumPlan === "annual"
-    ? packages.annual
-    : selectedPremiumPlan === "monthly"
-    ? packages.monthly
-    : undefined;
-  const trialButtonDisabled = isTransitioning || isPurchasing || isCompletingPurchase || (
-    REQUIRE_PREMIUM_ACCESS && step.type === "trial" && (isSubscriptionLoading || !selectedPackage)
-  );
+  const selectedPackage =
+    selectedPremiumPlan === "annual"
+      ? packages.annual
+      : selectedPremiumPlan === "monthly"
+        ? packages.monthly
+        : undefined;
+  const trialButtonDisabled =
+    isTransitioning ||
+    isPurchasing ||
+    isCompletingPurchase ||
+    (REQUIRE_PREMIUM_ACCESS &&
+      step.type === "trial" &&
+      (isSubscriptionLoading || !selectedPackage));
   const trialEligibilityProductIdentifier =
     selectedPackage?.product.identifier ??
     packages.annual?.product.identifier ??
@@ -202,7 +229,15 @@ export default function Tutorial() {
       duration: step.hideCharacter ? 260 : 360,
       easing: Easing.out(Easing.cubic),
     });
-  }, [characterLeft, characterLift, characterOpacity, characterSize, characterTop, step.characterPosition, step.hideCharacter]);
+  }, [
+    characterLeft,
+    characterLift,
+    characterOpacity,
+    characterSize,
+    characterTop,
+    step.characterPosition,
+    step.hideCharacter,
+  ]);
 
   useEffect(() => {
     const nextTop = getObjectiveFloatingCardTop(step.id, height);
@@ -239,7 +274,14 @@ export default function Tutorial() {
     }
 
     wasShowingFloatingObjectiveCard.current = shouldShowFloatingObjectiveCard;
-  }, [height, objectiveCardOpacity, objectiveCardTop, objectiveCardTranslateY, shouldShowFloatingObjectiveCard, step.id]);
+  }, [
+    height,
+    objectiveCardOpacity,
+    objectiveCardTop,
+    objectiveCardTranslateY,
+    shouldShowFloatingObjectiveCard,
+    step.id,
+  ]);
 
   const characterStyle = useAnimatedStyle(() => ({
     height: characterSize.value * widthScale,
@@ -254,7 +296,9 @@ export default function Tutorial() {
     height: characterSize.value * 0.22 * widthScale,
     left: (characterLeft.value + characterSize.value * 0.18) * widthScale,
     opacity: characterOpacity.value * 0.36,
-    top: (characterTop.value * heightScale) + characterSize.value * 0.95 * widthScale,
+    top:
+      characterTop.value * heightScale +
+      characterSize.value * 0.95 * widthScale,
     width: characterSize.value * 0.66 * widthScale,
   }));
 
@@ -262,9 +306,10 @@ export default function Tutorial() {
     opacity: contentProgress.value,
     transform: [
       {
-        translateY: step.type === "info"
-          ? -18 + contentProgress.value * 18
-          : 18 - contentProgress.value * 18,
+        translateY:
+          step.type === "info"
+            ? -18 + contentProgress.value * 18
+            : 18 - contentProgress.value * 18,
       },
     ],
   }));
@@ -276,7 +321,11 @@ export default function Tutorial() {
   }));
 
   const goToIndex = (nextIndex: number) => {
-    if (isTransitioning || nextIndex < 0 || nextIndex >= onboardingSteps.length) {
+    if (
+      isTransitioning ||
+      nextIndex < 0 ||
+      nextIndex >= onboardingSteps.length
+    ) {
       return;
     }
 
@@ -284,7 +333,8 @@ export default function Tutorial() {
     setIsTransitioning(true);
     const currentStep = onboardingSteps[currentIndex];
     const nextStep = onboardingSteps[nextIndex];
-    const characterWillMove = currentStep.characterPosition !== nextStep.characterPosition;
+    const characterWillMove =
+      currentStep.characterPosition !== nextStep.characterPosition;
     const contentEnterDelay = characterWillMove ? 420 : 0;
     const transitionLockDuration = contentEnterDelay + 430;
 
@@ -311,7 +361,9 @@ export default function Tutorial() {
   const saveOnboardingProfile = async () => {
     try {
       const trimmedName = name.trim();
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (user) {
         const { error } = await supabase
@@ -320,17 +372,28 @@ export default function Tutorial() {
           .eq("id", user.id);
 
         if (error) {
-          logger.error("Erreur lors de la sauvegarde du name dans Supabase:", error);
+          logger.error(
+            "Erreur lors de la sauvegarde du name dans Supabase:",
+            error,
+          );
         } else {
-          patchProfileCache(queryClient, user.id, { hasName: true, name: trimmedName });
+          patchProfileCache(queryClient, user.id, {
+            hasName: true,
+            name: trimmedName,
+          });
         }
       }
 
       if (trimmedName) {
-        const { error } = await supabase.auth.updateUser({ data: { name: trimmedName } });
+        const { error } = await supabase.auth.updateUser({
+          data: { name: trimmedName },
+        });
 
         if (error) {
-          logger.error("Erreur lors de la mise à jour du nom d'utilisateur : " + error.message);
+          logger.error(
+            "Erreur lors de la mise à jour du nom d'utilisateur : " +
+              error.message,
+          );
           return false;
         }
       }
@@ -349,7 +412,9 @@ export default function Tutorial() {
       return;
     }
 
-    router.replace(REQUIRE_PREMIUM_ACCESS ? "/settings/premium?required=1" : "/");
+    router.replace(
+      REQUIRE_PREMIUM_ACCESS ? "/settings/premium?required=1" : "/",
+    );
   };
 
   const startTrialFromOnboarding = async () => {
@@ -378,7 +443,10 @@ export default function Tutorial() {
       }
     } catch (e: any) {
       if (!e.userCancelled) {
-        Alert.alert(t("settings.premium.purchaseErrorTitle"), e.message || t("common.alerts.genericError"));
+        Alert.alert(
+          t("settings.premium.purchaseErrorTitle"),
+          e.message || t("common.alerts.genericError"),
+        );
       }
     } finally {
       setIsCompletingPurchase(false);
@@ -387,15 +455,21 @@ export default function Tutorial() {
 
   const handleNext = () => {
     if (step.type === "name" && name.trim() === "") {
-      Alert.alert(t("onboarding.tutorial.alertTitle"), t("onboarding.tutorial.missingName1"));
+      Alert.alert(
+        t("onboarding.tutorial.alertTitle"),
+        t("onboarding.tutorial.missingName1"),
+      );
       setIsNameSheetVisible(true);
       return;
     }
 
-    if ((step.type === "options" || step.type === "objectiveQuestion") && !answers[step.id]?.length) {
+    if (
+      (step.type === "options" || step.type === "objectiveQuestion") &&
+      !answers[step.id]?.length
+    ) {
       Alert.alert(
         t("onboarding.tutorial.requiredAnswerTitle"),
-        t("onboarding.tutorial.requiredAnswerMessage")
+        t("onboarding.tutorial.requiredAnswerMessage"),
       );
       return;
     }
@@ -427,13 +501,19 @@ export default function Tutorial() {
       try {
         await clearStoredExportData();
       } catch (exportError) {
-        logger.error("Erreur lors du nettoyage de l'export local : ", exportError);
+        logger.error(
+          "Erreur lors du nettoyage de l'export local : ",
+          exportError,
+        );
       }
 
       const { error } = await supabase.auth.signOut();
 
       if (error) {
-        Alert.alert(t("common.alerts.errorTitle"), error.message || t("common.alerts.genericError"));
+        Alert.alert(
+          t("common.alerts.errorTitle"),
+          error.message || t("common.alerts.genericError"),
+        );
         return;
       }
 
@@ -442,7 +522,10 @@ export default function Tutorial() {
       router.replace("/onboarding/start");
     } catch (error) {
       logger.error("Erreur lors de la déconnexion : ", error);
-      Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.genericError"));
+      Alert.alert(
+        t("common.alerts.errorTitle"),
+        t("common.alerts.genericError"),
+      );
     }
   }, [clearStore, queryClient, router, t]);
 
@@ -462,7 +545,7 @@ export default function Tutorial() {
             void logout();
           },
         },
-      ]
+      ],
     );
   }, [logout, t]);
 
@@ -490,7 +573,12 @@ export default function Tutorial() {
             onPress={handleBack}
             style={[styles.backButton, { top: insets.top + 12 }]}
           >
-            <SymbolView name="chevron.left" size={22} tintColor="#151515" weight="bold" />
+            <SymbolView
+              name="chevron.left"
+              size={22}
+              tintColor="#151515"
+              weight="bold"
+            />
           </Pressable>
         ) : null}
 
@@ -540,7 +628,9 @@ export default function Tutorial() {
               bounces={false}
               contentContainerStyle={[
                 styles.stepScrollContent,
-                step.type === "longTerm" ? styles.longTermScrollContent : styles.trialScrollContent,
+                step.type === "longTerm"
+                  ? styles.longTermScrollContent
+                  : styles.trialScrollContent,
                 { paddingBottom: insets.bottom + 34 },
               ]}
               showsVerticalScrollIndicator={false}
@@ -631,7 +721,11 @@ export default function Tutorial() {
 }
 
 function getContentPositionStyle(stepId: string) {
-  if (stepId === "determination" || stepId === "transform" || stepId === "long-term") {
+  if (
+    stepId === "determination" ||
+    stepId === "transform" ||
+    stepId === "long-term"
+  ) {
     return styles.contentHighLower;
   }
 
@@ -651,7 +745,11 @@ function getContentPositionStyle(stepId: string) {
 }
 
 function isFloatingObjectiveCardStep(stepId: string) {
-  return stepId === "objective" || stepId === "determination" || stepId === "transform";
+  return (
+    stepId === "objective" ||
+    stepId === "determination" ||
+    stepId === "transform"
+  );
 }
 
 function getObjectiveFloatingCardTop(stepId: string, screenHeight: number) {
@@ -710,28 +808,79 @@ function renderStepContent({
   trialEligibility,
 }: RenderStepContentArgs) {
   if (step.type === "info") {
-    const recurrenceStats = getRecurrenceStats(answers.recurrence?.[0], recurrenceOptions);
+    const recurrenceStats = getRecurrenceStats(
+      answers.recurrence?.[0],
+      recurrenceOptions,
+    );
     const copyBaseKey = recurrenceStats.isDaily
       ? "onboarding.tutorial.info.daily"
       : recurrenceStats.isEncouraging
-      ? "onboarding.tutorial.info.encouraging"
-      : "onboarding.tutorial.info.impact";
+        ? "onboarding.tutorial.info.encouraging"
+        : "onboarding.tutorial.info.impact";
 
     const infoBubbles = [
       richInline([
-        { text: formatTranslation(t(`${copyBaseKey}.monthPrefix`), recurrenceStats) },
-        { text: formatTranslation(t(`${copyBaseKey}.monthStrong`), recurrenceStats), strong: true },
-        { text: formatTranslation(t(`${copyBaseKey}.monthSuffix`), recurrenceStats) },
+        {
+          text: formatTranslation(
+            t(`${copyBaseKey}.monthPrefix`),
+            recurrenceStats,
+          ),
+        },
+        {
+          text: formatTranslation(
+            t(`${copyBaseKey}.monthStrong`),
+            recurrenceStats,
+          ),
+          strong: true,
+        },
+        {
+          text: formatTranslation(
+            t(`${copyBaseKey}.monthSuffix`),
+            recurrenceStats,
+          ),
+        },
       ]),
       richInline([
-        { text: formatTranslation(t(`${copyBaseKey}.yearPrefix`), recurrenceStats) },
-        { text: formatTranslation(t(`${copyBaseKey}.yearStrong`), recurrenceStats), strong: true },
-        { text: formatTranslation(t(`${copyBaseKey}.yearSuffix`), recurrenceStats) },
+        {
+          text: formatTranslation(
+            t(`${copyBaseKey}.yearPrefix`),
+            recurrenceStats,
+          ),
+        },
+        {
+          text: formatTranslation(
+            t(`${copyBaseKey}.yearStrong`),
+            recurrenceStats,
+          ),
+          strong: true,
+        },
+        {
+          text: formatTranslation(
+            t(`${copyBaseKey}.yearSuffix`),
+            recurrenceStats,
+          ),
+        },
       ]),
       richInline([
-        { text: formatTranslation(t(`${copyBaseKey}.decadePrefix`), recurrenceStats) },
-        { text: formatTranslation(t(`${copyBaseKey}.decadeStrong`), recurrenceStats), strong: true },
-        { text: formatTranslation(t(`${copyBaseKey}.decadeSuffix`), recurrenceStats) },
+        {
+          text: formatTranslation(
+            t(`${copyBaseKey}.decadePrefix`),
+            recurrenceStats,
+          ),
+        },
+        {
+          text: formatTranslation(
+            t(`${copyBaseKey}.decadeStrong`),
+            recurrenceStats,
+          ),
+          strong: true,
+        },
+        {
+          text: formatTranslation(
+            t(`${copyBaseKey}.decadeSuffix`),
+            recurrenceStats,
+          ),
+        },
       ]),
     ];
 
@@ -755,7 +904,9 @@ function renderStepContent({
           {renderTitle(step, name, selectedRhythm, t)}
           <OnboardingOptionList
             mode={step.selectionMode ?? "multiple"}
-            onChange={(options) => setAnswers({ ...answers, [step.id]: options })}
+            onChange={(options) =>
+              setAnswers({ ...answers, [step.id]: options })
+            }
             options={step.options ?? []}
             selected={answers[step.id] ?? []}
           />
@@ -813,13 +964,17 @@ function renderStepContent({
       <View style={styles.objectiveStack}>
         {step.id === "transform" ? (
           <>
-            <View style={[styles.objectiveCardPlaceholder, styles.topObjectiveCard]} />
+            <View
+              style={[styles.objectiveCardPlaceholder, styles.topObjectiveCard]}
+            />
             {renderTitle(step, name, selectedRhythm, t)}
           </>
         ) : (
           <>
             {renderTitle(step, name, selectedRhythm, t)}
-            <View style={[styles.objectiveCardPlaceholder, styles.objectiveCard]} />
+            <View
+              style={[styles.objectiveCardPlaceholder, styles.objectiveCard]}
+            />
           </>
         )}
       </View>
@@ -860,11 +1015,13 @@ function renderStepContent({
   }
 
   if (step.type === "trial") {
-    const trialText = trialEligibility === "ineligible"
-      ? "Période d’essai expirée"
-      : "Débloquer la période d’essai 14j";
+    const trialText =
+      trialEligibility === "ineligible"
+        ? "Période d’essai expirée"
+        : "Débloquer la période d’essai 14j";
     const hasAvailablePackages = Boolean(packages.monthly || packages.annual);
-    const shouldShowOfferStatus = isSubscriptionLoading || !hasAvailablePackages || !selectedPremiumPlan;
+    const shouldShowOfferStatus =
+      isSubscriptionLoading || !hasAvailablePackages || !selectedPremiumPlan;
 
     return (
       <View style={styles.trialStack}>
@@ -881,7 +1038,9 @@ function renderStepContent({
 
         <View style={styles.trialOfferBlock}>
           <View style={styles.trialCoffeePill}>
-            <Text style={styles.trialCoffeeText}>Pour l’équivalent d’un café par mois</Text>
+            <Text style={styles.trialCoffeeText}>
+              Pour l’équivalent d’un café par mois
+            </Text>
             <Image
               contentFit="contain"
               source={require("@/assets/images/paywall/coffee.png")}
@@ -894,7 +1053,11 @@ function renderStepContent({
               disabled={!packages.monthly}
               label="Mensuel"
               onPress={() => onSelectPremiumPlan("monthly")}
-              price={isSubscriptionLoading ? "..." : packages.monthly?.product.priceString ?? "..."}
+              price={
+                isSubscriptionLoading
+                  ? "..."
+                  : (packages.monthly?.product.priceString ?? "...")
+              }
               selected={selectedPremiumPlan === "monthly"}
             />
             <SubscriptionPlanOption
@@ -902,7 +1065,11 @@ function renderStepContent({
               discount="-40%"
               label="Annuel"
               onPress={() => onSelectPremiumPlan("annual")}
-              price={isSubscriptionLoading ? "..." : packages.annual?.product.priceString ?? "..."}
+              price={
+                isSubscriptionLoading
+                  ? "..."
+                  : (packages.annual?.product.priceString ?? "...")
+              }
               selected={selectedPremiumPlan === "annual"}
             />
           </View>
@@ -911,11 +1078,18 @@ function renderStepContent({
           {shouldShowOfferStatus ? (
             <View style={styles.trialOfferStatus}>
               <Text style={styles.trialOfferStatusText}>
-                {isSubscriptionLoading ? t("common.status.loading") : t("settings.premium.offersNotLoaded")}
+                {isSubscriptionLoading
+                  ? t("common.status.loading")
+                  : t("settings.premium.offersNotLoaded")}
               </Text>
               {!isSubscriptionLoading ? (
-                <Pressable onPress={() => void onRetryLoadOfferings()} style={styles.trialRetryButton}>
-                  <Text style={styles.trialRetryText}>{t("common.actions.retry")}</Text>
+                <Pressable
+                  onPress={() => void onRetryLoadOfferings()}
+                  style={styles.trialRetryButton}
+                >
+                  <Text style={styles.trialRetryText}>
+                    {t("common.actions.retry")}
+                  </Text>
                 </Pressable>
               ) : null}
             </View>
@@ -932,10 +1106,14 @@ function renderStepContent({
   );
 }
 
-function getRecurrenceStats(answer: string | undefined, recurrenceOptions: string[]) {
+function getRecurrenceStats(
+  answer: string | undefined,
+  recurrenceOptions: string[],
+) {
   const unsatisfiedRatiosByIndex = [1, 0.9, 0.75, 0.5, 0.38];
   const selectedIndex = recurrenceOptions.indexOf(answer ?? "");
-  const ratio = unsatisfiedRatiosByIndex[selectedIndex] ?? unsatisfiedRatiosByIndex[0];
+  const ratio =
+    unsatisfiedRatiosByIndex[selectedIndex] ?? unsatisfiedRatiosByIndex[0];
   const monthDays = Math.round(30 * ratio);
   const yearDays = Math.round(365 * ratio);
   const yearHours = yearDays * 24;
@@ -957,7 +1135,7 @@ function getRecurrenceStats(answer: string | undefined, recurrenceOptions: strin
 
 function formatTranslation(
   template: string,
-  values: ReturnType<typeof getRecurrenceStats>
+  values: ReturnType<typeof getRecurrenceStats>,
 ) {
   return template
     .replace("{{monthDays}}", String(values.monthDays))
@@ -972,14 +1150,19 @@ function renderTitle(
   step: OnboardingStep,
   name: string,
   selectedRhythm: string,
-  t: (key: string) => string
+  t: (key: string) => string,
 ) {
   const title = step.title ?? "";
   const stepId = step.id;
 
   if (step.titleParts) {
     return (
-      <Text style={[styles.title, title.length > 58 ? styles.compactTitle : styles.largeTitle]}>
+      <Text
+        style={[
+          styles.title,
+          title.length > 58 ? styles.compactTitle : styles.largeTitle,
+        ]}
+      >
         {richInline(step.titleParts)}
       </Text>
     );
@@ -1003,20 +1186,38 @@ function renderTitle(
       <Text style={[styles.title, styles.largeTitle]}>
         <Text style={styles.strongText}>{selectedRhythm}</Text>
         {"\n\n"}
-        <Text style={styles.mutedText}>{t("onboarding.tutorial.steps.noted.line")}</Text>
+        <Text style={styles.mutedText}>
+          {t("onboarding.tutorial.steps.noted.line")}
+        </Text>
         {"\n\n"}
-        <Text style={styles.mutedText}>{t("onboarding.tutorial.steps.noted.objectivePrefix")}</Text>
-        <Text style={styles.strongText}>{t("onboarding.tutorial.steps.noted.objectiveStrong")}</Text>
+        <Text style={styles.mutedText}>
+          {t("onboarding.tutorial.steps.noted.objectivePrefix")}
+        </Text>
+        <Text style={styles.strongText}>
+          {t("onboarding.tutorial.steps.noted.objectiveStrong")}
+        </Text>
       </Text>
     );
   }
 
-  return <Text style={[styles.title, title.length > 58 ? styles.compactTitle : styles.largeTitle]}>{title}</Text>;
+  return (
+    <Text
+      style={[
+        styles.title,
+        title.length > 58 ? styles.compactTitle : styles.largeTitle,
+      ]}
+    >
+      {title}
+    </Text>
+  );
 }
 
 function richInline(parts: OnboardingTextPart[]) {
   return parts.map((part, index) => (
-    <Text key={`${part.text}-${index}`} style={part.strong ? styles.strongText : styles.mutedText}>
+    <Text
+      key={`${part.text}-${index}`}
+      style={part.strong ? styles.strongText : styles.mutedText}
+    >
       {part.text}
     </Text>
   ));

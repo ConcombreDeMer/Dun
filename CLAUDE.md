@@ -36,17 +36,20 @@ Une demande ponctuelle hors roadmap (question, petite correction) suit les même
 
 ## Vérification
 
-`npm run check` est la vérification de référence une fois créé (phase 0 de la roadmap). D'ici là :
+`npm run check` est la vérification de référence. La CI le lance à chaque PR et sur `master` (`.github/workflows/ci.yml`, Node de `.nvmrc`).
 
 ```bash
-npx tsc --noEmit
+npm run check
 ```
 
-```bash
-npm run lint
-```
+Il enchaîne, et s'arrête au premier échec :
 
-Tant que la phase 0 n'a pas exclu `supabase/functions` du `tsconfig`, `tsc` remonte des erreurs connues dans `supabase/functions/beta-signup/index.ts`. Seules les autres erreurs comptent.
+1. `npm run typecheck` : `tsc --noEmit` ;
+2. `npm run lint` : `eslint . --max-warnings 0` ;
+3. `npm run format:check` : `prettier --check .` (corriger avec `npm run format`) ;
+4. `npm run test` : `jest`.
+
+Il doit passer sans aucune erreur ni aucun avertissement.
 
 Quand une modification touche l'interface, la vérifier sur le simulateur iOS, en thème clair et en thème sombre.
 

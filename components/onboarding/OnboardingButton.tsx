@@ -36,7 +36,14 @@ export default function OnboardingButton({
   };
 
   return (
-    <Animated.View style={[styles.root, disabled ? styles.disabled : null, animatedStyle, style]}>
+    <Animated.View
+      style={[
+        styles.root,
+        disabled ? styles.disabled : null,
+        animatedStyle,
+        style,
+      ]}
+    >
       <Squircle
         style={[
           styles.shell,

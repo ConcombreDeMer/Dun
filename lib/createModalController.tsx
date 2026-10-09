@@ -1,4 +1,13 @@
-import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 type CreateModalControllerValue = {
   createModalSession: number;
@@ -7,9 +16,14 @@ type CreateModalControllerValue = {
   closeCreateModal: (session?: number) => void;
 };
 
-const CreateModalControllerContext = createContext<CreateModalControllerValue | null>(null);
+const CreateModalControllerContext =
+  createContext<CreateModalControllerValue | null>(null);
 
-export function CreateModalControllerProvider({ children }: { children: ReactNode }) {
+export function CreateModalControllerProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createModalSession, setCreateModalSession] = useState(0);
   const createModalSessionRef = useRef(createModalSession);
@@ -38,7 +52,7 @@ export function CreateModalControllerProvider({ children }: { children: ReactNod
       openCreateModal,
       closeCreateModal,
     }),
-    [closeCreateModal, createModalSession, isCreateModalOpen, openCreateModal]
+    [closeCreateModal, createModalSession, isCreateModalOpen, openCreateModal],
   );
 
   return (
@@ -52,7 +66,9 @@ export function useCreateModalController() {
   const value = useContext(CreateModalControllerContext);
 
   if (!value) {
-    throw new Error("useCreateModalController must be used within CreateModalControllerProvider");
+    throw new Error(
+      "useCreateModalController must be used within CreateModalControllerProvider",
+    );
   }
 
   return value;

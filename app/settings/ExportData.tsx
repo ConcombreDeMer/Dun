@@ -2,7 +2,11 @@ import Headline from "@/components/headline";
 import PrimaryButton from "@/components/primaryButton";
 import SecondaryButton from "@/components/secondaryButton";
 import Squircle from "@/components/Squircle";
-import { deleteExportFile, exportUserData, getShareableExportUri } from "@/lib/exportData";
+import {
+  deleteExportFile,
+  exportUserData,
+  getShareableExportUri,
+} from "@/lib/exportData";
 import { useFont } from "@/lib/FontContext";
 import { getCharacterImageSource } from "@/lib/imageHelper";
 import { useAppTranslation } from "@/lib/i18n";
@@ -10,7 +14,15 @@ import { useTheme } from "@/lib/ThemeContext";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { logger } from "@/lib/logger";
 
@@ -59,7 +71,10 @@ export default function ExportData() {
 
         logger.error("Erreur lors de l'export des données:", error);
         setStatus("error");
-        Alert.alert(t("common.alerts.errorTitle"), t("settings.account.exportData.errors.export"));
+        Alert.alert(
+          t("common.alerts.errorTitle"),
+          t("settings.account.exportData.errors.export"),
+        );
       });
   }, [t]);
 
@@ -85,7 +100,10 @@ export default function ExportData() {
       });
     } catch (error) {
       logger.error("Erreur lors du téléchargement de l'export:", error);
-      Alert.alert(t("common.alerts.errorTitle"), t("settings.account.exportData.errors.download"));
+      Alert.alert(
+        t("common.alerts.errorTitle"),
+        t("settings.account.exportData.errors.download"),
+      );
     }
   }, [fileName, fileUri, t]);
 
@@ -104,11 +122,19 @@ export default function ExportData() {
   const renderContent = () => {
     if (status === "loading") {
       return (
-        <Animated.View entering={FadeIn.duration(250)} style={styles.loadingContent}>
+        <Animated.View
+          entering={FadeIn.duration(250)}
+          style={styles.loadingContent}
+        >
           <View style={styles.loader}>
             <ActivityIndicator color={colors.actionButton} size="large" />
           </View>
-          <Text style={[styles.title, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
+          <Text
+            style={[
+              styles.title,
+              { color: colors.text, fontSize: fontSizes["2xl"] },
+            ]}
+          >
             {t("settings.account.exportData.loadingTitle")}
           </Text>
         </Animated.View>
@@ -117,33 +143,65 @@ export default function ExportData() {
 
     if (status === "success") {
       return (
-        <Animated.View entering={FadeInUp.springify()} style={styles.stateContent}>
+        <Animated.View
+          entering={FadeInUp.springify()}
+          style={styles.stateContent}
+        >
           <SymbolView
             name="checkmark.circle.fill"
             size={92}
             tintColor={colors.actionButton}
             type="palette"
           />
-          <Text style={[styles.title, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
+          <Text
+            style={[
+              styles.title,
+              { color: colors.text, fontSize: fontSizes["2xl"] },
+            ]}
+          >
             {t("settings.account.exportData.successTitle")}
           </Text>
-          <Text style={[styles.description, { color: colors.textSecondary, fontSize: fontSizes.lg }]}>
+          <Text
+            style={[
+              styles.description,
+              { color: colors.textSecondary, fontSize: fontSizes.lg },
+            ]}
+          >
             {t("settings.account.exportData.successDescription")}
           </Text>
           {fileName && (
             <Squircle
-              style={[styles.fileCard, { backgroundColor: colors.background, borderColor: colors.border }]}
+              style={[
+                styles.fileCard,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
+              ]}
             >
-              <SymbolView name="doc.text.fill" size={26} tintColor={colors.text} type="palette" />
+              <SymbolView
+                name="doc.text.fill"
+                size={26}
+                tintColor={colors.text}
+                type="palette"
+              />
               <View style={styles.fileTextContainer}>
                 <Text
                   numberOfLines={1}
-                  style={[styles.fileName, { color: colors.text, fontSize: fontSizes.md }]}
+                  style={[
+                    styles.fileName,
+                    { color: colors.text, fontSize: fontSizes.md },
+                  ]}
                 >
                   {fileName}
                 </Text>
                 {byteCount !== null && (
-                  <Text style={{ color: colors.textSecondary, fontSize: fontSizes.sm }}>
+                  <Text
+                    style={{
+                      color: colors.textSecondary,
+                      fontSize: fontSizes.sm,
+                    }}
+                  >
                     {formatByteCount(byteCount)}
                   </Text>
                 )}
@@ -155,19 +213,38 @@ export default function ExportData() {
     }
 
     return (
-      <Animated.View entering={FadeIn.duration(250)} style={styles.stateContent}>
+      <Animated.View
+        entering={FadeIn.duration(250)}
+        style={styles.stateContent}
+      >
         <SymbolView
-          name={status === "cancelled" ? "xmark.circle.fill" : "exclamationmark.triangle.fill"}
+          name={
+            status === "cancelled"
+              ? "xmark.circle.fill"
+              : "exclamationmark.triangle.fill"
+          }
           size={86}
-          tintColor={status === "cancelled" ? colors.textSecondary : colors.danger}
+          tintColor={
+            status === "cancelled" ? colors.textSecondary : colors.danger
+          }
           type="palette"
         />
-        <Text style={[styles.title, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
+        <Text
+          style={[
+            styles.title,
+            { color: colors.text, fontSize: fontSizes["2xl"] },
+          ]}
+        >
           {status === "cancelled"
             ? t("settings.account.exportData.cancelledTitle")
             : t("settings.account.exportData.errorTitle")}
         </Text>
-        <Text style={[styles.description, { color: colors.textSecondary, fontSize: fontSizes.lg }]}>
+        <Text
+          style={[
+            styles.description,
+            { color: colors.textSecondary, fontSize: fontSizes.lg },
+          ]}
+        >
           {status === "cancelled"
             ? t("settings.account.exportData.cancelledDescription")
             : t("settings.account.exportData.errorDescription")}
@@ -188,7 +265,11 @@ export default function ExportData() {
 
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={status === "loading" ? styles.loadingScrollContent : styles.scrollContent}
+        contentContainerStyle={
+          status === "loading"
+            ? styles.loadingScrollContent
+            : styles.scrollContent
+        }
         showsVerticalScrollIndicator={false}
       >
         {status === "loading" ? (
@@ -198,7 +279,10 @@ export default function ExportData() {
             <View style={styles.characterContainer}>
               <Animated.Image
                 entering={FadeInUp.springify()}
-                source={getCharacterImageSource(status === "success" ? "6" : "7", actualTheme)}
+                source={getCharacterImageSource(
+                  status === "success" ? "6" : "7",
+                  actualTheme,
+                )}
                 style={styles.character}
                 resizeMode="contain"
               />
@@ -210,7 +294,12 @@ export default function ExportData() {
       </ScrollView>
 
       {status === "loading" ? (
-        <View style={[styles.loadingButtonsContainer, { backgroundColor: colors.background }]}>
+        <View
+          style={[
+            styles.loadingButtonsContainer,
+            { backgroundColor: colors.background },
+          ]}
+        >
           <PrimaryButton
             title={t("common.actions.cancel")}
             type="reverse"

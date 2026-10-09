@@ -8,7 +8,11 @@ import { useAuthUserId } from "@/lib/AuthSessionContext";
 import { toAppDateKey } from "@/lib/date";
 import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
-import { SCREEN_HEADER_HEIGHT, SCREEN_HEADER_HORIZONTAL_PADDING, SCREEN_HEADER_TITLE_LINE_HEIGHT } from "@/lib/screenHeader";
+import {
+  SCREEN_HEADER_HEIGHT,
+  SCREEN_HEADER_HORIZONTAL_PADDING,
+  SCREEN_HEADER_TITLE_LINE_HEIGHT,
+} from "@/lib/screenHeader";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { fetchTaskList, type TaskListItem } from "@/lib/tasks";
@@ -21,10 +25,24 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Image, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import ReAnimated, { Easing, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import ReAnimated, {
+  Easing,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { logger } from "@/lib/logger";
 
 const getTaskRenderKey = (task: any) => task.clientKey ?? task.id;
@@ -38,11 +56,18 @@ export default function Box() {
   const { canUseTaskBox } = useSubscription();
   const storedDate = useStore((state) => state.selectedDate);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
-  const [selectedTaskLayout, setSelectedTaskLayout] = useState<TaskItemLayout | null>(null);
-  const [shouldRenderOverlayContent, setShouldRenderOverlayContent] = useState(false);
-  const [optimisticTaskOrder, setOptimisticTaskOrder] = useState<(string | number)[] | null>(null);
-  const [disableCustomListAnimations, setDisableCustomListAnimations] = useState(false);
-  const reorderAnimationUnlockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [selectedTaskLayout, setSelectedTaskLayout] =
+    useState<TaskItemLayout | null>(null);
+  const [shouldRenderOverlayContent, setShouldRenderOverlayContent] =
+    useState(false);
+  const [optimisticTaskOrder, setOptimisticTaskOrder] = useState<
+    (string | number)[] | null
+  >(null);
+  const [disableCustomListAnimations, setDisableCustomListAnimations] =
+    useState(false);
+  const reorderAnimationUnlockTimeoutRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
   const overlayProgress = useSharedValue(0);
   const queryClient = useQueryClient();
   const userId = useAuthUserId();
@@ -56,7 +81,11 @@ export default function Box() {
 
   const taskQuery = useQuery({
     queryKey: tasksQueryKey,
-    queryFn: () => fetchTaskList(queryClient.getQueryData<TaskListItem[]>(tasksQueryKey) ?? [], userId),
+    queryFn: () =>
+      fetchTaskList(
+        queryClient.getQueryData<TaskListItem[]>(tasksQueryKey) ?? [],
+        userId,
+      ),
     enabled: !!userId,
     gcTime: 1000 * 60 * 30,
     staleTime: 1000 * 60 * 15,
@@ -73,11 +102,16 @@ export default function Box() {
   }, [taskQuery.data]);
 
   const displayedBoxTasks = useMemo(() => {
-    if (!optimisticTaskOrder || optimisticTaskOrder.length !== boxTasks.length) {
+    if (
+      !optimisticTaskOrder ||
+      optimisticTaskOrder.length !== boxTasks.length
+    ) {
       return boxTasks;
     }
 
-    const tasksById = new Map(boxTasks.map((task: any) => [getTaskRenderKey(task), task]));
+    const tasksById = new Map(
+      boxTasks.map((task: any) => [getTaskRenderKey(task), task]),
+    );
     const nextTasks = optimisticTaskOrder
       .map((taskKey) => tasksById.get(taskKey))
       .filter(Boolean);
@@ -87,17 +121,17 @@ export default function Box() {
 
   const taskListCompositionKey = useMemo(
     () => displayedBoxTasks.map(getTaskRenderKey).join(":"),
-    [displayedBoxTasks]
+    [displayedBoxTasks],
   );
 
   const selectedDateKey = useMemo(
     () => toAppDateKey(storedDate ?? new Date()),
-    [storedDate]
+    [storedDate],
   );
 
   const selectedTask = useMemo(
     () => boxTasks.find((task: any) => task.id === selectedTaskId) ?? null,
-    [boxTasks, selectedTaskId]
+    [boxTasks, selectedTaskId],
   );
   const canRecoverExistingBoxTasks = !canUseTaskBox && boxTasks.length > 0;
   const shouldShowBoxTasks = canUseTaskBox || canRecoverExistingBoxTasks;
@@ -107,9 +141,12 @@ export default function Box() {
     router.back();
   }, [router]);
 
-  const handleToggleTask = useCallback((taskId: number, currentDone: boolean) => {
-    void toggleTaskDone(taskId, currentDone);
-  }, [toggleTaskDone]);
+  const handleToggleTask = useCallback(
+    (taskId: number, currentDone: boolean) => {
+      void toggleTaskDone(taskId, currentDone);
+    },
+    [toggleTaskDone],
+  );
 
   const unlockCustomListAnimationsSoon = useCallback(() => {
     if (reorderAnimationUnlockTimeoutRef.current) {
@@ -136,88 +173,112 @@ export default function Box() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
-  const handleDragEnd = useCallback(async ({ data }: { data: any[] }) => {
-    if (!canUseTaskBox) {
-      return;
-    }
-
-    const updatedData = data.map((task, index) => ({
-      ...task,
-      order: data.length - index,
-    }));
-    const previousTasks = queryClient.getQueryData<any[]>(tasksQueryKey);
-
-    setOptimisticTaskOrder(updatedData.map(getTaskRenderKey));
-    unlockCustomListAnimationsSoon();
-
-    await queryClient.cancelQueries({ queryKey: tasksQueryKey });
-
-    queryClient.setQueryData<any[]>(tasksQueryKey, (oldTasks) => {
-      if (!oldTasks) return [];
-      const otherTasks = oldTasks.filter((task: any) => task.date || task.resolved_at);
-      return [...otherTasks, ...updatedData];
-    });
-
-    try {
-      for (const task of updatedData) {
-        const { error } = await supabase
-          .from("Tasks")
-          .update({ order: task.order })
-          .eq("id", task.id)
-          .eq("user_id", userId);
-
-        if (error) {
-          throw error;
-        }
+  const handleDragEnd = useCallback(
+    async ({ data }: { data: any[] }) => {
+      if (!canUseTaskBox) {
+        return;
       }
-    } catch (error) {
-      logger.error("Erreur lors de la mise à jour de l'ordre de la box:", error);
-      if (previousTasks) {
-        queryClient.setQueryData(tasksQueryKey, previousTasks);
-      } else {
-        queryClient.invalidateQueries({ queryKey: tasksQueryKey });
-      }
-    }
-  }, [canUseTaskBox, queryClient, tasksQueryKey, unlockCustomListAnimationsSoon, userId]);
 
-  const closeSelectedTaskOverlay = useCallback((afterClose?: () => void) => {
-    setShouldRenderOverlayContent(false);
-    overlayProgress.value = withTiming(0, {
-      duration: 260,
-      easing: Easing.bezier(0.2, 0.8, 0.2, 1),
-    }, (finished) => {
-      if (finished) {
-        runOnJS(setSelectedTaskId)(null);
-        runOnJS(setSelectedTaskLayout)(null);
-        if (afterClose) {
-          runOnJS(afterClose)();
-        }
-      }
-    });
-  }, [overlayProgress]);
+      const updatedData = data.map((task, index) => ({
+        ...task,
+        order: data.length - index,
+      }));
+      const previousTasks = queryClient.getQueryData<any[]>(tasksQueryKey);
 
-  const handleTaskPress = useCallback((taskId: number, layout?: TaskItemLayout) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setOptimisticTaskOrder(updatedData.map(getTaskRenderKey));
+      unlockCustomListAnimationsSoon();
 
-    if (selectedTaskId === taskId) {
-      closeSelectedTaskOverlay();
-      return;
-    }
+      await queryClient.cancelQueries({ queryKey: tasksQueryKey });
 
-    if (!layout) return;
-
-    setShouldRenderOverlayContent(false);
-    setSelectedTaskLayout(layout);
-    setSelectedTaskId(taskId);
-    overlayProgress.value = 0;
-
-    requestAnimationFrame(() => {
-      overlayProgress.value = withTiming(1, {
-        duration: 560,
-        easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+      queryClient.setQueryData<any[]>(tasksQueryKey, (oldTasks) => {
+        if (!oldTasks) return [];
+        const otherTasks = oldTasks.filter(
+          (task: any) => task.date || task.resolved_at,
+        );
+        return [...otherTasks, ...updatedData];
       });
-    });
-  }, [closeSelectedTaskOverlay, overlayProgress, selectedTaskId]);
+
+      try {
+        for (const task of updatedData) {
+          const { error } = await supabase
+            .from("Tasks")
+            .update({ order: task.order })
+            .eq("id", task.id)
+            .eq("user_id", userId);
+
+          if (error) {
+            throw error;
+          }
+        }
+      } catch (error) {
+        logger.error(
+          "Erreur lors de la mise à jour de l'ordre de la box:",
+          error,
+        );
+        if (previousTasks) {
+          queryClient.setQueryData(tasksQueryKey, previousTasks);
+        } else {
+          queryClient.invalidateQueries({ queryKey: tasksQueryKey });
+        }
+      }
+    },
+    [
+      canUseTaskBox,
+      queryClient,
+      tasksQueryKey,
+      unlockCustomListAnimationsSoon,
+      userId,
+    ],
+  );
+
+  const closeSelectedTaskOverlay = useCallback(
+    (afterClose?: () => void) => {
+      setShouldRenderOverlayContent(false);
+      overlayProgress.value = withTiming(
+        0,
+        {
+          duration: 260,
+          easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+        },
+        (finished) => {
+          if (finished) {
+            runOnJS(setSelectedTaskId)(null);
+            runOnJS(setSelectedTaskLayout)(null);
+            if (afterClose) {
+              runOnJS(afterClose)();
+            }
+          }
+        },
+      );
+    },
+    [overlayProgress],
+  );
+
+  const handleTaskPress = useCallback(
+    (taskId: number, layout?: TaskItemLayout) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      if (selectedTaskId === taskId) {
+        closeSelectedTaskOverlay();
+        return;
+      }
+
+      if (!layout) return;
+
+      setShouldRenderOverlayContent(false);
+      setSelectedTaskLayout(layout);
+      setSelectedTaskId(taskId);
+      overlayProgress.value = 0;
+
+      requestAnimationFrame(() => {
+        overlayProgress.value = withTiming(1, {
+          duration: 560,
+          easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+        });
+      });
+    },
+    [closeSelectedTaskOverlay, overlayProgress, selectedTaskId],
+  );
 
   useEffect(() => {
     return () => {
@@ -237,12 +298,15 @@ export default function Box() {
     return () => clearTimeout(timeout);
   }, [selectedTaskId, selectedTaskLayout]);
 
-  const listAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(selectedTaskId !== null ? 0.35 : 1, {
-      duration: selectedTaskId !== null ? 220 : 280,
-      easing: Easing.out(Easing.quad),
+  const listAnimatedStyle = useAnimatedStyle(
+    () => ({
+      opacity: withTiming(selectedTaskId !== null ? 0.35 : 1, {
+        duration: selectedTaskId !== null ? 220 : 280,
+        easing: Easing.out(Easing.quad),
+      }),
     }),
-  }), [selectedTaskId]);
+    [selectedTaskId],
+  );
 
   const overlayAnimatedStyle = useAnimatedStyle(() => {
     if (!selectedTaskLayout) {
@@ -256,10 +320,26 @@ export default function Box() {
 
     return {
       position: "absolute",
-      left: interpolate(overlayProgress.value, [0, 1], [selectedTaskLayout.x, finalLeft]),
-      top: interpolate(overlayProgress.value, [0, 1], [selectedTaskLayout.y, finalTop]),
-      width: interpolate(overlayProgress.value, [0, 1], [selectedTaskLayout.width, finalWidth]),
-      height: interpolate(overlayProgress.value, [0, 1], [selectedTaskLayout.height, finalHeight]),
+      left: interpolate(
+        overlayProgress.value,
+        [0, 1],
+        [selectedTaskLayout.x, finalLeft],
+      ),
+      top: interpolate(
+        overlayProgress.value,
+        [0, 1],
+        [selectedTaskLayout.y, finalTop],
+      ),
+      width: interpolate(
+        overlayProgress.value,
+        [0, 1],
+        [selectedTaskLayout.width, finalWidth],
+      ),
+      height: interpolate(
+        overlayProgress.value,
+        [0, 1],
+        [selectedTaskLayout.height, finalHeight],
+      ),
       borderRadius: interpolate(overlayProgress.value, [0, 1], [20, 30]),
       opacity: overlayProgress.value,
     };
@@ -279,7 +359,12 @@ export default function Box() {
         </View>
         <View style={styles.header}>
           {/* <Text style={[styles.title, { color: colors.text, fontSize: fontSizes["3xl"] }]}>{t("box.title")}</Text> */}
-          <SymbolView name="archivebox.fill" size={48} tintColor={colors.textSecondary} style={{ alignSelf: 'center', marginBottom: 20, marginTop: 60 }} />
+          <SymbolView
+            name="archivebox.fill"
+            size={48}
+            tintColor={colors.textSecondary}
+            style={{ alignSelf: "center", marginBottom: 20, marginTop: 60 }}
+          />
         </View>
 
         {taskQuery.isLoading && !canUseTaskBox ? (
@@ -309,7 +394,11 @@ export default function Box() {
                 renderItem={({ item, drag, isActive }) => (
                   <TaskItem
                     item={item}
-                    drag={canUseTaskBox && displayedBoxTasks.length > 1 ? drag : () => { }}
+                    drag={
+                      canUseTaskBox && displayedBoxTasks.length > 1
+                        ? drag
+                        : () => {}
+                    }
                     isActive={isActive}
                     handleToggleTask={handleToggleTask}
                     handleTaskPress={handleTaskPress}
@@ -325,18 +414,41 @@ export default function Box() {
                 ListHeaderComponent={
                   canRecoverExistingBoxTasks ? (
                     <Squircle
-                      style={[styles.recoveryNotice, { backgroundColor: colors.card, borderColor: "#F4BA00" }]}
+                      style={[
+                        styles.recoveryNotice,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: "#F4BA00",
+                        },
+                      ]}
                       cornerSmoothing={100}
                       preserveSmoothing={true}
                     >
                       <View style={styles.recoveryNoticeIcon}>
-                        <SymbolView name="archivebox.fill" size={22} tintColor="#2C2405" />
+                        <SymbolView
+                          name="archivebox.fill"
+                          size={22}
+                          tintColor="#2C2405"
+                        />
                       </View>
                       <View style={styles.recoveryNoticeText}>
-                        <Text style={[styles.recoveryNoticeTitle, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
+                        <Text
+                          style={[
+                            styles.recoveryNoticeTitle,
+                            { color: colors.text, fontSize: fontSizes["2xl"] },
+                          ]}
+                        >
                           {t("box.recovery.title")}
                         </Text>
-                        <Text style={[styles.recoveryNoticeMessage, { color: colors.textSecondary, fontSize: fontSizes.base }]}>
+                        <Text
+                          style={[
+                            styles.recoveryNoticeMessage,
+                            {
+                              color: colors.textSecondary,
+                              fontSize: fontSizes.base,
+                            },
+                          ]}
+                        >
                           {t("box.recovery.message")}
                         </Text>
                       </View>
@@ -348,7 +460,9 @@ export default function Box() {
                   ) : null
                 }
                 ListEmptyComponent={
-                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                  <Text
+                    style={[styles.emptyText, { color: colors.textSecondary }]}
+                  >
                     {t("box.emptyState")}
                   </Text>
                 }
@@ -358,24 +472,48 @@ export default function Box() {
         ) : (
           <View style={styles.premiumContainer}>
             <Squircle
-              style={[styles.premiumCard, { backgroundColor: colors.card, borderColor: "#F4BA00" }]}
+              style={[
+                styles.premiumCard,
+                { backgroundColor: colors.card, borderColor: "#F4BA00" },
+              ]}
               cornerSmoothing={100}
               preserveSmoothing={true}
             >
               <View style={styles.premiumIcon}>
-                <SymbolView name="archivebox.fill" size={24} tintColor="#2C2405" />
+                <SymbolView
+                  name="archivebox.fill"
+                  size={24}
+                  tintColor="#2C2405"
+                />
               </View>
-              <Text style={[styles.premiumTitle, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
+              <Text
+                style={[
+                  styles.premiumTitle,
+                  { color: colors.text, fontSize: fontSizes["2xl"] },
+                ]}
+              >
                 {t("box.premium.title")}
               </Text>
-              <Text style={[styles.premiumMessage, { color: colors.textSecondary, fontSize: fontSizes.base }]}>
+              <Text
+                style={[
+                  styles.premiumMessage,
+                  { color: colors.textSecondary, fontSize: fontSizes.base },
+                ]}
+              >
                 {t("box.premium.message")}
               </Text>
-              <View style={[styles.premiumScreenshotSlot, { backgroundColor: colors.input, borderColor: colors.border }]}>
+              <View
+                style={[
+                  styles.premiumScreenshotSlot,
+                  { backgroundColor: colors.input, borderColor: colors.border },
+                ]}
+              >
                 <Image
-                  source={theme === "dark"
-                    ? require("@/assets/images/box/dark.png")
-                    : require("@/assets/images/box/light.png")}
+                  source={
+                    theme === "dark"
+                      ? require("@/assets/images/box/dark.png")
+                      : require("@/assets/images/box/light.png")
+                  }
                   style={styles.premiumScreenshotImage}
                   resizeMode="contain"
                 />
@@ -411,9 +549,7 @@ export default function Box() {
           </ReAnimated.View>
         ) : null}
 
-        {canUseTaskBox ? (
-          <CreateModalHost activePath="/box" />
-        ) : null}
+        {canUseTaskBox ? <CreateModalHost activePath="/box" /> : null}
       </View>
     </GestureHandlerRootView>
   );
@@ -438,10 +574,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 5,
     borderRadius: 3,
-    position: 'absolute',
+    position: "absolute",
     top: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    alignSelf: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    alignSelf: "center",
   },
   header: {
     justifyContent: "center",

@@ -1,7 +1,14 @@
 import { StatsPreferenceKey, StatsPreferences } from "@/lib/calculateStats";
 import { useAppTranslation } from "@/lib/i18n";
 import { BottomSheet, Group, Host, Toggle, VStack } from "@expo/ui/swift-ui";
-import { disabled, opacity, padding, presentationDetents, presentationDragIndicator, toggleStyle } from "@expo/ui/swift-ui/modifiers";
+import {
+  disabled,
+  opacity,
+  padding,
+  presentationDetents,
+  presentationDragIndicator,
+  toggleStyle,
+} from "@expo/ui/swift-ui/modifiers";
 import { SFSymbol } from "expo-symbols";
 import { StyleSheet, View } from "react-native";
 
@@ -26,11 +33,31 @@ export default function StatsPreferencesModal({
 }: StatsPreferencesModalProps) {
   const { t } = useAppTranslation();
 
-  const options: { key: StatsPreferenceKey; label: string; systemImage: SFSymbol }[] = [
-    { key: "includeToday", label: t("stats.general.preferences.includeToday"), systemImage: "sun.max" },
-    { key: "includeFutureDays", label: t("stats.general.preferences.includeFutureDays"), systemImage: "calendar.badge.clock" },
-    { key: "includeEmptyDays", label: t("stats.general.preferences.includeEmptyDays"), systemImage: "calendar" },
-    { key: "includeRestDays", label: t("stats.general.preferences.includeRestDays"), systemImage: "moon.zzz" },
+  const options: {
+    key: StatsPreferenceKey;
+    label: string;
+    systemImage: SFSymbol;
+  }[] = [
+    {
+      key: "includeToday",
+      label: t("stats.general.preferences.includeToday"),
+      systemImage: "sun.max",
+    },
+    {
+      key: "includeFutureDays",
+      label: t("stats.general.preferences.includeFutureDays"),
+      systemImage: "calendar.badge.clock",
+    },
+    {
+      key: "includeEmptyDays",
+      label: t("stats.general.preferences.includeEmptyDays"),
+      systemImage: "calendar",
+    },
+    {
+      key: "includeRestDays",
+      label: t("stats.general.preferences.includeRestDays"),
+      systemImage: "moon.zzz",
+    },
   ];
 
   const updatePreference = (key: StatsPreferenceKey, value: boolean) => {
@@ -49,7 +76,12 @@ export default function StatsPreferencesModal({
           }}
           fitToContents
         >
-          <Group modifiers={[presentationDragIndicator("visible"), presentationDetents([{ height: 500 }, "medium"])]}>
+          <Group
+            modifiers={[
+              presentationDragIndicator("visible"),
+              presentationDetents([{ height: 500 }, "medium"]),
+            ]}
+          >
             <VStack spacing={16} modifiers={[padding({ top: 40 })]}>
               {/* <RNHostView matchContents>
                 <View style={[styles.header]}>
@@ -63,10 +95,7 @@ export default function StatsPreferencesModal({
                 </View>
               </RNHostView> */}
 
-              <VStack
-                spacing={14}
-                modifiers={[padding({ horizontal: 28 })]}
-              >
+              <VStack spacing={14} modifiers={[padding({ horizontal: 28 })]}>
                 {options.map((option) => (
                   <Toggle
                     key={option.key}

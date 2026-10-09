@@ -84,14 +84,15 @@ export const fetchProfile = async (userId: string) => {
 export const patchProfileCache = (
   queryClient: QueryClient,
   userId: string | null | undefined,
-  patch: Partial<Omit<ProfilePreferencesRow, "id">>
+  patch: Partial<Omit<ProfilePreferencesRow, "id">>,
 ) => {
   if (!userId) {
     return;
   }
 
-  queryClient.setQueryData<ProfilePreferencesRow>(profileQueryKey(userId), (current) =>
-    current ? { ...current, ...patch } : current
+  queryClient.setQueryData<ProfilePreferencesRow>(
+    profileQueryKey(userId),
+    (current) => (current ? { ...current, ...patch } : current),
   );
 };
 
@@ -130,10 +131,11 @@ export const useUpdateProfile = () => {
     },
     onMutate: async (patch) => {
       await queryClient.cancelQueries({ queryKey });
-      const previousProfile = queryClient.getQueryData<ProfilePreferencesRow>(queryKey);
+      const previousProfile =
+        queryClient.getQueryData<ProfilePreferencesRow>(queryKey);
 
       queryClient.setQueryData<ProfilePreferencesRow>(queryKey, (current) =>
-        current ? { ...current, ...patch } : current
+        current ? { ...current, ...patch } : current,
       );
 
       return { previousProfile };

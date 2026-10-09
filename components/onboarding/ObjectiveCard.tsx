@@ -63,10 +63,10 @@ export default function ObjectiveCard({
           duration: 1550,
           easing: Easing.inOut(Easing.cubic),
         }),
-        withDelay(2600, withTiming(-1, { duration: 1 }))
+        withDelay(2600, withTiming(-1, { duration: 1 })),
       ),
       -1,
-      false
+      false,
     );
   }, [cardOpacity, cardScale, shimmerProgress]);
 
@@ -104,11 +104,25 @@ export default function ObjectiveCard({
           }
           end={{ x: 1, y: 1 }}
           start={{ x: 0, y: 0 }}
-          style={[StyleSheet.absoluteFill, { borderWidth: 1, borderColor: isLongTerm ? "#D9A81A" : "#A76532", borderRadius: 18 }]}
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              borderWidth: 1,
+              borderColor: isLongTerm ? "#D9A81A" : "#A76532",
+              borderRadius: 18,
+            },
+          ]}
         />
-        <Animated.View pointerEvents="none" style={[styles.shimmer, shimmerAnimatedStyle]}>
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.shimmer, shimmerAnimatedStyle]}
+        >
           <LinearGradient
-            colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.55)", "rgba(255,255,255,0)"]}
+            colors={[
+              "rgba(255,255,255,0)",
+              "rgba(255,255,255,0.55)",
+              "rgba(255,255,255,0)",
+            ]}
             end={{ x: 1, y: 0 }}
             start={{ x: 0, y: 0 }}
             style={StyleSheet.absoluteFill}
@@ -116,13 +130,24 @@ export default function ObjectiveCard({
         </Animated.View>
         <View style={styles.topRow}>
           <View>
-            <Text style={[styles.label, isLongTerm ? styles.longTermText : null]}>{title}</Text>
-            <Text style={[styles.duration, isLongTerm ? styles.longTermText : null]}>{duration}</Text>
+            <Text
+              style={[styles.label, isLongTerm ? styles.longTermText : null]}
+            >
+              {title}
+            </Text>
+            <Text
+              style={[styles.duration, isLongTerm ? styles.longTermText : null]}
+            >
+              {duration}
+            </Text>
           </View>
           <Image
             contentFit="contain"
             source={streakSource}
-            style={[styles.flame, isLongTerm ? styles.longTermFlame : styles.objectiveFlame]}
+            style={[
+              styles.flame,
+              isLongTerm ? styles.longTermFlame : styles.objectiveFlame,
+            ]}
           />
         </View>
         {isLongTerm ? (
@@ -156,9 +181,19 @@ function ProgressConnector({ progress }: { progress: 0.5 | 1 }) {
   return (
     <View style={styles.progressConnector}>
       <View style={styles.progressTrack}>
-        <View style={[styles.progressLine, isComplete ? styles.fullProgressLine : styles.halfProgressLine]} />
+        <View
+          style={[
+            styles.progressLine,
+            isComplete ? styles.fullProgressLine : styles.halfProgressLine,
+          ]}
+        />
       </View>
-      <View style={[styles.arrowHead, isComplete ? styles.fullArrowHead : styles.pendingArrowHead]} />
+      <View
+        style={[
+          styles.arrowHead,
+          isComplete ? styles.fullArrowHead : styles.pendingArrowHead,
+        ]}
+      />
     </View>
   );
 }
@@ -175,7 +210,12 @@ function TierItem({
   return (
     <View style={styles.tierItem}>
       <View style={[styles.tierBadge, active ? styles.activeTierBadge : null]}>
-        <Text style={[styles.tierBadgeText, active ? styles.activeTierBadgeText : null]}>
+        <Text
+          style={[
+            styles.tierBadgeText,
+            active ? styles.activeTierBadgeText : null,
+          ]}
+        >
           {value}
         </Text>
       </View>
@@ -201,13 +241,24 @@ function ObjectiveCountdown({
     <View style={styles.countdown}>
       <View style={styles.dayRows}>
         {rows.map((row, rowIndex) => (
-          <View key={`row-${rowIndex}`} style={[styles.dayGrid, isCompact ? styles.compactDayGrid : null]}>
+          <View
+            key={`row-${rowIndex}`}
+            style={[styles.dayGrid, isCompact ? styles.compactDayGrid : null]}
+          >
             {row.map((day) => (
               <View
                 key={day}
-                style={[styles.dayToken, isCompact ? styles.compactDayToken : null]}
+                style={[
+                  styles.dayToken,
+                  isCompact ? styles.compactDayToken : null,
+                ]}
               >
-                <Text style={[styles.dayTokenText, isCompact ? styles.compactDayTokenText : null]}>
+                <Text
+                  style={[
+                    styles.dayTokenText,
+                    isCompact ? styles.compactDayTokenText : null,
+                  ]}
+                >
                   {day}
                 </Text>
               </View>
@@ -215,7 +266,10 @@ function ObjectiveCountdown({
           </View>
         ))}
       </View>
-      <Text style={styles.countdownTotal}>{dayCount}{dayUnitLabel}</Text>
+      <Text style={styles.countdownTotal}>
+        {dayCount}
+        {dayUnitLabel}
+      </Text>
     </View>
   );
 }
@@ -251,7 +305,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 20,
     justifyContent: "space-between",
-    boxShadow: '0px 6px 15px rgba(0, 0, 0, 0.15)',
+    boxShadow: "0px 6px 15px rgba(0, 0, 0, 0.15)",
   },
   objectiveCard: {
     borderColor: "#A76532",

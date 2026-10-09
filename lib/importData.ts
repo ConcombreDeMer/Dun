@@ -85,12 +85,19 @@ const TASK_RESTORE_COLUMNS = [
 ] as const;
 
 const TAG_RESTORE_COLUMNS = ["name", "color", "created_at"] as const;
-const DAY_RESTORE_COLUMNS = ["date", "total", "done_count", "updated_at", "late_adjusted_count"] as const;
+const DAY_RESTORE_COLUMNS = [
+  "date",
+  "total",
+  "done_count",
+  "updated_at",
+  "late_adjusted_count",
+] as const;
 
 const isRecord = (value: unknown): value is ImportRow =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const toRows = (value: unknown) => Array.isArray(value) ? value.filter(isRecord) : [];
+const toRows = (value: unknown) =>
+  Array.isArray(value) ? value.filter(isRecord) : [];
 
 const toNumericId = (value: unknown) => {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -105,7 +112,10 @@ const toNumericId = (value: unknown) => {
   return null;
 };
 
-const pickColumns = <Column extends string>(row: ImportRow, columns: readonly Column[]) => {
+const pickColumns = <Column extends string>(
+  row: ImportRow,
+  columns: readonly Column[],
+) => {
   const nextRow: ImportRow = {};
 
   for (const column of columns) {
@@ -136,7 +146,10 @@ const assertValidPayload = (payload: unknown): UserDataExport => {
     throw new Error("Invalid import file");
   }
 
-  if (typeof payload.exported_at !== "string" || typeof payload.user_id !== "string") {
+  if (
+    typeof payload.exported_at !== "string" ||
+    typeof payload.user_id !== "string"
+  ) {
     throw new Error("Invalid import metadata");
   }
 
@@ -149,7 +162,9 @@ const assertValidPayload = (payload: unknown): UserDataExport => {
   return payload as unknown as UserDataExport;
 };
 
-export const readUserDataImport = async (fileUri: string): Promise<ParsedUserDataImport> => {
+export const readUserDataImport = async (
+  fileUri: string,
+): Promise<ParsedUserDataImport> => {
   const fileContent = await FileSystem.readAsStringAsync(fileUri, {
     encoding: FileSystem.EncodingType.UTF8,
   });
@@ -284,7 +299,8 @@ const restoreTasks = async (payload: UserDataExport, userId: string) => {
     const oldTaskId = toNumericId(task.id);
     const oldCarriedFromId = toNumericId(task.carried_from_id);
     const newTaskId = oldTaskId === null ? null : taskIdMap.get(oldTaskId);
-    const newCarriedFromId = oldCarriedFromId === null ? null : taskIdMap.get(oldCarriedFromId);
+    const newCarriedFromId =
+      oldCarriedFromId === null ? null : taskIdMap.get(oldCarriedFromId);
 
     if (!newTaskId || !newCarriedFromId) {
       continue;
@@ -308,7 +324,7 @@ const restoreTaskTags = async (
   payload: UserDataExport,
   userId: string,
   taskIdMap: Map<number, number>,
-  tagIdMap: Map<string, string>
+  tagIdMap: Map<string, string>,
 ) => {
   const taskTags = toRows(payload.tables.Task_Tags);
   const taskTagRows: ImportRow[] = [];
@@ -351,9 +367,7 @@ const restoreTaskTags = async (
     return 0;
   }
 
-  const { error } = await supabase
-    .from("Task_Tags")
-    .insert(taskTagRows);
+  const { error } = await supabase.from("Task_Tags").insert(taskTagRows);
 
   if (error) {
     throw error;
@@ -386,7 +400,7 @@ const restoreDays = async (payload: UserDataExport, userId: string) => {
 };
 
 export const replaceUserDataFromImport = async (
-  payload: UserDataExport
+  payload: UserDataExport,
 ): Promise<UserDataImportResult> => {
   const user = await requireUser();
   const userId = user.id;
@@ -395,7 +409,12 @@ export const replaceUserDataFromImport = async (
   await restoreProfile(payload, userId);
   const tagIdMap = await restoreTags(payload, userId);
   const taskIdMap = await restoreTasks(payload, userId);
-  const taskTagsImported = await restoreTaskTags(payload, userId, taskIdMap, tagIdMap);
+  const taskTagsImported = await restoreTaskTags(
+    payload,
+    userId,
+    taskIdMap,
+    tagIdMap,
+  );
   const daysImported = await restoreDays(payload, userId);
 
   return {

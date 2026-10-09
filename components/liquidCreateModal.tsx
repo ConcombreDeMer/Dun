@@ -9,7 +9,17 @@ import { router } from "expo-router";
 import { SquircleView } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Animated, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import ReAnimated, {
   Easing as ReanimatedEasing,
   useAnimatedStyle,
@@ -37,7 +47,8 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
   const [taskTitle, setTaskTitle] = useState("");
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [createInBox, setCreateInBox] = useState(false);
-  const [createButtonState, setCreateButtonState] = useState<CreateButtonState>("idle");
+  const [createButtonState, setCreateButtonState] =
+    useState<CreateButtonState>("idle");
   const inputRef = useRef<TextInput>(null);
   const [contentEntrance] = useState(() => new Animated.Value(0));
   const createButtonScale = useSharedValue(1);
@@ -50,7 +61,9 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
   const hasFocusedInputRef = useRef(false);
   const shouldOpenDetailsAfterDismissRef = useRef(false);
   const shouldOpenPremiumAfterDismissRef = useRef(false);
-  const successResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const successResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const { colors, actualTheme } = useTheme();
   const { fontSizes } = React.useContext(FontContext)!;
   const { t } = useAppTranslation();
@@ -60,12 +73,14 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
   const selectedDate = useStore((state) => state.selectedDate) || new Date();
   const selectedDateKey = toAppDateKey(selectedDate);
   const lockPastDaysEnabled = profileQuery.data?.lockPastDaysEnabled ?? true;
-  const isSelectedDatePast = lockPastDaysEnabled && isPastAppDateKey(selectedDateKey);
+  const isSelectedDatePast =
+    lockPastDaysEnabled && isPastAppDateKey(selectedDateKey);
   const createActionGradientColors =
     actualTheme === "dark"
       ? (["rgba(255, 255, 255, 0.92)", "rgba(255, 255, 255, 0.68)"] as const)
       : (["#484848", "#171717"] as const);
-  const createActionContentColor = actualTheme === "dark" ? "#181818" : colors.buttonText;
+  const createActionContentColor =
+    actualTheme === "dark" ? "#181818" : colors.buttonText;
 
   const requestClose = React.useCallback(() => {
     if (didRequestCloseRef.current) {
@@ -92,7 +107,11 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
 
   useEffect(() => {
     const subscription = Keyboard.addListener("keyboardWillHide", () => {
-      if (!hasFocusedInputRef.current || isCreatingTaskRef.current || didNotifyCloseRef.current) {
+      if (
+        !hasFocusedInputRef.current ||
+        isCreatingTaskRef.current ||
+        didNotifyCloseRef.current
+      ) {
         return;
       }
 
@@ -155,10 +174,7 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
   }));
 
   const createLoadingContentStyle = useAnimatedStyle(() => ({
-    opacity:
-      createSuccessProgress.value > 0
-        ? 0
-        : createLoadingProgress.value,
+    opacity: createSuccessProgress.value > 0 ? 0 : createLoadingProgress.value,
     transform: [{ translateY: 6 * (1 - createLoadingProgress.value) }],
   }));
 
@@ -257,13 +273,19 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
     }
 
     if (!taskTitle.trim()) {
-      Alert.alert(t("common.alerts.errorTitle"), t("common.alerts.requiredTaskName"));
+      Alert.alert(
+        t("common.alerts.errorTitle"),
+        t("common.alerts.requiredTaskName"),
+      );
       inputRef.current?.focus();
       return;
     }
 
     if (!createInBox && isSelectedDatePast) {
-      Alert.alert(t("common.alerts.errorTitle"), t("createTask.alerts.pastDate"));
+      Alert.alert(
+        t("common.alerts.errorTitle"),
+        t("createTask.alerts.pastDate"),
+      );
       inputRef.current?.focus();
       return;
     }
@@ -288,16 +310,21 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
       name: nextTitle,
       dateKey: nextDateKey,
       tagIds: nextTagIds,
-    }).then(() => {
-      setCreateButtonState("success");
-      playCreateSuccessAnimation();
-    }).catch((error: any) => {
-      logger.error("Erreur lors de la création de la tâche:", error);
-      resetCreateButtonAnimation();
-      setTaskTitle((current) => (current.trim() ? current : nextTitle));
-      setSelectedTagIds((current) => (current.length ? current : nextTagIds));
-      Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
-    });
+    })
+      .then(() => {
+        setCreateButtonState("success");
+        playCreateSuccessAnimation();
+      })
+      .catch((error: any) => {
+        logger.error("Erreur lors de la création de la tâche:", error);
+        resetCreateButtonAnimation();
+        setTaskTitle((current) => (current.trim() ? current : nextTitle));
+        setSelectedTagIds((current) => (current.length ? current : nextTagIds));
+        Alert.alert(
+          t("common.alerts.errorTitle"),
+          error?.message || t("common.alerts.genericError"),
+        );
+      });
 
     setTimeout(() => {
       inputRef.current?.focus();
@@ -370,7 +397,10 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
               <SquircleView
                 cornerSmoothing={100}
                 preserveSmoothing
-                style={[styles.inputSurface, { backgroundColor: colors.card, borderColor: colors.border }]}
+                style={[
+                  styles.inputSurface,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
               >
                 <TextInput
                   ref={inputRef}
@@ -386,7 +416,10 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
                   placeholder={t("createModal.titlePlaceholder")}
                   placeholderTextColor={colors.inputPlaceholder}
                   returnKeyType="done"
-                  style={[styles.input, { color: colors.text, fontSize: fontSizes["2xl"] }]}
+                  style={[
+                    styles.input,
+                    { color: colors.text, fontSize: fontSizes["2xl"] },
+                  ]}
                   value={taskTitle}
                 />
               </SquircleView>
@@ -417,7 +450,11 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
                     styles.secondarySurface,
                     {
                       backgroundColor: createInBox ? colors.text : colors.card,
-                      borderColor: !canUseTaskBox ? "#F4BA00" : createInBox ? colors.text : colors.border,
+                      borderColor: !canUseTaskBox
+                        ? "#F4BA00"
+                        : createInBox
+                          ? colors.text
+                          : colors.border,
                     },
                   ]}
                 >
@@ -431,12 +468,16 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
                     <SymbolView
                       name={createInBox ? "archivebox.fill" : "archivebox"}
                       size={19}
-                      tintColor={createInBox ? colors.background : colors.textSecondary}
+                      tintColor={
+                        createInBox ? colors.background : colors.textSecondary
+                      }
                     />
                   </Pressable>
                 </SquircleView>
 
-                <ReAnimated.View style={[styles.createActionShell, createButtonShellStyle]}>
+                <ReAnimated.View
+                  style={[styles.createActionShell, createButtonShellStyle]}
+                >
                   <Pressable
                     accessibilityRole="button"
                     disabled={createButtonState !== "idle"}
@@ -467,10 +508,22 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
                         createDefaultContentStyle,
                       ]}
                     >
-                      <Text style={[styles.createText, { color: createActionContentColor, fontSize: fontSizes.base }]}>
+                      <Text
+                        style={[
+                          styles.createText,
+                          {
+                            color: createActionContentColor,
+                            fontSize: fontSizes.base,
+                          },
+                        ]}
+                      >
                         {t("common.actions.create")}
                       </Text>
-                      <SymbolView name="plus" size={18} tintColor={createActionContentColor} />
+                      <SymbolView
+                        name="plus"
+                        size={18}
+                        tintColor={createActionContentColor}
+                      />
                     </ReAnimated.View>
                     <ReAnimated.View
                       style={[
@@ -479,7 +532,10 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
                         createLoadingContentStyle,
                       ]}
                     >
-                      <ActivityIndicator color={createActionContentColor} size="small" />
+                      <ActivityIndicator
+                        color={createActionContentColor}
+                        size="small"
+                      />
                     </ReAnimated.View>
                     <ReAnimated.View
                       style={[
@@ -488,10 +544,22 @@ export default function LiquidCreateModal({ onClose }: LiquidCreateModalProps) {
                         createSuccessContentStyle,
                       ]}
                     >
-                      <Text style={[styles.createText, { color: createActionContentColor, fontSize: fontSizes.base }]}>
+                      <Text
+                        style={[
+                          styles.createText,
+                          {
+                            color: createActionContentColor,
+                            fontSize: fontSizes.base,
+                          },
+                        ]}
+                      >
                         {t("createModal.created")}
                       </Text>
-                      <SymbolView name="checkmark" size={18} tintColor={createActionContentColor} />
+                      <SymbolView
+                        name="checkmark"
+                        size={18}
+                        tintColor={createActionContentColor}
+                      />
                     </ReAnimated.View>
                   </Pressable>
                 </ReAnimated.View>
@@ -557,7 +625,7 @@ const styles = StyleSheet.create({
   },
   tagsSection: {
     paddingHorizontal: 2,
-    alignSelf: "center"
+    alignSelf: "center",
   },
   footer: {
     alignItems: "center",

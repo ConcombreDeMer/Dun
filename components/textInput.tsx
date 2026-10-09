@@ -1,217 +1,279 @@
-import { MaterialIcons } from '@expo/vector-icons';
-import { SquircleView } from 'expo-squircle-view';
-import React, { useEffect, useRef, useState } from 'react';
-import { Animated, DimensionValue, KeyboardType, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
-import { useFont } from '../lib/FontContext';
-import { useAppTranslation } from '../lib/i18n';
-import { useTheme } from '../lib/ThemeContext';
+import { MaterialIcons } from "@expo/vector-icons";
+import { SquircleView } from "expo-squircle-view";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  DimensionValue,
+  KeyboardType,
+  StyleSheet,
+  Text,
+  TextInput,
+  TextStyle,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+} from "react-native";
+import { useFont } from "../lib/FontContext";
+import { useAppTranslation } from "../lib/i18n";
+import { useTheme } from "../lib/ThemeContext";
 
-type FontSizeKey = 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl';
+type FontSizeKey =
+  | "xs"
+  | "sm"
+  | "base"
+  | "lg"
+  | "xl"
+  | "2xl"
+  | "3xl"
+  | "4xl"
+  | "5xl"
+  | "6xl"
+  | "7xl";
 
 interface SimpleInputProps {
-    name?: string;
-    placeholder?: string;
-    value?: string;
-    onChangeText?: (text: string) => void;
-    multiline?: boolean;
-    style?: TextStyle | TextStyle[];
-    containerStyle?: ViewStyle;
-    labelStyle?: TextStyle;
-    placeholderTextColor?: string;
-    scale?: 'small' | 'large';
-    center?: boolean;
-    facultatif?: boolean;
-    password?: boolean;
-    bold?: boolean;
-    transparent?: boolean;
-    initialEditable?: boolean;
-    fontSize?: FontSizeKey | number;
-    isLoading?: boolean;
-    type?: KeyboardType;
-    cap?: 'none' | 'sentences' | 'words' | 'characters';
-    returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send';
-    maxLength?: number;
-    inputWidth?: DimensionValue;
-    editable?: boolean;
-    onFocus?: () => void;
-    onBlur?: () => void;
+  name?: string;
+  placeholder?: string;
+  value?: string;
+  onChangeText?: (text: string) => void;
+  multiline?: boolean;
+  style?: TextStyle | TextStyle[];
+  containerStyle?: ViewStyle;
+  labelStyle?: TextStyle;
+  placeholderTextColor?: string;
+  scale?: "small" | "large";
+  center?: boolean;
+  facultatif?: boolean;
+  password?: boolean;
+  bold?: boolean;
+  transparent?: boolean;
+  initialEditable?: boolean;
+  fontSize?: FontSizeKey | number;
+  isLoading?: boolean;
+  type?: KeyboardType;
+  cap?: "none" | "sentences" | "words" | "characters";
+  returnKeyType?: "done" | "go" | "next" | "search" | "send";
+  maxLength?: number;
+  inputWidth?: DimensionValue;
+  editable?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 export default function SimpleInput({
-    name,
-    placeholder = '...',
-    value = '',
-    onChangeText,
-    multiline = false,
-    style,
-    containerStyle,
-    labelStyle,
-    placeholderTextColor = '#999',
-    scale = 'small',
-    center = false,
-    facultatif = false,
-    password = false,
-    bold = false,
-    transparent = false,
-    fontSize,
-    isLoading = false,
-    type = 'default',
-    cap = 'sentences',
-    returnKeyType = undefined,
-    maxLength,
-    inputWidth = '100%',
-    editable = true,
-    onFocus,
-    onBlur,
+  name,
+  placeholder = "...",
+  value = "",
+  onChangeText,
+  multiline = false,
+  style,
+  containerStyle,
+  labelStyle,
+  placeholderTextColor = "#999",
+  scale = "small",
+  center = false,
+  facultatif = false,
+  password = false,
+  bold = false,
+  transparent = false,
+  fontSize,
+  isLoading = false,
+  type = "default",
+  cap = "sentences",
+  returnKeyType = undefined,
+  maxLength,
+  inputWidth = "100%",
+  editable = true,
+  onFocus,
+  onBlur,
 }: SimpleInputProps) {
-    const [showPassword, setShowPassword] = useState(false);
-    const skeletonOpacity = useRef(new Animated.Value(0.3)).current;
-    const { colors } = useTheme();
-    const { fontSizes } = useFont();
-    const { t } = useAppTranslation();
+  const [showPassword, setShowPassword] = useState(false);
+  const skeletonOpacity = useRef(new Animated.Value(0.3)).current;
+  const { colors } = useTheme();
+  const { fontSizes } = useFont();
+  const { t } = useAppTranslation();
 
-    useEffect(() => {
-        if (isLoading) {
-            Animated.loop(
-                Animated.sequence([
-                    Animated.timing(skeletonOpacity, {
-                        toValue: 1,
-                        duration: 1000,
-                        useNativeDriver: false,
-                    }),
-                    Animated.timing(skeletonOpacity, {
-                        toValue: 0.3,
-                        duration: 1000,
-                        useNativeDriver: false,
-                    }),
-                ])
-            ).start();
-        }
-    }, [isLoading, skeletonOpacity]);
+  useEffect(() => {
+    if (isLoading) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(skeletonOpacity, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: false,
+          }),
+          Animated.timing(skeletonOpacity, {
+            toValue: 0.3,
+            duration: 1000,
+            useNativeDriver: false,
+          }),
+        ]),
+      ).start();
+    }
+  }, [isLoading, skeletonOpacity]);
 
+  const handleChange = (input: string) => {
+    if (onChangeText) {
+      onChangeText(input);
+    }
+  };
 
-    const handleChange = (input: string) => {
-        if (onChangeText) {
-            onChangeText(input);
-        }
-    };
+  const getInputHeight = () => {
+    return scale === "large" ? 64 : 48;
+  };
 
-    const getInputHeight = () => {
-        return scale === 'large' ? 64 : 48;
-    };
+  return (
+    <View
+      style={[
+        styles.container,
+        containerStyle,
+        { width: inputWidth || "100%" },
+      ]}
+    >
+      <View
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        {name && (
+          <Text
+            style={[
+              styles.label,
+              labelStyle,
+              { color: colors.text, fontSize: fontSizes["2xl"] },
+            ]}
+          >
+            {name}
+          </Text>
+        )}
+        {facultatif && (
+          <Text
+            style={{
+              color: colors.textSecondary,
+              fontSize: fontSizes.sm,
+              fontStyle: "italic",
+            }}
+          >
+            ({t("common.labels.optional")})
+          </Text>
+        )}
+      </View>
 
-    return (
-
-        <View style={[styles.container, containerStyle, { width: inputWidth || '100%' }]}>
-
-            <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                {name && <Text style={[styles.label, labelStyle, { color: colors.text, fontSize: fontSizes['2xl'] }]}>{name}</Text>}
-                {facultatif && <Text style={{ color: colors.textSecondary, fontSize: fontSizes.sm, fontStyle: "italic" }}>({t("common.labels.optional")})</Text>}
-            </View>
-
+      {isLoading && (
+        <Animated.View
+          style={[
+            styles.skeleton,
             {
-                isLoading && (
-                    <Animated.View
-                        style={[
-                            styles.skeleton,
-                            {
-                                height: scale === 'large' ? 64 : 48,
-                                opacity: skeletonOpacity,
-                                backgroundColor: colors.input,
-                            }
-                        ]}
-                    />
-                )
-            }
+              height: scale === "large" ? 64 : 48,
+              opacity: skeletonOpacity,
+              backgroundColor: colors.input,
+            },
+          ]}
+        />
+      )}
 
-            {!isLoading && (
+      {!isLoading && (
+        <SquircleView
+          cornerSmoothing={100} // 0-100
+          preserveSmoothing={true} // false matches figma, true has more rounding
+          style={{
+            width: "100%",
+            backgroundColor: transparent ? "transparent" : colors.task,
+            borderColor: colors.border,
+            borderWidth: transparent ? 0 : 1,
+            borderRadius: 15,
+            paddingVertical: multiline ? 10 : 0,
+            overflow: "hidden",
+            paddingHorizontal: 8,
+          }}
+        >
+          <TextInput
+            style={[
+              style,
+              multiline
+                ? styles.inputMultiline
+                : { ...styles.input, height: getInputHeight() },
+              center && { textAlign: "center" },
+              { fontWeight: bold ? "400" : "200" },
+              transparent && { backgroundColor: "transparent", borderWidth: 0 },
+              {
+                fontSize: fontSize ? fontSizes[fontSize] : fontSizes.lg,
+                backgroundColor: transparent ? "transparent" : colors.task,
+                color: colors.text,
+              },
+            ]}
+            placeholder={placeholder}
+            placeholderTextColor={colors.inputPlaceholder}
+            value={value}
+            onChangeText={handleChange}
+            multiline={multiline}
+            secureTextEntry={password && !showPassword}
+            autoCorrect={false}
+            keyboardType={type}
+            autoCapitalize={cap}
+            returnKeyType={returnKeyType}
+            maxLength={maxLength}
+            editable={editable}
+            onFocus={onFocus}
+            onBlur={onBlur}
+          />
 
-                <SquircleView
-                    cornerSmoothing={100} // 0-100
-                    preserveSmoothing={true} // false matches figma, true has more rounding
-                    style={{
-                        width: '100%',
-                        backgroundColor: transparent ? 'transparent' : colors.task,
-                        borderColor: colors.border,
-                        borderWidth: transparent ? 0 : 1,
-                        borderRadius: 15,
-                        paddingVertical: multiline ? 10 : 0,
-                        overflow: 'hidden',
-                        paddingHorizontal: 8,
-                    }}
-                >
-                    <TextInput
-                        style={[style, multiline ? styles.inputMultiline : { ...styles.input, height: getInputHeight() }, center && { textAlign: 'center' }, { fontWeight: bold ? '400' : '200' }, transparent && { backgroundColor: 'transparent', borderWidth: 0 }, { fontSize: fontSize ? fontSizes[fontSize] : fontSizes.lg, backgroundColor: transparent ? 'transparent' : colors.task, color: colors.text }]}
-                        placeholder={placeholder}
-                        placeholderTextColor={colors.inputPlaceholder}
-                        value={value}
-                        onChangeText={handleChange}
-                        multiline={multiline}
-                        secureTextEntry={password && !showPassword}
-                        autoCorrect={false}
-                        keyboardType={type}
-                        autoCapitalize={cap}
-                        returnKeyType={returnKeyType}
-                        maxLength={maxLength}
-                        editable={editable}
-                        onFocus={onFocus}
-                        onBlur={onBlur}
-                    />
-
-                    {password && (
-                        <TouchableOpacity
-                            style={[styles.eyeButton, { backgroundColor: "transparent" }]}
-                            onPress={() => setShowPassword(!showPassword)}
-                        >
-                            <MaterialIcons
-                                name={showPassword ? 'visibility' : 'visibility-off'}
-                                size={20}
-                                color={colors.icon}
-                            />
-                        </TouchableOpacity>
-                    )}
-                </SquircleView>
-            )}
-        </View>
-    );
+          {password && (
+            <TouchableOpacity
+              style={[styles.eyeButton, { backgroundColor: "transparent" }]}
+              onPress={() => setShowPassword(!showPassword)}
+            >
+              <MaterialIcons
+                name={showPassword ? "visibility" : "visibility-off"}
+                size={20}
+                color={colors.icon}
+              />
+            </TouchableOpacity>
+          )}
+        </SquircleView>
+      )}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        position: 'relative',
-    },
-    label: {
-        fontFamily: 'Satoshi-Regular',
-        marginBottom: 5,
-    },
-    input: {
-        width: '100%',
-        height: 48,
-        borderRadius: 8,
-        paddingHorizontal: 8,
-        paddingVertical: 8,
-        fontWeight: '600',
-    },
-    inputMultiline: {
-        width: '100%',
-        minHeight: 100,
-        paddingHorizontal: 8,
-        paddingTop: 8,
-        paddingBottom: 240,
-        fontWeight: '600',
-        textAlignVertical: 'top',
-    },
-    eyeButton: {
-        position: 'absolute',
-        right: 12,
-        top: '50%',
-        transform: [{ translateY: "-50%" }],
-        padding: 8,
-    },
-    skeleton: {
-        width: '100%',
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#00000020',
-    },
+  container: {
+    position: "relative",
+  },
+  label: {
+    fontFamily: "Satoshi-Regular",
+    marginBottom: 5,
+  },
+  input: {
+    width: "100%",
+    height: 48,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    fontWeight: "600",
+  },
+  inputMultiline: {
+    width: "100%",
+    minHeight: 100,
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 240,
+    fontWeight: "600",
+    textAlignVertical: "top",
+  },
+  eyeButton: {
+    position: "absolute",
+    right: 12,
+    top: "50%",
+    transform: [{ translateY: "-50%" }],
+    padding: 8,
+  },
+  skeleton: {
+    width: "100%",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#00000020",
+  },
 });

@@ -10,15 +10,27 @@ import TextCalendarComponent from "@/components/textCalendar";
 import { useAuthUserId } from "@/lib/AuthSessionContext";
 import { toAppDateKey } from "@/lib/date";
 import { useAppTranslation } from "@/lib/i18n";
-import { cancelDailyReminder, requestNotificationPermissions, scheduleDailyReminder } from "@/lib/notificationService";
+import {
+  cancelDailyReminder,
+  requestNotificationPermissions,
+  scheduleDailyReminder,
+} from "@/lib/notificationService";
 import { FREE_DAILY_TASK_LIMIT } from "@/lib/plan";
 import { useProfile } from "@/lib/profile";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
 import { fetchTaskList, type TaskListItem } from "@/lib/tasks";
 import { useTheme } from "@/lib/ThemeContext";
-import { DEFAULT_CALENDAR_PREFERENCE, useCalendarPreference, type CalendarPreference } from "@/lib/useCalendarPreference";
-import { DEFAULT_PROGRESS_BAR_PREFERENCE, useProgressBarPreference, type ProgressBarPreference } from "@/lib/useProgressBarPreference";
+import {
+  DEFAULT_CALENDAR_PREFERENCE,
+  useCalendarPreference,
+  type CalendarPreference,
+} from "@/lib/useCalendarPreference";
+import {
+  DEFAULT_PROGRESS_BAR_PREFERENCE,
+  useProgressBarPreference,
+  type ProgressBarPreference,
+} from "@/lib/useProgressBarPreference";
 import { useToggleTaskDone } from "@/lib/useToggleTaskDone";
 import { useStore } from "@/store/store";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -27,16 +39,35 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import ReAnimated, { Easing, FadeInUp, FadeOutUp, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import ReAnimated, {
+  Easing,
+  FadeInUp,
+  FadeOutUp,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { logger } from "@/lib/logger";
-
 
 const DAY_PAGER_SIZE = 20001;
 const DAY_PAGER_CENTER_INDEX = Math.floor(DAY_PAGER_SIZE / 2);
-const DAY_PAGER_INDEXES = Array.from({ length: DAY_PAGER_SIZE }, (_, index) => index);
+const DAY_PAGER_INDEXES = Array.from(
+  { length: DAY_PAGER_SIZE },
+  (_, index) => index,
+);
 const TASK_LIST_COMPACT_SCROLL_THRESHOLD = 8;
 
 const startOfDay = (date: Date) => {
@@ -65,7 +96,10 @@ const getProgressStats = (tasks: any[]) => {
     .map((task: any) => task.id);
 
   return {
-    progress: tasks.length === 0 ? 0 : Math.round((completedTaskIds.length / tasks.length) * 100),
+    progress:
+      tasks.length === 0
+        ? 0
+        : Math.round((completedTaskIds.length / tasks.length) * 100),
     completedTasks: completedTaskIds.length,
     totalTasks: tasks.length,
     completedTaskIds,
@@ -75,16 +109,22 @@ const getProgressStats = (tasks: any[]) => {
 const useTaskListCompactProgress = (scopeKey: string) => {
   const compactProgress = useSharedValue(0);
 
-  const setCompact = useCallback((isCompact: boolean) => {
-    compactProgress.value = withTiming(isCompact ? 1 : 0, {
-      duration: isCompact ? 220 : 260,
-      easing: Easing.out(Easing.quad),
-    });
-  }, [compactProgress]);
+  const setCompact = useCallback(
+    (isCompact: boolean) => {
+      compactProgress.value = withTiming(isCompact ? 1 : 0, {
+        duration: isCompact ? 220 : 260,
+        easing: Easing.out(Easing.quad),
+      });
+    },
+    [compactProgress],
+  );
 
-  const handleScrollOffsetChange = useCallback((offset: number) => {
-    setCompact(offset > TASK_LIST_COMPACT_SCROLL_THRESHOLD);
-  }, [setCompact]);
+  const handleScrollOffsetChange = useCallback(
+    (offset: number) => {
+      setCompact(offset > TASK_LIST_COMPACT_SCROLL_THRESHOLD);
+    },
+    [setCompact],
+  );
 
   useEffect(() => {
     setCompact(false);
@@ -137,14 +177,18 @@ const DayTasksPage = ({
   taskLimit = null,
   t,
 }: DayTasksPageProps) => {
-  const [optimisticTaskOrder, setOptimisticTaskOrder] = useState<(string | number)[] | null>(null);
+  const [optimisticTaskOrder, setOptimisticTaskOrder] = useState<
+    (string | number)[] | null
+  >(null);
   const [showTaskLimitDetails, setShowTaskLimitDetails] = useState(false);
   const displayedTasks = useMemo(() => {
     if (!optimisticTaskOrder || optimisticTaskOrder.length !== tasks.length) {
       return tasks;
     }
 
-    const tasksById = new Map(tasks.map((task) => [getTaskRenderKey(task), task]));
+    const tasksById = new Map(
+      tasks.map((task) => [getTaskRenderKey(task), task]),
+    );
     const nextTasks = optimisticTaskOrder
       .map((taskKey) => tasksById.get(taskKey))
       .filter(Boolean);
@@ -153,10 +197,13 @@ const DayTasksPage = ({
   }, [optimisticTaskOrder, tasks]);
   const taskListCompositionKey = useMemo(
     () => displayedTasks.map(getTaskRenderKey).join(":"),
-    [displayedTasks]
+    [displayedTasks],
   );
-  const reorderAnimationUnlockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [disableCustomListAnimations, setDisableCustomListAnimations] = useState(false);
+  const reorderAnimationUnlockTimeoutRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+  const [disableCustomListAnimations, setDisableCustomListAnimations] =
+    useState(false);
 
   const lockCustomListAnimations = useCallback(() => {
     if (reorderAnimationUnlockTimeoutRef.current) {
@@ -192,11 +239,14 @@ const DayTasksPage = ({
     onDragBegin?.();
   }, [lockCustomListAnimations, onDragBegin]);
 
-  const handleDragEnd = useCallback((params: { data: any[] }) => {
-    setOptimisticTaskOrder(params.data.map(getTaskRenderKey));
-    onDragEnd?.(params);
-    unlockCustomListAnimationsSoon();
-  }, [onDragEnd, unlockCustomListAnimationsSoon]);
+  const handleDragEnd = useCallback(
+    (params: { data: any[] }) => {
+      setOptimisticTaskOrder(params.data.map(getTaskRenderKey));
+      onDragEnd?.(params);
+      unlockCustomListAnimationsSoon();
+    },
+    [onDragEnd, unlockCustomListAnimationsSoon],
+  );
 
   const toggleTaskLimitDetails = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -227,7 +277,9 @@ const DayTasksPage = ({
           renderItem={({ item, drag, isActive }) => (
             <TaskItem
               item={item}
-              drag={!isReadOnly && canReorder && tasks.length > 1 ? drag : () => { }}
+              drag={
+                !isReadOnly && canReorder && tasks.length > 1 ? drag : () => {}
+              }
               isActive={isActive}
               handleToggleTask={onToggleTask}
               handleTaskPress={onTaskPress}
@@ -250,7 +302,12 @@ const DayTasksPage = ({
             taskLimit ? (
               <View style={styles.taskLimitFooter}>
                 <View style={styles.taskLimitHeader}>
-                  <Text style={[styles.taskLimitCounter, { color: colors.textSecondary }]}>
+                  <Text
+                    style={[
+                      styles.taskLimitCounter,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
                     {displayedTasks.length}/{taskLimit}
                   </Text>
                   <Pressable
@@ -281,17 +338,37 @@ const DayTasksPage = ({
                     style={styles.taskLimitDetails}
                   >
                     <Squircle
-                      style={[styles.taskLimitCard, { backgroundColor: colors.card, borderColor: "#F4BA00" }]}
+                      style={[
+                        styles.taskLimitCard,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: "#F4BA00",
+                        },
+                      ]}
                       cornerSmoothing={100}
                       preserveSmoothing={true}
                     >
                       <View style={styles.taskLimitCardIcon}>
-                        <SymbolView name="list.bullet.clipboard.fill" size={22} tintColor="#2C2405" />
+                        <SymbolView
+                          name="list.bullet.clipboard.fill"
+                          size={22}
+                          tintColor="#2C2405"
+                        />
                       </View>
-                      <Text style={[styles.taskLimitCardTitle, { color: colors.text }]}>
+                      <Text
+                        style={[
+                          styles.taskLimitCardTitle,
+                          { color: colors.text },
+                        ]}
+                      >
                         {t("home.taskLimit.title")}
                       </Text>
-                      <Text style={[styles.taskLimitCardMessage, { color: colors.textSecondary }]}>
+                      <Text
+                        style={[
+                          styles.taskLimitCardMessage,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
                         {t("home.taskLimit.message", { limit: taskLimit })}
                       </Text>
                       <PremiumCTAButton
@@ -336,10 +413,7 @@ const HomeCalendar = ({
   return preference === 2 ? (
     <TextCalendarComponent {...calendarProps} />
   ) : (
-    <CalendarComponent
-      {...calendarProps}
-      slider={true}
-    />
+    <CalendarComponent {...calendarProps} slider={true} />
   );
 };
 
@@ -354,10 +428,8 @@ const DayPage = ({
   tasks,
   ...dayTasksPageProps
 }: DayPageProps) => {
-  const {
-    compactProgress,
-    handleScrollOffsetChange,
-  } = useTaskListCompactProgress(pageDateKey);
+  const { compactProgress, handleScrollOffsetChange } =
+    useTaskListCompactProgress(pageDateKey);
   const progressStats = useMemo(() => getProgressStats(tasks), [tasks]);
   const isTaskSelected = dayTasksPageProps.selectedTaskId !== null;
   const openBox = useCallback(() => {
@@ -425,15 +497,19 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const storedDate = useStore((state) => state.selectedDate);
   const pagerOriginDateRef = useRef(startOfDay(storedDate || new Date()));
-  const [selectedDate, setSelectedDate] = useState<Date>(pagerOriginDateRef.current);
-  const [, setUserName] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<Date>(
+    pagerOriginDateRef.current,
+  );
+  const [, setUserName] = useState<string>("");
   const [, setUserHasSeenTutorial] = useState<boolean>(false);
   const { t } = useAppTranslation();
   const { colors, theme } = useTheme();
   const setStoreDate = useStore((state) => state.setSelectedDate);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
-  const [selectedTaskLayout, setSelectedTaskLayout] = useState<TaskItemLayout | null>(null);
-  const [shouldRenderOverlayContent, setShouldRenderOverlayContent] = useState(false);
+  const [selectedTaskLayout, setSelectedTaskLayout] =
+    useState<TaskItemLayout | null>(null);
+  const [shouldRenderOverlayContent, setShouldRenderOverlayContent] =
+    useState(false);
   const queryClient = useQueryClient();
   const setStoreUser = useStore((state) => state.setUser);
   const userId = useAuthUserId();
@@ -462,20 +538,22 @@ export default function Home() {
     error: calendarPreferenceError,
   } = useCalendarPreference();
   const { isPremium, isLoading: isSubscriptionLoading } = useSubscription();
-  const activeCalendarPreference: CalendarPreference | null = isSubscriptionLoading
-    ? null
-    : isPremium
-      ? isCalendarPreferenceLoading || !isCalendarPreferenceLoaded
-        ? null
-        : calendarPreference
-      : DEFAULT_CALENDAR_PREFERENCE;
-  const activeProgressBarPreference: ProgressBarPreference | null = isSubscriptionLoading
-    ? null
-    : isPremium
-      ? isProgressBarPreferenceLoading || !isProgressBarPreferenceLoaded
-        ? null
-        : progressBarPreference
-      : DEFAULT_PROGRESS_BAR_PREFERENCE;
+  const activeCalendarPreference: CalendarPreference | null =
+    isSubscriptionLoading
+      ? null
+      : isPremium
+        ? isCalendarPreferenceLoading || !isCalendarPreferenceLoaded
+          ? null
+          : calendarPreference
+        : DEFAULT_CALENDAR_PREFERENCE;
+  const activeProgressBarPreference: ProgressBarPreference | null =
+    isSubscriptionLoading
+      ? null
+      : isPremium
+        ? isProgressBarPreferenceLoading || !isProgressBarPreferenceLoaded
+          ? null
+          : progressBarPreference
+        : DEFAULT_PROGRESS_BAR_PREFERENCE;
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
   const overlayProgress = useSharedValue(0);
   const horizontalListRef = useRef<FlatList<number>>(null);
@@ -550,14 +628,17 @@ export default function Home() {
           if (hasPermission) {
             await scheduleDailyReminder(
               parseInt(`${profile.alertSetupHour ?? 0}`),
-              parseInt(`${profile.alertSetupMinute ?? 0}`)
+              parseInt(`${profile.alertSetupMinute ?? 0}`),
             );
           }
         } else {
           await cancelDailyReminder();
         }
       } catch (error) {
-        logger.error("Erreur lors de la synchronisation des notifications:", error);
+        logger.error(
+          "Erreur lors de la synchronisation des notifications:",
+          error,
+        );
       }
     };
 
@@ -592,8 +673,11 @@ export default function Home() {
   }, [dateKey, storedDate]);
 
   const getTasks = async () => {
-    return fetchTaskList(queryClient.getQueryData<TaskListItem[]>(tasksQueryKey) ?? [], userId);
-  }
+    return fetchTaskList(
+      queryClient.getQueryData<TaskListItem[]>(tasksQueryKey) ?? [],
+      userId,
+    );
+  };
 
   const taskQuery = useQuery({
     queryKey: tasksQueryKey,
@@ -630,110 +714,129 @@ export default function Home() {
 
   const currentTasks = useMemo(
     () => tasksByDate.get(dateKey) ?? [],
-    [tasksByDate, dateKey]
+    [tasksByDate, dateKey],
   );
 
   useEffect(() => {
     setLoading(taskQuery.isLoading);
   }, [taskQuery.isLoading]);
 
-  const handleToggleTask = useCallback(async (taskId: number, currentDone: boolean) => {
-    void toggleTaskDone(taskId, currentDone);
-  }, [toggleTaskDone]);
+  const handleToggleTask = useCallback(
+    async (taskId: number, currentDone: boolean) => {
+      void toggleTaskDone(taskId, currentDone);
+    },
+    [toggleTaskDone],
+  );
 
+  const handleDragEnd = useCallback(
+    async ({ data }: { data: any[] }) => {
+      // Calculer les nouveaux ordres pour correspondre au tri décroissant (le premier élément doit avoir l'ordre le plus élevé)
+      const updatedData = data.map((task, index) => ({
+        ...task,
+        order: data.length - index,
+      }));
+      const previousTasks = queryClient.getQueryData<any[]>(tasksQueryKey);
+      const previousOrderById = new Map(
+        (previousTasks ?? []).map((task: any) => [task.id, task.order]),
+      );
+      const changedTasks = updatedData.filter(
+        (task) => previousOrderById.get(task.id) !== task.order,
+      );
 
-  const handleDragEnd = useCallback(async ({ data }: { data: any[] }) => {
-    // Calculer les nouveaux ordres pour correspondre au tri décroissant (le premier élément doit avoir l'ordre le plus élevé)
-    const updatedData = data.map((task, index) => ({
-      ...task,
-      order: data.length - index
-    }));
-    const previousTasks = queryClient.getQueryData<any[]>(tasksQueryKey);
-    const previousOrderById = new Map(
-      (previousTasks ?? []).map((task: any) => [task.id, task.order])
-    );
-    const changedTasks = updatedData.filter((task) => previousOrderById.get(task.id) !== task.order);
+      await queryClient.cancelQueries({ queryKey: tasksQueryKey });
 
-    await queryClient.cancelQueries({ queryKey: tasksQueryKey });
+      // Optimistic update immédiat avec les nouveaux "order"
+      queryClient.setQueryData<any[]>(tasksQueryKey, (oldVars) => {
+        if (!oldVars) return [];
+        const otherTasks = oldVars.filter(
+          (t: any) => !t.date || toAppDateKey(t.date) !== dateKey,
+        );
+        return [...otherTasks, ...updatedData];
+      });
 
-    // Optimistic update immédiat avec les nouveaux "order"
-    queryClient.setQueryData<any[]>(tasksQueryKey, (oldVars) => {
-      if (!oldVars) return [];
-      const otherTasks = oldVars.filter((t: any) => !t.date || toAppDateKey(t.date) !== dateKey);
-      return [...otherTasks, ...updatedData];
-    });
+      // Mettre à jour les ordres individuellement (évite les problèmes RLS avec upsert)
+      try {
+        if (!userId) {
+          return;
+        }
 
-    // Mettre à jour les ordres individuellement (évite les problèmes RLS avec upsert)
-    try {
-      if (!userId) {
+        for (const task of changedTasks) {
+          const { error } = await supabase
+            .from("Tasks")
+            .update({ order: task.order })
+            .eq("id", task.id)
+            .eq("user_id", userId);
+
+          if (error) {
+            logger.error("Erreur lors de la mise à jour de l'ordre:", error);
+            if (previousTasks) {
+              queryClient.setQueryData(tasksQueryKey, previousTasks);
+            } else {
+              queryClient.invalidateQueries({ queryKey: tasksQueryKey });
+            }
+            return;
+          }
+        }
+      } catch (error) {
+        logger.error("Erreur:", error);
+        if (previousTasks) {
+          queryClient.setQueryData(tasksQueryKey, previousTasks);
+        } else {
+          queryClient.invalidateQueries({ queryKey: tasksQueryKey });
+        }
+      }
+    },
+    [dateKey, queryClient, tasksQueryKey, userId],
+  );
+
+  const closeSelectedTaskOverlay = useCallback(
+    (afterClose?: () => void) => {
+      setShouldRenderOverlayContent(false);
+      overlayProgress.value = withTiming(
+        0,
+        {
+          duration: 260,
+          easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+        },
+        (finished) => {
+          if (finished) {
+            runOnJS(setSelectedTaskId)(null);
+            runOnJS(setSelectedTaskLayout)(null);
+            if (afterClose) {
+              runOnJS(afterClose)();
+            }
+          }
+        },
+      );
+    },
+    [overlayProgress],
+  );
+
+  const handleTaskPress = useCallback(
+    (taskId: number, layout?: TaskItemLayout) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      if (selectedTaskId === taskId) {
+        closeSelectedTaskOverlay();
         return;
       }
 
-      for (const task of changedTasks) {
-        const { error } = await supabase
-          .from("Tasks")
-          .update({ order: task.order })
-          .eq("id", task.id)
-          .eq("user_id", userId);
+      if (!layout) return;
 
-        if (error) {
-          logger.error("Erreur lors de la mise à jour de l'ordre:", error);
-          if (previousTasks) {
-            queryClient.setQueryData(tasksQueryKey, previousTasks);
-          } else {
-            queryClient.invalidateQueries({ queryKey: tasksQueryKey });
-          }
-          return;
-        }
-      }
-    } catch (error) {
-      logger.error("Erreur:", error);
-      if (previousTasks) {
-        queryClient.setQueryData(tasksQueryKey, previousTasks);
-      } else {
-        queryClient.invalidateQueries({ queryKey: tasksQueryKey });
-      }
-    }
-  }, [dateKey, queryClient, tasksQueryKey, userId]);
+      setShouldRenderOverlayContent(false);
+      setSelectedTaskLayout(layout);
+      setSelectedTaskId(taskId);
+      overlayProgress.value = 0;
 
-  const closeSelectedTaskOverlay = useCallback((afterClose?: () => void) => {
-    setShouldRenderOverlayContent(false);
-    overlayProgress.value = withTiming(0, {
-      duration: 260,
-      easing: Easing.bezier(0.2, 0.8, 0.2, 1),
-    }, (finished) => {
-      if (finished) {
-        runOnJS(setSelectedTaskId)(null);
-        runOnJS(setSelectedTaskLayout)(null);
-        if (afterClose) {
-          runOnJS(afterClose)();
-        }
-      }
-    });
-  }, [overlayProgress]);
-
-  const handleTaskPress = useCallback((taskId: number, layout?: TaskItemLayout) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    if (selectedTaskId === taskId) {
-      closeSelectedTaskOverlay();
-      return;
-    }
-
-    if (!layout) return;
-
-    setShouldRenderOverlayContent(false);
-    setSelectedTaskLayout(layout);
-    setSelectedTaskId(taskId);
-    overlayProgress.value = 0;
-
-    requestAnimationFrame(() => {
-      overlayProgress.value = withTiming(1, {
-        duration: 560,
-        easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+      requestAnimationFrame(() => {
+        overlayProgress.value = withTiming(1, {
+          duration: 560,
+          easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+        });
       });
-    });
-  }, [closeSelectedTaskOverlay, overlayProgress, selectedTaskId]);
+    },
+    [closeSelectedTaskOverlay, overlayProgress, selectedTaskId],
+  );
 
   useEffect(() => {
     if (selectedTaskId === null || selectedTaskLayout === null) return;
@@ -749,18 +852,23 @@ export default function Home() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
-  const changeDate = useCallback((newDate: Date, withHaptic = true) => {
-    if (withHaptic) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
+  const changeDate = useCallback(
+    (newDate: Date, withHaptic = true) => {
+      if (withHaptic) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
 
-    const normalizedDate = startOfDay(newDate);
-    setSelectedDate(normalizedDate);
-    setStoreDate(normalizedDate);
-  }, [setStoreDate, setSelectedDate]);
+      const normalizedDate = startOfDay(newDate);
+      setSelectedDate(normalizedDate);
+      setStoreDate(normalizedDate);
+    },
+    [setStoreDate, setSelectedDate],
+  );
 
   useEffect(() => {
-    const targetIndex = DAY_PAGER_CENTER_INDEX + getDayOffset(pagerOriginDateRef.current, selectedDate);
+    const targetIndex =
+      DAY_PAGER_CENTER_INDEX +
+      getDayOffset(pagerOriginDateRef.current, selectedDate);
     isProgrammaticHorizontalScrollRef.current = true;
 
     requestAnimationFrame(() => {
@@ -811,7 +919,7 @@ export default function Home() {
 
   const selectedTask = useMemo(
     () => currentTasks.find((task: any) => task.id === selectedTaskId) ?? null,
-    [currentTasks, selectedTaskId]
+    [currentTasks, selectedTaskId],
   );
 
   const overlayAnimatedStyle = useAnimatedStyle(() => {
@@ -827,11 +935,27 @@ export default function Home() {
     const finalHeight = Math.max(320, windowHeight - finalTop - 110);
 
     return {
-      position: 'absolute',
-      left: interpolate(overlayProgress.value, [0, 1], [selectedTaskLayout.x, finalLeft]),
-      top: interpolate(overlayProgress.value, [0, 1], [selectedTaskLayout.y, finalTop]),
-      width: interpolate(overlayProgress.value, [0, 1], [selectedTaskLayout.width, finalWidth]),
-      height: interpolate(overlayProgress.value, [0, 1], [selectedTaskLayout.height, finalHeight]),
+      position: "absolute",
+      left: interpolate(
+        overlayProgress.value,
+        [0, 1],
+        [selectedTaskLayout.x, finalLeft],
+      ),
+      top: interpolate(
+        overlayProgress.value,
+        [0, 1],
+        [selectedTaskLayout.y, finalTop],
+      ),
+      width: interpolate(
+        overlayProgress.value,
+        [0, 1],
+        [selectedTaskLayout.width, finalWidth],
+      ),
+      height: interpolate(
+        overlayProgress.value,
+        [0, 1],
+        [selectedTaskLayout.height, finalHeight],
+      ),
       borderRadius: interpolate(overlayProgress.value, [0, 1], [20, 30]),
       opacity: overlayProgress.value,
       transform: [
@@ -842,94 +966,117 @@ export default function Home() {
     };
   }, [selectedTaskLayout, windowHeight, windowWidth]);
 
-  const handleHorizontalMomentumEnd = useCallback((event: any) => {
-    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / windowWidth);
-    const targetDate = addDays(pagerOriginDateRef.current, nextIndex - DAY_PAGER_CENTER_INDEX);
-    lastHapticPageIndexRef.current = nextIndex;
+  const handleHorizontalMomentumEnd = useCallback(
+    (event: any) => {
+      const nextIndex = Math.round(
+        event.nativeEvent.contentOffset.x / windowWidth,
+      );
+      const targetDate = addDays(
+        pagerOriginDateRef.current,
+        nextIndex - DAY_PAGER_CENTER_INDEX,
+      );
+      lastHapticPageIndexRef.current = nextIndex;
 
-    if (getDateKey(targetDate) !== dateKey) {
-      changeDate(targetDate, false);
-    }
-  }, [changeDate, dateKey, windowWidth]);
+      if (getDateKey(targetDate) !== dateKey) {
+        changeDate(targetDate, false);
+      }
+    },
+    [changeDate, dateKey, windowWidth],
+  );
 
   const handleHorizontalScrollBeginDrag = useCallback(() => {
-    const currentIndex = DAY_PAGER_CENTER_INDEX + getDayOffset(pagerOriginDateRef.current, selectedDate);
+    const currentIndex =
+      DAY_PAGER_CENTER_INDEX +
+      getDayOffset(pagerOriginDateRef.current, selectedDate);
     lastHapticPageIndexRef.current = currentIndex;
   }, [selectedDate]);
 
-  const handleHorizontalScroll = useCallback((event: any) => {
-    if (isProgrammaticHorizontalScrollRef.current) {
-      return;
-    }
+  const handleHorizontalScroll = useCallback(
+    (event: any) => {
+      if (isProgrammaticHorizontalScrollRef.current) {
+        return;
+      }
 
-    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / windowWidth);
+      const nextIndex = Math.round(
+        event.nativeEvent.contentOffset.x / windowWidth,
+      );
 
-    if (nextIndex === lastHapticPageIndexRef.current) {
-      return;
-    }
+      if (nextIndex === lastHapticPageIndexRef.current) {
+        return;
+      }
 
-    lastHapticPageIndexRef.current = nextIndex;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [windowWidth]);
+      lastHapticPageIndexRef.current = nextIndex;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    },
+    [windowWidth],
+  );
 
-  const renderDayPage = useCallback(({ item: dayIndex }: { item: number }) => {
-    const pageDate = addDays(pagerOriginDateRef.current, dayIndex - DAY_PAGER_CENTER_INDEX);
-    const pageDateKey = getDateKey(pageDate);
-    const pageTasks = tasksByDate.get(pageDateKey) ?? [];
-    const isSelectedPage = pageDateKey === dateKey;
-    const canReorderPage = isSelectedPage && pageDateKey >= todayKey;
+  const renderDayPage = useCallback(
+    ({ item: dayIndex }: { item: number }) => {
+      const pageDate = addDays(
+        pagerOriginDateRef.current,
+        dayIndex - DAY_PAGER_CENTER_INDEX,
+      );
+      const pageDateKey = getDateKey(pageDate);
+      const pageTasks = tasksByDate.get(pageDateKey) ?? [];
+      const isSelectedPage = pageDateKey === dateKey;
+      const canReorderPage = isSelectedPage && pageDateKey >= todayKey;
 
-    return (
-      <DayPage
-        colors={colors}
-        dayIndex={dayIndex}
-        dayWidth={windowWidth}
-        isCalendarExpanded={isCalendarExpanded}
-        loading={loading}
-        canReorder={canReorderPage}
-        onDragEnd={canReorderPage ? handleDragEnd : undefined}
-        onPlaceholderIndexChange={isSelectedPage ? handlePlaceholderIndexChange : undefined}
-        onTaskPress={handleTaskPress}
-        onToggleTask={handleToggleTask}
-        isTaskTogglePending={isTaskPending}
-        selectedTaskId={selectedTaskId}
-        tasks={pageTasks}
-        pageDateKey={pageDateKey}
-        progressBarPreference={activeProgressBarPreference}
-        isReadOnly={false}
-        taskLimit={isPremium ? null : FREE_DAILY_TASK_LIMIT}
-        t={t}
-      />
-    );
-  }, [
-    colors,
-    dateKey,
-    handleDragEnd,
-    handlePlaceholderIndexChange,
-    handleTaskPress,
-    handleToggleTask,
-    isTaskPending,
-    isCalendarExpanded,
-    loading,
-    activeProgressBarPreference,
-    isPremium,
-    selectedTaskId,
-    t,
-    tasksByDate,
-    todayKey,
-    windowWidth,
-  ]);
+      return (
+        <DayPage
+          colors={colors}
+          dayIndex={dayIndex}
+          dayWidth={windowWidth}
+          isCalendarExpanded={isCalendarExpanded}
+          loading={loading}
+          canReorder={canReorderPage}
+          onDragEnd={canReorderPage ? handleDragEnd : undefined}
+          onPlaceholderIndexChange={
+            isSelectedPage ? handlePlaceholderIndexChange : undefined
+          }
+          onTaskPress={handleTaskPress}
+          onToggleTask={handleToggleTask}
+          isTaskTogglePending={isTaskPending}
+          selectedTaskId={selectedTaskId}
+          tasks={pageTasks}
+          pageDateKey={pageDateKey}
+          progressBarPreference={activeProgressBarPreference}
+          isReadOnly={false}
+          taskLimit={isPremium ? null : FREE_DAILY_TASK_LIMIT}
+          t={t}
+        />
+      );
+    },
+    [
+      colors,
+      dateKey,
+      handleDragEnd,
+      handlePlaceholderIndexChange,
+      handleTaskPress,
+      handleToggleTask,
+      isTaskPending,
+      isCalendarExpanded,
+      loading,
+      activeProgressBarPreference,
+      isPremium,
+      selectedTaskId,
+      t,
+      tasksByDate,
+      todayKey,
+      windowWidth,
+    ],
+  );
 
   return (
-
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style={theme === "dark" ? "light" : "auto"} />
       <View
-        style={[styles.container, { backgroundColor: colors.background, paddingBottom: 0 }]}
+        style={[
+          styles.container,
+          { backgroundColor: colors.background, paddingBottom: 0 },
+        ]}
       >
-
         <View style={styles.header}>
-
           <ReAnimated.View
             pointerEvents={selectedTaskId !== null ? "none" : "auto"}
             style={headerAnimatedStyle}
@@ -941,12 +1088,9 @@ export default function Home() {
               onExpandedChange={setIsCalendarExpanded}
             />
           </ReAnimated.View>
-
         </View>
 
-        <ReAnimated.View
-          style={[styles.listContainer, listAnimatedStyle]}
-        >
+        <ReAnimated.View style={[styles.listContainer, listAnimatedStyle]}>
           <FlatList
             ref={horizontalListRef}
             data={DAY_PAGER_INDEXES}
@@ -966,7 +1110,7 @@ export default function Home() {
             onScrollBeginDrag={handleHorizontalScrollBeginDrag}
             onScroll={handleHorizontalScroll}
             onMomentumScrollEnd={handleHorizontalMomentumEnd}
-            onScrollToIndexFailed={() => { }}
+            onScrollToIndexFailed={() => {}}
             scrollEnabled={selectedTaskId === null}
             windowSize={5}
             maxToRenderPerBatch={3}
@@ -1000,12 +1144,10 @@ export default function Home() {
         ) : null}
 
         <CreateModalHost activePath="/home" />
-
       </View>
     </GestureHandlerRootView>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -1025,19 +1167,19 @@ const styles = StyleSheet.create({
 
   dayPage: {
     flex: 1,
-    display: 'flex',
+    display: "flex",
     gap: 20,
   },
 
   overlayRoot: {
     ...StyleSheet.absoluteFill,
     zIndex: 20,
-    pointerEvents: 'box-none',
+    pointerEvents: "box-none",
   },
 
   overlayCard: {
-    overflow: 'hidden',
-    boxShadow: '0px 10px 30px rgba(0, 0, 0, 0.12)',
+    overflow: "hidden",
+    boxShadow: "0px 10px 30px rgba(0, 0, 0, 0.12)",
   },
 
   overlayContent: {
@@ -1046,36 +1188,36 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 40,
-    fontFamily: 'Satoshi-Black',
+    fontFamily: "Satoshi-Black",
   },
 
   settingsLink: {
     height: 48,
     width: 48,
     borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    display: 'flex',
-    flexDirection: 'row',
+    alignItems: "center",
+    justifyContent: "center",
+    display: "flex",
+    flexDirection: "row",
   },
 
   calendar: {
     marginTop: 20,
     borderRadius: 10,
     height: 100,
-    width: '100%',
+    width: "100%",
   },
 
   date: {
     fontSize: 38,
-    fontFamily: 'Satoshi-Bold',
+    fontFamily: "Satoshi-Bold",
     marginTop: 20,
   },
 
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   flatListContent: {
@@ -1086,83 +1228,82 @@ const styles = StyleSheet.create({
 
   emptyText: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 20,
   },
 
   taskLimitCounter: {
-    fontFamily: 'Satoshi-Bold',
+    fontFamily: "Satoshi-Bold",
     fontSize: 13,
     opacity: 0.7,
     marginLeft: 8,
   },
 
   taskLimitFooter: {
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
     marginTop: 12,
-    width: '100%',
+    width: "100%",
   },
 
   taskLimitHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
+    alignItems: "center",
+    flexDirection: "row",
     gap: 8,
   },
 
   taskLimitInfoButton: {
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: 12,
     borderWidth: 1,
     height: 24,
-    justifyContent: 'center',
+    justifyContent: "center",
     width: 24,
   },
 
   taskLimitDetails: {
     marginTop: 12,
-    width: '100%',
+    width: "100%",
   },
 
   taskLimitCard: {
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: 20,
     borderWidth: 1,
     gap: 10,
-    overflow: 'hidden',
+    overflow: "hidden",
     padding: 16,
   },
 
   taskLimitCardIcon: {
-    alignItems: 'center',
-    backgroundColor: '#F4BA00',
+    alignItems: "center",
+    backgroundColor: "#F4BA00",
     borderRadius: 16,
     height: 34,
-    justifyContent: 'center',
+    justifyContent: "center",
     width: 34,
   },
 
   taskLimitCardTitle: {
-    fontFamily: 'Satoshi-Bold',
+    fontFamily: "Satoshi-Bold",
     fontSize: 20,
-    textAlign: 'center',
+    textAlign: "center",
   },
 
   taskLimitCardMessage: {
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: "Satoshi-Regular",
     fontSize: 15,
     lineHeight: 21,
-    textAlign: 'center',
+    textAlign: "center",
   },
 
   animationContainer: {
     height: 150,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   lottieAnimation: {
     width: 100,
     aspectRatio: 1,
   },
-
 });

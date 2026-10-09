@@ -21,7 +21,14 @@ import * as DocumentPicker from "expo-document-picker";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { logger } from "@/lib/logger";
 
@@ -37,8 +44,12 @@ export default function ImportData() {
   const { isPremium, isLoading: isSubscriptionLoading } = useSubscription();
   const [status, setStatus] = useState<ImportStatus>("idle");
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
-  const [parsedImport, setParsedImport] = useState<ParsedUserDataImport | null>(null);
-  const [importResult, setImportResult] = useState<UserDataImportResult | null>(null);
+  const [parsedImport, setParsedImport] = useState<ParsedUserDataImport | null>(
+    null,
+  );
+  const [importResult, setImportResult] = useState<UserDataImportResult | null>(
+    null,
+  );
   const shouldShowPremiumWarning = !isSubscriptionLoading && !isPremium;
 
   const refreshImportedData = useCallback(async () => {
@@ -54,7 +65,10 @@ export default function ImportData() {
       queryClient.invalidateQueries({ queryKey: [DAYS_QUERY_KEY] }),
     ]);
 
-    await queryClient.refetchQueries({ queryKey: profileQueryKey(userId), type: "active" });
+    await queryClient.refetchQueries({
+      queryKey: profileQueryKey(userId),
+      type: "active",
+    });
   }, [queryClient, userId]);
 
   const handlePickFile = useCallback(async () => {
@@ -71,14 +85,19 @@ export default function ImportData() {
 
       const asset = result.assets[0];
       const parsed = await readUserDataImport(asset.uri);
-      setSelectedFileName(asset.name ?? t("settings.account.importData.fileNameFallback"));
+      setSelectedFileName(
+        asset.name ?? t("settings.account.importData.fileNameFallback"),
+      );
       setParsedImport(parsed);
       setImportResult(null);
       setStatus("ready");
     } catch (error) {
       logger.error("Erreur lors de la lecture de l'import:", error);
       setStatus("error");
-      Alert.alert(t("common.alerts.errorTitle"), t("settings.account.importData.errors.read"));
+      Alert.alert(
+        t("common.alerts.errorTitle"),
+        t("settings.account.importData.errors.read"),
+      );
     }
   }, [t]);
 
@@ -109,11 +128,14 @@ export default function ImportData() {
               .catch((error) => {
                 logger.error("Erreur lors de l'import des donnees:", error);
                 setStatus("error");
-                Alert.alert(t("common.alerts.errorTitle"), t("settings.account.importData.errors.import"));
+                Alert.alert(
+                  t("common.alerts.errorTitle"),
+                  t("settings.account.importData.errors.import"),
+                );
               });
           },
         },
-      ]
+      ],
     );
   }, [parsedImport, refreshImportedData, t]);
 
@@ -137,28 +159,66 @@ export default function ImportData() {
 
     const summary = parsedImport.summary;
     const rows = [
-      { label: t("settings.account.importData.summary.exportedAt"), value: formatExportDate(summary.exportedAt) },
-      { label: t("settings.account.importData.summary.tasks"), value: `${summary.tasksCount}` },
-      { label: t("settings.account.importData.summary.tags"), value: `${summary.tagsCount}` },
-      { label: t("settings.account.importData.summary.days"), value: `${summary.daysCount}` },
+      {
+        label: t("settings.account.importData.summary.exportedAt"),
+        value: formatExportDate(summary.exportedAt),
+      },
+      {
+        label: t("settings.account.importData.summary.tasks"),
+        value: `${summary.tasksCount}`,
+      },
+      {
+        label: t("settings.account.importData.summary.tags"),
+        value: `${summary.tagsCount}`,
+      },
+      {
+        label: t("settings.account.importData.summary.days"),
+        value: `${summary.daysCount}`,
+      },
     ];
 
     return (
-      <Squircle style={[styles.summaryCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+      <Squircle
+        style={[
+          styles.summaryCard,
+          { backgroundColor: colors.background, borderColor: colors.border },
+        ]}
+      >
         {selectedFileName && (
           <View style={styles.fileRow}>
-            <SymbolView name="doc.text.fill" size={24} tintColor={colors.text} type="palette" />
-            <Text numberOfLines={1} style={[styles.fileName, { color: colors.text, fontSize: fontSizes.md }]}>
+            <SymbolView
+              name="doc.text.fill"
+              size={24}
+              tintColor={colors.text}
+              type="palette"
+            />
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.fileName,
+                { color: colors.text, fontSize: fontSizes.md },
+              ]}
+            >
               {selectedFileName}
             </Text>
           </View>
         )}
         {rows.map((row) => (
           <View key={row.label} style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>
+            <Text
+              style={[
+                styles.summaryLabel,
+                { color: colors.textSecondary, fontSize: fontSizes.sm },
+              ]}
+            >
               {row.label}
             </Text>
-            <Text style={[styles.summaryValue, { color: colors.text, fontSize: fontSizes.base }]}>
+            <Text
+              style={[
+                styles.summaryValue,
+                { color: colors.text, fontSize: fontSizes.base },
+              ]}
+            >
               {row.value}
             </Text>
           </View>
@@ -170,14 +230,27 @@ export default function ImportData() {
   const renderContent = () => {
     if (status === "importing") {
       return (
-        <Animated.View entering={FadeIn.duration(250)} style={styles.stateContent}>
+        <Animated.View
+          entering={FadeIn.duration(250)}
+          style={styles.stateContent}
+        >
           <View style={styles.loader}>
             <ActivityIndicator color={colors.actionButton} size="large" />
           </View>
-          <Text style={[styles.title, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
+          <Text
+            style={[
+              styles.title,
+              { color: colors.text, fontSize: fontSizes["2xl"] },
+            ]}
+          >
             {t("settings.account.importData.loadingTitle")}
           </Text>
-          <Text style={[styles.description, { color: colors.textSecondary, fontSize: fontSizes.lg }]}>
+          <Text
+            style={[
+              styles.description,
+              { color: colors.textSecondary, fontSize: fontSizes.lg },
+            ]}
+          >
             {t("settings.account.importData.loadingDescription")}
           </Text>
         </Animated.View>
@@ -186,12 +259,30 @@ export default function ImportData() {
 
     if (status === "success") {
       return (
-        <Animated.View entering={FadeInUp.springify()} style={styles.stateContent}>
-          <SymbolView name="checkmark.circle.fill" size={92} tintColor={colors.actionButton} type="palette" />
-          <Text style={[styles.title, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
+        <Animated.View
+          entering={FadeInUp.springify()}
+          style={styles.stateContent}
+        >
+          <SymbolView
+            name="checkmark.circle.fill"
+            size={92}
+            tintColor={colors.actionButton}
+            type="palette"
+          />
+          <Text
+            style={[
+              styles.title,
+              { color: colors.text, fontSize: fontSizes["2xl"] },
+            ]}
+          >
             {t("settings.account.importData.successTitle")}
           </Text>
-          <Text style={[styles.description, { color: colors.textSecondary, fontSize: fontSizes.lg }]}>
+          <Text
+            style={[
+              styles.description,
+              { color: colors.textSecondary, fontSize: fontSizes.lg },
+            ]}
+          >
             {t("settings.account.importData.successDescription", {
               tasks: importResult?.tasksImported ?? 0,
               tags: importResult?.tagsImported ?? 0,
@@ -203,12 +294,30 @@ export default function ImportData() {
 
     if (status === "error") {
       return (
-        <Animated.View entering={FadeIn.duration(250)} style={styles.stateContent}>
-          <SymbolView name="exclamationmark.triangle.fill" size={86} tintColor={colors.danger} type="palette" />
-          <Text style={[styles.title, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
+        <Animated.View
+          entering={FadeIn.duration(250)}
+          style={styles.stateContent}
+        >
+          <SymbolView
+            name="exclamationmark.triangle.fill"
+            size={86}
+            tintColor={colors.danger}
+            type="palette"
+          />
+          <Text
+            style={[
+              styles.title,
+              { color: colors.text, fontSize: fontSizes["2xl"] },
+            ]}
+          >
             {t("settings.account.importData.errorTitle")}
           </Text>
-          <Text style={[styles.description, { color: colors.textSecondary, fontSize: fontSizes.lg }]}>
+          <Text
+            style={[
+              styles.description,
+              { color: colors.textSecondary, fontSize: fontSizes.lg },
+            ]}
+          >
             {t("settings.account.importData.errorDescription")}
           </Text>
         </Animated.View>
@@ -216,33 +325,70 @@ export default function ImportData() {
     }
 
     return (
-      <Animated.View entering={FadeIn.duration(250)} style={styles.stateContent}>
+      <Animated.View
+        entering={FadeIn.duration(250)}
+        style={styles.stateContent}
+      >
         <SymbolView
-          name={status === "ready" ? "doc.text.magnifyingglass" : "square.and.arrow.up"}
+          name={
+            status === "ready"
+              ? "doc.text.magnifyingglass"
+              : "square.and.arrow.up"
+          }
           size={86}
           tintColor={colors.text}
           type="palette"
         />
-        <Text style={[styles.title, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
+        <Text
+          style={[
+            styles.title,
+            { color: colors.text, fontSize: fontSizes["2xl"] },
+          ]}
+        >
           {status === "ready"
             ? t("settings.account.importData.readyTitle")
             : t("settings.account.importData.idleTitle")}
         </Text>
-        <Text style={[styles.description, { color: colors.textSecondary, fontSize: fontSizes.lg }]}>
+        <Text
+          style={[
+            styles.description,
+            { color: colors.textSecondary, fontSize: fontSizes.lg },
+          ]}
+        >
           {status === "ready"
             ? t("settings.account.importData.readyDescription")
             : t("settings.account.importData.idleDescription")}
         </Text>
         {shouldShowPremiumWarning && (
-          <Squircle style={[styles.warningCard, { backgroundColor: colors.background, borderColor: "#F4BA00" }]}>
+          <Squircle
+            style={[
+              styles.warningCard,
+              { backgroundColor: colors.background, borderColor: "#F4BA00" },
+            ]}
+          >
             <View style={styles.warningIcon}>
-              <SymbolView name="crown.fill" size={18} tintColor="#2C2405" type="palette" />
+              <SymbolView
+                name="crown.fill"
+                size={18}
+                tintColor="#2C2405"
+                type="palette"
+              />
             </View>
             <View style={styles.warningText}>
-              <Text style={[styles.warningTitle, { color: colors.text, fontSize: fontSizes.base }]}>
+              <Text
+                style={[
+                  styles.warningTitle,
+                  { color: colors.text, fontSize: fontSizes.base },
+                ]}
+              >
                 {t("settings.account.importData.freePlanWarningTitle")}
               </Text>
-              <Text style={[styles.warningDescription, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>
+              <Text
+                style={[
+                  styles.warningDescription,
+                  { color: colors.textSecondary, fontSize: fontSizes.sm },
+                ]}
+              >
                 {t("settings.account.importData.freePlanWarningDescription")}
               </Text>
             </View>

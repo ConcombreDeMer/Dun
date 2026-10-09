@@ -1,14 +1,9 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useTheme } from '../../lib/ThemeContext';
-import LottieView from 'lottie-react-native';
-import Animated, {
-  FadeInUp,
-  FadeInDown,
-} from 'react-native-reanimated';
-import { useAppTranslation } from '../../lib/i18n';
-
-
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { useRouter } from "expo-router";
+import { useTheme } from "../../lib/ThemeContext";
+import LottieView from "lottie-react-native";
+import Animated, { FadeInUp, FadeInDown } from "react-native-reanimated";
+import { useAppTranslation } from "../../lib/i18n";
 
 export default function SuccessMail() {
   const router = useRouter();
@@ -17,51 +12,55 @@ export default function SuccessMail() {
 
   return (
     <View style={styles.container}>
-
-
-
       <Animated.View
         style={styles.header}
-        entering={FadeInUp.delay(1500).duration(600)}>
+        entering={FadeInUp.delay(1500).duration(600)}
+      >
         <Text style={[styles.title, { color: colors.text }]}>
-          {t('onboarding.successMail.title')}
+          {t("onboarding.successMail.title")}
         </Text>
         <Text style={[styles.subtitle, { color: colors.text }]}>
-          {t('onboarding.successMail.subtitle')}
+          {t("onboarding.successMail.subtitle")}
         </Text>
       </Animated.View>
 
-
-
       <View style={styles.animationContainer}>
         <LottieView
-          source={require('../../assets/animations/successMail.json')}
+          source={require("../../assets/animations/successMail.json")}
           autoPlay
           loop={false}
           style={styles.lottieAnimation}
         />
       </View>
 
-
       <Animated.View
         entering={FadeInUp.delay(1000).duration(600)}
         style={styles.message}
       >
-        <Text style={{ fontSize: 20, fontWeight:300 }}>{t('onboarding.successMail.line1')}</Text>
-        <Text style={{ fontSize: 20, fontWeight:300 }}>{t('onboarding.successMail.line2')}</Text>
-        <Text style={{ fontSize: 20, fontWeight:300 }}>🎉</Text>
+        <Text style={{ fontSize: 20, fontWeight: 300 }}>
+          {t("onboarding.successMail.line1")}
+        </Text>
+        <Text style={{ fontSize: 20, fontWeight: 300 }}>
+          {t("onboarding.successMail.line2")}
+        </Text>
+        <Text style={{ fontSize: 20, fontWeight: 300 }}>🎉</Text>
       </Animated.View>
 
-
       <Animated.View
-        style={{ position: 'absolute', bottom: 40, width: '100%' }}
-        entering={FadeInDown.delay(1500).duration(600)}>
+        style={{ position: "absolute", bottom: 40, width: "100%" }}
+        entering={FadeInDown.delay(1500).duration(600)}
+      >
         <TouchableOpacity
-          style={[styles.validateButton, { backgroundColor: colors.actionButton }]}
-          onPress={() => router.push('/onboarding/login')}
+          style={[
+            styles.validateButton,
+            { backgroundColor: colors.actionButton },
+          ]}
+          onPress={() => router.push("/onboarding/login")}
         >
-          <Text style={[styles.validateButtonText, { color: colors.buttonText }]}>
-            {t('onboarding.successMail.action')}
+          <Text
+            style={[styles.validateButtonText, { color: colors.buttonText }]}
+          >
+            {t("onboarding.successMail.action")}
           </Text>
         </TouchableOpacity>
       </Animated.View>
@@ -72,15 +71,15 @@ export default function SuccessMail() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   animationContainer: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
@@ -88,50 +87,49 @@ const styles = StyleSheet.create({
     zIndex: -1,
   },
   lottieAnimation: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   header: {
-    position: 'absolute',
+    position: "absolute",
     top: 80,
     left: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
 
   title: {
     fontSize: 55,
-    fontFamily: 'Satoshi-Black',
+    fontFamily: "Satoshi-Black",
   },
 
   subtitle: {
     fontSize: 26,
     marginLeft: -2,
     marginTop: -10,
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: "Satoshi-Regular",
     opacity: 0.7,
   },
 
-
   message: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-    fontFamily: 'Satoshi-Regular',
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
+    fontFamily: "Satoshi-Regular",
     gap: 6,
     marginTop: 250,
   },
 
   validateButton: {
     height: 70,
-    width: '77%',
+    width: "77%",
     borderRadius: 100,
     position: "absolute",
     bottom: 40,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   validateButtonText: {
     fontSize: 20,

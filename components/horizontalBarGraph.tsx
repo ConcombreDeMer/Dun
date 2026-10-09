@@ -5,8 +5,20 @@ import { useTheme } from "@/lib/ThemeContext";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import Svg, {
   Circle,
   Defs,
@@ -58,13 +70,17 @@ const buildAreaPath = (points: ChartPoint[], height: number) => {
 const getChartPoints = (
   points: TagUsagePoint[],
   width: number,
-  maxValue: number
+  maxValue: number,
 ): ChartPoint[] => {
   if (points.length === 0) return [];
 
   return points.map((point, index) => {
-    const x = points.length === 1 ? width / 2 : (index / (points.length - 1)) * width;
-    const y = CHART_HEIGHT - (point.total / Math.max(maxValue, 1)) * (CHART_HEIGHT - MIN_LINE_TOP_PADDING);
+    const x =
+      points.length === 1 ? width / 2 : (index / (points.length - 1)) * width;
+    const y =
+      CHART_HEIGHT -
+      (point.total / Math.max(maxValue, 1)) *
+        (CHART_HEIGHT - MIN_LINE_TOP_PADDING);
 
     return { x, y, value: point.total };
   });
@@ -99,11 +115,19 @@ const TagLegendRow = memo(function TagLegendRow({
     >
       <View style={styles.legendNameWrap}>
         <View style={[styles.colorDot, { backgroundColor: item.color }]} />
-        <Text numberOfLines={1} style={[styles.label, { color: colors.text, fontSize: fontSizes.sm }]}>
+        <Text
+          numberOfLines={1}
+          style={[styles.label, { color: colors.text, fontSize: fontSizes.sm }]}
+        >
           {item.name}
         </Text>
       </View>
-      <Text style={[styles.value, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>
+      <Text
+        style={[
+          styles.value,
+          { color: colors.textSecondary, fontSize: fontSizes.xs },
+        ]}
+      >
         {item.done}/{item.total}
       </Text>
     </Pressable>
@@ -125,10 +149,19 @@ export default memo(function HorizontalBarGraph({
   const graphWidth = Math.max(1, chartWidth - Y_AXIS_WIDTH);
   const axisPoints = data.find((item) => item.points?.length)?.points ?? [];
   const maxValue = useMemo(
-    () => Math.max(1, ...data.flatMap((item) => (item.points ?? []).map((point) => point.total))),
-    [data]
+    () =>
+      Math.max(
+        1,
+        ...data.flatMap((item) =>
+          (item.points ?? []).map((point) => point.total),
+        ),
+      ),
+    [data],
   );
-  const scaleValues = useMemo(() => [maxValue, Math.round(maxValue / 2), 0], [maxValue]);
+  const scaleValues = useMemo(
+    () => [maxValue, Math.round(maxValue / 2), 0],
+    [maxValue],
+  );
 
   useEffect(() => {
     if (isLoading || data.length === 0) {
@@ -145,35 +178,56 @@ export default memo(function HorizontalBarGraph({
 
   const lineRevealStyle = useAnimatedStyle(() => ({
     opacity: lineAnimationProgress.value,
-    transform: [{ translateY: (1 - lineAnimationProgress.value) * CHART_HEIGHT }],
+    transform: [
+      { translateY: (1 - lineAnimationProgress.value) * CHART_HEIGHT },
+    ],
   }));
 
-  const chartLines = useMemo(() => data.map((item, index) => {
-    const points = getChartPoints(item.points ?? [], graphWidth, maxValue);
+  const chartLines = useMemo(
+    () =>
+      data.map((item, index) => {
+        const points = getChartPoints(item.points ?? [], graphWidth, maxValue);
 
-    return {
-      item,
-      areaPath: buildAreaPath(points, CHART_HEIGHT),
-      gradientId: `tagGradient-${item.tagId.replace(/[^a-zA-Z0-9_-]/g, "-")}-${index}`,
-      linePath: buildLinePath(points),
-      points,
-    };
-  }), [data, graphWidth, maxValue]);
+        return {
+          item,
+          areaPath: buildAreaPath(points, CHART_HEIGHT),
+          gradientId: `tagGradient-${item.tagId.replace(/[^a-zA-Z0-9_-]/g, "-")}-${index}`,
+          linePath: buildLinePath(points),
+          points,
+        };
+      }),
+    [data, graphWidth, maxValue],
+  );
 
   const handlePressTag = useCallback(async (tagId: string) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedTagId((current) => current === tagId ? null : tagId);
+    setSelectedTagId((current) => (current === tagId ? null : tagId));
   }, []);
 
   return (
-    <Squircle style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <Squircle
+      style={[
+        styles.container,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+    >
       <View style={styles.content}>
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.title, { color: colors.text, fontSize: fontSizes.base }]}>
+            <Text
+              style={[
+                styles.title,
+                { color: colors.text, fontSize: fontSizes.base },
+              ]}
+            >
               {t("stats.general.tags.title")}
             </Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>
+            <Text
+              style={[
+                styles.subtitle,
+                { color: colors.textSecondary, fontSize: fontSizes.xs },
+              ]}
+            >
               {periodLabel}
             </Text>
           </View>
@@ -188,7 +242,12 @@ export default memo(function HorizontalBarGraph({
         ) : data.length === 0 ? (
           <View style={styles.state}>
             <SymbolView name="tag" size={28} tintColor={colors.textSecondary} />
-            <Text style={[styles.emptyText, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>
+            <Text
+              style={[
+                styles.emptyText,
+                { color: colors.textSecondary, fontSize: fontSizes.sm },
+              ]}
+            >
               {t("stats.general.tags.empty")}
             </Text>
           </View>
@@ -200,32 +259,67 @@ export default memo(function HorizontalBarGraph({
                   <Text
                     key={`tag-scale-${index}`}
                     numberOfLines={1}
-                    style={[styles.yAxisLabel, { color: colors.textSecondary, fontSize: fontSizes.xs }]}
+                    style={[
+                      styles.yAxisLabel,
+                      { color: colors.textSecondary, fontSize: fontSizes.xs },
+                    ]}
                   >
                     {value}
                   </Text>
                 ))}
               </View>
 
-              <View style={[styles.gridLayer, { left: Y_AXIS_WIDTH }]} pointerEvents="none">
-                <View style={[styles.gridLine, { backgroundColor: colors.border }]} />
-                <View style={[styles.gridLine, { backgroundColor: colors.border }]} />
-                <View style={[styles.gridLine, { backgroundColor: colors.border }]} />
+              <View
+                style={[styles.gridLayer, { left: Y_AXIS_WIDTH }]}
+                pointerEvents="none"
+              >
+                <View
+                  style={[styles.gridLine, { backgroundColor: colors.border }]}
+                />
+                <View
+                  style={[styles.gridLine, { backgroundColor: colors.border }]}
+                />
+                <View
+                  style={[styles.gridLine, { backgroundColor: colors.border }]}
+                />
               </View>
 
-              <Animated.View style={[styles.chartSvg, { left: Y_AXIS_WIDTH }, lineRevealStyle]}>
+              <Animated.View
+                style={[
+                  styles.chartSvg,
+                  { left: Y_AXIS_WIDTH },
+                  lineRevealStyle,
+                ]}
+              >
                 <Svg width={graphWidth} height={CHART_HEIGHT}>
                   <Defs>
                     {chartLines.map(({ gradientId, item }) => (
-                      <SvgLinearGradient key={gradientId} id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                        <Stop offset="0" stopColor={item.color} stopOpacity="0.24" />
-                        <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0.02" />
+                      <SvgLinearGradient
+                        key={gradientId}
+                        id={gradientId}
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <Stop
+                          offset="0"
+                          stopColor={item.color}
+                          stopOpacity="0.24"
+                        />
+                        <Stop
+                          offset="1"
+                          stopColor="#FFFFFF"
+                          stopOpacity="0.02"
+                        />
                       </SvgLinearGradient>
                     ))}
                   </Defs>
 
                   {chartLines.map(({ areaPath, gradientId, item }) => {
-                    const isDimmed = Boolean(selectedTagId && selectedTagId !== item.tagId);
+                    const isDimmed = Boolean(
+                      selectedTagId && selectedTagId !== item.tagId,
+                    );
                     return areaPath.length > 0 ? (
                       <Path
                         key={`${item.tagId}-area`}
@@ -267,7 +361,12 @@ export default memo(function HorizontalBarGraph({
               </Animated.View>
             </View>
 
-            <View style={[styles.axisLabels, { marginLeft: Y_AXIS_WIDTH, width: graphWidth }]}>
+            <View
+              style={[
+                styles.axisLabels,
+                { marginLeft: Y_AXIS_WIDTH, width: graphWidth },
+              ]}
+            >
               {axisPoints.map((point, index) => {
                 return (
                   <View
@@ -302,7 +401,9 @@ export default memo(function HorizontalBarGraph({
                   key={item.tagId}
                   item={item}
                   isSelected={selectedTagId === item.tagId}
-                  isDimmed={Boolean(selectedTagId && selectedTagId !== item.tagId)}
+                  isDimmed={Boolean(
+                    selectedTagId && selectedTagId !== item.tagId,
+                  )}
                   onPress={() => handlePressTag(item.tagId)}
                 />
               ))}

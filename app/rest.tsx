@@ -1,358 +1,433 @@
-import PopUpContainer from '@/components/popUpContainer';
-import { useAuthUserId } from '@/lib/AuthSessionContext';
-import { getCharacterImageSource } from '@/lib/imageHelper';
-import { patchProfileCache } from '@/lib/profile';
-import { supabase } from '@/lib/supabase';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { Dimensions, Image, Keyboard, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import DateInput from '../components/dateInput';
-import PrimaryButton from '../components/primaryButton';
-import { useFont } from '../lib/FontContext';
-import { useAppTranslation } from '../lib/i18n';
-import { useTheme } from '../lib/ThemeContext';
+import PopUpContainer from "@/components/popUpContainer";
+import { useAuthUserId } from "@/lib/AuthSessionContext";
+import { getCharacterImageSource } from "@/lib/imageHelper";
+import { patchProfileCache } from "@/lib/profile";
+import { supabase } from "@/lib/supabase";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
+import React from "react";
+import {
+  Dimensions,
+  Image,
+  Keyboard,
+  StyleSheet,
+  Text,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
+import DateInput from "../components/dateInput";
+import PrimaryButton from "../components/primaryButton";
+import { useFont } from "../lib/FontContext";
+import { useAppTranslation } from "../lib/i18n";
+import { useTheme } from "../lib/ThemeContext";
 import { logger } from "@/lib/logger";
 
-const { width: screenWidth } = Dimensions.get('window');
+const { width: screenWidth } = Dimensions.get("window");
 
 export default function RestScreen() {
-    const { colors, actualTheme } = useTheme();
-    const { fontSizes } = useFont();
-    const { t, language } = useAppTranslation();
-    const router = useRouter();
-    const queryClient = useQueryClient();
-    const userId = useAuthUserId();
-    const [showCancelModal, setShowCancelModal] = React.useState(false);
-    const [, setRestEndDate] = React.useState<Date | null>(null);
-    const [selectedDate, setSelectedDate] = React.useState(new Date());
-    const fetchRestEndDate = async () => {
-        try {
-            if (!userId) {
-                return '';
-            }
+  const { colors, actualTheme } = useTheme();
+  const { fontSizes } = useFont();
+  const { t, language } = useAppTranslation();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const [showCancelModal, setShowCancelModal] = React.useState(false);
+  const [, setRestEndDate] = React.useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = React.useState(new Date());
+  const fetchRestEndDate = async () => {
+    try {
+      if (!userId) {
+        return "";
+      }
 
-            const { data, error } = await supabase
-                .from("Profiles")
-                .select("restEndDate")
-                .eq("id", userId)
-                .single();
+      const { data, error } = await supabase
+        .from("Profiles")
+        .select("restEndDate")
+        .eq("id", userId)
+        .single();
 
-            if (error) {
-                throw error;
-            }
+      if (error) {
+        throw error;
+      }
 
-            const fetchedDate = data?.restEndDate ? new Date(data.restEndDate) : null;
+      const fetchedDate = data?.restEndDate ? new Date(data.restEndDate) : null;
 
-            setRestEndDate(fetchedDate);
-            setSelectedDate(fetchedDate ? fetchedDate : new Date());
+      setRestEndDate(fetchedDate);
+      setSelectedDate(fetchedDate ? fetchedDate : new Date());
 
-            // On retourne la date formatée pour useQuery
-            return fetchedDate ? fetchedDate.toLocaleDateString(language === "en" ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'long' }) : '';
-        }
-        catch (error) {
-            logger.error('Erreur lors de la récupération de la date:', error);
-            return '';
-        }
+      // On retourne la date formatée pour useQuery
+      return fetchedDate
+        ? fetchedDate.toLocaleDateString(
+            language === "en" ? "en-US" : "fr-FR",
+            { day: "numeric", month: "long" },
+          )
+        : "";
+    } catch (error) {
+      logger.error("Erreur lors de la récupération de la date:", error);
+      return "";
     }
+  };
 
-    const restEndDateQuery = useQuery({
-        queryKey: ['restEndDate', userId],
-        queryFn: fetchRestEndDate,
-        enabled: !!userId,
-        gcTime: 1000 * 60 * 5,
-        staleTime: 1000 * 60 * 2,
-    });
+  const restEndDateQuery = useQuery({
+    queryKey: ["restEndDate", userId],
+    queryFn: fetchRestEndDate,
+    enabled: !!userId,
+    gcTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
+  });
 
-    const step1X = useSharedValue(0);
-    const step2X = useSharedValue(screenWidth);
+  const step1X = useSharedValue(0);
+  const step2X = useSharedValue(screenWidth);
 
-    const handleUnlock = async () => {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        setShowCancelModal(true);
-    };
+  const handleUnlock = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setShowCancelModal(true);
+  };
 
-    const goToStep2 = async () => {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        step1X.value = withSpring(-screenWidth);
-        step2X.value = withSpring(0);
-    };
+  const goToStep2 = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    step1X.value = withSpring(-screenWidth);
+    step2X.value = withSpring(0);
+  };
 
-    const goBackToStep1 = async () => {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        step1X.value = withSpring(0);
-        step2X.value = withSpring(screenWidth);
-    };
+  const goBackToStep1 = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    step1X.value = withSpring(0);
+    step2X.value = withSpring(screenWidth);
+  };
 
-    const step1Style = useAnimatedStyle(() => ({ transform: [{ translateX: step1X.value }] }));
-    const step2Style = useAnimatedStyle(() => ({ transform: [{ translateX: step2X.value }] }));
+  const step1Style = useAnimatedStyle(() => ({
+    transform: [{ translateX: step1X.value }],
+  }));
+  const step2Style = useAnimatedStyle(() => ({
+    transform: [{ translateX: step2X.value }],
+  }));
 
-    return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-            {/* STEP 1 */}
-            <Animated.View style={[styles.screen, step1Style]}>
-                <View style={styles.content}>
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* STEP 1 */}
+      <Animated.View style={[styles.screen, step1Style]}>
+        <View style={styles.content}>
+          {/* Header Titles */}
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {t("rest.title1")}
+            </Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              {t("rest.subtitle1")}
+            </Text>
+          </View>
 
-                    {/* Header Titles */}
-                    <View style={styles.header}>
-                        <Text style={[styles.title, { color: colors.text }]}>{t("rest.title1")}</Text>
-                        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t("rest.subtitle1")}</Text>
-                    </View>
+          {/* Illustration */}
+          <View style={styles.imageContainer}>
+            <Image
+              source={getCharacterImageSource("19", actualTheme)}
+              style={styles.image}
+              resizeMode="contain"
+            />
+          </View>
 
-                    {/* Illustration */}
-                    <View style={styles.imageContainer}>
-                        <Image
-                            source={getCharacterImageSource('19', actualTheme)}
-                            style={styles.image}
-                            resizeMode="contain"
-                        />
-                    </View>
+          {/* Description paragraphs */}
+          <View style={styles.textContainer}>
+            <Text style={[styles.description, { color: colors.textSecondary }]}>
+              {t("rest.description")}
+            </Text>
+          </View>
 
-                    {/* Description paragraphs */}
-                    <View style={styles.textContainer}>
-                        <Text style={[styles.description, { color: colors.textSecondary }]}>
-                            {t("rest.description")}
-                        </Text>
-                    </View>
+          {/* Bottom section with buttons */}
+          <View style={styles.bottomContainer}>
+            <Text style={[styles.untilText, { color: colors.textSecondary }]}>
+              {t("rest.until", { date: restEndDateQuery.data })}
+            </Text>
 
-                    {/* Bottom section with buttons */}
-                    <View style={styles.bottomContainer}>
-                        <Text style={[styles.untilText, { color: colors.textSecondary }]}>
-                            {t("rest.until", { date: restEndDateQuery.data })}
-                        </Text>
-
-                        <View style={styles.buttonsWrapper}>
-                            <PrimaryButton
-                                title={t("common.actions.unlock")}
-                                onPress={handleUnlock}
-                            />
-                            <View style={{ height: 12 }} />
-                            <View style={{ width: '90%', alignSelf: 'center' }}>
-                                <PrimaryButton
-                                    title={t("common.actions.extend")}
-                                    type="reverse"
-                                    onPress={goToStep2}
-                                />
-                            </View>
-                        </View>
-                    </View>
-
-                </View>
-            </Animated.View>
-
-            {/* STEP 2 */}
-            <Animated.View style={[styles.screen, step2Style]}>
-                <View style={styles.content}>
-
-                    {/* Header Titles */}
-                    <View style={styles.header}>
-                        <Text style={[styles.title, { color: colors.text }]}>{t("rest.extendTitle")}</Text>
-                        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t("rest.extendSubtitle")}</Text>
-                    </View>
-
-                    {/* Input Field */}
-                    <View style={{ width: '100%', alignItems: 'flex-start', paddingHorizontal: 20 }}>
-                        <Text style={{ fontFamily: 'Satoshi-Medium', fontSize: 18, color: colors.text, marginBottom: 8 }}>
-                            {t("rest.endDate")}
-                        </Text>
-                        <View style={{ width: '100%', height: 60 }}>
-                            <DateInput
-                                value={selectedDate}
-                                onChange={setSelectedDate}
-                            />
-                        </View>
-                    </View>
-
-                    {/* Bottom section with buttons */}
-                    <View style={styles.bottomContainer}>
-                        <View style={styles.buttonsWrapper}>
-                            <PrimaryButton
-                                title={t("common.actions.validate")}
-                                onPress={async () => {
-                                    try {
-                                        if (userId) {
-                                            const { error } = await supabase
-                                                .from('Profiles')
-                                                .update({ restEndDate: selectedDate })
-                                                .eq('id', userId);
-
-                                            if (error) {
-                                                logger.error("Erreur lors de la mise à jour de hasDoneDaily:", error);
-                                            } else {
-                                                patchProfileCache(queryClient, userId, { restEndDate: selectedDate.toISOString() });
-                                            }
-                                        }
-                                    } catch (error) {
-                                        logger.error(error);
-                                    } finally {
-                                        restEndDateQuery.refetch();
-                                        goBackToStep1();
-                                    }
-                                }}
-                            />
-                            <View style={{ height: 12 }} />
-                            <View style={{ width: '90%', alignSelf: 'center' }}>
-                                <PrimaryButton
-                                    title={t("common.actions.cancel")}
-                                    type="reverse"
-                                    onPress={async () => {
-                                        goBackToStep1();
-                                    }}
-                                />
-                            </View>
-                        </View>
-                    </View>
-
-                </View>
-            </Animated.View>
-
-            <PopUpContainer
-                isVisible={showCancelModal}
-                onClose={() => setShowCancelModal(false)}
-            >
-                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <View style={{ overflow: 'hidden', height: 420, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-
-                        <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%' }}>
-                            <Image
-                                source={getCharacterImageSource('18', actualTheme)}
-                                style={{ width: 120, height: 120 }}
-                                resizeMode="contain"
-                            />
-                            <Text style={{ fontFamily: 'Satoshi-Regular', color: colors.text, fontSize: fontSizes['3xl'], textAlign: 'center' }}>
-                                {t("rest.cancelModalTitle")}
-                            </Text>
-
-                            <Text
-                                style={{ fontFamily: 'Satoshi-Regular', color: colors.textSecondary, fontSize: fontSizes.lg, textAlign: 'center' }}
-                            >
-                                {t("rest.cancelModalDescription")}
-                            </Text>
-
-                        </View>
-
-                        <View
-                            style={{
-                                width: '80%',
-                                alignSelf: 'center',
-                                gap: 8,
-                            }}
-                        >
-
-                            <PrimaryButton
-                                title={t("common.actions.confirm")}
-                                onPress={async () => {
-                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                                    try {
-                                        if (userId) {
-                                            const { error } = await supabase
-                                                .from('Profiles')
-                                                .update({ restEndDate: null, restMode: false })
-                                                .eq('id', userId);
-
-                                            if (error) {
-                                                logger.error("Erreur lors de l'annulation du mode repos:", error);
-                                            } else {
-                                                patchProfileCache(queryClient, userId, { restEndDate: null, restMode: false });
-                                            }
-                                        }
-                                    } catch (error) {
-                                        logger.error(error);
-                                    } finally {
-                                        restEndDateQuery.refetch();
-                                        if (router.canGoBack()) {
-                                            router.back();
-                                        } else {
-                                            router.replace('/');
-                                        }
-                                    }
-                                }}
-                            />
-                            <View
-                                style={{
-                                    width: '80%',
-                                    alignSelf: 'center',
-                                }}
-                            >
-                                <PrimaryButton title={t("common.actions.cancel")} type="reverse" onPress={() => setShowCancelModal(false)} />
-                            </View>
-                        </View>
-                    </View>
-                </TouchableWithoutFeedback>
-            </PopUpContainer>
+            <View style={styles.buttonsWrapper}>
+              <PrimaryButton
+                title={t("common.actions.unlock")}
+                onPress={handleUnlock}
+              />
+              <View style={{ height: 12 }} />
+              <View style={{ width: "90%", alignSelf: "center" }}>
+                <PrimaryButton
+                  title={t("common.actions.extend")}
+                  type="reverse"
+                  onPress={goToStep2}
+                />
+              </View>
+            </View>
+          </View>
         </View>
-    );
+      </Animated.View>
+
+      {/* STEP 2 */}
+      <Animated.View style={[styles.screen, step2Style]}>
+        <View style={styles.content}>
+          {/* Header Titles */}
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {t("rest.extendTitle")}
+            </Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              {t("rest.extendSubtitle")}
+            </Text>
+          </View>
+
+          {/* Input Field */}
+          <View
+            style={{
+              width: "100%",
+              alignItems: "flex-start",
+              paddingHorizontal: 20,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "Satoshi-Medium",
+                fontSize: 18,
+                color: colors.text,
+                marginBottom: 8,
+              }}
+            >
+              {t("rest.endDate")}
+            </Text>
+            <View style={{ width: "100%", height: 60 }}>
+              <DateInput value={selectedDate} onChange={setSelectedDate} />
+            </View>
+          </View>
+
+          {/* Bottom section with buttons */}
+          <View style={styles.bottomContainer}>
+            <View style={styles.buttonsWrapper}>
+              <PrimaryButton
+                title={t("common.actions.validate")}
+                onPress={async () => {
+                  try {
+                    if (userId) {
+                      const { error } = await supabase
+                        .from("Profiles")
+                        .update({ restEndDate: selectedDate })
+                        .eq("id", userId);
+
+                      if (error) {
+                        logger.error(
+                          "Erreur lors de la mise à jour de hasDoneDaily:",
+                          error,
+                        );
+                      } else {
+                        patchProfileCache(queryClient, userId, {
+                          restEndDate: selectedDate.toISOString(),
+                        });
+                      }
+                    }
+                  } catch (error) {
+                    logger.error(error);
+                  } finally {
+                    restEndDateQuery.refetch();
+                    goBackToStep1();
+                  }
+                }}
+              />
+              <View style={{ height: 12 }} />
+              <View style={{ width: "90%", alignSelf: "center" }}>
+                <PrimaryButton
+                  title={t("common.actions.cancel")}
+                  type="reverse"
+                  onPress={async () => {
+                    goBackToStep1();
+                  }}
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+      </Animated.View>
+
+      <PopUpContainer
+        isVisible={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View
+            style={{
+              overflow: "hidden",
+              height: 420,
+              width: "100%",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+            }}
+          >
+            <View
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 12,
+                width: "100%",
+              }}
+            >
+              <Image
+                source={getCharacterImageSource("18", actualTheme)}
+                style={{ width: 120, height: 120 }}
+                resizeMode="contain"
+              />
+              <Text
+                style={{
+                  fontFamily: "Satoshi-Regular",
+                  color: colors.text,
+                  fontSize: fontSizes["3xl"],
+                  textAlign: "center",
+                }}
+              >
+                {t("rest.cancelModalTitle")}
+              </Text>
+
+              <Text
+                style={{
+                  fontFamily: "Satoshi-Regular",
+                  color: colors.textSecondary,
+                  fontSize: fontSizes.lg,
+                  textAlign: "center",
+                }}
+              >
+                {t("rest.cancelModalDescription")}
+              </Text>
+            </View>
+
+            <View
+              style={{
+                width: "80%",
+                alignSelf: "center",
+                gap: 8,
+              }}
+            >
+              <PrimaryButton
+                title={t("common.actions.confirm")}
+                onPress={async () => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  try {
+                    if (userId) {
+                      const { error } = await supabase
+                        .from("Profiles")
+                        .update({ restEndDate: null, restMode: false })
+                        .eq("id", userId);
+
+                      if (error) {
+                        logger.error(
+                          "Erreur lors de l'annulation du mode repos:",
+                          error,
+                        );
+                      } else {
+                        patchProfileCache(queryClient, userId, {
+                          restEndDate: null,
+                          restMode: false,
+                        });
+                      }
+                    }
+                  } catch (error) {
+                    logger.error(error);
+                  } finally {
+                    restEndDateQuery.refetch();
+                    if (router.canGoBack()) {
+                      router.back();
+                    } else {
+                      router.replace("/");
+                    }
+                  }
+                }}
+              />
+              <View
+                style={{
+                  width: "80%",
+                  alignSelf: "center",
+                }}
+              >
+                <PrimaryButton
+                  title={t("common.actions.cancel")}
+                  type="reverse"
+                  onPress={() => setShowCancelModal(false)}
+                />
+              </View>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </PopUpContainer>
+    </View>
+  );
 }
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    screen: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: screenWidth,
-        height: '100%',
-    },
-    content: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 60,
-        paddingHorizontal: 24,
-    },
-    header: {
-        alignItems: 'center',
-        marginTop: 20,
-    },
-    title: {
-        fontFamily: 'Satoshi-Bold',
-        fontSize: 48,
-    },
-    subtitle: {
-        fontFamily: 'Satoshi-Regular',
-        fontSize: 28,
-        marginTop: -4,
-    },
-    imageContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginVertical: 20,
-    },
-    image: {
-        width: width * 0.6,
-        height: width * 0.6,
-    },
-    textContainer: {
-        alignItems: 'center',
-        paddingHorizontal: 20,
-    },
-    description: {
-        fontFamily: 'Satoshi-Regular',
-        fontSize: 22,
-        textAlign: 'center',
-        lineHeight: 32,
-    },
-    boldText: {
-        fontFamily: 'Satoshi-Bold',
-    },
-    bottomContainer: {
-        width: '100%',
-        alignItems: 'center',
-        marginTop: 40,
-    },
-    untilText: {
-        fontFamily: 'Satoshi-Regular',
-        fontSize: 16,
-        marginBottom: 20,
-    },
-    buttonsWrapper: {
-        width: '100%',
-        alignItems: 'center',
-    },
+  container: {
+    flex: 1,
+  },
+  screen: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: screenWidth,
+    height: "100%",
+  },
+  content: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 60,
+    paddingHorizontal: 24,
+  },
+  header: {
+    alignItems: "center",
+    marginTop: 20,
+  },
+  title: {
+    fontFamily: "Satoshi-Bold",
+    fontSize: 48,
+  },
+  subtitle: {
+    fontFamily: "Satoshi-Regular",
+    fontSize: 28,
+    marginTop: -4,
+  },
+  imageContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 20,
+  },
+  image: {
+    width: width * 0.6,
+    height: width * 0.6,
+  },
+  textContainer: {
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  description: {
+    fontFamily: "Satoshi-Regular",
+    fontSize: 22,
+    textAlign: "center",
+    lineHeight: 32,
+  },
+  boldText: {
+    fontFamily: "Satoshi-Bold",
+  },
+  bottomContainer: {
+    width: "100%",
+    alignItems: "center",
+    marginTop: 40,
+  },
+  untilText: {
+    fontFamily: "Satoshi-Regular",
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  buttonsWrapper: {
+    width: "100%",
+    alignItems: "center",
+  },
 });

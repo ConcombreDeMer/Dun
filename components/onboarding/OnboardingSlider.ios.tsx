@@ -18,7 +18,10 @@ export default function OnboardingSlider({
 }: OnboardingSliderProps) {
   const lastHapticIndexRef = useRef(selectedIndex);
   const [sliderValue, setSliderValue] = useState(selectedIndex);
-  const displayIndex = Math.max(0, Math.min(options.length - 1, Math.round(sliderValue)));
+  const displayIndex = Math.max(
+    0,
+    Math.min(options.length - 1, Math.round(sliderValue)),
+  );
 
   useEffect(() => {
     setSliderValue(selectedIndex);
@@ -26,7 +29,10 @@ export default function OnboardingSlider({
   }, [selectedIndex]);
 
   const handleValueChange = (value: number) => {
-    const nextIndex = Math.max(0, Math.min(options.length - 1, Math.round(value)));
+    const nextIndex = Math.max(
+      0,
+      Math.min(options.length - 1, Math.round(value)),
+    );
     setSliderValue(value);
 
     if (nextIndex !== lastHapticIndexRef.current) {
@@ -42,10 +48,16 @@ export default function OnboardingSlider({
         <Slider
           max={options.length - 1}
           min={0}
-          modifiers={[tint("#050505"), animation(Animation.easeOut({ duration: 0.22 }), sliderValue)]}
+          modifiers={[
+            tint("#050505"),
+            animation(Animation.easeOut({ duration: 0.22 }), sliderValue),
+          ]}
           onEditingChanged={(isEditing) => {
             if (!isEditing) {
-              const nextIndex = Math.max(0, Math.min(options.length - 1, Math.round(sliderValue)));
+              const nextIndex = Math.max(
+                0,
+                Math.min(options.length - 1, Math.round(sliderValue)),
+              );
               setSliderValue(nextIndex);
               if (nextIndex !== selectedIndex) {
                 onChange(nextIndex);
