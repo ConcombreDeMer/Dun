@@ -65,7 +65,7 @@ export const isRestDay = (day: StatsDay) => {
     day.rest ||
     day.rest_day ||
     status === "rest" ||
-    status === "repos"
+    status === "repos",
   );
 };
 
@@ -79,7 +79,7 @@ export const isEmptyDay = (day: StatsDay) => {
 export const shouldIncludeStatsDay = (
   day: StatsDay,
   preferences: StatsPreferences = DEFAULT_STATS_PREFERENCES,
-  today: Date = new Date()
+  today: Date = new Date(),
 ) => {
   const dayDate = normalizeDate(new Date(day.date));
   const todayDate = normalizeDate(today);
@@ -88,7 +88,10 @@ export const shouldIncludeStatsDay = (
     return false;
   }
 
-  if (!preferences.includeFutureDays && dayDate.getTime() > todayDate.getTime()) {
+  if (
+    !preferences.includeFutureDays &&
+    dayDate.getTime() > todayDate.getTime()
+  ) {
     return false;
   }
 
@@ -106,13 +109,13 @@ export const shouldIncludeStatsDay = (
 export const filterStatsDays = (
   days: StatsDay[],
   preferences: StatsPreferences = DEFAULT_STATS_PREFERENCES,
-  today: Date = new Date()
+  today: Date = new Date(),
 ) => days.filter((day) => shouldIncludeStatsDay(day, preferences, today));
 
 export const calculateStats = (
   days: StatsDay[],
   preferences: StatsPreferences = DEFAULT_STATS_PREFERENCES,
-  today: Date = new Date()
+  today: Date = new Date(),
 ): CalculatedStats => {
   const includedDays = filterStatsDays(days, preferences, today);
 
@@ -126,7 +129,10 @@ export const calculateStats = (
     const done = Math.min(Math.max(day.done_count || 0, 0), total);
 
     totalDoneCount += done;
-    lateAdjustedTasksCount += Math.min(Math.max(day.late_adjusted_count || 0, 0), total);
+    lateAdjustedTasksCount += Math.min(
+      Math.max(day.late_adjusted_count || 0, 0),
+      total,
+    );
     totalTasks += total;
 
     if (total > 0 && done === total) {
@@ -134,11 +140,16 @@ export const calculateStats = (
     }
   }
 
-  const averageCharge = includedDays.length > 0
-    ? Math.round((totalTasks / includedDays.length) * 10) / 10
-    : 0;
-  const completionValue = totalTasks > 0 ? Math.round((totalDoneCount / totalTasks) * 100) : 0;
-  const lateAdjustmentValue = totalTasks > 0 ? Math.round((lateAdjustedTasksCount / totalTasks) * 100) : 0;
+  const averageCharge =
+    includedDays.length > 0
+      ? Math.round((totalTasks / includedDays.length) * 10) / 10
+      : 0;
+  const completionValue =
+    totalTasks > 0 ? Math.round((totalDoneCount / totalTasks) * 100) : 0;
+  const lateAdjustmentValue =
+    totalTasks > 0
+      ? Math.round((lateAdjustedTasksCount / totalTasks) * 100)
+      : 0;
 
   return {
     totalDoneCount,
@@ -165,14 +176,16 @@ export const buildDaysMap = (days: StatsDay[]) => {
 export const buildDaysBetween = (
   startDate: Date,
   endDate: Date,
-  daysMap: Map<string, StatsDay>
+  daysMap: Map<string, StatsDay>,
 ) => {
   const days: StatsDay[] = [];
 
   for (
     let cursor = normalizeDate(startDate);
     cursor <= normalizeDate(endDate);
-    cursor = normalizeDate(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1))
+    cursor = normalizeDate(
+      new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1),
+    )
   ) {
     days.push(daysMap.get(toDateKey(cursor)) || createEmptyStatsDay(cursor));
   }
@@ -180,7 +193,10 @@ export const buildDaysBetween = (
   return days;
 };
 
-export const getGlobalStatsDays = (days: StatsDay[], today: Date = new Date()) => {
+export const getGlobalStatsDays = (
+  days: StatsDay[],
+  today: Date = new Date(),
+) => {
   if (days.length === 0) return [];
 
   const daysMap = buildDaysMap(days);

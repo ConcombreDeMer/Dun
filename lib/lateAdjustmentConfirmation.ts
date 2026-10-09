@@ -1,6 +1,7 @@
 import { Alert } from "react-native";
 
-export const LATE_ADJUSTMENT_CONFIRMATION_CANCELLED = "LATE_ADJUSTMENT_CONFIRMATION_CANCELLED";
+export const LATE_ADJUSTMENT_CONFIRMATION_CANCELLED =
+  "LATE_ADJUSTMENT_CONFIRMATION_CANCELLED";
 
 export type LateAdjustmentCandidate = {
   late_adjusted_at?: string | null;
@@ -9,9 +10,11 @@ export type LateAdjustmentCandidate = {
 
 export const needsLateAdjustmentConfirmation = (
   task?: LateAdjustmentCandidate | null,
-  lockPastDaysEnabled = true
+  lockPastDaysEnabled = true,
 ) => {
-  return Boolean(lockPastDaysEnabled && task?.resolved_at && !task.late_adjusted_at);
+  return Boolean(
+    lockPastDaysEnabled && task?.resolved_at && !task.late_adjusted_at,
+  );
 };
 
 export const createLateAdjustmentCancelledError = () => {
@@ -19,7 +22,10 @@ export const createLateAdjustmentCancelledError = () => {
 };
 
 export const isLateAdjustmentConfirmationCancelled = (error: unknown) => {
-  return error instanceof Error && error.message === LATE_ADJUSTMENT_CONFIRMATION_CANCELLED;
+  return (
+    error instanceof Error &&
+    error.message === LATE_ADJUSTMENT_CONFIRMATION_CANCELLED
+  );
 };
 
 export const confirmLateAdjustment = (t: (key: string) => string) => {
@@ -37,7 +43,7 @@ export const confirmLateAdjustment = (t: (key: string) => string) => {
           text: t("task.lateAdjustmentAlert.continue"),
           onPress: () => resolve(true),
         },
-      ]
+      ],
     );
   });
 };

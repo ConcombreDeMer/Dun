@@ -1,370 +1,450 @@
-import { useTheme } from '@/lib/ThemeContext';
-import { useAppTranslation } from '@/lib/i18n';
-import { getStatsImageSource } from '@/lib/imageHelper';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTheme } from "@/lib/ThemeContext";
+import { useAppTranslation } from "@/lib/i18n";
+import { getStatsImageSource } from "@/lib/imageHelper";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const mixHexColors = (from: string, to: string, amount: number) => {
-    const parseHex = (hex: string) => {
-        const cleanHex = hex.replace('#', '').slice(0, 6);
-        const value = parseInt(cleanHex, 16);
+  const parseHex = (hex: string) => {
+    const cleanHex = hex.replace("#", "").slice(0, 6);
+    const value = parseInt(cleanHex, 16);
 
-        return {
-            r: (value >> 16) & 255,
-            g: (value >> 8) & 255,
-            b: value & 255,
-        };
+    return {
+      r: (value >> 16) & 255,
+      g: (value >> 8) & 255,
+      b: value & 255,
     };
+  };
 
-    const fromRgb = parseHex(from);
-    const toRgb = parseHex(to);
-    const mixed = {
-        r: Math.round(fromRgb.r + (toRgb.r - fromRgb.r) * amount),
-        g: Math.round(fromRgb.g + (toRgb.g - fromRgb.g) * amount),
-        b: Math.round(fromRgb.b + (toRgb.b - fromRgb.b) * amount),
-    };
+  const fromRgb = parseHex(from);
+  const toRgb = parseHex(to);
+  const mixed = {
+    r: Math.round(fromRgb.r + (toRgb.r - fromRgb.r) * amount),
+    g: Math.round(fromRgb.g + (toRgb.g - fromRgb.g) * amount),
+    b: Math.round(fromRgb.b + (toRgb.b - fromRgb.b) * amount),
+  };
 
-    return `#${mixed.r.toString(16).padStart(2, '0')}${mixed.g.toString(16).padStart(2, '0')}${mixed.b.toString(16).padStart(2, '0')}`;
+  return `#${mixed.r.toString(16).padStart(2, "0")}${mixed.g.toString(16).padStart(2, "0")}${mixed.b.toString(16).padStart(2, "0")}`;
 };
 
 export default function CompletionExplain() {
-    const { colors, actualTheme } = useTheme();
-    const { t } = useAppTranslation();
-    const bullets = t('stats.completionExplain.bullets', { returnObjects: true }) as string[];
-    const levels = t('stats.completionExplain.levels', { returnObjects: true }) as { range: string; description: string }[];
-    const meanings = t('stats.completionExplain.meanings', { returnObjects: true }) as { emoji: string; title: string; description: string }[];
-    const exampleLines = t('stats.completionExplain.exampleLines', { returnObjects: true }) as string[];
-    const tips = t('stats.completionExplain.tips', { returnObjects: true }) as { title: string; description: string }[];
+  const { colors, actualTheme } = useTheme();
+  const { t } = useAppTranslation();
+  const bullets = t("stats.completionExplain.bullets", {
+    returnObjects: true,
+  }) as string[];
+  const levels = t("stats.completionExplain.levels", {
+    returnObjects: true,
+  }) as { range: string; description: string }[];
+  const meanings = t("stats.completionExplain.meanings", {
+    returnObjects: true,
+  }) as { emoji: string; title: string; description: string }[];
+  const exampleLines = t("stats.completionExplain.exampleLines", {
+    returnObjects: true,
+  }) as string[];
+  const tips = t("stats.completionExplain.tips", { returnObjects: true }) as {
+    title: string;
+    description: string;
+  }[];
 
-    const dynamicStyles = {
-        container: {
-            backgroundColor: colors.card,
-        },
-        header: {
-            backgroundColor: colors.card,
-        },
-        card: {
-            backgroundColor: mixHexColors(colors.background, colors.card, 0.45),
-            borderColor: colors.border,
-        },
-        text: {
-            color: colors.text,
-        },
-        textSecondary: {
-            color: mixHexColors(colors.textSecondary, colors.text, 0.45),
-        },
-        surface: {
-            backgroundColor: mixHexColors(colors.background, colors.card, 0.32),
-        },
-        bullet: {
-            borderColor: colors.border,
-        },
-        handler: {
-            backgroundColor: colors.border,
-        },
-        divider: {
-            borderTopColor: colors.border,
-        },
-    };
+  const dynamicStyles = {
+    container: {
+      backgroundColor: colors.card,
+    },
+    header: {
+      backgroundColor: colors.card,
+    },
+    card: {
+      backgroundColor: mixHexColors(colors.background, colors.card, 0.45),
+      borderColor: colors.border,
+    },
+    text: {
+      color: colors.text,
+    },
+    textSecondary: {
+      color: mixHexColors(colors.textSecondary, colors.text, 0.45),
+    },
+    surface: {
+      backgroundColor: mixHexColors(colors.background, colors.card, 0.32),
+    },
+    bullet: {
+      borderColor: colors.border,
+    },
+    handler: {
+      backgroundColor: colors.border,
+    },
+    divider: {
+      borderTopColor: colors.border,
+    },
+  };
 
-    return (
-        <ScrollView style={[styles.container, dynamicStyles.container]}>
-            {/* Header */}
-            <View style={[styles.header, dynamicStyles.header]}>
-                <View style={[styles.handler, dynamicStyles.handler]} />
-                
-                <View style={styles.headerContent}>
-                    <Image
-                        source={getStatsImageSource('completion', actualTheme)}
-                        style={styles.headerImage}
-                    />
-                    <Text style={[styles.title, dynamicStyles.text]}>{t('stats.completionExplain.title')}</Text>
-                </View>
+  return (
+    <ScrollView style={[styles.container, dynamicStyles.container]}>
+      {/* Header */}
+      <View style={[styles.header, dynamicStyles.header]}>
+        <View style={[styles.handler, dynamicStyles.handler]} />
+
+        <View style={styles.headerContent}>
+          <Image
+            source={getStatsImageSource("completion", actualTheme)}
+            style={styles.headerImage}
+          />
+          <Text style={[styles.title, dynamicStyles.text]}>
+            {t("stats.completionExplain.title")}
+          </Text>
+        </View>
+      </View>
+
+      {/* Definition Card */}
+      <View style={[styles.card, dynamicStyles.card]}>
+        <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+          {t("stats.completionExplain.definitionTitle")}
+        </Text>
+        <Text style={[styles.description, dynamicStyles.textSecondary]}>
+          {t("stats.completionExplain.definition")}
+        </Text>
+      </View>
+
+      {/* How it's calculated */}
+      <View style={[styles.card, dynamicStyles.card]}>
+        <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+          {t("stats.completionExplain.howTitle")}
+        </Text>
+        {bullets.map((bullet) => (
+          <View style={styles.bulletPoint} key={bullet}>
+            <View style={[styles.bulletDot, dynamicStyles.bullet]} />
+            <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>
+              {bullet}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Interpretation Levels */}
+      <View style={[styles.card, dynamicStyles.card]}>
+        <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+          {t("stats.completionExplain.interpretationTitle")}
+        </Text>
+
+        {levels.map((level, index) => (
+          <View
+            style={[styles.levelBox, dynamicStyles.surface]}
+            key={level.range}
+          >
+            <View
+              style={[
+                styles.levelDot,
+                {
+                  backgroundColor: [
+                    "#FF4C4C",
+                    "#ffcd6fff",
+                    "#74ca77ff",
+                    "#00CC00",
+                  ][index],
+                },
+              ]}
+            />
+            <View style={styles.levelContent}>
+              <Text style={[styles.levelTitle, dynamicStyles.text]}>
+                {level.range}
+              </Text>
+              <Text
+                style={[styles.levelDescription, dynamicStyles.textSecondary]}
+              >
+                {level.description}
+              </Text>
             </View>
+          </View>
+        ))}
+      </View>
 
-            {/* Definition Card */}
-            <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.completionExplain.definitionTitle')}</Text>
-                <Text style={[styles.description, dynamicStyles.textSecondary]}>{t('stats.completionExplain.definition')}</Text>
+      {/* What it means */}
+      <View style={[styles.card, dynamicStyles.card]}>
+        <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+          {t("stats.completionExplain.meaningTitle")}
+        </Text>
+
+        {meanings.map((meaning) => (
+          <View
+            style={[styles.meaningBox, dynamicStyles.surface]}
+            key={meaning.title}
+          >
+            <Text style={[styles.meaningNumber, dynamicStyles.text]}>
+              {meaning.emoji}
+            </Text>
+            <View style={styles.meaningContent}>
+              <Text style={[styles.meaningTitle, dynamicStyles.text]}>
+                {meaning.title}
+              </Text>
+              <Text
+                style={[styles.meaningDescription, dynamicStyles.textSecondary]}
+              >
+                {meaning.description}
+              </Text>
             </View>
+          </View>
+        ))}
+      </View>
 
-            {/* How it's calculated */}
-            <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.completionExplain.howTitle')}</Text>
-                {bullets.map((bullet) => (
-                    <View style={styles.bulletPoint} key={bullet}>
-                        <View style={[styles.bulletDot, dynamicStyles.bullet]} />
-                        <Text style={[styles.bulletText, dynamicStyles.textSecondary]}>{bullet}</Text>
-                    </View>
-                ))}
-            </View>
+      {/* Example */}
+      <View style={[styles.card, dynamicStyles.card]}>
+        <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+          {t("stats.completionExplain.exampleTitle")}
+        </Text>
 
-            {/* Interpretation Levels */}
-            <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.completionExplain.interpretationTitle')}</Text>
+        <Text style={[styles.exampleSubtitle, dynamicStyles.text]}>
+          {t("stats.completionExplain.exampleSubtitle")}
+        </Text>
+        <View style={[styles.exampleBox, dynamicStyles.surface]}>
+          {exampleLines.map((line, index) => (
+            <Text
+              key={line}
+              style={
+                index === exampleLines.length - 1
+                  ? [
+                      styles.exampleResult,
+                      dynamicStyles.text,
+                      dynamicStyles.divider,
+                    ]
+                  : [styles.exampleLabel, dynamicStyles.textSecondary]
+              }
+            >
+              {line}
+            </Text>
+          ))}
+        </View>
+      </View>
 
-                {levels.map((level, index) => (
-                    <View style={[styles.levelBox, dynamicStyles.surface]} key={level.range}>
-                        <View style={[styles.levelDot, { backgroundColor: ['#FF4C4C', '#ffcd6fff', '#74ca77ff', '#00CC00'][index] }]} />
-                        <View style={styles.levelContent}>
-                            <Text style={[styles.levelTitle, dynamicStyles.text]}>{level.range}</Text>
-                            <Text style={[styles.levelDescription, dynamicStyles.textSecondary]}>{level.description}</Text>
-                        </View>
-                    </View>
-                ))}
-            </View>
+      {/* Tips */}
+      <View style={[styles.card, dynamicStyles.card]}>
+        <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+          {t("stats.completionExplain.tipsTitle")}
+        </Text>
+        {tips.map((tip) => (
+          <View style={[styles.tipBox, dynamicStyles.surface]} key={tip.title}>
+            <Text style={[styles.tipTitle, dynamicStyles.text]}>
+              {tip.title}
+            </Text>
+            <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>
+              {tip.description}
+            </Text>
+          </View>
+        ))}
+      </View>
 
-            {/* What it means */}
-            <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.completionExplain.meaningTitle')}</Text>
-
-                {meanings.map((meaning) => (
-                    <View style={[styles.meaningBox, dynamicStyles.surface]} key={meaning.title}>
-                        <Text style={[styles.meaningNumber, dynamicStyles.text]}>{meaning.emoji}</Text>
-                        <View style={styles.meaningContent}>
-                            <Text style={[styles.meaningTitle, dynamicStyles.text]}>{meaning.title}</Text>
-                            <Text style={[styles.meaningDescription, dynamicStyles.textSecondary]}>{meaning.description}</Text>
-                        </View>
-                    </View>
-                ))}
-            </View>
-
-            {/* Example */}
-            <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.completionExplain.exampleTitle')}</Text>
-                
-                <Text style={[styles.exampleSubtitle, dynamicStyles.text]}>{t('stats.completionExplain.exampleSubtitle')}</Text>
-                <View style={[styles.exampleBox, dynamicStyles.surface]}>
-                    {exampleLines.map((line, index) => (
-                        <Text key={line} style={index === exampleLines.length - 1 ? [styles.exampleResult, dynamicStyles.text, dynamicStyles.divider] : [styles.exampleLabel, dynamicStyles.textSecondary]}>{line}</Text>
-                    ))}
-                </View>
-            </View>
-
-            {/* Tips */}
-            <View style={[styles.card, dynamicStyles.card]}>
-                <Text style={[styles.sectionTitle, dynamicStyles.text]}>{t('stats.completionExplain.tipsTitle')}</Text>
-                {tips.map((tip) => (
-                    <View style={[styles.tipBox, dynamicStyles.surface]} key={tip.title}>
-                        <Text style={[styles.tipTitle, dynamicStyles.text]}>{tip.title}</Text>
-                        <Text style={[styles.tipDescription, dynamicStyles.textSecondary]}>{tip.description}</Text>
-                    </View>
-                ))}
-            </View>
-
-            {/* Footer */}
-            <View style={styles.footer} />
-        </ScrollView>
-    );
+      {/* Footer */}
+      <View style={styles.footer} />
+    </ScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
+  container: {
+    flex: 1,
+  },
 
-    /* Header Styles */
-    header: {
-        paddingTop: 60,
-        paddingBottom: 30,
-        paddingHorizontal: 20,
-        borderBottomLeftRadius: 30,
-        borderBottomRightRadius: 30,
-        alignItems: 'center',
-        marginBottom: 20,
-    },
+  /* Header Styles */
+  header: {
+    paddingTop: 60,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    alignItems: "center",
+    marginBottom: 20,
+  },
 
-    handler: {
-        width: 40,
-        height: 5,
-        borderRadius: 3,
-        position: 'absolute',
-        top: 10,
-    },
+  handler: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    position: "absolute",
+    top: 10,
+  },
 
-    headerContent: {
-        alignItems: 'center',
-        gap: 15,
-        marginTop: 20,
-    },
+  headerContent: {
+    alignItems: "center",
+    gap: 15,
+    marginTop: 20,
+  },
 
-    headerImage: {
-        width: 80,
-        height: 80,
-        resizeMode: 'contain',
-    },
+  headerImage: {
+    width: 80,
+    height: 80,
+    resizeMode: "contain",
+  },
 
-    title: {
-        fontSize: 28,
-        fontWeight: '700',
-        textAlign: 'center',
-    },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    textAlign: "center",
+  },
 
-    /* Card Styles */
-    card: {
-        marginHorizontal: 15,
-        marginBottom: 15,
-        padding: 20,
-        borderRadius: 25,
-        borderWidth: 0.5,
-    },
+  /* Card Styles */
+  card: {
+    marginHorizontal: 15,
+    marginBottom: 15,
+    padding: 20,
+    borderRadius: 25,
+    borderWidth: 0.5,
+  },
 
-    sectionTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        marginBottom: 15,
-        marginTop: 5,
-    },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 15,
+    marginTop: 5,
+  },
 
-    /* Description Styles */
-    description: {
-        fontSize: 15,
-        lineHeight: 24,
-        fontWeight: '400',
-    },
+  /* Description Styles */
+  description: {
+    fontSize: 15,
+    lineHeight: 24,
+    fontWeight: "400",
+  },
 
-    bold: {
-        fontWeight: '700',
-    },
+  bold: {
+    fontWeight: "700",
+  },
 
-    /* Bullet Points */
-    bulletPoint: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        marginBottom: 12,
-        gap: 12,
-    },
+  /* Bullet Points */
+  bulletPoint: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 12,
+    gap: 12,
+  },
 
-    bulletDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        marginTop: 8,
-        borderWidth: 1.5,
-    },
+  bulletDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 8,
+    borderWidth: 1.5,
+  },
 
-    bulletText: {
-        fontSize: 14,
-        lineHeight: 22,
-        flex: 1,
-        fontWeight: '400',
-    },
+  bulletText: {
+    fontSize: 14,
+    lineHeight: 22,
+    flex: 1,
+    fontWeight: "400",
+  },
 
-    /* Level Boxes */
-    levelBox: {
-        flexDirection: 'row',
-        borderRadius: 16,
-        padding: 15,
-        marginBottom: 12,
-        gap: 12,
-        alignItems: 'flex-start',
-    },
+  /* Level Boxes */
+  levelBox: {
+    flexDirection: "row",
+    borderRadius: 16,
+    padding: 15,
+    marginBottom: 12,
+    gap: 12,
+    alignItems: "flex-start",
+  },
 
-    levelDot: {
-        width: 16,
-        height: 16,
-        borderRadius: 8,
-        marginTop: 2,
-    },
+  levelDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginTop: 2,
+  },
 
-    levelContent: {
-        flex: 1,
-        gap: 5,
-    },
+  levelContent: {
+    flex: 1,
+    gap: 5,
+  },
 
-    levelTitle: {
-        fontSize: 15,
-        fontWeight: '600',
-    },
+  levelTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
 
-    levelDescription: {
-        fontSize: 13,
-        lineHeight: 20,
-        fontWeight: '400',
-    },
+  levelDescription: {
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: "400",
+  },
 
-    /* Meaning Boxes */
-    meaningBox: {
-        flexDirection: 'row',
-        borderRadius: 16,
-        padding: 15,
-        marginBottom: 12,
-        gap: 12,
-        alignItems: 'flex-start',
-    },
+  /* Meaning Boxes */
+  meaningBox: {
+    flexDirection: "row",
+    borderRadius: 16,
+    padding: 15,
+    marginBottom: 12,
+    gap: 12,
+    alignItems: "flex-start",
+  },
 
-    meaningNumber: {
-        fontSize: 28,
-        minWidth: 40,
-        textAlign: 'center',
-    },
+  meaningNumber: {
+    fontSize: 28,
+    minWidth: 40,
+    textAlign: "center",
+  },
 
-    meaningContent: {
-        flex: 1,
-        gap: 8,
-    },
+  meaningContent: {
+    flex: 1,
+    gap: 8,
+  },
 
-    meaningTitle: {
-        fontSize: 15,
-        fontWeight: '600',
-    },
+  meaningTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
 
-    meaningDescription: {
-        fontSize: 13,
-        lineHeight: 20,
-        fontWeight: '400',
-    },
+  meaningDescription: {
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: "400",
+  },
 
-    /* Example Boxes */
-    exampleSubtitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 10,
-    },
+  /* Example Boxes */
+  exampleSubtitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 10,
+  },
 
-    exampleBox: {
-        borderRadius: 16,
-        padding: 15,
-        gap: 6,
-    },
+  exampleBox: {
+    borderRadius: 16,
+    padding: 15,
+    gap: 6,
+  },
 
-    exampleLabel: {
-        fontSize: 14,
-        lineHeight: 20,
-        fontWeight: '400',
-    },
+  exampleLabel: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "400",
+  },
 
-    exampleResult: {
-        fontSize: 15,
-        fontWeight: '700',
-        marginTop: 5,
-        paddingTop: 8,
-        borderTopWidth: 1,
-    },
+  exampleResult: {
+    fontSize: 15,
+    fontWeight: "700",
+    marginTop: 5,
+    paddingTop: 8,
+    borderTopWidth: 1,
+  },
 
-    /* Tip Boxes */
-    tipBox: {
-        borderRadius: 16,
-        padding: 15,
-        marginBottom: 12,
-        gap: 8,
-        borderLeftWidth: 4,
-        borderLeftColor: '#FFB84D',
-    },
+  /* Tip Boxes */
+  tipBox: {
+    borderRadius: 16,
+    padding: 15,
+    marginBottom: 12,
+    gap: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: "#FFB84D",
+  },
 
-    tipTitle: {
-        fontSize: 15,
-        fontWeight: '600',
-    },
+  tipTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
 
-    tipDescription: {
-        fontSize: 13,
-        lineHeight: 20,
-        fontWeight: '400',
-    },
+  tipDescription: {
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: "400",
+  },
 
-    /* Footer */
-    footer: {
-        height: 20,
-        marginBottom: 80,
-    },
+  /* Footer */
+  footer: {
+    height: 20,
+    marginBottom: 80,
+  },
 });

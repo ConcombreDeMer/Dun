@@ -29,7 +29,7 @@ const actualPackagePath = path.join(
   projectRoot,
   "node_modules",
   "@expo",
-  "expo-modules-macros-plugin"
+  "expo-modules-macros-plugin",
 );
 const expectedScopePath = path.join(
   projectRoot,
@@ -38,16 +38,16 @@ const expectedScopePath = path.join(
   "node_modules",
   "expo-modules-core",
   "node_modules",
-  "@expo"
+  "@expo",
 );
 const expectedPackagePath = path.join(
   expectedScopePath,
-  "expo-modules-macros-plugin"
+  "expo-modules-macros-plugin",
 );
 
 if (!fs.existsSync(actualPackagePath)) {
   console.warn(
-    "[fix-expo-macros-plugin] Skipped: @expo/expo-modules-macros-plugin is not installed."
+    "[fix-expo-macros-plugin] Skipped: @expo/expo-modules-macros-plugin is not installed.",
   );
   process.exit(0);
 }
@@ -58,14 +58,17 @@ try {
   const stat = fs.lstatSync(expectedPackagePath);
   if (stat.isSymbolicLink()) {
     const target = fs.readlinkSync(expectedPackagePath);
-    const resolvedTarget = path.resolve(path.dirname(expectedPackagePath), target);
+    const resolvedTarget = path.resolve(
+      path.dirname(expectedPackagePath),
+      target,
+    );
     if (resolvedTarget === actualPackagePath) {
       process.exit(0);
     }
     fs.unlinkSync(expectedPackagePath);
   } else {
     console.warn(
-      "[fix-expo-macros-plugin] Skipped: expected path exists and is not a symlink."
+      "[fix-expo-macros-plugin] Skipped: expected path exists and is not a symlink.",
     );
     process.exit(0);
   }

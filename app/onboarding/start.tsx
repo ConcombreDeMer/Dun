@@ -1,467 +1,454 @@
 import * as Haptics from "expo-haptics";
-import { useRouter } from 'expo-router';
-import { SquircleButton } from 'expo-squircle-view';
+import { useRouter } from "expo-router";
+import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
-import React from 'react';
+import React from "react";
 import {
-    Alert,
-    Dimensions,
-    Image,
-    Pressable,
-    StyleSheet,
-    View
-} from 'react-native';
+  Alert,
+  Dimensions,
+  Image,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
 import Animated, {
-    FadeInDown,
-    FadeInUp,
-    FadeOutDown,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring
-} from 'react-native-reanimated';
-import { useAppTranslation } from '../../lib/i18n';
-import { getCharacterImageSource } from '../../lib/imageHelper';
-import { useTheme } from '../../lib/ThemeContext';
-
+  FadeInDown,
+  FadeInUp,
+  FadeOutDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
+import { useAppTranslation } from "../../lib/i18n";
+import { getCharacterImageSource } from "../../lib/imageHelper";
+import { useTheme } from "../../lib/ThemeContext";
 
 export default function StartScreen() {
-    const router = useRouter();
-    const { colors, actualTheme } = useTheme();
-    const { t } = useAppTranslation();
-    const styles = createStyles(colors);
-    const screenWidth = React.useState(Dimensions.get('window').width)[0];
-    const hideAuthChoices = true;
+  const router = useRouter();
+  const { colors, actualTheme } = useTheme();
+  const { t } = useAppTranslation();
+  const styles = createStyles(colors);
+  const screenWidth = React.useState(Dimensions.get("window").width)[0];
+  const hideAuthChoices = true;
 
-    const authButtonsX = useSharedValue(hideAuthChoices ? -screenWidth : 0);
-    const registerButtonsX = useSharedValue(hideAuthChoices ? 0 : screenWidth);
+  const authButtonsX = useSharedValue(hideAuthChoices ? -screenWidth : 0);
+  const registerButtonsX = useSharedValue(hideAuthChoices ? 0 : screenWidth);
 
-    const authButtonsAnimatedStyle = useAnimatedStyle(() => {
-        return {
-            transform: [{ translateX: authButtonsX.value }],
-        };
-    });
-
-    const registerButtonsAnimatedStyle = useAnimatedStyle(() => {
-        return {
-            transform: [{ translateX: registerButtonsX.value }],
-        };
-    });
-
-    const goToRegister = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        router.push('/onboarding/register');
+  const authButtonsAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: authButtonsX.value }],
     };
+  });
 
-    const goToEmail = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        authButtonsX.value = withSpring(-screenWidth);
-        registerButtonsX.value = withSpring(0);
-    }
-
-    const goBack = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        authButtonsX.value = withSpring(0);
-        registerButtonsX.value = withSpring(screenWidth);
-    }
-
-    const showAuthInDevelopmentAlert = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        Alert.alert(
-            "Fonctionnalité en cours de développement",
-            "L'authentification avec Apple ou Google est en cours de développement."
-        );
+  const registerButtonsAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: registerButtonsX.value }],
     };
+  });
 
-    return (
-        <View
-            style={[styles.content, { backgroundColor: colors.background }]}
-        >
+  const goToRegister = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push("/onboarding/register");
+  };
 
-            <View
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginTop: 100,
-                }}
-            >
-                <Animated.Text
-                    style={{
-                        fontSize: 60,
-                        fontFamily: 'Satoshi-Black',
-                        color: colors.text,
-                        textAlign: 'center',
-                        letterSpacing: -2,
-                    }}
-                    entering={FadeInUp.springify().delay(3000).duration(1000)}
-                    exiting={FadeOutDown.springify().duration(500)}
-                >
-                    Dun.
-                </Animated.Text>
-                <Animated.Text
-                    style={{
-                        fontSize: 24,
-                        fontFamily: 'Satoshi-Bold',
-                        color: colors.textSecondary,
-                        textAlign: 'center',
-                        width: '50%',
-                        lineHeight: 26,
+  const goToEmail = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    authButtonsX.value = withSpring(-screenWidth);
+    registerButtonsX.value = withSpring(0);
+  };
 
-                    }}
-                    entering={FadeInUp.springify().delay(3000).duration(1000)}
-                    exiting={FadeOutDown.springify().delay(100).duration(500)}
-                >
-                    {t('onboarding.start.tagline')}
-                </Animated.Text>
-            </View>
+  const goBack = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    authButtonsX.value = withSpring(0);
+    registerButtonsX.value = withSpring(screenWidth);
+  };
 
-            <View
-                style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: 20,
-                    position: 'absolute',
-                    zIndex: 1,
-                    top: '20%',
-                    left: 0,
-                    right: 0,
-                    height: '50%',
-
-                }}
-            >
-                <Animated.View
-                    style={styles.imageContainer}
-                    entering={FadeInUp.springify().delay(1000).duration(3000)}
-                    exiting={FadeOutDown.springify().duration(500)}
-                >
-                    <Image
-                        source={getCharacterImageSource('1', actualTheme)}
-                        style={styles.characterImage}
-                        resizeMode="contain"
-                    />
-                </Animated.View>
-
-                <Animated.View
-                    style={[styles.imageContainer, { marginTop: 300 }]}
-                    entering={FadeInDown.springify().delay(1000).duration(3000)}
-                    exiting={FadeOutDown.springify().duration(500)}
-                >
-                    <Image
-                        source={getCharacterImageSource('0', actualTheme)}
-                        style={styles.characterImage}
-                        resizeMode="contain"
-                    />
-                </Animated.View>
-
-            </View>
-
-
-
-
-
-            <Animated.View
-                style={styles.buttonSection}
-                entering={FadeInDown.springify().delay(3000).duration(1500)}
-                exiting={FadeOutDown.springify().duration(500)}
-
-            >
-
-                {!hideAuthChoices && (
-                    <Animated.View
-                        style={[
-                            {
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                gap: 12,
-                            },
-                            authButtonsAnimatedStyle,
-                        ]}
-                    >
-
-                        <SquircleButton
-                            cornerSmoothing={100} // 0-100
-                            preserveSmoothing={true} // false matches figma, true has more rounding
-                            style={[styles.squircleButton, { borderColor: "black", backgroundColor: "transparent" }]}
-                            onPress={goToEmail}
-
-                        >
-                            <SymbolView
-                                name="envelope.fill"
-                                style={{ height: "90%" }}
-                                type="palette"
-                                tintColor="black"
-                            />
-
-                            <Animated.Text
-                                style={{
-                                    fontSize: 16,
-                                    fontFamily: 'Satoshi-Medium',
-                                    color: colors.text,
-                                }}
-                            >
-                                {t('onboarding.start.continueEmail')}
-                            </Animated.Text>
-                        </SquircleButton>
-
-                        <SquircleButton
-                            cornerSmoothing={100} // 0-100
-                            preserveSmoothing={true} // false matches figma, true has more rounding
-                            style={[styles.squircleButton, { borderColor: "black", backgroundColor: "black" }]}
-                            onPress={showAuthInDevelopmentAlert}
-                        >
-                            <SymbolView
-                                name="applelogo"
-                                style={{ height: "90%" }}
-                                type="palette"
-                                tintColor="white"
-                            />
-
-                            <Animated.Text
-                                style={{
-                                    fontSize: 16,
-                                    fontFamily: 'Satoshi-Medium',
-                                    color: "white",
-                                }}
-                            >
-                                {t('onboarding.start.continueApple')}
-                            </Animated.Text>
-                        </SquircleButton>
-
-                        <SquircleButton
-                            cornerSmoothing={100} // 0-100
-                            preserveSmoothing={true} // false matches figma, true has more rounding
-                            style={[styles.squircleButton, { borderColor: "#C9C9C9", backgroundColor: "#d8d8d8" }]}
-                            onPress={showAuthInDevelopmentAlert}
-                        >
-                            <Image
-                                source={require('@/assets/images/google.png')}
-                                style={{ height: 30, width: 30 }}
-                                resizeMode="cover"
-                            >
-
-                            </Image>
-
-                            <Animated.Text
-                                style={{
-                                    fontSize: 16,
-                                    fontFamily: 'Satoshi-Medium',
-                                    color: colors.text,
-                                }}
-                            >
-                                {t('onboarding.start.continueGoogle')}
-                            </Animated.Text>
-                        </SquircleButton>
-                    </Animated.View>
-                )}
-
-                <Animated.View
-                    style={[
-                        {
-                            display: 'flex',
-                            flexDirection: 'row',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            position: 'absolute',
-                            bottom: 0,
-                            marginHorizontal: 20,
-                            width: '90%',
-                        },
-                        registerButtonsAnimatedStyle,
-                    ]}
-                >
-                    {!hideAuthChoices && (
-                        <Pressable
-                            onPress={goBack}
-                            style={{
-                                position: 'absolute',
-                                left: "10%",
-                                top: -44,
-                                display: 'flex',
-                                flexDirection: 'row',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                gap: 4,
-                                borderRadius: 20,
-                                borderWidth: 1.5,
-                                borderColor: colors.textSecondary,
-                                width: 30,
-                                height: 30,
-                            }}
-                        >
-                            <SymbolView
-                                name="chevron.left"
-                                type="palette"
-                                tintColor={colors.textSecondary}
-                                style={{ width: 18, height: 18 }}
-                            />
-                        </Pressable>
-                    )}
-
-                    <View
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            gap: 12,
-                            width: '100%',
-                        }}
-                    >
-                        <SquircleButton
-                            cornerSmoothing={100} // 0-100
-                            preserveSmoothing={true} // false matches figma, true has more rounding
-                            style={[styles.squircleButton, { borderColor: "black", backgroundColor: "black" }]}
-                            onPress={goToRegister}
-
-                        >
-
-                            <Animated.Text
-                                style={{
-                                    fontSize: 16,
-                                    fontFamily: 'Satoshi-Medium',
-                                    color: "white",
-                                }}
-                            >
-                                {t('onboarding.start.createAccount')}
-                            </Animated.Text>
-                        </SquircleButton>
-
-                        <SquircleButton
-                            cornerSmoothing={100} // 0-100
-                            preserveSmoothing={true} // false matches figma, true has more rounding
-                            style={[styles.squircleButton, { borderColor: "black", backgroundColor: "transparent" }]}
-                            onPress={() => router.push('/onboarding/login')}
-
-                        >
-                            <Animated.Text
-                                style={{
-                                    fontSize: 16,
-                                    fontFamily: 'Satoshi-Medium',
-                                    color: colors.text,
-                                }}
-                            >
-                                {t('onboarding.start.login')}
-                            </Animated.Text>
-                        </SquircleButton>
-
-                    </View>
-
-
-
-                </Animated.View>
-            </Animated.View>
-
-        </View >
+  const showAuthInDevelopmentAlert = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      "Fonctionnalité en cours de développement",
+      "L'authentification avec Apple ou Google est en cours de développement.",
     );
+  };
+
+  return (
+    <View style={[styles.content, { backgroundColor: colors.background }]}>
+      <View
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          marginTop: 100,
+        }}
+      >
+        <Animated.Text
+          style={{
+            fontSize: 60,
+            fontFamily: "Satoshi-Black",
+            color: colors.text,
+            textAlign: "center",
+            letterSpacing: -2,
+          }}
+          entering={FadeInUp.springify().delay(3000).duration(1000)}
+          exiting={FadeOutDown.springify().duration(500)}
+        >
+          Dun.
+        </Animated.Text>
+        <Animated.Text
+          style={{
+            fontSize: 24,
+            fontFamily: "Satoshi-Bold",
+            color: colors.textSecondary,
+            textAlign: "center",
+            width: "50%",
+            lineHeight: 26,
+          }}
+          entering={FadeInUp.springify().delay(3000).duration(1000)}
+          exiting={FadeOutDown.springify().delay(100).duration(500)}
+        >
+          {t("onboarding.start.tagline")}
+        </Animated.Text>
+      </View>
+
+      <View
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: 20,
+          position: "absolute",
+          zIndex: 1,
+          top: "20%",
+          left: 0,
+          right: 0,
+          height: "50%",
+        }}
+      >
+        <Animated.View
+          style={styles.imageContainer}
+          entering={FadeInUp.springify().delay(1000).duration(3000)}
+          exiting={FadeOutDown.springify().duration(500)}
+        >
+          <Image
+            source={getCharacterImageSource("1", actualTheme)}
+            style={styles.characterImage}
+            resizeMode="contain"
+          />
+        </Animated.View>
+
+        <Animated.View
+          style={[styles.imageContainer, { marginTop: 300 }]}
+          entering={FadeInDown.springify().delay(1000).duration(3000)}
+          exiting={FadeOutDown.springify().duration(500)}
+        >
+          <Image
+            source={getCharacterImageSource("0", actualTheme)}
+            style={styles.characterImage}
+            resizeMode="contain"
+          />
+        </Animated.View>
+      </View>
+
+      <Animated.View
+        style={styles.buttonSection}
+        entering={FadeInDown.springify().delay(3000).duration(1500)}
+        exiting={FadeOutDown.springify().duration(500)}
+      >
+        {!hideAuthChoices && (
+          <Animated.View
+            style={[
+              {
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 12,
+              },
+              authButtonsAnimatedStyle,
+            ]}
+          >
+            <SquircleButton
+              cornerSmoothing={100} // 0-100
+              preserveSmoothing={true} // false matches figma, true has more rounding
+              style={[
+                styles.squircleButton,
+                { borderColor: "black", backgroundColor: "transparent" },
+              ]}
+              onPress={goToEmail}
+            >
+              <SymbolView
+                name="envelope.fill"
+                style={{ height: "90%" }}
+                type="palette"
+                tintColor="black"
+              />
+
+              <Animated.Text
+                style={{
+                  fontSize: 16,
+                  fontFamily: "Satoshi-Medium",
+                  color: colors.text,
+                }}
+              >
+                {t("onboarding.start.continueEmail")}
+              </Animated.Text>
+            </SquircleButton>
+
+            <SquircleButton
+              cornerSmoothing={100} // 0-100
+              preserveSmoothing={true} // false matches figma, true has more rounding
+              style={[
+                styles.squircleButton,
+                { borderColor: "black", backgroundColor: "black" },
+              ]}
+              onPress={showAuthInDevelopmentAlert}
+            >
+              <SymbolView
+                name="applelogo"
+                style={{ height: "90%" }}
+                type="palette"
+                tintColor="white"
+              />
+
+              <Animated.Text
+                style={{
+                  fontSize: 16,
+                  fontFamily: "Satoshi-Medium",
+                  color: "white",
+                }}
+              >
+                {t("onboarding.start.continueApple")}
+              </Animated.Text>
+            </SquircleButton>
+
+            <SquircleButton
+              cornerSmoothing={100} // 0-100
+              preserveSmoothing={true} // false matches figma, true has more rounding
+              style={[
+                styles.squircleButton,
+                { borderColor: "#C9C9C9", backgroundColor: "#d8d8d8" },
+              ]}
+              onPress={showAuthInDevelopmentAlert}
+            >
+              <Image
+                source={require("@/assets/images/google.png")}
+                style={{ height: 30, width: 30 }}
+                resizeMode="cover"
+              ></Image>
+
+              <Animated.Text
+                style={{
+                  fontSize: 16,
+                  fontFamily: "Satoshi-Medium",
+                  color: colors.text,
+                }}
+              >
+                {t("onboarding.start.continueGoogle")}
+              </Animated.Text>
+            </SquircleButton>
+          </Animated.View>
+        )}
+
+        <Animated.View
+          style={[
+            {
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "center",
+              alignItems: "center",
+              position: "absolute",
+              bottom: 0,
+              marginHorizontal: 20,
+              width: "90%",
+            },
+            registerButtonsAnimatedStyle,
+          ]}
+        >
+          {!hideAuthChoices && (
+            <Pressable
+              onPress={goBack}
+              style={{
+                position: "absolute",
+                left: "10%",
+                top: -44,
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 4,
+                borderRadius: 20,
+                borderWidth: 1.5,
+                borderColor: colors.textSecondary,
+                width: 30,
+                height: 30,
+              }}
+            >
+              <SymbolView
+                name="chevron.left"
+                type="palette"
+                tintColor={colors.textSecondary}
+                style={{ width: 18, height: 18 }}
+              />
+            </Pressable>
+          )}
+
+          <View
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 12,
+              width: "100%",
+            }}
+          >
+            <SquircleButton
+              cornerSmoothing={100} // 0-100
+              preserveSmoothing={true} // false matches figma, true has more rounding
+              style={[
+                styles.squircleButton,
+                { borderColor: "black", backgroundColor: "black" },
+              ]}
+              onPress={goToRegister}
+            >
+              <Animated.Text
+                style={{
+                  fontSize: 16,
+                  fontFamily: "Satoshi-Medium",
+                  color: "white",
+                }}
+              >
+                {t("onboarding.start.createAccount")}
+              </Animated.Text>
+            </SquircleButton>
+
+            <SquircleButton
+              cornerSmoothing={100} // 0-100
+              preserveSmoothing={true} // false matches figma, true has more rounding
+              style={[
+                styles.squircleButton,
+                { borderColor: "black", backgroundColor: "transparent" },
+              ]}
+              onPress={() => router.push("/onboarding/login")}
+            >
+              <Animated.Text
+                style={{
+                  fontSize: 16,
+                  fontFamily: "Satoshi-Medium",
+                  color: colors.text,
+                }}
+              >
+                {t("onboarding.start.login")}
+              </Animated.Text>
+            </SquircleButton>
+          </View>
+        </Animated.View>
+      </Animated.View>
+    </View>
+  );
 }
 
 const createStyles = (colors: any) =>
-    StyleSheet.create({
+  StyleSheet.create({
+    squircleButton: {
+      width: "80%",
+      height: 48,
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      borderRadius: 18,
+      borderWidth: 1.5,
+      alignSelf: "center",
+      paddingHorizontal: 20,
+      gap: 20,
+    },
+    content: {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "flex-start",
+    },
 
-        squircleButton: {
-            width: '80%',
-            height: 48,
-            flexDirection: "row",
-            justifyContent: "center",
-            alignItems: "center",
-            borderRadius: 18,
-            borderWidth: 1.5,
-            alignSelf: 'center',
-            paddingHorizontal: 20,
-            gap: 20,
-        },
-        content: {
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'flex-start',
-        },
+    buttonSection: {
+      zIndex: 2,
+      position: "absolute",
+      bottom: 50,
+      width: "90%",
+      alignSelf: "center",
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+    },
+    pin: {
+      alignSelf: "center",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 20,
+      position: "absolute",
+      top: -10,
+      right: 0,
+      zIndex: 2,
+      backgroundColor: colors.input,
+      borderColor: colors.border,
+      borderWidth: 1,
+    },
+    primaryButton: {
+      paddingVertical: 16,
+      borderRadius: 50,
+      alignItems: "center",
+      justifyContent: "center",
+      borderColor: colors.actionButton,
+      borderWidth: 1.5,
+    },
+    primaryButtonText: {
+      fontSize: 16,
+      fontWeight: "600",
+    },
+    secondaryButton: {
+      paddingVertical: 16,
+      borderRadius: 50,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    secondaryButtonText: {
+      fontSize: 16,
+      fontWeight: "600",
+    },
 
-        buttonSection: {
-            zIndex: 2,
-            position: 'absolute',
-            bottom: 50,
-            width: '90%',
-            alignSelf: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-        },
-        pin: {
-            alignSelf: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingHorizontal: 10,
-            paddingVertical: 5,
-            borderRadius: 20,
-            position: 'absolute',
-            top: -10,
-            right: 0,
-            zIndex: 2,
-            backgroundColor: colors.input,
-            borderColor: colors.border,
-            borderWidth: 1,
+    footerInfo: {
+      fontSize: 12,
+      textAlign: "center",
+      width: "100%",
+      marginTop: 20,
+    },
+    animationContainer: {
+      height: "100%",
+      width: "100%",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 0,
+      position: "absolute",
+    },
 
-        },
-        primaryButton: {
-            paddingVertical: 16,
-            borderRadius: 50,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderColor: colors.actionButton,
-            borderWidth: 1.5
-        },
-        primaryButtonText: {
-            fontSize: 16,
-            fontWeight: '600',
-        },
-        secondaryButton: {
-            paddingVertical: 16,
-            borderRadius: 50,
-            alignItems: 'center',
-            justifyContent: 'center',
-        },
-        secondaryButtonText: {
-            fontSize: 16,
-            fontWeight: '600',
-        },
+    lottieAnimation: {
+      width: "100%",
+      height: "100%",
+    },
 
-        footerInfo: {
-            fontSize: 12,
-            textAlign: 'center',
-            width: '100%',
-            marginTop: 20,
-        },
-        animationContainer: {
-            height: '100%',
-            width: '100%',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 0,
-            position: 'absolute',
-        },
+    imageContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      marginVertical: 40,
+      position: "absolute",
+    },
 
-        lottieAnimation: {
-            width: '100%',
-            height: '100%',
-        },
-
-        imageContainer: {
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginVertical: 40,
-            position: 'absolute',
-        },
-
-        characterImage: {
-            width: 200,
-            height: 200,
-        },
-
-    });
+    characterImage: {
+      width: 200,
+      height: 200,
+    },
+  });

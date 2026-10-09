@@ -5,10 +5,7 @@
     "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": [
-      "exp+dun",
-      "dun"
-    ],
+    "scheme": ["exp+dun", "dun"],
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,

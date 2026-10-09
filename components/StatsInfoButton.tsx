@@ -5,7 +5,9 @@ type StatsInfoButtonProps = {
   onPress: () => void;
 };
 
-export default memo(function StatsInfoButton({ onPress }: StatsInfoButtonProps) {
+export default memo(function StatsInfoButton({
+  onPress,
+}: StatsInfoButtonProps) {
   return (
     <SecondaryButton
       image="slider.horizontal.3"

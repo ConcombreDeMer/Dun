@@ -1,12 +1,19 @@
-import * as Sentry from '@sentry/react-native';
+import * as Sentry from "@sentry/react-native";
 import { Session } from "@supabase/supabase-js";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
-import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider, Stack, usePathname, useRouter } from "expo-router";
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider as NavigationThemeProvider,
+  Stack,
+  usePathname,
+  useRouter,
+} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Appearance } from "react-native";
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthSessionProvider } from "../lib/AuthSessionContext";
 import { CreateModalControllerProvider } from "../lib/createModalController";
 import { FontProvider } from "../lib/FontContext";
@@ -22,9 +29,9 @@ import { useStore } from "../store/store";
 import { logger } from "@/lib/logger";
 
 Sentry.init({
-  dsn: 'https://22e24a375245f570d6a9c3e6ebfb71af@o4511662072594432.ingest.de.sentry.io/4511662116896848',
+  dsn: "https://22e24a375245f570d6a9c3e6ebfb71af@o4511662072594432.ingest.de.sentry.io/4511662116896848",
 
-  environment: __DEV__ ? 'development' : 'production',
+  environment: __DEV__ ? "development" : "production",
   sendDefaultPii: false,
   enableLogs: __DEV__,
 
@@ -65,13 +72,22 @@ function PremiumDowngradeCompliance() {
   return null;
 }
 
-function PremiumAccessGate({ hasCompletedOnboarding }: { hasCompletedOnboarding: boolean }) {
+function PremiumAccessGate({
+  hasCompletedOnboarding,
+}: {
+  hasCompletedOnboarding: boolean;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const { isLoading: isSubscriptionLoading, isPremium } = useSubscription();
 
   useEffect(() => {
-    if (!REQUIRE_PREMIUM_ACCESS || !hasCompletedOnboarding || isSubscriptionLoading || isPremium) {
+    if (
+      !REQUIRE_PREMIUM_ACCESS ||
+      !hasCompletedOnboarding ||
+      isSubscriptionLoading ||
+      isPremium
+    ) {
       return;
     }
 
@@ -81,13 +97,18 @@ function PremiumAccessGate({ hasCompletedOnboarding }: { hasCompletedOnboarding:
     }
 
     const isAllowedRoute =
-      pathname?.startsWith("/onboarding") ||
-      pathname?.startsWith("/auth");
+      pathname?.startsWith("/onboarding") || pathname?.startsWith("/auth");
 
     if (!isAllowedRoute) {
       router.replace("/settings/premium?required=1");
     }
-  }, [hasCompletedOnboarding, isPremium, isSubscriptionLoading, pathname, router]);
+  }, [
+    hasCompletedOnboarding,
+    isPremium,
+    isSubscriptionLoading,
+    pathname,
+    router,
+  ]);
 
   return null;
 }
@@ -156,7 +177,8 @@ function RootLayoutContent() {
 
     const initAuth = async () => {
       // Essayer de récupérer la session existante
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.getSession();
 
       if (sessionError && sessionError.message !== "Auth session missing!") {
         logger.error("Erreur session:", sessionError);
@@ -170,18 +192,20 @@ function RootLayoutContent() {
     // Initialiser et s'abonner aux changements
     initAuth();
 
-    const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      setSession(newSession ?? null);
-      setIsAuthLoading(false);
+    const { data } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        setSession(newSession ?? null);
+        setIsAuthLoading(false);
 
-      if (event === 'SIGNED_OUT') {
-        try {
-          await syncRevenueCatUser(null);
-        } catch (e) {
-          logger.error("Erreur RevenueCat logOut:", e);
+        if (event === "SIGNED_OUT") {
+          try {
+            await syncRevenueCatUser(null);
+          } catch (e) {
+            logger.error("Erreur RevenueCat logOut:", e);
+          }
         }
-      }
-    });
+      },
+    );
 
     authListener = data?.subscription;
 
@@ -206,7 +230,7 @@ function RootLayoutContent() {
     if (!session) {
       if (!isOnboardingRoute && !isAuthCallbackRoute) {
         router.replace("/onboarding/start");
-      }  
+      }
       return;
     }
 
@@ -239,14 +263,15 @@ function RootLayoutContent() {
   }
 
   return (
-
     <QueryClientProvider client={queryClient}>
       <AuthSessionProvider userId={userId}>
         <SubscriptionProvider appUserID={userId}>
           <PremiumDowngradeCompliance />
-          <PremiumAccessGate hasCompletedOnboarding={Boolean(session) && hasCompletedOnboarding} />
+          <PremiumAccessGate
+            hasCompletedOnboarding={Boolean(session) && hasCompletedOnboarding}
+          />
 
-      {/* <View
+          {/* <View
         pointerEvents="none"
         style={{
           position: "absolute",
@@ -261,91 +286,91 @@ function RootLayoutContent() {
       >
 
       </View> */}
-        <CreateModalControllerProvider>
-          <NavigationThemeProvider value={navigationTheme}>
-            <Stack
-              screenOptions={{
-                headerStyle: {
-                  backgroundColor: colors.background,
-                },
-                headerTintColor: colors.text,
-                headerTitleStyle: {
-                  fontWeight: "bold",
-                  fontSize: 18,
-                  color: colors.text,
-                },
-                headerShown: false,
-              }}
-            >
-              <Stack.Screen
-                name="index"
-                options={{
+          <CreateModalControllerProvider>
+            <NavigationThemeProvider value={navigationTheme}>
+              <Stack
+                screenOptions={{
+                  headerStyle: {
+                    backgroundColor: colors.background,
+                  },
+                  headerTintColor: colors.text,
+                  headerTitleStyle: {
+                    fontWeight: "bold",
+                    fontSize: 18,
+                    color: colors.text,
+                  },
                   headerShown: false,
                 }}
-              />
-              <Stack.Screen
-                name="(tabs)"
-                options={{
-                  headerShown: false,
-                  animation: "none",
-                }}
-              />
-              <Stack.Screen
-                name="onboarding"
-                options={{
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="auth/callback"
-                options={{
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="settings"
-                options={{
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="stats"
-                options={{
-                  headerShown: false,
-                  presentation: "modal",
-                  animation: "slide_from_bottom",
-                  animationDuration: 200,
-                }}
-              />
-              <Stack.Screen
-                name="box"
-                options={{
-                  headerShown: false,
-                  animation: "ios_from_left",
-                  animationDuration: 200,
-                }}
-              />
-              <Stack.Screen
-                name="daily"
-                options={{
-                  title: t("navigation.daily"),
-                  presentation: "fullScreenModal",
-                  headerShown: false,
-                  animation: "fade",
-                }}
-              />
-              <Stack.Screen
-                name="rest"
-                options={{
-                  title: t("navigation.rest"),
-                  presentation: "fullScreenModal",
-                  headerShown: false,
-                  animation: "slide_from_bottom",
-                }}
-              />
-            </Stack>
-          </NavigationThemeProvider>
-        </CreateModalControllerProvider>
+              >
+                <Stack.Screen
+                  name="index"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="(tabs)"
+                  options={{
+                    headerShown: false,
+                    animation: "none",
+                  }}
+                />
+                <Stack.Screen
+                  name="onboarding"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="auth/callback"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="settings"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="stats"
+                  options={{
+                    headerShown: false,
+                    presentation: "modal",
+                    animation: "slide_from_bottom",
+                    animationDuration: 200,
+                  }}
+                />
+                <Stack.Screen
+                  name="box"
+                  options={{
+                    headerShown: false,
+                    animation: "ios_from_left",
+                    animationDuration: 200,
+                  }}
+                />
+                <Stack.Screen
+                  name="daily"
+                  options={{
+                    title: t("navigation.daily"),
+                    presentation: "fullScreenModal",
+                    headerShown: false,
+                    animation: "fade",
+                  }}
+                />
+                <Stack.Screen
+                  name="rest"
+                  options={{
+                    title: t("navigation.rest"),
+                    presentation: "fullScreenModal",
+                    headerShown: false,
+                    animation: "slide_from_bottom",
+                  }}
+                />
+              </Stack>
+            </NavigationThemeProvider>
+          </CreateModalControllerProvider>
         </SubscriptionProvider>
       </AuthSessionProvider>
     </QueryClientProvider>

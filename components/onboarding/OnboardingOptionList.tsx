@@ -26,7 +26,7 @@ export default function OnboardingOptionList({
     onChange(
       selected.includes(option)
         ? selected.filter((selectedOption) => selectedOption !== option)
-        : [...selected, option]
+        : [...selected, option],
     );
   };
 

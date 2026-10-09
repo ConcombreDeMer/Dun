@@ -1,17 +1,36 @@
-import { Feather } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
+import { Feather } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
-import { SquircleButton } from 'expo-squircle-view';
+import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useRef } from "react";
-import { Alert, Dimensions, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Swipeable } from 'react-native-gesture-handler';
-import Animated, { Easing, interpolateColor, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import {
+  Alert,
+  Dimensions,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
+import Animated, {
+  Easing,
+  interpolateColor,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { useAuthUserId } from "../lib/AuthSessionContext";
 import { fromAppDateKey, isPastAppDateKey, toAppDateKey } from "../lib/date";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
-import { confirmLateAdjustment, needsLateAdjustmentConfirmation } from "../lib/lateAdjustmentConfirmation";
+import {
+  confirmLateAdjustment,
+  needsLateAdjustmentConfirmation,
+} from "../lib/lateAdjustmentConfirmation";
 import { useProfile } from "../lib/profile";
 import { useSubscription } from "../lib/subscription";
 import { getTags, TAGS_QUERY_KEY } from "../lib/tags";
@@ -20,17 +39,19 @@ import { useOptimisticTaskMutations } from "../lib/useOptimisticTaskMutations";
 import Squircle from "./Squircle";
 import { logger } from "@/lib/logger";
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+const AnimatedTouchableOpacity =
+  Animated.createAnimatedComponent(TouchableOpacity);
 
 const hexToRgb = (color: string) => {
-  const normalized = color.replace('#', '');
-  const hex = normalized.length === 3 || normalized.length === 4
-    ? normalized
-      .slice(0, 3)
-      .split('')
-      .map((value) => value + value)
-      .join('')
-    : normalized.slice(0, 6);
+  const normalized = color.replace("#", "");
+  const hex =
+    normalized.length === 3 || normalized.length === 4
+      ? normalized
+          .slice(0, 3)
+          .split("")
+          .map((value) => value + value)
+          .join("")
+      : normalized.slice(0, 6);
 
   if (hex.length !== 6) {
     return null;
@@ -48,7 +69,11 @@ const hexToRgb = (color: string) => {
   };
 };
 
-const blendColors = (foreground: string, background: string, foregroundOpacity: number) => {
+const blendColors = (
+  foreground: string,
+  background: string,
+  foregroundOpacity: number,
+) => {
   const foregroundRgb = hexToRgb(foreground);
   const backgroundRgb = hexToRgb(background);
 
@@ -57,7 +82,10 @@ const blendColors = (foreground: string, background: string, foregroundOpacity: 
   }
 
   const blendChannel = (foregroundChannel: number, backgroundChannel: number) =>
-    Math.round(foregroundChannel * foregroundOpacity + backgroundChannel * (1 - foregroundOpacity));
+    Math.round(
+      foregroundChannel * foregroundOpacity +
+        backgroundChannel * (1 - foregroundOpacity),
+    );
 
   return `rgb(${blendChannel(foregroundRgb.r, backgroundRgb.r)}, ${blendChannel(foregroundRgb.g, backgroundRgb.g)}, ${blendChannel(foregroundRgb.b, backgroundRgb.b)})`;
 };
@@ -94,12 +122,15 @@ interface TaskItemProps {
   isExtendable?: boolean;
   disableSwipe?: boolean;
   isTogglePending?: boolean;
-  mode?: 'normal' | 'daily' | 'box';
+  mode?: "normal" | "daily" | "box";
   isReadOnly?: boolean;
   onPressWhenNotExtendable?: () => void;
   moveToDateKey?: string;
   onDeleteTask?: (item: TaskItemProps["item"]) => Promise<unknown> | unknown;
-  onMoveTask?: (item: TaskItemProps["item"], targetDateKey: string | null) => Promise<unknown> | unknown;
+  onMoveTask?: (
+    item: TaskItemProps["item"],
+    targetDateKey: string | null,
+  ) => Promise<unknown> | unknown;
 }
 
 export const TaskItem = ({
@@ -114,7 +145,7 @@ export const TaskItem = ({
   disableAddedAnimations = false,
   isExtendable = true,
   disableSwipe = false,
-  mode = 'normal',
+  mode = "normal",
   isReadOnly = false,
   onPressWhenNotExtendable,
   moveToDateKey,
@@ -152,28 +183,39 @@ export const TaskItem = ({
   const swipeableRef = useRef<Swipeable>(null);
   const rowRef = useRef<View>(null);
   const lastMeasuredYRef = useRef<number | null>(null);
-  const suppressPressAfterSwipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressPressAfterSwipeTimeoutRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
   const shouldSuppressPressAfterSwipeRef = useRef(false);
   const isActiveRef = useRef(isActive);
   const selectedTaskIdRef = useRef(selectedTaskId);
   const disableAddedAnimationsRef = useRef(disableAddedAnimations);
 
-  const screenWidth = Dimensions.get('window').width;
+  const screenWidth = Dimensions.get("window").width;
   const translateX = useSharedValue(0);
   const itemOpacity = useSharedValue(1);
   const isSelected = selectedTaskId === item.id;
   const isHidden = selectedTaskId !== null && !isSelected;
-  const checkboxDoneBackground = actualTheme === 'dark' ? 'rgba(92, 255, 173, 0.13)' : 'rgba(8, 225, 139, 0.13)';
-  const checkboxDoneBorder = actualTheme === 'dark' ? '#42E690' : '#08E18B';
-  const checkboxDoneIcon = actualTheme === 'dark' ? '#42E690' : '#08E18B';
+  const checkboxDoneBackground =
+    actualTheme === "dark"
+      ? "rgba(92, 255, 173, 0.13)"
+      : "rgba(8, 225, 139, 0.13)";
+  const checkboxDoneBorder = actualTheme === "dark" ? "#42E690" : "#08E18B";
+  const checkboxDoneIcon = actualTheme === "dark" ? "#42E690" : "#08E18B";
   const mutedTaskColor = blendColors(colors.task, colors.background, 0.5);
   const mutedTextColor = blendColors(colors.text, colors.background, 0.5);
-  const itemTagIds = item.tagIds ?? item.Task_Tags?.map((tag) => tag.tag_id) ?? [];
+  const itemTagIds =
+    item.tagIds ?? item.Task_Tags?.map((tag) => tag.tag_id) ?? [];
   const displayedLateDays = item.late_days ?? item.delay_count;
-  const itemTags = itemTagIds.reduce<{ id: string; color: string }[]>((visibleTags, tagId) => {
-    const tag = tags.find((candidate) => candidate.id === tagId);
-    return tag ? [...visibleTags, { id: tag.id, color: tag.color }] : visibleTags;
-  }, []);
+  const itemTags = itemTagIds.reduce<{ id: string; color: string }[]>(
+    (visibleTags, tagId) => {
+      const tag = tags.find((candidate) => candidate.id === tagId);
+      return tag
+        ? [...visibleTags, { id: tag.id, color: tag.color }]
+        : visibleTags;
+    },
+    [],
+  );
 
   const handleDeleteAfterSwipe = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -183,14 +225,21 @@ export const TaskItem = ({
 
     void mutation.catch((error: any) => {
       logger.error("Erreur lors de la suppression:", error);
-      Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
+      Alert.alert(
+        t("common.alerts.errorTitle"),
+        error?.message || t("common.alerts.genericError"),
+      );
     });
   }, [deleteTaskOptimistically, item, onDeleteTask, t]);
 
   const handleSwipeLeft = useCallback(() => {
     void (async () => {
       if (isReadOnly || isTaskDeletePending(item.id)) return;
-      if (needsLateAdjustmentConfirmation(item, lockPastDaysEnabled) && !(await confirmLateAdjustment(t))) return;
+      if (
+        needsLateAdjustmentConfirmation(item, lockPastDaysEnabled) &&
+        !(await confirmLateAdjustment(t))
+      )
+        return;
 
       swipeableRef.current?.close();
       itemOpacity.value = withTiming(0, { duration: 600 }, (finished) => {
@@ -200,47 +249,79 @@ export const TaskItem = ({
       });
       translateX.value = withTiming(-screenWidth, { duration: 600 });
     })();
-  }, [handleDeleteAfterSwipe, isReadOnly, isTaskDeletePending, item, lockPastDaysEnabled, t, translateX, itemOpacity, screenWidth]);
+  }, [
+    handleDeleteAfterSwipe,
+    isReadOnly,
+    isTaskDeletePending,
+    item,
+    lockPastDaysEnabled,
+    t,
+    translateX,
+    itemOpacity,
+    screenWidth,
+  ]);
 
-  const moveTaskToDate = useCallback((nextDateKey: string | null) => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const mutation = onMoveTask
-      ? Promise.resolve(onMoveTask(item, nextDateKey))
-      : moveTaskDateOptimistically(item.id, nextDateKey, item);
+  const moveTaskToDate = useCallback(
+    (nextDateKey: string | null) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const mutation = onMoveTask
+        ? Promise.resolve(onMoveTask(item, nextDateKey))
+        : moveTaskDateOptimistically(item.id, nextDateKey, item);
 
-    void mutation.catch((error: any) => {
-      logger.error("Erreur lors du déplacement:", error);
-      Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
-    });
-  }, [item, moveTaskDateOptimistically, onMoveTask, t]);
-
-  const handleMoveAction = useCallback((targetDateKey: string | null) => {
-    void (async () => {
-      if (isReadOnly || isTaskMovePending(item.id)) return;
-
-      const sourceDateKey = item.date ? toAppDateKey(item.date) : null;
-
-      if (sourceDateKey === targetDateKey) {
-        swipeableRef.current?.close();
-        translateX.value = withTiming(0, { duration: 180 });
-        itemOpacity.value = withTiming(1, { duration: 180 });
-        return;
-      }
-
-      if (needsLateAdjustmentConfirmation(item, lockPastDaysEnabled) && !(await confirmLateAdjustment(t))) {
-        swipeableRef.current?.close();
-        return;
-      }
-
-      swipeableRef.current?.close();
-      itemOpacity.value = withTiming(0, { duration: 300 }, (finished) => {
-        if (finished) {
-          runOnJS(moveTaskToDate)(targetDateKey);
-        }
+      void mutation.catch((error: any) => {
+        logger.error("Erreur lors du déplacement:", error);
+        Alert.alert(
+          t("common.alerts.errorTitle"),
+          error?.message || t("common.alerts.genericError"),
+        );
       });
-      translateX.value = withTiming(screenWidth, { duration: 300 });
-    })();
-  }, [isReadOnly, isTaskMovePending, item, lockPastDaysEnabled, t, translateX, itemOpacity, screenWidth, moveTaskToDate]);
+    },
+    [item, moveTaskDateOptimistically, onMoveTask, t],
+  );
+
+  const handleMoveAction = useCallback(
+    (targetDateKey: string | null) => {
+      void (async () => {
+        if (isReadOnly || isTaskMovePending(item.id)) return;
+
+        const sourceDateKey = item.date ? toAppDateKey(item.date) : null;
+
+        if (sourceDateKey === targetDateKey) {
+          swipeableRef.current?.close();
+          translateX.value = withTiming(0, { duration: 180 });
+          itemOpacity.value = withTiming(1, { duration: 180 });
+          return;
+        }
+
+        if (
+          needsLateAdjustmentConfirmation(item, lockPastDaysEnabled) &&
+          !(await confirmLateAdjustment(t))
+        ) {
+          swipeableRef.current?.close();
+          return;
+        }
+
+        swipeableRef.current?.close();
+        itemOpacity.value = withTiming(0, { duration: 300 }, (finished) => {
+          if (finished) {
+            runOnJS(moveTaskToDate)(targetDateKey);
+          }
+        });
+        translateX.value = withTiming(screenWidth, { duration: 300 });
+      })();
+    },
+    [
+      isReadOnly,
+      isTaskMovePending,
+      item,
+      lockPastDaysEnabled,
+      t,
+      translateX,
+      itemOpacity,
+      screenWidth,
+      moveTaskToDate,
+    ],
+  );
 
   const handlePostpone = useCallback(() => {
     const sourceDate = item.date ? new Date(item.date) : new Date();
@@ -255,7 +336,11 @@ export const TaskItem = ({
   const handleMoveToBoxAfterSwipe = useCallback(() => {
     void (async () => {
       if (isReadOnly || isTaskMovePending(item.id)) return;
-      if (needsLateAdjustmentConfirmation(item, lockPastDaysEnabled) && !(await confirmLateAdjustment(t))) return;
+      if (
+        needsLateAdjustmentConfirmation(item, lockPastDaysEnabled) &&
+        !(await confirmLateAdjustment(t))
+      )
+        return;
 
       swipeableRef.current?.close();
       itemOpacity.value = withTiming(0, { duration: 600 }, (finished) => {
@@ -265,7 +350,17 @@ export const TaskItem = ({
       });
       translateX.value = withTiming(-screenWidth, { duration: 600 });
     })();
-  }, [isReadOnly, isTaskMovePending, item, lockPastDaysEnabled, t, itemOpacity, moveTaskToDate, screenWidth, translateX]);
+  }, [
+    isReadOnly,
+    isTaskMovePending,
+    item,
+    lockPastDaysEnabled,
+    t,
+    itemOpacity,
+    moveTaskToDate,
+    screenWidth,
+    translateX,
+  ]);
 
   const suppressNextPressAfterSwipe = useCallback(() => {
     if (mode !== "box") {
@@ -291,45 +386,72 @@ export const TaskItem = ({
   }, [mode, pressScale]);
 
   const renderRightActions = useCallback(() => {
-    const shouldShowBoxAction = canUseTaskBox && mode === "normal" && !!item.date;
+    const shouldShowBoxAction =
+      canUseTaskBox && mode === "normal" && !!item.date;
 
     if (shouldShowBoxAction) {
       return (
-        <View style={{ width: 260, minHeight: 64, height: '100%', paddingLeft: 10, justifyContent: 'center', flexDirection: 'row', gap: 8 }}>
+        <View
+          style={{
+            width: 260,
+            minHeight: 64,
+            height: "100%",
+            paddingLeft: 10,
+            justifyContent: "center",
+            flexDirection: "row",
+            gap: 8,
+          }}
+        >
           <SquircleButton
             onPress={handleMoveToBoxAfterSwipe}
             activeOpacity={0.8}
             style={{
-              backgroundColor: '#ECE5D8',
+              backgroundColor: "#ECE5D8",
               flex: 1,
               borderRadius: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
             }}
             cornerSmoothing={100}
             preserveSmoothing={true}
           >
-            <Text style={{ fontFamily: 'Satoshi-Regular', color: '#4F4331', fontSize: fontSizes.base }}>{t("task.actions.moveToBox")}</Text>
+            <Text
+              style={{
+                fontFamily: "Satoshi-Regular",
+                color: "#4F4331",
+                fontSize: fontSizes.base,
+              }}
+            >
+              {t("task.actions.moveToBox")}
+            </Text>
             <Feather name="archive" size={18} color="#4F4331" />
           </SquircleButton>
           <SquircleButton
             onPress={handleSwipeLeft}
             activeOpacity={0.8}
             style={{
-              backgroundColor: '#f5b7b9',
+              backgroundColor: "#f5b7b9",
               flex: 1,
               borderRadius: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
               gap: 6,
             }}
             cornerSmoothing={100}
             preserveSmoothing={true}
           >
-            <Text style={{ fontFamily: 'Satoshi-Regular', color: '#c83232', fontSize: fontSizes.base }}>{t("task.deleteLabel")}</Text>
+            <Text
+              style={{
+                fontFamily: "Satoshi-Regular",
+                color: "#c83232",
+                fontSize: fontSizes.base,
+              }}
+            >
+              {t("task.deleteLabel")}
+            </Text>
             <Feather name="trash-2" size={18} color="#c83232" />
           </SquircleButton>
         </View>
@@ -337,52 +459,92 @@ export const TaskItem = ({
     }
 
     return (
-      <View style={{ width: 130, minHeight: 64, height: '100%', paddingLeft: 10, justifyContent: 'center' }}>
+      <View
+        style={{
+          width: 130,
+          minHeight: 64,
+          height: "100%",
+          paddingLeft: 10,
+          justifyContent: "center",
+        }}
+      >
         <SquircleButton
           onPress={handleSwipeLeft}
           activeOpacity={0.8}
           style={{
-            backgroundColor: '#f5b7b9',
+            backgroundColor: "#f5b7b9",
             flex: 1,
             borderRadius: 20,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
           }}
           cornerSmoothing={100} // 0-100
           preserveSmoothing={true} // false matches figma, true has more roundingez
         >
-          <Text style={{ fontFamily: 'Satoshi-Regular', color: '#c83232', fontSize: fontSizes.base }}>{t("task.deleteLabel")}</Text>
+          <Text
+            style={{
+              fontFamily: "Satoshi-Regular",
+              color: "#c83232",
+              fontSize: fontSizes.base,
+            }}
+          >
+            {t("task.deleteLabel")}
+          </Text>
           <Feather name="trash-2" size={18} color="#c83232" />
         </SquircleButton>
       </View>
     );
-  }, [canUseTaskBox, handleMoveToBoxAfterSwipe, handleSwipeLeft, fontSizes.base, item.date, mode, t]);
+  }, [
+    canUseTaskBox,
+    handleMoveToBoxAfterSwipe,
+    handleSwipeLeft,
+    fontSizes.base,
+    item.date,
+    mode,
+    t,
+  ]);
 
   const renderLeftActions = useCallback(() => {
     const isInTaskBox = !item.date || mode === "box";
-    const shouldMoveToToday = mode === 'daily' || isInTaskBox;
+    const shouldMoveToToday = mode === "daily" || isInTaskBox;
 
     if (!shouldMoveToToday && item.date) {
       return (
-        <View style={{ width: 130, minHeight: 64, height: '100%', paddingRight: 10, justifyContent: 'center' }}>
+        <View
+          style={{
+            width: 130,
+            minHeight: 64,
+            height: "100%",
+            paddingRight: 10,
+            justifyContent: "center",
+          }}
+        >
           <SquircleButton
             onPress={handlePostpone}
             activeOpacity={0.8}
             style={{
-              backgroundColor: '#333333',
+              backgroundColor: "#333333",
               flex: 1,
               borderRadius: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
             }}
             cornerSmoothing={100}
             preserveSmoothing={true}
           >
-            <Text style={{ fontFamily: 'Satoshi-Regular', color: '#ffffff', fontSize: fontSizes.base }}>{t("task.actions.postpone")}</Text>
+            <Text
+              style={{
+                fontFamily: "Satoshi-Regular",
+                color: "#ffffff",
+                fontSize: fontSizes.base,
+              }}
+            >
+              {t("task.actions.postpone")}
+            </Text>
             <Feather name="chevron-right" size={20} color="#ffffff" />
           </SquircleButton>
         </View>
@@ -391,17 +553,31 @@ export const TaskItem = ({
 
     const targetDateKey = moveToDateKey ?? toAppDateKey(new Date());
     const isTargetToday = targetDateKey === toAppDateKey(new Date());
-    const isTargetLocked = lockPastDaysEnabled && isPastAppDateKey(targetDateKey);
+    const isTargetLocked =
+      lockPastDaysEnabled && isPastAppDateKey(targetDateKey);
     const targetDate = fromAppDateKey(targetDateKey);
     const actionWidth = isTargetToday ? 170 : 190;
     const actionText = isTargetToday
       ? t("task.actions.moveToToday")
-      : targetDate.toLocaleDateString(undefined, { day: "numeric", month: "short" });
-    const actionBackgroundColor = isTargetLocked ? colors.checkbox : '#333333';
-    const actionForegroundColor = isTargetLocked ? colors.textSecondary : '#ffffff';
+      : targetDate.toLocaleDateString(undefined, {
+          day: "numeric",
+          month: "short",
+        });
+    const actionBackgroundColor = isTargetLocked ? colors.checkbox : "#333333";
+    const actionForegroundColor = isTargetLocked
+      ? colors.textSecondary
+      : "#ffffff";
 
     return (
-      <View style={{ width: actionWidth, minHeight: 64, height: '100%', paddingRight: 10, justifyContent: 'center' }}>
+      <View
+        style={{
+          width: actionWidth,
+          minHeight: 64,
+          height: "100%",
+          paddingRight: 10,
+          justifyContent: "center",
+        }}
+      >
         <SquircleButton
           onPress={isTargetLocked ? undefined : handleMoveToToday}
           activeOpacity={isTargetLocked ? 1 : 0.8}
@@ -410,34 +586,69 @@ export const TaskItem = ({
             backgroundColor: actionBackgroundColor,
             flex: 1,
             borderRadius: 20,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
           }}
           cornerSmoothing={100} // 0-100
           preserveSmoothing={true} // false matches figma, true has more rounding
         >
-          <Text style={{ fontFamily: 'Satoshi-Regular', color: actionForegroundColor, fontSize: fontSizes.base }}>{actionText}</Text>
+          <Text
+            style={{
+              fontFamily: "Satoshi-Regular",
+              color: actionForegroundColor,
+              fontSize: fontSizes.base,
+            }}
+          >
+            {actionText}
+          </Text>
           {isTargetLocked ? (
-            <SymbolView name="lock.fill" size={18} tintColor={actionForegroundColor} />
+            <SymbolView
+              name="lock.fill"
+              size={18}
+              tintColor={actionForegroundColor}
+            />
           ) : (
-            <Feather name="corner-down-left" size={20} color={actionForegroundColor} />
+            <Feather
+              name="corner-down-left"
+              size={20}
+              color={actionForegroundColor}
+            />
           )}
         </SquircleButton>
       </View>
     );
-  }, [colors.checkbox, colors.textSecondary, fontSizes.base, handleMoveToToday, handlePostpone, item.date, lockPastDaysEnabled, mode, moveToDateKey, t]);
+  }, [
+    colors.checkbox,
+    colors.textSecondary,
+    fontSizes.base,
+    handleMoveToToday,
+    handlePostpone,
+    item.date,
+    lockPastDaysEnabled,
+    mode,
+    moveToDateKey,
+    t,
+  ]);
 
   const animatedStyle = useAnimatedStyle(() => {
-    const enterScale = disableAddedAnimations ? 1 : 0.3 + enterProgress.value * 0.7;
+    const enterScale = disableAddedAnimations
+      ? 1
+      : 0.3 + enterProgress.value * 0.7;
     const enterOpacity = disableAddedAnimations ? 1 : enterProgress.value;
 
     return {
       transform: [
-        { scale: (isActive ? 1.02 : 1) * pressScale.value * rowScale.value * enterScale },
+        {
+          scale:
+            (isActive ? 1.02 : 1) *
+            pressScale.value *
+            rowScale.value *
+            enterScale,
+        },
         { translateY: rowTranslateY.value + layoutTranslateY.value },
-        { translateX: translateX.value }
+        { translateX: translateX.value },
       ],
       opacity: itemOpacity.value * rowOpacity.value * enterOpacity,
     };
@@ -455,12 +666,12 @@ export const TaskItem = ({
       backgroundColor: interpolateColor(
         dotScale.value,
         [0, 1],
-        [colors.checkbox, checkboxDoneBackground]
+        [colors.checkbox, checkboxDoneBackground],
       ),
       borderColor: interpolateColor(
         dotScale.value,
         [0, 1],
-        [colors.border, checkboxDoneBorder]
+        [colors.border, checkboxDoneBorder],
       ),
       transform: [
         {
@@ -481,7 +692,7 @@ export const TaskItem = ({
       color: interpolateColor(
         doneProgress.value,
         [0, 1],
-        [colors.text, mutedTextColor]
+        [colors.text, mutedTextColor],
       ),
     };
   });
@@ -500,7 +711,11 @@ export const TaskItem = ({
   const handleCheckboxPress = useCallback(() => {
     void (async () => {
       if (isReadOnly) return;
-      if (needsLateAdjustmentConfirmation(item, lockPastDaysEnabled) && !(await confirmLateAdjustment(t))) return;
+      if (
+        needsLateAdjustmentConfirmation(item, lockPastDaysEnabled) &&
+        !(await confirmLateAdjustment(t))
+      )
+        return;
 
       const nextDone = !visualDoneRef.current;
       visualDoneRef.current = nextDone;
@@ -518,7 +733,15 @@ export const TaskItem = ({
         easing: Easing.out(Easing.quad),
       });
     })();
-  }, [doneProgress, isReadOnly, item, lockPastDaysEnabled, t, handleToggleTask, dotScale]);
+  }, [
+    doneProgress,
+    isReadOnly,
+    item,
+    lockPastDaysEnabled,
+    t,
+    handleToggleTask,
+    dotScale,
+  ]);
 
   const handlePress = useCallback(() => {
     if (isReadOnly) return;
@@ -540,7 +763,13 @@ export const TaskItem = ({
     rowRef.current?.measureInWindow((x, y, width, height) => {
       handleTaskPress(item.id, { x, y, width, height });
     });
-  }, [handleTaskPress, isExtendable, isReadOnly, item.id, onPressWhenNotExtendable]);
+  }, [
+    handleTaskPress,
+    isExtendable,
+    isReadOnly,
+    item.id,
+    onPressWhenNotExtendable,
+  ]);
 
   const handlePressIn = useCallback(() => {
     pressScale.value = withSpring(0.98, {
@@ -583,7 +812,12 @@ export const TaskItem = ({
       const previousY = lastMeasuredYRef.current;
       lastMeasuredYRef.current = y;
 
-      if (previousY === null || disableAddedAnimationsRef.current || isActiveRef.current || selectedTaskIdRef.current !== null) {
+      if (
+        previousY === null ||
+        disableAddedAnimationsRef.current ||
+        isActiveRef.current ||
+        selectedTaskIdRef.current !== null
+      ) {
         return;
       }
 
@@ -626,8 +860,7 @@ export const TaskItem = ({
     }
   }, [isActive, layoutTranslateY]);
 
-  const taskItemStyle =
-    [styles.taskItem, { backgroundColor: colors.task }];
+  const taskItemStyle = [styles.taskItem, { backgroundColor: colors.task }];
 
   useEffect(() => {
     if (disableAddedAnimations) {
@@ -667,22 +900,43 @@ export const TaskItem = ({
   }, []);
 
   useEffect(() => {
-    rowOpacity.value = withTiming(selectedTaskId === null ? 1 : isSelected ? 0 : 0, {
-      duration: 220,
-      easing: Easing.out(Easing.quad),
-    });
-    rowScale.value = withTiming(selectedTaskId === null ? 1 : isHidden ? 0.98 : 1, {
-      duration: 260,
-      easing: Easing.bezier(0.2, 0.8, 0.2, 1),
-    });
-    rowTranslateY.value = withTiming(selectedTaskId === null ? 0 : isHidden ? 8 : 0, {
-      duration: 260,
-      easing: Easing.out(Easing.quad),
-    });
-  }, [isHidden, isSelected, listHeight, rowOpacity, rowScale, rowTranslateY, selectedTaskId]);
+    rowOpacity.value = withTiming(
+      selectedTaskId === null ? 1 : isSelected ? 0 : 0,
+      {
+        duration: 220,
+        easing: Easing.out(Easing.quad),
+      },
+    );
+    rowScale.value = withTiming(
+      selectedTaskId === null ? 1 : isHidden ? 0.98 : 1,
+      {
+        duration: 260,
+        easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+      },
+    );
+    rowTranslateY.value = withTiming(
+      selectedTaskId === null ? 0 : isHidden ? 8 : 0,
+      {
+        duration: 260,
+        easing: Easing.out(Easing.quad),
+      },
+    );
+  }, [
+    isHidden,
+    isSelected,
+    listHeight,
+    rowOpacity,
+    rowScale,
+    rowTranslateY,
+    selectedTaskId,
+  ]);
 
   return (
-    <Animated.View ref={rowRef} onLayout={measureInitialLayout} style={[animatedStyle, shadowStyle]}>
+    <Animated.View
+      ref={rowRef}
+      onLayout={measureInitialLayout}
+      style={[animatedStyle, shadowStyle]}
+    >
       <Swipeable
         ref={swipeableRef}
         renderLeftActions={renderLeftActions}
@@ -696,7 +950,7 @@ export const TaskItem = ({
         friction={1.05}
         overshootRight={false}
         overshootLeft={false}
-        containerStyle={{ overflow: 'visible' }}
+        containerStyle={{ overflow: "visible" }}
       >
         <Squircle style={taskItemStyle}>
           <Animated.View
@@ -738,24 +992,37 @@ export const TaskItem = ({
                 </View>
               )}
 
-              <Animated.Text style={[
-                styles.taskName,
-                taskTextAnimatedStyle,
-                { fontSize: fontSizes.lg }
-              ]}>
+              <Animated.Text
+                style={[
+                  styles.taskName,
+                  taskTextAnimatedStyle,
+                  { fontSize: fontSizes.lg },
+                ]}
+              >
                 {item.name}
               </Animated.Text>
 
-              {(displayedLateDays || (lockPastDaysEnabled && item.late_adjusted_at)) ? (
+              {displayedLateDays ||
+              (lockPastDaysEnabled && item.late_adjusted_at) ? (
                 <View style={styles.taskBadges}>
                   {displayedLateDays ? (
-                    <Text style={[styles.taskBadgeText, { color: colors.textSecondary }]}>
+                    <Text
+                      style={[
+                        styles.taskBadgeText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       {t("task.delayBadge", { count: displayedLateDays })}
                     </Text>
                   ) : null}
 
                   {lockPastDaysEnabled && item.late_adjusted_at ? (
-                    <Text style={[styles.taskBadgeText, { color: colors.textSecondary }]}>
+                    <Text
+                      style={[
+                        styles.taskBadgeText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       {t("task.adjustedLabel")}
                     </Text>
                   ) : null}
@@ -764,16 +1031,18 @@ export const TaskItem = ({
 
               <View style={styles.checkboxContainer}>
                 <AnimatedTouchableOpacity
-                  style={[
-                    styles.taskCheckbox,
-                    checkboxAnimatedStyle,
-                  ]}
+                  style={[styles.taskCheckbox, checkboxAnimatedStyle]}
                   onPress={handleCheckboxPress}
                   disabled={isReadOnly}
                   activeOpacity={0.85}
                 >
                   <Animated.View style={checkAnimatedStyle}>
-                    <Feather name="check" size={21} color={checkboxDoneIcon} strokeWidth={3.2} />
+                    <Feather
+                      name="check"
+                      size={21}
+                      color={checkboxDoneIcon}
+                      strokeWidth={3.2}
+                    />
                   </Animated.View>
                 </AnimatedTouchableOpacity>
               </View>
@@ -787,21 +1056,21 @@ export const TaskItem = ({
 
 const styles = StyleSheet.create({
   taskItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     minHeight: 64,
-    position: 'relative',
-    justifyContent: 'space-between',
+    position: "relative",
+    justifyContent: "space-between",
     borderRadius: 20,
-    width: '100%',
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    overflow: 'hidden',
-    boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.15)',
+    width: "100%",
+    marginLeft: "auto",
+    marginRight: "auto",
+    overflow: "hidden",
+    boxShadow: "0px 6px 10px rgba(0, 0, 0, 0.15)",
   },
 
   taskDoneOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     right: 0,
     bottom: 0,
@@ -809,25 +1078,25 @@ const styles = StyleSheet.create({
   },
 
   taskItemDone: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     minHeight: 64,
     paddingHorizontal: 12,
     marginBottom: 10,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
     borderRadius: 20,
-    width: '90%',
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    overflow: 'hidden',
-    backgroundColor: '#475c48ff',
+    width: "90%",
+    marginLeft: "auto",
+    marginRight: "auto",
+    overflow: "hidden",
+    backgroundColor: "#475c48ff",
   },
 
   taskContent: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 12,
     paddingVertical: 10,
     minHeight: 64,
@@ -836,7 +1105,7 @@ const styles = StyleSheet.create({
   checkboxHitboxDebug: {
     bottom: 0,
     opacity: 0.35,
-    position: 'absolute',
+    position: "absolute",
     right: 0,
     top: 0,
     width: 76,
@@ -846,17 +1115,17 @@ const styles = StyleSheet.create({
   taskName: {
     flex: 1,
     flexShrink: 1,
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: "Satoshi-Regular",
     zIndex: 1,
     marginLeft: 8,
     marginRight: 10,
   },
 
   tagDots: {
-    alignItems: 'center',
+    alignItems: "center",
     flexShrink: 0,
     gap: 4,
-    justifyContent: 'center',
+    justifyContent: "center",
     marginLeft: 2,
     width: 10,
   },
@@ -868,24 +1137,24 @@ const styles = StyleSheet.create({
   },
 
   taskBadges: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     flexShrink: 0,
     gap: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     marginRight: 8,
     maxWidth: 118,
   },
 
   taskBadgeText: {
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: "Satoshi-Regular",
     fontSize: 12,
-    textAlign: 'right',
+    textAlign: "right",
   },
 
   taskNameDone: {
     flex: 1,
     flexShrink: 1,
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: "Satoshi-Regular",
     zIndex: 1,
     marginLeft: 10,
     marginRight: 10,
@@ -897,19 +1166,18 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 100,
     borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   checkboxContainer: {
-    position: 'relative',
+    position: "relative",
     width: 45,
     height: 45,
     flexShrink: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 
-  taskCheckboxDone: {
-  },
+  taskCheckboxDone: {},
 });

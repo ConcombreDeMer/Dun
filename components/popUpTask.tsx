@@ -4,19 +4,43 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import Animated, { FadeIn, FadeOut, interpolateColor, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import {
+  ActivityIndicator,
+  Alert,
+  Keyboard,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 import { fromAppDateKey, isPastAppDateKey, toAppDateKey } from "../lib/date";
 import { useAuthUserId } from "../lib/AuthSessionContext";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import {
-    confirmLateAdjustment,
-    createLateAdjustmentCancelledError,
-    isLateAdjustmentConfirmationCancelled,
-    needsLateAdjustmentConfirmation,
+  confirmLateAdjustment,
+  createLateAdjustmentCancelledError,
+  isLateAdjustmentConfirmationCancelled,
+  needsLateAdjustmentConfirmation,
 } from "../lib/lateAdjustmentConfirmation";
-import { getTaskTagIds, setTaskTags, TAG_USAGE_STATS_QUERY_KEY } from "../lib/tags";
+import {
+  getTaskTagIds,
+  setTaskTags,
+  TAG_USAGE_STATS_QUERY_KEY,
+} from "../lib/tags";
 import { markTaskLateAdjustedIfResolved, updateTaskDraft } from "../lib/tasks";
 import { useTheme } from "../lib/ThemeContext";
 import { useOptimisticTaskMutations } from "../lib/useOptimisticTaskMutations";
@@ -25,1125 +49,1245 @@ import { useProfile } from "../lib/profile";
 import TagSelector from "./TagSelector";
 import { logger } from "@/lib/logger";
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+const AnimatedTouchableOpacity =
+  Animated.createAnimatedComponent(TouchableOpacity);
 
 type TaskDraft = {
-    name: string;
-    description: string;
-    taskDate: Date | null;
-    isDone: boolean;
+  name: string;
+  description: string;
+  taskDate: Date | null;
+  isDone: boolean;
 };
 
 type ActiveField = "name" | "description" | null;
 
-export default function PopUpTask({ onClose, id }: { onClose: (afterClose?: () => void) => void, id?: number }) {
-    const { actualTheme, colors } = useTheme();
-    const { fontSizes } = useFont();
-    const { t, language } = useAppTranslation();
-    const [task, setTask] = useState<any>(null);
-    const [name, setName] = useState("");
-    const [description, setDescription] = useState("");
-    const [selectedTagIds, setSelectedTagIds] = useState<string[] | null>(null);
-    const [taskDate, setTaskDate] = useState<Date | null>(new Date());
-    const [last_update_date, setLastUpdateDate] = useState<Date | null>(null);
-    const [hasChanges, setHasChanges] = useState(false);
-    const [isDone, setIsDone] = useState(false);
-    const [activeField, setActiveField] = useState<ActiveField>(null);
-    const [inputLock, setInputLock] = useState(false);
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [tempDate, setTempDate] = useState(new Date());
-    const doneProgress = useSharedValue(0);
-    const queryClient = useQueryClient();
-    const userId = useAuthUserId();
-    const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
-    const profileQuery = useProfile();
-    const lockPastDaysEnabled = profileQuery.data?.lockPastDaysEnabled ?? true;
-    const { deleteTaskOptimistically, isTaskDeletePending } = useOptimisticTaskMutations();
-    const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
-    const hasConfirmedLateAdjustmentRef = useRef(false);
-    const hydratedTaskIdRef = useRef<number | null>(null);
-    const lastSavedTextSnapshotRef = useRef("");
-    const committedTaskDateRef = useRef<Date | null>(new Date());
-    const datePickerOriginalDateRef = useRef<Date | null>(new Date());
-    const pendingTaskDateRef = useRef<Date | null>(null);
-    const hasPendingTaskDateChangeRef = useRef(false);
-    const latestDraftRef = useRef<TaskDraft>({
-        name: "",
-        description: "",
-        taskDate: new Date(),
-        isDone: false,
-    });
-    const taskToggleQueryKeys = useMemo(
-        () => id ? [tasksQueryKey, ["tasks", userId, id] as const] : [tasksQueryKey],
-        [id, tasksQueryKey, userId]
-    );
-    const {
-        isTaskPending: isTogglePending,
-        toggleTaskDone,
-    } = useToggleTaskDone({
-        queryKeys: taskToggleQueryKeys,
-        errorTitle: t("common.alerts.errorTitle"),
-        errorMessage: t("common.alerts.genericError"),
-        onError: (_taskId, previousDone) => {
-            setIsDone(previousDone);
-            latestDraftRef.current = {
-                ...latestDraftRef.current,
-                isDone: previousDone,
-            };
-            setTask((current: any) => current ? { ...current, done: previousDone } : current);
-        },
-        onSuccess: (_taskId, nextDone) => {
-            setTask((current: any) => current ? { ...current, done: nextDone } : current);
-        },
-    });
+export default function PopUpTask({
+  onClose,
+  id,
+}: {
+  onClose: (afterClose?: () => void) => void;
+  id?: number;
+}) {
+  const { actualTheme, colors } = useTheme();
+  const { fontSizes } = useFont();
+  const { t, language } = useAppTranslation();
+  const [task, setTask] = useState<any>(null);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [selectedTagIds, setSelectedTagIds] = useState<string[] | null>(null);
+  const [taskDate, setTaskDate] = useState<Date | null>(new Date());
+  const [last_update_date, setLastUpdateDate] = useState<Date | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isDone, setIsDone] = useState(false);
+  const [activeField, setActiveField] = useState<ActiveField>(null);
+  const [inputLock, setInputLock] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempDate, setTempDate] = useState(new Date());
+  const doneProgress = useSharedValue(0);
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
+  const profileQuery = useProfile();
+  const lockPastDaysEnabled = profileQuery.data?.lockPastDaysEnabled ?? true;
+  const { deleteTaskOptimistically, isTaskDeletePending } =
+    useOptimisticTaskMutations();
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const hasConfirmedLateAdjustmentRef = useRef(false);
+  const hydratedTaskIdRef = useRef<number | null>(null);
+  const lastSavedTextSnapshotRef = useRef("");
+  const committedTaskDateRef = useRef<Date | null>(new Date());
+  const datePickerOriginalDateRef = useRef<Date | null>(new Date());
+  const pendingTaskDateRef = useRef<Date | null>(null);
+  const hasPendingTaskDateChangeRef = useRef(false);
+  const latestDraftRef = useRef<TaskDraft>({
+    name: "",
+    description: "",
+    taskDate: new Date(),
+    isDone: false,
+  });
+  const taskToggleQueryKeys = useMemo(
+    () =>
+      id ? [tasksQueryKey, ["tasks", userId, id] as const] : [tasksQueryKey],
+    [id, tasksQueryKey, userId],
+  );
+  const { isTaskPending: isTogglePending, toggleTaskDone } = useToggleTaskDone({
+    queryKeys: taskToggleQueryKeys,
+    errorTitle: t("common.alerts.errorTitle"),
+    errorMessage: t("common.alerts.genericError"),
+    onError: (_taskId, previousDone) => {
+      setIsDone(previousDone);
+      latestDraftRef.current = {
+        ...latestDraftRef.current,
+        isDone: previousDone,
+      };
+      setTask((current: any) =>
+        current ? { ...current, done: previousDone } : current,
+      );
+    },
+    onSuccess: (_taskId, nextDone) => {
+      setTask((current: any) =>
+        current ? { ...current, done: nextDone } : current,
+      );
+    },
+  });
 
-    const taskQuery = useQuery({
-        queryKey: ["tasks", userId, id],
-        queryFn: getTask,
-        enabled: !!id && !!userId,
-        gcTime: 1000 * 60 * 5,
-        staleTime: 1000 * 60 * 2,
-    });
+  const taskQuery = useQuery({
+    queryKey: ["tasks", userId, id],
+    queryFn: getTask,
+    enabled: !!id && !!userId,
+    gcTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
+  });
 
-    const taskTagsQuery = useQuery({
-        queryKey: ["task-tags", userId, id],
-        queryFn: () => getTaskTagIds(id as number, userId ?? undefined),
-        enabled: !!id && !!userId,
-        gcTime: 1000 * 60 * 5,
-        staleTime: 1000 * 60 * 2,
-    });
+  const taskTagsQuery = useQuery({
+    queryKey: ["task-tags", userId, id],
+    queryFn: () => getTaskTagIds(id as number, userId ?? undefined),
+    enabled: !!id && !!userId,
+    gcTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
+  });
 
-    async function getTask() {
-        if (!userId) {
-            throw new Error("Utilisateur non connecté");
-        }
-
-        const { data, error } = await supabase
-            .from("Tasks")
-            .select("*")
-            .eq("id", id)
-            .eq("user_id", userId)
-            .single();
-
-        if (error) {
-            throw new Error(error.message);
-        }
-
-        return data;
+  async function getTask() {
+    if (!userId) {
+      throw new Error("Utilisateur non connecté");
     }
 
+    const { data, error } = await supabase
+      .from("Tasks")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", userId)
+      .single();
 
-    const ensureLateAdjustmentConfirmed = useCallback(async () => {
-        if (!needsLateAdjustmentConfirmation(task, lockPastDaysEnabled) || hasConfirmedLateAdjustmentRef.current) {
-            return true;
-        }
+    if (error) {
+      throw new Error(error.message);
+    }
 
-        const confirmed = await confirmLateAdjustment(t);
-        hasConfirmedLateAdjustmentRef.current = confirmed;
-        return confirmed;
-    }, [lockPastDaysEnabled, task, t]);
+    return data;
+  }
 
-    const markLocalLateAdjusted = useCallback((lateAdjustedAt = new Date().toISOString()) => {
-        if (!lockPastDaysEnabled) {
-            return;
-        }
+  const ensureLateAdjustmentConfirmed = useCallback(async () => {
+    if (
+      !needsLateAdjustmentConfirmation(task, lockPastDaysEnabled) ||
+      hasConfirmedLateAdjustmentRef.current
+    ) {
+      return true;
+    }
 
-        setTask((current: any) => current ? {
-            ...current,
-            late_adjusted_at: current.late_adjusted_at ?? (current.resolved_at ? lateAdjustedAt : null),
-        } : current);
-    }, [lockPastDaysEnabled]);
+    const confirmed = await confirmLateAdjustment(t);
+    hasConfirmedLateAdjustmentRef.current = confirmed;
+    return confirmed;
+  }, [lockPastDaysEnabled, task, t]);
 
-    const resetTextDraftToLastSaved = useCallback(() => {
-        const savedSnapshot = JSON.parse(lastSavedTextSnapshotRef.current || "{}") as {
-            description?: string;
-            name?: string;
-        };
-        const nextName = savedSnapshot.name ?? "";
-        const nextDescription = savedSnapshot.description ?? "";
+  const markLocalLateAdjusted = useCallback(
+    (lateAdjustedAt = new Date().toISOString()) => {
+      if (!lockPastDaysEnabled) {
+        return;
+      }
 
-        setName(nextName);
-        setDescription(nextDescription);
-        latestDraftRef.current = {
-            ...latestDraftRef.current,
-            name: nextName,
-            description: nextDescription,
-        };
-        setHasChanges(false);
-    }, []);
-
-    const updateTaskMutation = useMutation({
-        mutationFn: async (draft: TaskDraft) => {
-            if (!draft.name.trim()) {
-                throw new Error(t("task.popup.nameRequired"));
+      setTask((current: any) =>
+        current
+          ? {
+              ...current,
+              late_adjusted_at:
+                current.late_adjusted_at ??
+                (current.resolved_at ? lateAdjustedAt : null),
             }
+          : current,
+      );
+    },
+    [lockPastDaysEnabled],
+  );
 
-            if (!id) throw new Error(t("task.popup.notFound"));
-            if (!(await ensureLateAdjustmentConfirmed())) {
-                throw createLateAdjustmentCancelledError();
-            }
+  const resetTextDraftToLastSaved = useCallback(() => {
+    const savedSnapshot = JSON.parse(
+      lastSavedTextSnapshotRef.current || "{}",
+    ) as {
+      description?: string;
+      name?: string;
+    };
+    const nextName = savedSnapshot.name ?? "";
+    const nextDescription = savedSnapshot.description ?? "";
 
-            return updateTaskDraft(id, draft, {
-                previousDateKey: task?.date ?? null,
-            }, userId ?? undefined);
+    setName(nextName);
+    setDescription(nextDescription);
+    latestDraftRef.current = {
+      ...latestDraftRef.current,
+      name: nextName,
+      description: nextDescription,
+    };
+    setHasChanges(false);
+  }, []);
+
+  const updateTaskMutation = useMutation({
+    mutationFn: async (draft: TaskDraft) => {
+      if (!draft.name.trim()) {
+        throw new Error(t("task.popup.nameRequired"));
+      }
+
+      if (!id) throw new Error(t("task.popup.notFound"));
+      if (!(await ensureLateAdjustmentConfirmed())) {
+        throw createLateAdjustmentCancelledError();
+      }
+
+      return updateTaskDraft(
+        id,
+        draft,
+        {
+          previousDateKey: task?.date ?? null,
         },
-        onSuccess: ({ draft, savedAt }) => {
-            queryClient.invalidateQueries({ queryKey: ["tasks", userId] });
-            queryClient.invalidateQueries({ queryKey: ["days", userId] });
-            setTask((current: any) => current ? {
-                ...current,
-                name: draft.name,
-                description: draft.description,
-                date: draft.taskDate ? toAppDateKey(draft.taskDate) : null,
-                late_adjusted_at: lockPastDaysEnabled
-                    ? current.late_adjusted_at ?? (current.resolved_at ? savedAt : null)
-                    : current.late_adjusted_at,
-                last_update_date: savedAt,
-            } : current);
-            committedTaskDateRef.current = draft.taskDate;
-            setLastUpdateDate(new Date(savedAt));
-            const savedTextSnapshot = JSON.stringify({
-                name: draft.name,
-                description: draft.description,
+        userId ?? undefined,
+      );
+    },
+    onSuccess: ({ draft, savedAt }) => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", userId] });
+      queryClient.invalidateQueries({ queryKey: ["days", userId] });
+      setTask((current: any) =>
+        current
+          ? {
+              ...current,
+              name: draft.name,
+              description: draft.description,
+              date: draft.taskDate ? toAppDateKey(draft.taskDate) : null,
+              late_adjusted_at: lockPastDaysEnabled
+                ? (current.late_adjusted_at ??
+                  (current.resolved_at ? savedAt : null))
+                : current.late_adjusted_at,
+              last_update_date: savedAt,
+            }
+          : current,
+      );
+      committedTaskDateRef.current = draft.taskDate;
+      setLastUpdateDate(new Date(savedAt));
+      const savedTextSnapshot = JSON.stringify({
+        name: draft.name,
+        description: draft.description,
+      });
+      lastSavedTextSnapshotRef.current = savedTextSnapshot;
+      setHasChanges(
+        savedTextSnapshot !==
+          JSON.stringify({
+            name: latestDraftRef.current.name.trim(),
+            description: latestDraftRef.current.description.trim(),
+          }),
+      );
+    },
+    onError: (error: any) => {
+      if (isLateAdjustmentConfirmationCancelled(error)) {
+        return;
+      }
+
+      logger.error("Erreur lors de la sauvegarde:", error);
+    },
+  });
+
+  const updateTaskTagsMutation = useMutation({
+    mutationFn: async (tagIds: string[]) => {
+      if (!id) throw new Error(t("task.popup.notFound"));
+      if (!(await ensureLateAdjustmentConfirmed())) {
+        throw createLateAdjustmentCancelledError();
+      }
+
+      await markTaskLateAdjustedIfResolved(id, userId ?? undefined);
+      await setTaskTags(id, tagIds, userId ?? undefined);
+      return tagIds;
+    },
+    onSuccess: (tagIds) => {
+      queryClient.setQueryData(["task-tags", userId, id], tagIds);
+      setSelectedTagIds(null);
+      markLocalLateAdjusted();
+      queryClient.invalidateQueries({ queryKey: ["tasks", userId] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", userId, id] });
+      queryClient.invalidateQueries({ queryKey: ["days", userId] });
+      queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
+    },
+    onError: (error: any) => {
+      if (isLateAdjustmentConfirmationCancelled(error)) {
+        setSelectedTagIds(null);
+        return;
+      }
+
+      logger.error("Erreur lors de la sauvegarde des tags:", error);
+      setSelectedTagIds(null);
+      Alert.alert(
+        t("common.alerts.errorTitle"),
+        error?.message || t("common.alerts.genericError"),
+      );
+    },
+  });
+
+  const enqueueTaskSave = useCallback(
+    async (draft: TaskDraft) => {
+      const nextDraft = {
+        ...draft,
+        name: draft.name.trim(),
+        description: draft.description.trim(),
+      };
+
+      if (!nextDraft.name) {
+        return;
+      }
+
+      saveQueueRef.current = saveQueueRef.current
+        .catch(() => undefined)
+        .then(async () => {
+          const nextTextSnapshot = JSON.stringify({
+            name: nextDraft.name,
+            description: nextDraft.description,
+          });
+
+          if (nextTextSnapshot === lastSavedTextSnapshotRef.current) {
+            return;
+          }
+
+          try {
+            await updateTaskMutation.mutateAsync({
+              ...nextDraft,
+              taskDate: committedTaskDateRef.current,
             });
-            lastSavedTextSnapshotRef.current = savedTextSnapshot;
-            setHasChanges(savedTextSnapshot !== JSON.stringify({
-                name: latestDraftRef.current.name.trim(),
-                description: latestDraftRef.current.description.trim(),
-            }));
-        },
-        onError: (error: any) => {
+          } catch (error) {
             if (isLateAdjustmentConfirmationCancelled(error)) {
-                return;
+              resetTextDraftToLastSaved();
+              return;
             }
 
-            logger.error("Erreur lors de la sauvegarde:", error);
-        }
+            throw error;
+          }
+        });
+
+      return saveQueueRef.current;
+    },
+    [resetTextDraftToLastSaved, updateTaskMutation],
+  );
+
+  useEffect(() => {
+    if (!taskQuery.data) {
+      return;
+    }
+
+    if (hydratedTaskIdRef.current === taskQuery.data.id) {
+      return;
+    }
+
+    const hydratedDraft = {
+      name: taskQuery.data.name || "",
+      description: taskQuery.data.description || "",
+      taskDate: taskQuery.data.date
+        ? fromAppDateKey(taskQuery.data.date)
+        : null,
+      isDone: taskQuery.data.done || false,
+    };
+
+    hydratedTaskIdRef.current = taskQuery.data.id;
+    hasConfirmedLateAdjustmentRef.current = Boolean(
+      taskQuery.data.late_adjusted_at,
+    );
+    setTask(taskQuery.data);
+    setName(hydratedDraft.name);
+    setDescription(hydratedDraft.description);
+    setTaskDate(hydratedDraft.taskDate);
+    setIsDone(hydratedDraft.isDone);
+    setLastUpdateDate(
+      taskQuery.data.last_update_date
+        ? new Date(taskQuery.data.last_update_date)
+        : null,
+    );
+    committedTaskDateRef.current = hydratedDraft.taskDate;
+    pendingTaskDateRef.current = null;
+    hasPendingTaskDateChangeRef.current = false;
+    latestDraftRef.current = hydratedDraft;
+    lastSavedTextSnapshotRef.current = JSON.stringify({
+      name: hydratedDraft.name.trim(),
+      description: hydratedDraft.description.trim(),
+    });
+    setHasChanges(false);
+  }, [taskQuery.data]);
+
+  useEffect(() => {
+    latestDraftRef.current = { name, description, taskDate, isDone };
+  }, [name, description, taskDate, isDone]);
+
+  useEffect(() => {
+    doneProgress.value = withSpring(isDone ? 1 : 0, {
+      damping: 18,
+      stiffness: 220,
+      mass: 0.7,
+      overshootClamping: true,
+    });
+  }, [doneProgress, isDone]);
+
+  useEffect(() => {
+    if (!task) {
+      return;
+    }
+
+    const currentTextSnapshot = JSON.stringify({
+      name: name.trim(),
+      description: description.trim(),
     });
 
-    const updateTaskTagsMutation = useMutation({
-        mutationFn: async (tagIds: string[]) => {
-            if (!id) throw new Error(t("task.popup.notFound"));
-            if (!(await ensureLateAdjustmentConfirmed())) {
-                throw createLateAdjustmentCancelledError();
-            }
+    const changed = currentTextSnapshot !== lastSavedTextSnapshotRef.current;
+    setHasChanges(changed);
 
-            await markTaskLateAdjustedIfResolved(id, userId ?? undefined);
-            await setTaskTags(id, tagIds, userId ?? undefined);
-            return tagIds;
-        },
-        onSuccess: (tagIds) => {
-            queryClient.setQueryData(["task-tags", userId, id], tagIds);
-            setSelectedTagIds(null);
-            markLocalLateAdjusted();
-            queryClient.invalidateQueries({ queryKey: ["tasks", userId] });
-            queryClient.invalidateQueries({ queryKey: ["tasks", userId, id] });
-            queryClient.invalidateQueries({ queryKey: ["days", userId] });
-            queryClient.invalidateQueries({ queryKey: TAG_USAGE_STATS_QUERY_KEY });
-        },
-        onError: (error: any) => {
-            if (isLateAdjustmentConfirmationCancelled(error)) {
-                setSelectedTagIds(null);
-                return;
-            }
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
 
-            logger.error("Erreur lors de la sauvegarde des tags:", error);
-            setSelectedTagIds(null);
-            Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
-        },
+    if (!changed || !name.trim()) {
+      return;
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      void enqueueTaskSave({
+        ...latestDraftRef.current,
+      });
+    }, 900);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [task, name, description, enqueueTaskSave]);
+
+  useEffect(() => {
+    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
+      setActiveField(null);
+      setInputLock(false);
     });
 
-    const enqueueTaskSave = useCallback(async (draft: TaskDraft) => {
-        const nextDraft = {
-            ...draft,
-            name: draft.name.trim(),
-            description: draft.description.trim(),
-        };
+    return () => {
+      hideSubscription.remove();
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
-        if (!nextDraft.name) {
-            return;
-        }
+  const flushPendingSave = async () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
 
-        saveQueueRef.current = saveQueueRef.current
-            .catch(() => undefined)
-            .then(async () => {
-                const nextTextSnapshot = JSON.stringify({
-                    name: nextDraft.name,
-                    description: nextDraft.description,
+    if (!task) {
+      return;
+    }
+
+    if (!latestDraftRef.current.name.trim()) {
+      throw new Error(t("task.popup.nameRequired"));
+    }
+
+    await enqueueTaskSave(latestDraftRef.current);
+  };
+
+  const flushPendingDateChange = async () => {
+    const pendingDate = pendingTaskDateRef.current;
+
+    if (!hasPendingTaskDateChangeRef.current) {
+      return;
+    }
+
+    const pendingDateKey = pendingDate ? toAppDateKey(pendingDate) : null;
+    const committedDateKey = committedTaskDateRef.current
+      ? toAppDateKey(committedTaskDateRef.current)
+      : null;
+
+    if (pendingDateKey === committedDateKey) {
+      pendingTaskDateRef.current = null;
+      hasPendingTaskDateChangeRef.current = false;
+      return;
+    }
+
+    if (!latestDraftRef.current.name.trim()) {
+      throw new Error(t("task.popup.nameRequired"));
+    }
+
+    const nextDraft = {
+      ...latestDraftRef.current,
+      taskDate: pendingDate,
+    };
+
+    await updateTaskMutation.mutateAsync(nextDraft);
+    pendingTaskDateRef.current = null;
+    hasPendingTaskDateChangeRef.current = false;
+  };
+
+  const handleClose = async () => {
+    try {
+      await flushPendingSave();
+      await flushPendingDateChange();
+      onClose();
+    } catch (error: any) {
+      Alert.alert(
+        t("common.alerts.errorTitle"),
+        error?.message || t("common.alerts.genericError"),
+      );
+    }
+  };
+
+  const loading = taskQuery.isLoading && !task;
+  const isTaskReady = !!task;
+  const isBusy =
+    updateTaskMutation.isPending || (id ? isTaskDeletePending(id) : false);
+  const isNameEditable = !inputLock && activeField !== "description";
+  const isDescriptionEditable = !inputLock && activeField !== "name";
+  const checkboxDoneBackground = actualTheme === "dark" ? "#314539" : "#E3F4E9";
+  const checkboxDoneBorder = actualTheme === "dark" ? "#5A9B73" : "#74BE8C";
+  const checkboxDoneIcon = actualTheme === "dark" ? "#89BE9B" : "#4E9C68";
+
+  const doneButtonAnimatedStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      doneProgress.value,
+      [0, 1],
+      [colors.checkbox, checkboxDoneBackground],
+    ),
+    borderColor: interpolateColor(
+      doneProgress.value,
+      [0, 1],
+      [colors.border, checkboxDoneBorder],
+    ),
+    transform: [
+      {
+        scale: 0.96 + doneProgress.value * 0.04,
+      },
+    ],
+  }));
+
+  const doneCheckAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: doneProgress.value,
+    transform: [
+      {
+        scale: 0.6 + doneProgress.value * 0.4,
+      },
+    ],
+  }));
+
+  // if (loading) {
+  //     return (
+  //         <View style={[styles.container, { backgroundColor: colors.background }]}>
+  //             <ActivityIndicator size="large" color={colors.text} />
+  //         </View>
+  //     );
+  // }
+
+  // if (!task) {
+  //     return (
+  //         <View style={[styles.container, { backgroundColor: colors.background }]}>
+  //             <Text style={{ color: colors.text }}>Tâche non trouvée</Text>
+  //             <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20 }}>
+  //                 <MaterialIcons name="arrow-back" size={24} color={colors.button} />
+  //             </TouchableOpacity>
+  //         </View>
+  //     );
+  // }
+
+  const handleDeleteTask = async () => {
+    Alert.alert(
+      t("common.alerts.deleteTaskTitle"),
+      t("common.alerts.deleteTaskMessage"),
+      [
+        {
+          text: t("common.actions.cancel"),
+          onPress: () => {},
+          style: "cancel",
+        },
+        {
+          text: t("common.actions.delete"),
+          onPress: () => {
+            void (async () => {
+              if (!id) {
+                Alert.alert(
+                  t("common.alerts.errorTitle"),
+                  t("task.popup.notFound"),
+                );
+                return;
+              }
+
+              if (!(await ensureLateAdjustmentConfirmed())) {
+                return;
+              }
+
+              onClose(() => {
+                void deleteTaskOptimistically(id).catch((error: any) => {
+                  logger.error("Erreur lors de la suppression:", error);
+                  Alert.alert(
+                    t("common.alerts.errorTitle"),
+                    error?.message || t("common.alerts.genericError"),
+                  );
                 });
+              });
+            })();
+          },
+          style: "destructive",
+        },
+      ],
+    );
+  };
 
-                if (nextTextSnapshot === lastSavedTextSnapshotRef.current) {
-                    return;
-                }
+  const handleDateChange = async (date: Date) => {
+    const committedDateKey = committedTaskDateRef.current
+      ? toAppDateKey(committedTaskDateRef.current)
+      : null;
+    const nextDateKey = toAppDateKey(date);
 
-                try {
-                    await updateTaskMutation.mutateAsync({
-                        ...nextDraft,
-                        taskDate: committedTaskDateRef.current,
-                    });
-                } catch (error) {
-                    if (isLateAdjustmentConfirmationCancelled(error)) {
-                        resetTextDraftToLastSaved();
-                        return;
-                    }
+    if (
+      nextDateKey !== committedDateKey &&
+      !(await ensureLateAdjustmentConfirmed())
+    ) {
+      return;
+    }
 
-                    throw error;
-                }
-            });
-
-        return saveQueueRef.current;
-    }, [resetTextDraftToLastSaved, updateTaskMutation]);
-
-    useEffect(() => {
-        if (!taskQuery.data) {
-            return;
-        }
-
-        if (hydratedTaskIdRef.current === taskQuery.data.id) {
-            return;
-        }
-
-        const hydratedDraft = {
-            name: taskQuery.data.name || "",
-            description: taskQuery.data.description || "",
-            taskDate: taskQuery.data.date ? fromAppDateKey(taskQuery.data.date) : null,
-            isDone: taskQuery.data.done || false,
-        };
-
-        hydratedTaskIdRef.current = taskQuery.data.id;
-        hasConfirmedLateAdjustmentRef.current = Boolean(taskQuery.data.late_adjusted_at);
-        setTask(taskQuery.data);
-        setName(hydratedDraft.name);
-        setDescription(hydratedDraft.description);
-        setTaskDate(hydratedDraft.taskDate);
-        setIsDone(hydratedDraft.isDone);
-        setLastUpdateDate(taskQuery.data.last_update_date ? new Date(taskQuery.data.last_update_date) : null);
-        committedTaskDateRef.current = hydratedDraft.taskDate;
-        pendingTaskDateRef.current = null;
-        hasPendingTaskDateChangeRef.current = false;
-        latestDraftRef.current = hydratedDraft;
-        lastSavedTextSnapshotRef.current = JSON.stringify({
-            name: hydratedDraft.name.trim(),
-            description: hydratedDraft.description.trim(),
-        });
-        setHasChanges(false);
-    }, [taskQuery.data]);
-
-    useEffect(() => {
-        latestDraftRef.current = { name, description, taskDate, isDone };
-    }, [name, description, taskDate, isDone]);
-
-    useEffect(() => {
-        doneProgress.value = withSpring(isDone ? 1 : 0, {
-            damping: 18,
-            stiffness: 220,
-            mass: 0.7,
-            overshootClamping: true,
-        });
-    }, [doneProgress, isDone]);
-
-    useEffect(() => {
-        if (!task) {
-            return;
-        }
-
-        const currentTextSnapshot = JSON.stringify({
-            name: name.trim(),
-            description: description.trim(),
-        });
-
-        const changed = currentTextSnapshot !== lastSavedTextSnapshotRef.current;
-        setHasChanges(changed);
-
-        if (saveTimeoutRef.current) {
-            clearTimeout(saveTimeoutRef.current);
-        }
-
-        if (!changed || !name.trim()) {
-            return;
-        }
-
-        saveTimeoutRef.current = setTimeout(() => {
-            void enqueueTaskSave({
-                ...latestDraftRef.current,
-            });
-        }, 900);
-
-        return () => {
-            if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-            }
-        };
-    }, [task, name, description, enqueueTaskSave]);
-
-    useEffect(() => {
-        const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
-            setActiveField(null);
-            setInputLock(false);
-        });
-
-        return () => {
-            hideSubscription.remove();
-            if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-            }
-        };
-    }, []);
-
-    const flushPendingSave = async () => {
-        if (saveTimeoutRef.current) {
-            clearTimeout(saveTimeoutRef.current);
-            saveTimeoutRef.current = null;
-        }
-
-        if (!task) {
-            return;
-        }
-
-        if (!latestDraftRef.current.name.trim()) {
-            throw new Error(t("task.popup.nameRequired"));
-        }
-
-        await enqueueTaskSave(latestDraftRef.current);
+    const nextDraft = {
+      ...latestDraftRef.current,
+      taskDate: date,
     };
 
-    const flushPendingDateChange = async () => {
-        const pendingDate = pendingTaskDateRef.current;
+    setTaskDate(date);
+    latestDraftRef.current = nextDraft;
+    pendingTaskDateRef.current = date;
+    hasPendingTaskDateChangeRef.current = nextDateKey !== committedDateKey;
+  };
 
-        if (!hasPendingTaskDateChangeRef.current) {
-            return;
+  const openDatePicker = () => {
+    if (isBusy) {
+      return;
+    }
+
+    datePickerOriginalDateRef.current = taskDate;
+    setTempDate(taskDate ?? new Date());
+    setShowDatePicker(true);
+  };
+
+  const handlePickerChange = (_event: any, date?: Date) => {
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
+      if (date) {
+        if (lockPastDaysEnabled && isPastAppDateKey(toAppDateKey(date))) {
+          Alert.alert(
+            t("common.alerts.errorTitle"),
+            t("task.popup.lockedDate"),
+          );
+          setTempDate(datePickerOriginalDateRef.current ?? new Date());
+          return;
         }
 
-        const pendingDateKey = pendingDate ? toAppDateKey(pendingDate) : null;
-        const committedDateKey = committedTaskDateRef.current ? toAppDateKey(committedTaskDateRef.current) : null;
+        void handleDateChange(date);
+      }
+      return;
+    }
 
-        if (pendingDateKey === committedDateKey) {
-            pendingTaskDateRef.current = null;
-            hasPendingTaskDateChangeRef.current = false;
-            return;
-        }
+    if (date) {
+      setTempDate(date);
+    }
+  };
 
-        if (!latestDraftRef.current.name.trim()) {
-            throw new Error(t("task.popup.nameRequired"));
-        }
+  const closeDatePicker = () => {
+    if (lockPastDaysEnabled && isPastAppDateKey(toAppDateKey(tempDate))) {
+      Alert.alert(t("common.alerts.errorTitle"), t("task.popup.lockedDate"));
+      setTempDate(datePickerOriginalDateRef.current ?? new Date());
+      setShowDatePicker(false);
+      return;
+    }
 
-        const nextDraft = {
-            ...latestDraftRef.current,
-            taskDate: pendingDate,
-        };
+    setShowDatePicker(false);
+    void handleDateChange(tempDate);
+  };
 
-        await updateTaskMutation.mutateAsync(nextDraft);
-        pendingTaskDateRef.current = null;
-        hasPendingTaskDateChangeRef.current = false;
+  const handleToggleTask = async () => {
+    if (!task?.id || isTogglePending(task.id)) {
+      return;
+    }
+
+    if (!(await ensureLateAdjustmentConfirmed())) {
+      return;
+    }
+
+    markLocalLateAdjusted();
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    const nextDone = !isDone;
+    const nextDraft = {
+      ...latestDraftRef.current,
+      isDone: nextDone,
     };
 
-    const handleClose = async () => {
-        try {
-            await flushPendingSave();
-            await flushPendingDateChange();
-            onClose();
-        } catch (error: any) {
-            Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
-        }
-    };
+    setIsDone(nextDone);
+    latestDraftRef.current = nextDraft;
+    setTask((current: any) =>
+      current ? { ...current, done: nextDone } : current,
+    );
+    void toggleTaskDone(task.id, isDone);
+  };
 
-    const loading = taskQuery.isLoading && !task;
-    const isTaskReady = !!task;
-    const isBusy = updateTaskMutation.isPending
-        || (id ? isTaskDeletePending(id) : false);
-    const isNameEditable = !inputLock && activeField !== "description";
-    const isDescriptionEditable = !inputLock && activeField !== "name";
-    const checkboxDoneBackground = actualTheme === "dark" ? "#314539" : "#E3F4E9";
-    const checkboxDoneBorder = actualTheme === "dark" ? "#5A9B73" : "#74BE8C";
-    const checkboxDoneIcon = actualTheme === "dark" ? "#89BE9B" : "#4E9C68";
+  const handleTagsChange = (tagIds: string[]) => {
+    void (async () => {
+      if (!(await ensureLateAdjustmentConfirmed())) {
+        return;
+      }
 
-    const doneButtonAnimatedStyle = useAnimatedStyle(() => ({
-        backgroundColor: interpolateColor(
-            doneProgress.value,
-            [0, 1],
-            [colors.checkbox, checkboxDoneBackground]
-        ),
-        borderColor: interpolateColor(
-            doneProgress.value,
-            [0, 1],
-            [colors.border, checkboxDoneBorder]
-        ),
-        transform: [
-            {
-                scale: 0.96 + doneProgress.value * 0.04,
-            },
-        ],
-    }));
+      setSelectedTagIds(tagIds);
+      updateTaskTagsMutation.mutate(tagIds);
+    })();
+  };
 
-    const doneCheckAnimatedStyle = useAnimatedStyle(() => ({
-        opacity: doneProgress.value,
-        transform: [
-            {
-                scale: 0.6 + doneProgress.value * 0.4,
-            },
-        ],
-    }));
+  const displayedTagIds = selectedTagIds ?? taskTagsQuery.data ?? [];
 
-    // if (loading) {
-    //     return (
-    //         <View style={[styles.container, { backgroundColor: colors.background }]}>
-    //             <ActivityIndicator size="large" color={colors.text} />
-    //         </View>
-    //     );
-    // }
+  const formatLastUpdateDate = (date: Date | null): string => {
+    if (!date) return "";
 
-    // if (!task) {
-    //     return (
-    //         <View style={[styles.container, { backgroundColor: colors.background }]}>
-    //             <Text style={{ color: colors.text }}>Tâche non trouvée</Text>
-    //             <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20 }}>
-    //                 <MaterialIcons name="arrow-back" size={24} color={colors.button} />
-    //             </TouchableOpacity>
-    //         </View>
-    //     );
-    // }
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffSeconds / 60);
 
+    // Si la différence est inférieure à 10 minutes
 
-    const handleDeleteTask = async () => {
-        Alert.alert(
-            t("common.alerts.deleteTaskTitle"),
-            t("common.alerts.deleteTaskMessage"),
-            [
-                {
-                    text: t("common.actions.cancel"),
-                    onPress: () => { },
-                    style: "cancel",
-                },
-                {
-                    text: t("common.actions.delete"),
-                    onPress: () => {
-                        void (async () => {
-                            if (!id) {
-                                Alert.alert(t("common.alerts.errorTitle"), t("task.popup.notFound"));
-                                return;
-                            }
+    if (diffSeconds === 0) {
+      return t("task.popup.now");
+    }
 
-                            if (!(await ensureLateAdjustmentConfirmed())) {
-                                return;
-                            }
+    if (diffMinutes < 10) {
+      if (diffSeconds < 60) {
+        return t("task.popup.secondsAgo", { count: diffSeconds });
+      } else {
+        return t("task.popup.minutesAgo", { count: diffMinutes });
+      }
+    }
 
-                            onClose(() => {
-                                void deleteTaskOptimistically(id).catch((error: any) => {
-                                    logger.error("Erreur lors de la suppression:", error);
-                                    Alert.alert(t("common.alerts.errorTitle"), error?.message || t("common.alerts.genericError"));
-                                });
-                            });
-                        })();
-                    },
-                    style: "destructive",
-                },
-            ]
-        );
-    };
+    // Sinon, afficher le format complet
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const secondes = date.getSeconds().toString().padStart(2, "0");
 
-    const handleDateChange = async (date: Date) => {
-        const committedDateKey = committedTaskDateRef.current ? toAppDateKey(committedTaskDateRef.current) : null;
-        const nextDateKey = toAppDateKey(date);
+    return t("task.popup.fullDate", {
+      day,
+      month,
+      year,
+      hours,
+      minutes,
+      seconds: secondes,
+    });
+  };
 
-        if (nextDateKey !== committedDateKey && !(await ensureLateAdjustmentConfirmed())) {
-            return;
-        }
+  const formattedTaskDate = taskDate
+    ? taskDate.toLocaleDateString(language === "en" ? "en-US" : "fr-FR", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : t("task.popup.taskBox");
 
-        const nextDraft = {
-            ...latestDraftRef.current,
-            taskDate: date,
-        };
+  return (
+    <Animated.View
+      entering={FadeIn.springify().duration(500)}
+      exiting={FadeOut.springify().duration(500)}
+      style={styles.container}
+    >
+      <Animated.View style={styles.surface}>
+        {isTaskReady && !loading && !name.trim() && (
+          <View style={[styles.nameAlert, { backgroundColor: colors.danger }]}>
+            <Text style={{ color: colors.text, fontSize: fontSizes.base }}>
+              {t("task.popup.nameRequired")}
+            </Text>
+          </View>
+        )}
 
-        setTaskDate(date);
-        latestDraftRef.current = nextDraft;
-        pendingTaskDateRef.current = date;
-        hasPendingTaskDateChangeRef.current = nextDateKey !== committedDateKey;
-    };
-
-    const openDatePicker = () => {
-        if (isBusy) {
-            return;
-        }
-
-        datePickerOriginalDateRef.current = taskDate;
-        setTempDate(taskDate ?? new Date());
-        setShowDatePicker(true);
-    };
-
-    const handlePickerChange = (_event: any, date?: Date) => {
-        if (Platform.OS === "android") {
-            setShowDatePicker(false);
-            if (date) {
-                if (lockPastDaysEnabled && isPastAppDateKey(toAppDateKey(date))) {
-                    Alert.alert(t("common.alerts.errorTitle"), t("task.popup.lockedDate"));
-                    setTempDate(datePickerOriginalDateRef.current ?? new Date());
-                    return;
-                }
-
-                void handleDateChange(date);
-            }
-            return;
-        }
-
-        if (date) {
-            setTempDate(date);
-        }
-    };
-
-    const closeDatePicker = () => {
-        if (lockPastDaysEnabled && isPastAppDateKey(toAppDateKey(tempDate))) {
-            Alert.alert(t("common.alerts.errorTitle"), t("task.popup.lockedDate"));
-            setTempDate(datePickerOriginalDateRef.current ?? new Date());
-            setShowDatePicker(false);
-            return;
-        }
-
-        setShowDatePicker(false);
-        void handleDateChange(tempDate);
-    };
-
-    const handleToggleTask = async () => {
-        if (!task?.id || isTogglePending(task.id)) {
-            return;
-        }
-
-        if (!(await ensureLateAdjustmentConfirmed())) {
-            return;
-        }
-
-        markLocalLateAdjusted();
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-        const nextDone = !isDone;
-        const nextDraft = {
-            ...latestDraftRef.current,
-            isDone: nextDone,
-        };
-
-        setIsDone(nextDone);
-        latestDraftRef.current = nextDraft;
-        setTask((current: any) => current ? { ...current, done: nextDone } : current);
-        void toggleTaskDone(task.id, isDone);
-    };
-
-    const handleTagsChange = (tagIds: string[]) => {
-        void (async () => {
-            if (!(await ensureLateAdjustmentConfirmed())) {
-                return;
-            }
-
-            setSelectedTagIds(tagIds);
-            updateTaskTagsMutation.mutate(tagIds);
-        })();
-    };
-
-    const displayedTagIds = selectedTagIds ?? taskTagsQuery.data ?? [];
-
-    const formatLastUpdateDate = (date: Date | null): string => {
-        if (!date) return "";
-
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffSeconds = Math.floor(diffMs / 1000);
-        const diffMinutes = Math.floor(diffSeconds / 60);
-
-        // Si la différence est inférieure à 10 minutes
-
-        if (diffSeconds === 0) {
-            return t("task.popup.now");
-        }
-
-        if (diffMinutes < 10) {
-            if (diffSeconds < 60) {
-                return t("task.popup.secondsAgo", { count: diffSeconds });
-            } else {
-                return t("task.popup.minutesAgo", { count: diffMinutes });
-            }
-        }
-
-        // Sinon, afficher le format complet
-        const day = date.getDate().toString().padStart(2, "0");
-        const month = (date.getMonth() + 1).toString().padStart(2, "0");
-        const year = date.getFullYear();
-        const hours = date.getHours().toString().padStart(2, "0");
-        const minutes = date.getMinutes().toString().padStart(2, "0");
-        const secondes = date.getSeconds().toString().padStart(2, "0");
-
-        return t("task.popup.fullDate", {
-            day,
-            month,
-            year,
-            hours,
-            minutes,
-            seconds: secondes,
-        });
-    };
-
-    const formattedTaskDate = taskDate
-        ? taskDate.toLocaleDateString(language === "en" ? "en-US" : "fr-FR", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-        })
-        : t("task.popup.taskBox");
-
-
-
-    return (
-        <Animated.View
+        <View style={styles.card}>
+          <Animated.View
             entering={FadeIn.springify().duration(500)}
             exiting={FadeOut.springify().duration(500)}
-            style={styles.container}
-        >
+            style={styles.cardContent}
+          >
+            {!isTaskReady || loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.text} />
+              </View>
+            ) : (
+              <>
+                <View style={styles.header}>
+                  <View style={styles.titleColumn}>
+                    {lockPastDaysEnabled && task.resolved_at ? (
+                      <View
+                        style={[
+                          styles.adjustmentNotice,
+                          {
+                            backgroundColor: colors.background,
+                            borderColor: colors.border,
+                          },
+                        ]}
+                      >
+                        <Feather
+                          name="clock"
+                          size={14}
+                          color={colors.textSecondary}
+                        />
+                        <Text
+                          style={[
+                            styles.adjustmentNoticeText,
+                            {
+                              color: colors.textSecondary,
+                              fontSize: fontSizes.xs,
+                            },
+                          ]}
+                        >
+                          {t("task.popup.lateAdjustmentNotice")}
+                        </Text>
+                      </View>
+                    ) : null}
 
-            <Animated.View style={styles.surface}>
+                    <TagSelector
+                      compact
+                      includeInactiveSelected
+                      mode="selectedMenu"
+                      selectedTagIds={displayedTagIds}
+                      onChange={handleTagsChange}
+                    />
 
-                {isTaskReady && !loading && !name.trim() && (
-                    <View
-                        style={[styles.nameAlert, { backgroundColor: colors.danger }]}>
-                        <Text style={{ color: colors.text, fontSize: fontSizes.base }}>{t("task.popup.nameRequired")}</Text>
-                    </View>
+                    <TextInput
+                      value={name}
+                      onChangeText={setName}
+                      editable={isNameEditable}
+                      onFocus={() => {
+                        setInputLock(false);
+                        setActiveField("name");
+                      }}
+                      onBlur={() => {
+                        if (!Keyboard.isVisible()) {
+                          setActiveField(null);
+                          setInputLock(false);
+                        }
+                      }}
+                      placeholder={t("task.popup.nameRequired")}
+                      placeholderTextColor={colors.inputPlaceholder}
+                      multiline
+                      maxLength={160}
+                      style={[
+                        styles.titleInput,
+                        {
+                          color: colors.text,
+                          fontSize: Math.min(fontSizes["2xl"], 24),
+                        },
+                      ]}
+                    />
+                  </View>
+
+                  <Pressable
+                    onPress={handleClose}
+                    hitSlop={12}
+                    style={({ pressed }) => [
+                      styles.closeButton,
+                      {
+                        backgroundColor: colors.background,
+                        borderColor: colors.border,
+                        opacity: pressed ? 0.65 : 1,
+                      },
+                    ]}
+                  >
+                    <Feather name="x" size={18} color={colors.textSecondary} />
+                  </Pressable>
+                </View>
+
+                <ScrollView
+                  style={styles.scrollContent}
+                  contentContainerStyle={styles.scrollContentInner}
+                  keyboardDismissMode={
+                    Platform.OS === "ios" ? "interactive" : "on-drag"
+                  }
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                  alwaysBounceVertical
+                  bounces
+                  scrollEventThrottle={16}
+                  onScrollBeginDrag={() => {
+                    if (activeField) {
+                      setInputLock(true);
+                    }
+                  }}
+                  onScrollEndDrag={() => {
+                    if (!Keyboard.isVisible()) {
+                      setInputLock(false);
+                    }
+                  }}
+                >
+                  <TextInput
+                    value={description}
+                    onChangeText={setDescription}
+                    editable={isDescriptionEditable}
+                    onFocus={() => {
+                      setInputLock(false);
+                      setActiveField("description");
+                    }}
+                    onBlur={() => {
+                      if (!Keyboard.isVisible()) {
+                        setActiveField(null);
+                        setInputLock(false);
+                      }
+                    }}
+                    placeholder={t("task.popup.insertDescription")}
+                    placeholderTextColor={colors.inputPlaceholder}
+                    multiline
+                    style={[
+                      styles.descriptionInput,
+                      {
+                        color: colors.text,
+                        fontSize: fontSizes.base,
+                      },
+                    ]}
+                  />
+                </ScrollView>
+
+                <View style={styles.footer}>
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.lastUpdatedText,
+                      { color: colors.textSecondary, fontSize: fontSizes.xs },
+                    ]}
+                  >
+                    {hasChanges || updateTaskMutation.isPending
+                      ? t("task.popup.lastUpdated", { date: "..." })
+                      : t("task.popup.lastUpdated", {
+                          date: formatLastUpdateDate(last_update_date),
+                        })}
+                  </Text>
+
+                  <View style={styles.bottom}>
+                    <Pressable
+                      onPress={handleDeleteTask}
+                      disabled={isBusy}
+                      hitSlop={8}
+                      style={({ pressed }) => [
+                        styles.iconAction,
+                        styles.dangerAction,
+                        {
+                          backgroundColor:
+                            actualTheme === "dark" ? "#3B2528" : "#FCE7E8",
+                          borderColor:
+                            actualTheme === "dark" ? "#5A3034" : "#F6C6C9",
+                          opacity: pressed || isBusy ? 0.6 : 1,
+                        },
+                      ]}
+                    >
+                      <Feather
+                        name="trash-2"
+                        size={19}
+                        color={actualTheme === "dark" ? "#FF9BA1" : "#B4232A"}
+                      />
+                    </Pressable>
+
+                    <Pressable
+                      onPress={openDatePicker}
+                      disabled={isBusy}
+                      style={({ pressed }) => [
+                        styles.dateAction,
+                        {
+                          backgroundColor: colors.background,
+                          borderColor: colors.border,
+                          opacity: pressed || isBusy ? 0.7 : 1,
+                        },
+                      ]}
+                    >
+                      <Feather
+                        name="calendar"
+                        size={17}
+                        color={colors.textSecondary}
+                      />
+                      <Text
+                        numberOfLines={1}
+                        style={[
+                          styles.dateActionText,
+                          { color: colors.text, fontSize: fontSizes.sm },
+                        ]}
+                      >
+                        {formattedTaskDate}
+                      </Text>
+                    </Pressable>
+
+                    <AnimatedTouchableOpacity
+                      onPress={handleToggleTask}
+                      disabled={task?.id ? isTogglePending(task.id) : false}
+                      hitSlop={8}
+                      activeOpacity={0.85}
+                      style={[
+                        styles.iconAction,
+                        styles.doneAction,
+                        doneButtonAnimatedStyle,
+                        task?.id && isTogglePending(task.id)
+                          ? styles.disabledAction
+                          : null,
+                      ]}
+                    >
+                      <Animated.View style={doneCheckAnimatedStyle}>
+                        <Feather
+                          name="check"
+                          size={21}
+                          color={checkboxDoneIcon}
+                          strokeWidth={3.2}
+                        />
+                      </Animated.View>
+                    </AnimatedTouchableOpacity>
+                  </View>
+                </View>
+
+                {showDatePicker && Platform.OS === "ios" && (
+                  <Modal
+                    transparent
+                    visible={showDatePicker}
+                    animationType="fade"
+                    onRequestClose={closeDatePicker}
+                  >
+                    <Pressable
+                      style={styles.datePickerOverlay}
+                      onPress={closeDatePicker}
+                    >
+                      <Pressable
+                        style={[
+                          styles.datePickerSheet,
+                          { backgroundColor: colors.card },
+                        ]}
+                        onPress={(event) => event.stopPropagation()}
+                      >
+                        <DateTimePicker
+                          value={tempDate}
+                          mode="date"
+                          display="spinner"
+                          onChange={handlePickerChange}
+                        />
+                        <Pressable
+                          onPress={closeDatePicker}
+                          style={[
+                            styles.datePickerDone,
+                            { backgroundColor: colors.actionButton },
+                          ]}
+                        >
+                          <Feather
+                            name="check"
+                            size={20}
+                            color={colors.buttonText}
+                          />
+                        </Pressable>
+                      </Pressable>
+                    </Pressable>
+                  </Modal>
                 )}
 
-
-                <View style={styles.card}>
-                    <Animated.View
-                        entering={FadeIn.springify().duration(500)}
-                        exiting={FadeOut.springify().duration(500)}
-                        style={styles.cardContent}
-                    >
-                        {!isTaskReady || loading ? (
-                            <View style={styles.loadingContainer}>
-                                <ActivityIndicator size="large" color={colors.text} />
-                            </View>
-                        ) : (
-                            <>
-                                <View style={styles.header}>
-                                    <View style={styles.titleColumn}>
-                                        {lockPastDaysEnabled && task.resolved_at ? (
-                                            <View style={[styles.adjustmentNotice, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                                                <Feather name="clock" size={14} color={colors.textSecondary} />
-                                                <Text style={[styles.adjustmentNoticeText, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>
-                                                    {t("task.popup.lateAdjustmentNotice")}
-                                                </Text>
-                                            </View>
-                                        ) : null}
-
-                                        <TagSelector
-                                            compact
-                                            includeInactiveSelected
-                                            mode="selectedMenu"
-                                            selectedTagIds={displayedTagIds}
-                                            onChange={handleTagsChange}
-                                        />
-
-                                        <TextInput
-                                            value={name}
-                                            onChangeText={setName}
-                                            editable={isNameEditable}
-                                            onFocus={() => {
-                                                setInputLock(false);
-                                                setActiveField("name");
-                                            }}
-                                            onBlur={() => {
-                                                if (!Keyboard.isVisible()) {
-                                                    setActiveField(null);
-                                                    setInputLock(false);
-                                                }
-                                            }}
-                                            placeholder={t("task.popup.nameRequired")}
-                                            placeholderTextColor={colors.inputPlaceholder}
-                                            multiline
-                                            maxLength={160}
-                                            style={[
-                                                styles.titleInput,
-                                                {
-                                                    color: colors.text,
-                                                    fontSize: Math.min(fontSizes["2xl"], 24),
-                                                },
-                                            ]}
-                                        />
-                                    </View>
-
-                                    <Pressable
-                                        onPress={handleClose}
-                                        hitSlop={12}
-                                        style={({ pressed }) => [
-                                            styles.closeButton,
-                                            {
-                                                backgroundColor: colors.background,
-                                                borderColor: colors.border,
-                                                opacity: pressed ? 0.65 : 1,
-                                            },
-                                        ]}
-                                    >
-                                        <Feather name="x" size={18} color={colors.textSecondary} />
-                                    </Pressable>
-                                </View>
-
-                                <ScrollView
-                                    style={styles.scrollContent}
-                                    contentContainerStyle={styles.scrollContentInner}
-                                    keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-                                    keyboardShouldPersistTaps="handled"
-                                    showsVerticalScrollIndicator={false}
-                                    alwaysBounceVertical
-                                    bounces
-                                    scrollEventThrottle={16}
-                                    onScrollBeginDrag={() => {
-                                        if (activeField) {
-                                            setInputLock(true);
-                                        }
-                                    }}
-                                    onScrollEndDrag={() => {
-                                        if (!Keyboard.isVisible()) {
-                                            setInputLock(false);
-                                        }
-                                    }}
-                                >
-                                    <TextInput
-                                        value={description}
-                                        onChangeText={setDescription}
-                                        editable={isDescriptionEditable}
-                                        onFocus={() => {
-                                            setInputLock(false);
-                                            setActiveField("description");
-                                        }}
-                                        onBlur={() => {
-                                            if (!Keyboard.isVisible()) {
-                                                setActiveField(null);
-                                                setInputLock(false);
-                                            }
-                                        }}
-                                        placeholder={t("task.popup.insertDescription")}
-                                        placeholderTextColor={colors.inputPlaceholder}
-                                        multiline
-                                        style={[
-                                            styles.descriptionInput,
-                                            {
-                                                color: colors.text,
-                                                fontSize: fontSizes.base,
-                                            },
-                                        ]}
-                                    />
-                                </ScrollView>
-
-                                <View style={styles.footer}>
-                                    <Text
-                                        numberOfLines={1}
-                                        style={[styles.lastUpdatedText, { color: colors.textSecondary, fontSize: fontSizes.xs }]}
-                                    >
-                                        {hasChanges || updateTaskMutation.isPending
-                                            ? t("task.popup.lastUpdated", { date: "..." })
-                                            : t("task.popup.lastUpdated", { date: formatLastUpdateDate(last_update_date) })}
-                                    </Text>
-
-                                    <View style={styles.bottom}>
-                                        <Pressable
-                                            onPress={handleDeleteTask}
-                                            disabled={isBusy}
-                                            hitSlop={8}
-                                            style={({ pressed }) => [
-                                                styles.iconAction,
-                                                styles.dangerAction,
-                                                {
-                                                    backgroundColor: actualTheme === "dark" ? "#3B2528" : "#FCE7E8",
-                                                    borderColor: actualTheme === "dark" ? "#5A3034" : "#F6C6C9",
-                                                    opacity: pressed || isBusy ? 0.6 : 1,
-                                                },
-                                            ]}
-                                        >
-                                            <Feather name="trash-2" size={19} color={actualTheme === "dark" ? "#FF9BA1" : "#B4232A"} />
-                                        </Pressable>
-
-                                        <Pressable
-                                            onPress={openDatePicker}
-                                            disabled={isBusy}
-                                            style={({ pressed }) => [
-                                                styles.dateAction,
-                                                {
-                                                    backgroundColor: colors.background,
-                                                    borderColor: colors.border,
-                                                    opacity: pressed || isBusy ? 0.7 : 1,
-                                                },
-                                            ]}
-                                        >
-                                            <Feather name="calendar" size={17} color={colors.textSecondary} />
-                                            <Text
-                                                numberOfLines={1}
-                                                style={[styles.dateActionText, { color: colors.text, fontSize: fontSizes.sm }]}
-                                            >
-                                                {formattedTaskDate}
-                                            </Text>
-                                        </Pressable>
-
-                                        <AnimatedTouchableOpacity
-                                            onPress={handleToggleTask}
-                                            disabled={task?.id ? isTogglePending(task.id) : false}
-                                            hitSlop={8}
-                                            activeOpacity={0.85}
-                                            style={[
-                                                styles.iconAction,
-                                                styles.doneAction,
-                                                doneButtonAnimatedStyle,
-                                                (task?.id && isTogglePending(task.id)) ? styles.disabledAction : null,
-                                            ]}
-                                        >
-                                            <Animated.View style={doneCheckAnimatedStyle}>
-                                                <Feather name="check" size={21} color={checkboxDoneIcon} strokeWidth={3.2} />
-                                            </Animated.View>
-                                        </AnimatedTouchableOpacity>
-                                    </View>
-                                </View>
-
-                                {showDatePicker && Platform.OS === "ios" && (
-                                    <Modal
-                                        transparent
-                                        visible={showDatePicker}
-                                        animationType="fade"
-                                        onRequestClose={closeDatePicker}
-                                    >
-                                        <Pressable
-                                            style={styles.datePickerOverlay}
-                                            onPress={closeDatePicker}
-                                        >
-                                            <Pressable
-                                                style={[styles.datePickerSheet, { backgroundColor: colors.card }]}
-                                                onPress={(event) => event.stopPropagation()}
-                                            >
-                                                <DateTimePicker
-                                                    value={tempDate}
-                                                    mode="date"
-                                                    display="spinner"
-                                                    onChange={handlePickerChange}
-                                                />
-                                                <Pressable
-                                                    onPress={closeDatePicker}
-                                                    style={[styles.datePickerDone, { backgroundColor: colors.actionButton }]}
-                                                >
-                                                    <Feather name="check" size={20} color={colors.buttonText} />
-                                                </Pressable>
-                                            </Pressable>
-                                        </Pressable>
-                                    </Modal>
-                                )}
-
-                                {showDatePicker && Platform.OS === "android" && (
-                                    <DateTimePicker
-                                        value={tempDate}
-                                        mode="date"
-                                        display="default"
-                                        onChange={handlePickerChange}
-                                    />
-                                )}
-                            </>
-                        )}
-                    </Animated.View>
-
-                </View>
-            </Animated.View>
-        </Animated.View>
-    );
+                {showDatePicker && Platform.OS === "android" && (
+                  <DateTimePicker
+                    value={tempDate}
+                    mode="date"
+                    display="default"
+                    onChange={handlePickerChange}
+                  />
+                )}
+              </>
+            )}
+          </Animated.View>
+        </View>
+      </Animated.View>
+    </Animated.View>
+  );
 }
 const styles = StyleSheet.create({
+  container: {
+    position: "relative",
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 2,
+    paddingBottom: 14,
+    paddingHorizontal: 14,
+  },
 
-    container: {
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 2,
-        paddingBottom: 14,
-        paddingHorizontal: 14,
-    },
+  surface: {
+    width: "100%",
+    height: "100%",
+  },
 
-    surface: {
-        width: "100%",
-        height: "100%",
-    },
+  nameAlert: {
+    position: "absolute",
+    top: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 18,
+    alignSelf: "center",
+    zIndex: 20,
+  },
 
-    nameAlert: {
-        position: "absolute",
-        top: 4,
-        paddingHorizontal: 12,
-        paddingVertical: 7,
-        borderRadius: 18,
-        alignSelf: "center",
-        zIndex: 20,
-    },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
-    loadingContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
+  card: {
+    width: "100%",
+    height: "100%",
+  },
 
-    card: {
-        width: "100%",
-        height: "100%",
-    },
+  cardContent: {
+    flex: 1,
+    paddingTop: 22,
+    paddingHorizontal: 16,
+    paddingBottom: 0,
+  },
 
-    cardContent: {
-        flex: 1,
-        paddingTop: 22,
-        paddingHorizontal: 16,
-        paddingBottom: 0,
-    },
+  header: {
+    minHeight: 54,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginBottom: 12,
+  },
 
-    header: {
-        minHeight: 54,
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: 12,
-        marginBottom: 12,
-    },
+  titleColumn: {
+    flex: 1,
+    gap: 8,
+    minWidth: 0,
+  },
 
-    titleColumn: {
-        flex: 1,
-        gap: 8,
-        minWidth: 0,
-    },
+  adjustmentNotice: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
 
-    adjustmentNotice: {
-        alignItems: "center",
-        alignSelf: "flex-start",
-        borderRadius: 16,
-        borderWidth: 1,
-        flexDirection: "row",
-        gap: 6,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-    },
+  adjustmentNoticeText: {
+    flexShrink: 1,
+    fontFamily: "Satoshi-Medium",
+  },
 
-    adjustmentNoticeText: {
-        flexShrink: 1,
-        fontFamily: "Satoshi-Medium",
-    },
+  titleInput: {
+    width: "100%",
+    minHeight: 42,
+    maxHeight: 96,
+    paddingTop: 0,
+    paddingBottom: 4,
+    paddingHorizontal: 0,
+    textAlignVertical: "top",
+    fontFamily: "Satoshi-Bold",
+    lineHeight: 29,
+  },
 
-    titleInput: {
-        width: "100%",
-        minHeight: 42,
-        maxHeight: 96,
-        paddingTop: 0,
-        paddingBottom: 4,
-        paddingHorizontal: 0,
-        textAlignVertical: "top",
-        fontFamily: "Satoshi-Bold",
-        lineHeight: 29,
-    },
+  closeButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
 
-    closeButton: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
-        borderWidth: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        marginTop: 1,
-    },
+  scrollContent: {
+    width: "100%",
+    flex: 1,
+  },
 
-    scrollContent: {
-        width: "100%",
-        flex: 1,
-    },
+  scrollContentInner: {
+    flexGrow: 1,
+    paddingBottom: 16,
+  },
 
-    scrollContentInner: {
-        flexGrow: 1,
-        paddingBottom: 16,
-    },
+  descriptionInput: {
+    minHeight: 280,
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 24,
+    textAlignVertical: "top",
+    fontFamily: "Satoshi-Regular",
+    lineHeight: 22,
+  },
 
-    descriptionInput: {
-        minHeight: 280,
-        paddingHorizontal: 0,
-        paddingTop: 0,
-        paddingBottom: 24,
-        textAlignVertical: "top",
-        fontFamily: "Satoshi-Regular",
-        lineHeight: 22,
-    },
+  footer: {
+    paddingTop: 10,
+    paddingBottom: 0,
+    gap: 8,
+  },
 
-    footer: {
-        paddingTop: 10,
-        paddingBottom: 0,
-        gap: 8,
-    },
+  lastUpdatedText: {
+    alignSelf: "center",
+    fontFamily: "Satoshi-Regular",
+  },
 
-    lastUpdatedText: {
-        alignSelf: "center",
-        fontFamily: "Satoshi-Regular",
-    },
+  bottom: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+  },
 
-    bottom: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-        width: "100%",
-    },
+  iconAction: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
-    iconAction: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        borderWidth: 1,
-        alignItems: "center",
-        justifyContent: "center",
-    },
+  dangerAction: {
+    backgroundColor: "#FCE7E8",
+    borderColor: "#F6C6C9",
+  },
 
-    dangerAction: {
-        backgroundColor: "#FCE7E8",
-        borderColor: "#F6C6C9",
-    },
+  doneAction: {
+    borderWidth: 1.5,
+  },
 
-    doneAction: {
-        borderWidth: 1.5,
-    },
+  disabledAction: {
+    opacity: 0.55,
+  },
 
-    disabledAction: {
-        opacity: 0.55,
-    },
+  dateAction: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    minWidth: 0,
+  },
 
-    dateAction: {
-        flex: 1,
-        height: 48,
-        borderRadius: 24,
-        borderWidth: 1,
-        paddingHorizontal: 14,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        minWidth: 0,
-    },
+  dateActionText: {
+    flexShrink: 1,
+    fontFamily: "Satoshi-Medium",
+    textTransform: "capitalize",
+  },
 
-    dateActionText: {
-        flexShrink: 1,
-        fontFamily: "Satoshi-Medium",
-        textTransform: "capitalize",
-    },
+  datePickerOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.28)",
+    justifyContent: "flex-end",
+    paddingHorizontal: 14,
+    paddingBottom: 22,
+  },
 
-    datePickerOverlay: {
-        flex: 1,
-        backgroundColor: "rgba(0, 0, 0, 0.28)",
-        justifyContent: "flex-end",
-        paddingHorizontal: 14,
-        paddingBottom: 22,
-    },
+  datePickerSheet: {
+    borderRadius: 28,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 12,
+  },
 
-    datePickerSheet: {
-        borderRadius: 28,
-        paddingHorizontal: 12,
-        paddingTop: 8,
-        paddingBottom: 12,
-    },
-
-    datePickerDone: {
-        height: 48,
-        borderRadius: 24,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-
+  datePickerDone: {
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

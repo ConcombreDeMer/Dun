@@ -2,10 +2,20 @@ import { useFont } from "@/lib/FontContext";
 import { useAuthUserId } from "@/lib/AuthSessionContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { MAX_TAGS_PER_TASK } from "@/lib/plan";
-import { getActiveTagIdsForPlan, getTags, TAGS_QUERY_KEY, Tag } from "@/lib/tags";
+import {
+  getActiveTagIdsForPlan,
+  getTags,
+  TAGS_QUERY_KEY,
+  Tag,
+} from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
 import { useSubscription } from "@/lib/subscription";
-import { Button as SwiftButton, Host, Menu, RNHostView } from "@expo/ui/swift-ui";
+import {
+  Button as SwiftButton,
+  Host,
+  Menu,
+  RNHostView,
+} from "@expo/ui/swift-ui";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { SymbolView } from "expo-symbols";
@@ -81,12 +91,14 @@ function TagChip({
           {tag.name}
         </Text>
         {isSelected ? (
-          <View style={[styles.dot, styles.selectedDot, { backgroundColor: "#FFFFFF" }]}>
-            <SymbolView
-              name="xmark"
-              size={9}
-              tintColor={tag.color}
-            />
+          <View
+            style={[
+              styles.dot,
+              styles.selectedDot,
+              { backgroundColor: "#FFFFFF" },
+            ]}
+          >
+            <SymbolView name="xmark" size={9} tintColor={tag.color} />
           </View>
         ) : (
           <View style={[styles.dot, { backgroundColor: tag.color }]} />
@@ -114,9 +126,16 @@ export default function TagSelector({
     enabled: !!userId,
   });
   const [exitingTagIds, setExitingTagIds] = useState<string[]>([]);
-  const [visibleSelectedTagIds, setVisibleSelectedTagIds] = useState(selectedTagIds);
-  const activeTagIds = useMemo(() => getActiveTagIdsForPlan(tags, isPremium), [isPremium, tags]);
-  const selectableTags = useMemo(() => tags.filter((tag) => activeTagIds.has(tag.id)), [activeTagIds, tags]);
+  const [visibleSelectedTagIds, setVisibleSelectedTagIds] =
+    useState(selectedTagIds);
+  const activeTagIds = useMemo(
+    () => getActiveTagIdsForPlan(tags, isPremium),
+    [isPremium, tags],
+  );
+  const selectableTags = useMemo(
+    () => tags.filter((tag) => activeTagIds.has(tag.id)),
+    [activeTagIds, tags],
+  );
 
   useEffect(() => {
     if (mode !== "selectedMenu") {
@@ -127,8 +146,12 @@ export default function TagSelector({
       return () => clearTimeout(timer);
     }
 
-    const removedTagIds = visibleSelectedTagIds.filter((tagId) => !selectedTagIds.includes(tagId));
-    const addedTagIds = selectedTagIds.filter((tagId) => !visibleSelectedTagIds.includes(tagId));
+    const removedTagIds = visibleSelectedTagIds.filter(
+      (tagId) => !selectedTagIds.includes(tagId),
+    );
+    const addedTagIds = selectedTagIds.filter(
+      (tagId) => !visibleSelectedTagIds.includes(tagId),
+    );
 
     if (!removedTagIds.length) {
       if (addedTagIds.length) {
@@ -141,12 +164,16 @@ export default function TagSelector({
     }
 
     const exitTimer = setTimeout(() => {
-      setExitingTagIds((current) => Array.from(new Set([...current, ...removedTagIds])));
+      setExitingTagIds((current) =>
+        Array.from(new Set([...current, ...removedTagIds])),
+      );
     }, 0);
 
     const timer = setTimeout(() => {
       setVisibleSelectedTagIds(selectedTagIds);
-      setExitingTagIds((current) => current.filter((tagId) => !removedTagIds.includes(tagId)));
+      setExitingTagIds((current) =>
+        current.filter((tagId) => !removedTagIds.includes(tagId)),
+      );
     }, 150);
 
     return () => {
@@ -160,25 +187,44 @@ export default function TagSelector({
       return;
     }
 
-    const nextSelectedTagIds = selectedTagIds.filter((tagId) => activeTagIds.has(tagId));
+    const nextSelectedTagIds = selectedTagIds.filter((tagId) =>
+      activeTagIds.has(tagId),
+    );
 
     if (nextSelectedTagIds.length !== selectedTagIds.length) {
       onChange(nextSelectedTagIds);
     }
-  }, [activeTagIds, includeInactiveSelected, isPremium, onChange, selectedTagIds, tags.length]);
+  }, [
+    activeTagIds,
+    includeInactiveSelected,
+    isPremium,
+    onChange,
+    selectedTagIds,
+    tags.length,
+  ]);
 
   if (!tags.length) {
     return null;
   }
 
-  const displayedSelectedTagIds = mode === "selectedMenu" ? visibleSelectedTagIds : selectedTagIds;
+  const displayedSelectedTagIds =
+    mode === "selectedMenu" ? visibleSelectedTagIds : selectedTagIds;
   const selectedTags = displayedSelectedTagIds
     .map((tagId) => tags.find((tag) => tag.id === tagId))
     .filter((tag): tag is Tag => !!tag);
   const displayableTags = selectableTags
-    .concat(includeInactiveSelected ? selectedTags.filter((tag) => !activeTagIds.has(tag.id)) : [])
-    .filter((tag, index, allTags) => allTags.findIndex((candidate) => candidate.id === tag.id) === index);
-  const availableTags = selectableTags.filter((tag) => !selectedTagIds.includes(tag.id));
+    .concat(
+      includeInactiveSelected
+        ? selectedTags.filter((tag) => !activeTagIds.has(tag.id))
+        : [],
+    )
+    .filter(
+      (tag, index, allTags) =>
+        allTags.findIndex((candidate) => candidate.id === tag.id) === index,
+    );
+  const availableTags = selectableTags.filter(
+    (tag) => !selectedTagIds.includes(tag.id),
+  );
 
   const toggleTag = async (tagId: string) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -188,7 +234,10 @@ export default function TagSelector({
       return;
     }
 
-    if (!activeTagIds.has(tagId) || selectedTagIds.length >= MAX_TAGS_PER_TASK) {
+    if (
+      !activeTagIds.has(tagId) ||
+      selectedTagIds.length >= MAX_TAGS_PER_TASK
+    ) {
       return;
     }
 
@@ -210,40 +259,41 @@ export default function TagSelector({
             />
           ))}
 
-          {availableTags.length > 0 && selectedTagIds.length < MAX_TAGS_PER_TASK && (
-            <Host matchContents style={styles.menuHost}>
-              <Menu
-                label={
-                  <RNHostView matchContents>
-                    <View
-                      style={[
-                        styles.addChip,
-                        {
-                          backgroundColor: colors.card,
-                          borderColor: colors.border,
-                        },
-                      ]}
-                    >
-                      <SymbolView
-                        name="plus"
-                        size={12}
-                        tintColor={colors.text}
-                      />
-                    </View>
-                  </RNHostView>
-                }
-              >
-                {availableTags.map((tag) => (
-                  <SwiftButton
-                    key={tag.id}
-                    label={tag.name}
-                    systemImage="tag"
-                    onPress={() => toggleTag(tag.id)}
-                  />
-                ))}
-              </Menu>
-            </Host>
-          )}
+          {availableTags.length > 0 &&
+            selectedTagIds.length < MAX_TAGS_PER_TASK && (
+              <Host matchContents style={styles.menuHost}>
+                <Menu
+                  label={
+                    <RNHostView matchContents>
+                      <View
+                        style={[
+                          styles.addChip,
+                          {
+                            backgroundColor: colors.card,
+                            borderColor: colors.border,
+                          },
+                        ]}
+                      >
+                        <SymbolView
+                          name="plus"
+                          size={12}
+                          tintColor={colors.text}
+                        />
+                      </View>
+                    </RNHostView>
+                  }
+                >
+                  {availableTags.map((tag) => (
+                    <SwiftButton
+                      key={tag.id}
+                      label={tag.name}
+                      systemImage="tag"
+                      onPress={() => toggleTag(tag.id)}
+                    />
+                  ))}
+                </Menu>
+              </Host>
+            )}
         </View>
       </View>
     );
@@ -253,10 +303,20 @@ export default function TagSelector({
     <View style={styles.container}>
       {!compact && (
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text, fontSize: fontSizes["2xl"] }]}>
+          <Text
+            style={[
+              styles.title,
+              { color: colors.text, fontSize: fontSizes["2xl"] },
+            ]}
+          >
             {t("tags.selector.title")}
           </Text>
-          <Text style={[styles.count, { color: colors.textSecondary, fontSize: fontSizes.sm }]}>
+          <Text
+            style={[
+              styles.count,
+              { color: colors.textSecondary, fontSize: fontSizes.sm },
+            ]}
+          >
             {selectedTagIds.length}/{MAX_TAGS_PER_TASK}
           </Text>
         </View>

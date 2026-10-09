@@ -50,7 +50,10 @@ export default function SubscriptionPlanOption({
 function TaskStyleCheckbox({ checked }: { checked: boolean }) {
   const { actualTheme, colors } = useTheme();
   const dotScale = useSharedValue(checked ? 1 : 0);
-  const checkboxDoneBackground = actualTheme === "dark" ? "rgba(92, 255, 173, 0.13)" : "rgba(8, 225, 139, 0.13)";
+  const checkboxDoneBackground =
+    actualTheme === "dark"
+      ? "rgba(92, 255, 173, 0.13)"
+      : "rgba(8, 225, 139, 0.13)";
   const checkboxDoneBorder = actualTheme === "dark" ? "#42E690" : "#08E18B";
   const checkboxDoneIcon = actualTheme === "dark" ? "#42E690" : "#08E18B";
 
@@ -67,12 +70,12 @@ function TaskStyleCheckbox({ checked }: { checked: boolean }) {
     backgroundColor: interpolateColor(
       dotScale.value,
       [0, 1],
-      [colors.checkbox, checkboxDoneBackground]
+      [colors.checkbox, checkboxDoneBackground],
     ),
     borderColor: interpolateColor(
       dotScale.value,
       [0, 1],
-      [colors.border, checkboxDoneBorder]
+      [colors.border, checkboxDoneBorder],
     ),
     transform: [{ scale: 0.96 + dotScale.value * 0.04 }],
   }));
@@ -86,7 +89,12 @@ function TaskStyleCheckbox({ checked }: { checked: boolean }) {
     <View style={styles.checkboxContainer}>
       <Animated.View style={[styles.taskCheckbox, checkboxAnimatedStyle]}>
         <Animated.View style={checkAnimatedStyle}>
-          <Feather name="check" size={21} color={checkboxDoneIcon} strokeWidth={3.2} />
+          <Feather
+            name="check"
+            size={21}
+            color={checkboxDoneIcon}
+            strokeWidth={3.2}
+          />
         </Animated.View>
       </Animated.View>
     </View>

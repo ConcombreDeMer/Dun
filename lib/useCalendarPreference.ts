@@ -2,7 +2,10 @@ import { useProfile, useUpdateProfile } from "./profile";
 
 export type CalendarPreference = 1 | 2;
 
-export const CALENDAR_PREFERENCE_QUERY_KEY = ["profile", "custom_calendar"] as const;
+export const CALENDAR_PREFERENCE_QUERY_KEY = [
+  "profile",
+  "custom_calendar",
+] as const;
 export const DEFAULT_CALENDAR_PREFERENCE: CalendarPreference = 1;
 
 const normalizeCalendarPreference = (value: unknown): CalendarPreference => {
@@ -16,7 +19,9 @@ const normalizeCalendarPreference = (value: unknown): CalendarPreference => {
 export const useCalendarPreference = () => {
   const profileQuery = useProfile();
   const updateProfileMutation = useUpdateProfile();
-  const preference = normalizeCalendarPreference(profileQuery.data?.custom_calendar);
+  const preference = normalizeCalendarPreference(
+    profileQuery.data?.custom_calendar,
+  );
 
   return {
     preference,

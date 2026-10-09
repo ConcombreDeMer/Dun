@@ -18,16 +18,18 @@ export function initializeRevenueCat(appUserID?: string | null) {
   const apiKey = getRevenueCatApiKey();
 
   if (!apiKey) {
-    logger.warn("Cle API RevenueCat manquante dans les variables d'environnement (.env)");
+    logger.warn(
+      "Cle API RevenueCat manquante dans les variables d'environnement (.env)",
+    );
     return false;
   }
 
   const normalizedAppUserID = appUserID?.trim() || null;
 
   if (
-    hasConfiguredRevenueCat
-    && configuredApiKey === apiKey
-    && currentRevenueCatUserId === normalizedAppUserID
+    hasConfiguredRevenueCat &&
+    configuredApiKey === apiKey &&
+    currentRevenueCatUserId === normalizedAppUserID
   ) {
     return true;
   }
@@ -36,7 +38,7 @@ export function initializeRevenueCat(appUserID?: string | null) {
   Purchases.configure(
     normalizedAppUserID
       ? { apiKey, appUserID: normalizedAppUserID }
-      : { apiKey }
+      : { apiKey },
   );
 
   hasConfiguredRevenueCat = true;

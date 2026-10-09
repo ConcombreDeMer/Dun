@@ -26,10 +26,20 @@ import { useFont } from "@/lib/FontContext";
 import { useAppTranslation } from "@/lib/i18n";
 import { getStatsImageSource } from "@/lib/imageHelper";
 import { useProfile } from "@/lib/profile";
-import { SCREEN_HEADER_HEIGHT, SCREEN_HEADER_HORIZONTAL_PADDING, SCREEN_HEADER_TITLE_LINE_HEIGHT, SCREEN_HEADER_TOP_OFFSET } from "@/lib/screenHeader";
+import {
+  SCREEN_HEADER_HEIGHT,
+  SCREEN_HEADER_HORIZONTAL_PADDING,
+  SCREEN_HEADER_TITLE_LINE_HEIGHT,
+  SCREEN_HEADER_TOP_OFFSET,
+} from "@/lib/screenHeader";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/lib/supabase";
-import { buildTagUsageStats, getTagUsageSourceData, TAG_USAGE_STATS_QUERY_KEY, TagUsageBucket } from "@/lib/tags";
+import {
+  buildTagUsageStats,
+  getTagUsageSourceData,
+  TAG_USAGE_STATS_QUERY_KEY,
+  TagUsageBucket,
+} from "@/lib/tags";
 import { useTheme } from "@/lib/ThemeContext";
 import { useStatsPreferences } from "@/lib/useStatsPreferences";
 import { useQuery } from "@tanstack/react-query";
@@ -39,10 +49,16 @@ import { useRouter } from "expo-router";
 import { SquircleButton } from "expo-squircle-view";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import Animated, { FadeInUp, FadeOutUp } from "react-native-reanimated";
 import { logger } from "@/lib/logger";
-
 
 type Slide = {
   bars: {
@@ -104,7 +120,6 @@ const calculateCurrentStreak = (days: StatsDay[]) => {
   return streak;
 };
 
-
 export default function Stats() {
   const { fontSizes } = useFont();
   const { colors, actualTheme } = useTheme();
@@ -113,14 +128,17 @@ export default function Stats() {
   const { canUseAdvancedStats, isPremium } = useSubscription();
   const userId = useAuthUserId();
   const [showInfoPopUp, setShowInfoPopUp] = useState(false);
-  const [period, setPeriod] = useState<StatsPeriod>('Par semaine');
+  const [period, setPeriod] = useState<StatsPeriod>("Par semaine");
   const [slideStats, setSlideStats] = useState<CalculatedStats | null>(null);
   const [activeSlide, setActiveSlide] = useState<Slide | null>(null);
-  const [activeSlideIndex, setActiveSlideIndex] = useState(Number.MAX_SAFE_INTEGER);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(
+    Number.MAX_SAFE_INTEGER,
+  );
   const [showUnusedTags, setShowUnusedTags] = useState(false);
   const [showPremiumStatsDetails, setShowPremiumStatsDetails] = useState(false);
   const profileQuery = useProfile();
-  const showLateAdjustmentStats = profileQuery.data?.lockPastDaysEnabled ?? true;
+  const showLateAdjustmentStats =
+    profileQuery.data?.lockPastDaysEnabled ?? true;
   const activeSlideSignatureRef = useRef<string | null>(null);
   const lastPeriodChangeAtRef = useRef(0);
   const {
@@ -129,31 +147,36 @@ export default function Stats() {
     setPreferenceOptimistically,
   } = useStatsPreferences();
   const [loadingState, setLoadingState] = useState(true);
-  const effectivePeriod: StatsPeriod = canUseAdvancedStats ? period : 'Par semaine';
+  const effectivePeriod: StatsPeriod = canUseAdvancedStats
+    ? period
+    : "Par semaine";
 
   // Gestionnaire pour les changements de slide
-  const handleSlideChange = useCallback((slide: Slide) => {
-    const slideSignature = [
-      slide.id,
-      slide.stats.totalDoneCount,
-      slide.stats.totalTasksCount,
-      slide.stats.completion,
-      slide.stats.lateAdjustmentRate,
-    ].join(":");
+  const handleSlideChange = useCallback(
+    (slide: Slide) => {
+      const slideSignature = [
+        slide.id,
+        slide.stats.totalDoneCount,
+        slide.stats.totalTasksCount,
+        slide.stats.completion,
+        slide.stats.lateAdjustmentRate,
+      ].join(":");
 
-    if (activeSlideSignatureRef.current === slideSignature) {
-      return;
-    }
+      if (activeSlideSignatureRef.current === slideSignature) {
+        return;
+      }
 
-    activeSlideSignatureRef.current = slideSignature;
-    setActiveSlide(slide);
+      activeSlideSignatureRef.current = slideSignature;
+      setActiveSlide(slide);
 
-    // Ne mettre à jour les stats que si ce n'est pas "Global"
-    if (effectivePeriod === 'Global') return;
+      // Ne mettre à jour les stats que si ce n'est pas "Global"
+      if (effectivePeriod === "Global") return;
 
-    setSlideStats(slide.stats);
-    setLoadingState(false);
-  }, [effectivePeriod]);
+      setSlideStats(slide.stats);
+      setLoadingState(false);
+    },
+    [effectivePeriod],
+  );
 
   // FETCHING DES JOURS
 
@@ -172,7 +195,7 @@ export default function Stats() {
       .lte("date", today.toISOString())
       .order("date", { ascending: false });
     if (error) {
-      logger.error('Erreur lors de la récupération des jours:', error);
+      logger.error("Erreur lors de la récupération des jours:", error);
       return [];
     }
     return data;
@@ -184,13 +207,20 @@ export default function Stats() {
     enabled: !!userId,
   });
 
-  const chartDaysData = useMemo(() => (daysQuery.data || []) as StatsDay[], [daysQuery.data]);
-  const streak = useMemo(() => calculateCurrentStreak(chartDaysData), [chartDaysData]);
+  const chartDaysData = useMemo(
+    () => (daysQuery.data || []) as StatsDay[],
+    [daysQuery.data],
+  );
+  const streak = useMemo(
+    () => calculateCurrentStreak(chartDaysData),
+    [chartDaysData],
+  );
   const globalStats = useMemo(
     () => calculateStats(getGlobalStatsDays(chartDaysData), statsPreferences),
-    [chartDaysData, statsPreferences]
+    [chartDaysData, statsPreferences],
   );
-  const displayedStats = effectivePeriod === "Global" ? globalStats : slideStats || globalStats;
+  const displayedStats =
+    effectivePeriod === "Global" ? globalStats : slideStats || globalStats;
   const includedTagStatsDateKeys = useMemo(() => {
     if (!activeSlide) {
       return null;
@@ -198,7 +228,7 @@ export default function Stats() {
 
     return filterStatsDays(
       activeSlide.bars.flatMap((bar) => bar.days ?? []),
-      statsPreferences
+      statsPreferences,
     )
       .map((day) => day.date.slice(0, 10))
       .filter(Boolean)
@@ -234,18 +264,21 @@ export default function Stats() {
   }, [includedTagStatsDateKeys]);
 
   const tagUsageSourceQuery = useQuery({
-    enabled: canUseAdvancedStats && Boolean(tagStatsDateRange.startDateKey && tagStatsDateRange.endDateKey),
+    enabled:
+      canUseAdvancedStats &&
+      Boolean(tagStatsDateRange.startDateKey && tagStatsDateRange.endDateKey),
     queryKey: [
       ...TAG_USAGE_STATS_QUERY_KEY,
       "source",
       tagStatsDateRange.startDateKey,
       tagStatsDateRange.endDateKey,
     ],
-    queryFn: () => getTagUsageSourceData({
-      startDateKey: tagStatsDateRange.startDateKey,
-      endDateKey: tagStatsDateRange.endDateKey,
-      userId,
-    }),
+    queryFn: () =>
+      getTagUsageSourceData({
+        startDateKey: tagStatsDateRange.startDateKey,
+        endDateKey: tagStatsDateRange.endDateKey,
+        userId,
+      }),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -272,42 +305,54 @@ export default function Stats() {
     tagUsageSourceQuery.data,
   ]);
 
-  const periodOptions = useMemo<StatsPeriod[]>(() => ['Par semaine', 'Par mois', 'Par année'], []);
-  const displayedLoadingState = canUseAdvancedStats ? loadingState : daysQuery.isLoading;
+  const periodOptions = useMemo<StatsPeriod[]>(
+    () => ["Par semaine", "Par mois", "Par année"],
+    [],
+  );
+  const displayedLoadingState = canUseAdvancedStats
+    ? loadingState
+    : daysQuery.isLoading;
   const topContentPadding = SCREEN_HEADER_TOP_OFFSET;
   const topScrimHeight = SCREEN_HEADER_TOP_OFFSET + SCREEN_HEADER_HEIGHT;
   const topScrimColors = useMemo(
-    () => [
-      colors.background,
-      withAlpha(colors.background, 0.9),
-      withAlpha(colors.background, 0),
-    ] as const,
-    [colors.background]
+    () =>
+      [
+        colors.background,
+        withAlpha(colors.background, 0.9),
+        withAlpha(colors.background, 0),
+      ] as const,
+    [colors.background],
   );
 
-  const getDisplayedPeriod = useCallback((period: string) => {
-    if (period === 'Par semaine') return t('stats.general.period.week');
-    if (period === 'Par mois') return t('stats.general.period.month');
-    if (period === 'Par année') return t('stats.general.period.year');
-    return t('stats.general.period.global');
-  }, [t]);
+  const getDisplayedPeriod = useCallback(
+    (period: string) => {
+      if (period === "Par semaine") return t("stats.general.period.week");
+      if (period === "Par mois") return t("stats.general.period.month");
+      if (period === "Par année") return t("stats.general.period.year");
+      return t("stats.general.period.global");
+    },
+    [t],
+  );
 
-  const handlePeriodSelect = useCallback(async (selectedPeriod: StatsPeriod) => {
-    if (selectedPeriod === period) {
-      return;
-    }
+  const handlePeriodSelect = useCallback(
+    async (selectedPeriod: StatsPeriod) => {
+      if (selectedPeriod === period) {
+        return;
+      }
 
-    const now = Date.now();
-    if (now - lastPeriodChangeAtRef.current < 350) {
-      return;
-    }
+      const now = Date.now();
+      if (now - lastPeriodChangeAtRef.current < 350) {
+        return;
+      }
 
-    lastPeriodChangeAtRef.current = now;
-    activeSlideSignatureRef.current = null;
-    setActiveSlideIndex(Number.MAX_SAFE_INTEGER);
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setPeriod(selectedPeriod);
-  }, [period]);
+      lastPeriodChangeAtRef.current = now;
+      activeSlideSignatureRef.current = null;
+      setActiveSlideIndex(Number.MAX_SAFE_INTEGER);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setPeriod(selectedPeriod);
+    },
+    [period],
+  );
 
   const handleSlideIndexChange = useCallback((index: number) => {
     setActiveSlideIndex(index);
@@ -333,15 +378,16 @@ export default function Stats() {
   }, [router]);
 
   const profileName = useMemo(() => {
-    return profileQuery.data?.name?.trim() || t("settings.root.defaultUserName");
+    return (
+      profileQuery.data?.name?.trim() || t("settings.root.defaultUserName")
+    );
   }, [profileQuery.data?.name, t]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View
-        style={{ position: 'absolute', top: 70, right: 30, zIndex: 10, }}
-      >
-      </View>
+        style={{ position: "absolute", top: 70, right: 30, zIndex: 10 }}
+      ></View>
 
       <StatsPreferencesModal
         isVisible={showInfoPopUp}
@@ -355,7 +401,10 @@ export default function Stats() {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.listContent, { paddingTop: topContentPadding }]}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingTop: topContentPadding },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.profileHeader}>
@@ -372,7 +421,10 @@ export default function Stats() {
               <View style={styles.profileNameRow}>
                 <Text
                   numberOfLines={1}
-                  style={[styles.profileGreeting, { color: colors.text, fontSize: fontSizes["3xl"] }]}
+                  style={[
+                    styles.profileGreeting,
+                    { color: colors.text, fontSize: fontSizes["3xl"] },
+                  ]}
                 >
                   {t("profile.greeting", { name: profileName })}
                 </Text>
@@ -418,9 +470,7 @@ export default function Stats() {
             />
           )}
 
-          <StatsInfoButton
-            onPress={toggleInfoPopup}
-          />
+          <StatsInfoButton onPress={toggleInfoPopup} />
         </View>
 
         <View style={styles.overviewSection}>
@@ -444,28 +494,28 @@ export default function Stats() {
           <View style={styles.cardsContainer}>
             <View style={styles.cardsRow}>
               <StatsCard
-                image={getStatsImageSource('done', actualTheme)}
-                title={t('stats.general.cards.tasksDone')}
+                image={getStatsImageSource("done", actualTheme)}
+                title={t("stats.general.cards.tasksDone")}
                 value={displayedStats.totalDoneCount.toString()}
                 loading={displayedLoadingState}
               />
               <StatsCard
-                image={getStatsImageSource('perfect', actualTheme)}
-                title={t('stats.general.cards.perfectDays')}
+                image={getStatsImageSource("perfect", actualTheme)}
+                title={t("stats.general.cards.perfectDays")}
                 value={displayedStats.perfectDaysCount.toString()}
                 loading={displayedLoadingState}
               />
             </View>
             <View style={styles.cardsRow}>
               <StatsCardCompletion
-                image={getStatsImageSource('completion', actualTheme)}
-                title={t('stats.general.cards.completion')}
+                image={getStatsImageSource("completion", actualTheme)}
+                title={t("stats.general.cards.completion")}
                 value={displayedStats.completion}
                 loading={displayedLoadingState}
               />
               <StatsCardCharge
-                image={getStatsImageSource('charge', actualTheme)}
-                title={t('stats.general.cards.charge')}
+                image={getStatsImageSource("charge", actualTheme)}
+                title={t("stats.general.cards.charge")}
                 value={displayedStats.charge.toString()}
                 loading={displayedLoadingState}
               />
@@ -476,26 +526,56 @@ export default function Stats() {
                 cornerSmoothing={100}
                 onPress={() => router.push("/stats/adjustmentExplain")}
                 preserveSmoothing
-                style={[styles.adjustmentMetric, { backgroundColor: colors.card, borderColor: colors.border }]}
+                style={[
+                  styles.adjustmentMetric,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
               >
-                <View style={[styles.adjustmentIcon, { backgroundColor: colors.background }]}>
-                  <SymbolView name="arrow.triangle.2.circlepath" size={23} tintColor={colors.textSecondary} />
+                <View
+                  style={[
+                    styles.adjustmentIcon,
+                    { backgroundColor: colors.background },
+                  ]}
+                >
+                  <SymbolView
+                    name="arrow.triangle.2.circlepath"
+                    size={23}
+                    tintColor={colors.textSecondary}
+                  />
                 </View>
                 <View style={styles.adjustmentTextGroup}>
-                  <Text style={[styles.adjustmentTitle, { color: colors.text, fontSize: fontSizes.lg }]}>
-                    {t('stats.general.cards.lateAdjustmentRate')}
+                  <Text
+                    style={[
+                      styles.adjustmentTitle,
+                      { color: colors.text, fontSize: fontSizes.lg },
+                    ]}
+                  >
+                    {t("stats.general.cards.lateAdjustmentRate")}
                   </Text>
-                  <Text style={[styles.adjustmentSubtitle, { color: colors.textSecondary }]}>
-                    {t('stats.general.cards.lateAdjustmentCount', { count: displayedStats.lateAdjustedTasksCount })}
+                  <Text
+                    style={[
+                      styles.adjustmentSubtitle,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {t("stats.general.cards.lateAdjustmentCount", {
+                      count: displayedStats.lateAdjustedTasksCount,
+                    })}
                   </Text>
                 </View>
                 {displayedLoadingState ? (
                   <Animated.Text
-                    style={[styles.adjustmentValue, { color: colors.text, fontSize: fontSizes['3xl'] }]}
+                    style={[
+                      styles.adjustmentValue,
+                      { color: colors.text, fontSize: fontSizes["3xl"] },
+                    ]}
                   />
                 ) : (
                   <Animated.Text
-                    style={[styles.adjustmentValue, { color: colors.text, fontSize: fontSizes['3xl'] }]}
+                    style={[
+                      styles.adjustmentValue,
+                      { color: colors.text, fontSize: fontSizes["3xl"] },
+                    ]}
                   >
                     {displayedStats.lateAdjustmentRate}
                   </Animated.Text>
@@ -508,7 +588,9 @@ export default function Stats() {
             <HorizontalBarGraph
               data={tagUsageStats}
               isLoading={!activeSlide || tagUsageSourceQuery.isLoading}
-              periodLabel={activeSlide?.periodLabel ?? getDisplayedPeriod(effectivePeriod)}
+              periodLabel={
+                activeSlide?.periodLabel ?? getDisplayedPeriod(effectivePeriod)
+              }
             />
           ) : (
             <View style={styles.premiumStatsAccordion}>
@@ -518,7 +600,12 @@ export default function Stats() {
                 onPress={togglePremiumStatsDetails}
                 style={styles.premiumStatsToggle}
               >
-                <Text style={[styles.premiumStatsToggleText, { color: colors.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.premiumStatsToggleText,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   {t("stats.general.premium.more")}
                 </Text>
                 <SymbolView
@@ -535,29 +622,56 @@ export default function Stats() {
                   style={styles.premiumStatsDetails}
                 >
                   <Squircle
-                    style={[styles.premiumStatsCard, { backgroundColor: colors.card, borderColor: "#F4BA00" }]}
+                    style={[
+                      styles.premiumStatsCard,
+                      { backgroundColor: colors.card, borderColor: "#F4BA00" },
+                    ]}
                     cornerSmoothing={100}
                     preserveSmoothing={true}
                   >
                     <View style={styles.premiumIcon}>
-                      <SymbolView name="chart.bar.xaxis" size={24} tintColor="#2C2405" />
+                      <SymbolView
+                        name="chart.bar.xaxis"
+                        size={24}
+                        tintColor="#2C2405"
+                      />
                     </View>
                     <Text style={[styles.premiumTitle, { color: colors.text }]}>
                       {t("stats.general.premium.title")}
                     </Text>
-                    <Text style={[styles.premiumMessage, { color: colors.textSecondary }]}>
+                    <Text
+                      style={[
+                        styles.premiumMessage,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
                       {t("stats.general.premium.message")}
                     </Text>
-                    <View style={[styles.premiumScreenshotShowcase, { backgroundColor: colors.input }]}>
+                    <View
+                      style={[
+                        styles.premiumScreenshotShowcase,
+                        { backgroundColor: colors.input },
+                      ]}
+                    >
                       <View style={styles.premiumScreenshotLeftColumn}>
-                        <View style={[styles.premiumScreenshotFrame, styles.premiumScreenshotFrameTop]}>
+                        <View
+                          style={[
+                            styles.premiumScreenshotFrame,
+                            styles.premiumScreenshotFrameTop,
+                          ]}
+                        >
                           <Image
                             source={require("@/assets/images/stats/premium/1.png")}
                             resizeMode="contain"
                             style={styles.premiumScreenshotImage}
                           />
                         </View>
-                        <View style={[styles.premiumScreenshotFrame, styles.premiumScreenshotFrameBottom]}>
+                        <View
+                          style={[
+                            styles.premiumScreenshotFrame,
+                            styles.premiumScreenshotFrameBottom,
+                          ]}
+                        >
                           <Image
                             source={require("@/assets/images/stats/premium/2.png")}
                             resizeMode="contain"
@@ -566,7 +680,12 @@ export default function Stats() {
                         </View>
                       </View>
                       <View style={styles.premiumScreenshotRightColumn}>
-                        <View style={[styles.premiumScreenshotFrame, styles.premiumScreenshotFrameRight]}>
+                        <View
+                          style={[
+                            styles.premiumScreenshotFrame,
+                            styles.premiumScreenshotFrameRight,
+                          ]}
+                        >
                           <Image
                             source={require("@/assets/images/stats/premium/3.png")}
                             resizeMode="contain"
@@ -598,25 +717,24 @@ export default function Stats() {
 }
 
 const styles = StyleSheet.create({
-
   container: {
-    display: 'flex',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    alignSelf: 'center',
-    width: '100%',
-    height: '100%',
+    display: "flex",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    alignSelf: "center",
+    width: "100%",
+    height: "100%",
   },
   scrollView: {
-    width: '100%',
+    width: "100%",
   },
 
   topContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '90%',
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "90%",
     gap: 10,
     marginBottom: 10,
   },
@@ -705,11 +823,11 @@ const styles = StyleSheet.create({
   },
 
   cardsRow: {
-    display: 'flex',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '90%',
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "90%",
     height: 100,
   },
   periodPickerContainer: {
@@ -739,7 +857,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     width: "90%",
-    boxShadow: '0px 6px 10px rgba(0, 0, 0, 0.1)',
+    boxShadow: "0px 6px 10px rgba(0, 0, 0, 0.1)",
     gap: 4,
   },
   adjustmentIcon: {

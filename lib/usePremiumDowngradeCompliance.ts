@@ -2,7 +2,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { useAuthUserId } from "./AuthSessionContext";
 import { parseIntegerInput } from "./notificationLimits";
-import { cancelDailyReminder, scheduleDailyReminder } from "./notificationService";
+import {
+  cancelDailyReminder,
+  scheduleDailyReminder,
+} from "./notificationService";
 import { patchProfileCache, profileQueryKey, useProfile } from "./profile";
 import { useSubscription } from "./subscription";
 import { supabase } from "./supabase";
@@ -28,8 +31,11 @@ export const usePremiumDowngradeCompliance = () => {
       return;
     }
 
-    const needsColorReset = colorTheme !== "neutral" || !isNeutralColorTheme(profile.display_color);
-    const needsNotificationReset = Boolean(profile.alertInsistanceActive || profile.alertWeekendsActive);
+    const needsColorReset =
+      colorTheme !== "neutral" || !isNeutralColorTheme(profile.display_color);
+    const needsNotificationReset = Boolean(
+      profile.alertInsistanceActive || profile.alertWeekendsActive,
+    );
     const notificationSignature = [
       profile.alertSetupActive,
       profile.alertSetupHour,

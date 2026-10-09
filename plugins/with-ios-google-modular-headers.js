@@ -14,7 +14,7 @@ module.exports = function withIosGoogleModularHeaders(config) {
     async (config) => {
       const podfilePath = path.join(
         config.modRequest.platformProjectRoot,
-        "Podfile"
+        "Podfile",
       );
       let contents = fs.readFileSync(podfilePath, "utf8");
 
@@ -30,11 +30,7 @@ module.exports = function withIosGoogleModularHeaders(config) {
       }
 
       contents = contents.replace(PODFILE_TARGET_PATTERN, (targetLine) =>
-        [
-          targetLine,
-          GOOGLE_UTILITIES_POD,
-          RECAPTCHA_INTEROP_POD,
-        ].join("\n")
+        [targetLine, GOOGLE_UTILITIES_POD, RECAPTCHA_INTEROP_POD].join("\n"),
       );
 
       fs.writeFileSync(podfilePath, contents);

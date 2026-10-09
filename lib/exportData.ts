@@ -18,7 +18,8 @@ export interface UserDataExport {
 }
 
 const getExportDirectory = () => {
-  const baseDirectory = FileSystem.documentDirectory ?? FileSystem.cacheDirectory;
+  const baseDirectory =
+    FileSystem.documentDirectory ?? FileSystem.cacheDirectory;
 
   if (!baseDirectory) {
     throw new Error("No writable file directory available");
@@ -27,7 +28,8 @@ const getExportDirectory = () => {
   return `${baseDirectory}exports/`;
 };
 
-const getStringByteCount = (value: string) => unescape(encodeURIComponent(value)).length;
+const getStringByteCount = (value: string) =>
+  unescape(encodeURIComponent(value)).length;
 const EXPORT_FILE_NAME = "dun-data-export.json";
 
 const getExportFileUri = () => `${getExportDirectory()}${EXPORT_FILE_NAME}`;
@@ -36,7 +38,7 @@ const queryUserTable = async (
   table: string,
   column: string,
   userId: string,
-  signal: AbortSignal
+  signal: AbortSignal,
 ) => {
   const { data, error } = await supabase
     .from(table)

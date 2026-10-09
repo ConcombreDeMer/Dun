@@ -8,7 +8,13 @@ import { useTheme } from "@/lib/ThemeContext";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeInUp, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import Animated, {
+  FadeInUp,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 
 type DataTransferOptionProps = {
   description: string;
@@ -19,7 +25,12 @@ type DataTransferOptionProps = {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-function DataTransferOption({ description, icon, onPress, title }: DataTransferOptionProps) {
+function DataTransferOption({
+  description,
+  icon,
+  onPress,
+  title,
+}: DataTransferOptionProps) {
   const { colors } = useTheme();
   const { fontSizes } = useFont();
   const scale = useSharedValue(1);
@@ -47,19 +58,46 @@ function DataTransferOption({ description, icon, onPress, title }: DataTransferO
       onPressOut={handlePressOut}
       style={animatedStyle}
     >
-      <Squircle style={[styles.option, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={[styles.optionIcon, { backgroundColor: colors.background }]}>
-          <SymbolView name={icon} size={26} tintColor={colors.text} type="palette" />
+      <Squircle
+        style={[
+          styles.option,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
+        <View
+          style={[styles.optionIcon, { backgroundColor: colors.background }]}
+        >
+          <SymbolView
+            name={icon}
+            size={26}
+            tintColor={colors.text}
+            type="palette"
+          />
         </View>
         <View style={styles.optionText}>
-          <Text style={[styles.optionTitle, { color: colors.text, fontSize: fontSizes.xl }]}>
+          <Text
+            style={[
+              styles.optionTitle,
+              { color: colors.text, fontSize: fontSizes.xl },
+            ]}
+          >
             {title}
           </Text>
-          <Text style={[styles.optionDescription, { color: colors.textSecondary, fontSize: fontSizes.base }]}>
+          <Text
+            style={[
+              styles.optionDescription,
+              { color: colors.textSecondary, fontSize: fontSizes.base },
+            ]}
+          >
             {description}
           </Text>
         </View>
-        <SymbolView name="chevron.right" size={18} tintColor={colors.textSecondary} type="palette" />
+        <SymbolView
+          name="chevron.right"
+          size={18}
+          tintColor={colors.textSecondary}
+          type="palette"
+        />
       </Squircle>
     </AnimatedPressable>
   );

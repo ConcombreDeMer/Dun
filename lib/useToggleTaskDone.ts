@@ -4,7 +4,12 @@ import { Alert } from "react-native";
 import { useAuthUserId } from "./AuthSessionContext";
 import { DAYS_QUERY_KEY } from "./daysQueryKeys";
 import { TAG_USAGE_STATS_QUERY_KEY } from "./tags";
-import { clearOptimisticTaskDone, getOptimisticTaskDone, setOptimisticTaskDone, setTaskDone } from "./tasks";
+import {
+  clearOptimisticTaskDone,
+  getOptimisticTaskDone,
+  setOptimisticTaskDone,
+  setTaskDone,
+} from "./tasks";
 import { logger } from "@/lib/logger";
 
 type ToggleTaskDoneOptions = {
@@ -15,10 +20,14 @@ type ToggleTaskDoneOptions = {
   onSuccess?: (taskId: number, nextDone: boolean) => void;
 };
 
-const updateTaskInCache = (data: unknown, taskId: number, nextDone: boolean) => {
+const updateTaskInCache = (
+  data: unknown,
+  taskId: number,
+  nextDone: boolean,
+) => {
   if (Array.isArray(data)) {
     return data.map((task) =>
-      task?.id === taskId ? { ...task, done: nextDone } : task
+      task?.id === taskId ? { ...task, done: nextDone } : task,
     );
   }
 
@@ -38,12 +47,16 @@ export const useToggleTaskDone = ({
 }: ToggleTaskDoneOptions) => {
   const userId = useAuthUserId();
   const queryClient = useQueryClient();
-  const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(() => new Set());
+  const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(
+    () => new Set(),
+  );
   const pendingTaskIdsRef = useRef<Set<number>>(new Set());
   const desiredDoneByTaskIdRef = useRef<Map<number, boolean>>(new Map());
   const inFlightTaskIdsRef = useRef<Set<number>>(new Set());
   const rollbackDoneByTaskIdRef = useRef<Map<number, boolean>>(new Map());
-  const invalidateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const invalidateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const clearScheduledInvalidate = useCallback(() => {
     if (invalidateTimeoutRef.current) {
@@ -72,9 +85,12 @@ export const useToggleTaskDone = ({
     };
   }, []);
 
-  const isTaskPending = useCallback((taskId: number) => {
-    return pendingTaskIds.has(taskId);
-  }, [pendingTaskIds]);
+  const isTaskPending = useCallback(
+    (taskId: number) => {
+      return pendingTaskIds.has(taskId);
+    },
+    [pendingTaskIds],
+  );
 
   const markTaskPending = useCallback((taskId: number) => {
     pendingTaskIdsRef.current = new Set(pendingTaskIdsRef.current);
@@ -96,110 +112,119 @@ export const useToggleTaskDone = ({
     });
   }, []);
 
-  const updateTaskDoneEverywhere = useCallback((taskId: number, nextDone: boolean) => {
-    queryKeys.forEach((queryKey) => {
-      queryClient.setQueryData(queryKey, (current: unknown) =>
-        updateTaskInCache(current, taskId, nextDone)
-      );
-    });
-  }, [queryClient, queryKeys]);
+  const updateTaskDoneEverywhere = useCallback(
+    (taskId: number, nextDone: boolean) => {
+      queryKeys.forEach((queryKey) => {
+        queryClient.setQueryData(queryKey, (current: unknown) =>
+          updateTaskInCache(current, taskId, nextDone),
+        );
+      });
+    },
+    [queryClient, queryKeys],
+  );
 
-  const persistLatestTaskDone = useCallback(async (taskId: number) => {
-    if (inFlightTaskIdsRef.current.has(taskId)) {
-      return;
-    }
-
-    inFlightTaskIdsRef.current = new Set(inFlightTaskIdsRef.current);
-    inFlightTaskIdsRef.current.add(taskId);
-
-    let finalSavedDone: boolean | undefined;
-    try {
-      while (true) {
-        const desiredDone = desiredDoneByTaskIdRef.current.get(taskId);
-
-        if (desiredDone === undefined) {
-          return;
-        }
-
-        await setTaskDone(taskId, desiredDone, userId ?? undefined);
-        finalSavedDone = desiredDone;
-
-        if (desiredDoneByTaskIdRef.current.get(taskId) === desiredDone) {
-          break;
-        }
+  const persistLatestTaskDone = useCallback(
+    async (taskId: number) => {
+      if (inFlightTaskIdsRef.current.has(taskId)) {
+        return;
       }
 
-      desiredDoneByTaskIdRef.current.delete(taskId);
-      rollbackDoneByTaskIdRef.current.delete(taskId);
-      clearOptimisticTaskDone(taskId);
-      unmarkTaskPending(taskId);
-
-      if (finalSavedDone !== undefined) {
-        onSuccess?.(taskId, finalSavedDone);
-      }
-
-      if (pendingTaskIdsRef.current.size === 0) {
-        scheduleInvalidate();
-      }
-    } catch (error) {
-      logger.error("Erreur lors de la mise à jour de la tâche:", error);
-      const rollbackDone = rollbackDoneByTaskIdRef.current.get(taskId);
-
-      desiredDoneByTaskIdRef.current.delete(taskId);
-      rollbackDoneByTaskIdRef.current.delete(taskId);
-      clearOptimisticTaskDone(taskId);
-      unmarkTaskPending(taskId);
-
-      if (rollbackDone !== undefined) {
-        updateTaskDoneEverywhere(taskId, rollbackDone);
-        onError?.(taskId, rollbackDone);
-      }
-
-      Alert.alert(errorTitle, errorMessage);
-    } finally {
       inFlightTaskIdsRef.current = new Set(inFlightTaskIdsRef.current);
-      inFlightTaskIdsRef.current.delete(taskId);
-    }
-  }, [
-    errorMessage,
-    errorTitle,
-    onError,
-    onSuccess,
-    scheduleInvalidate,
-    unmarkTaskPending,
-    updateTaskDoneEverywhere,
-    userId,
-  ]);
+      inFlightTaskIdsRef.current.add(taskId);
 
-  const toggleTaskDone = useCallback(async (taskId: number, currentDone: boolean) => {
-    const currentOptimisticDone = getOptimisticTaskDone(taskId);
-    const nextDone = !(currentOptimisticDone ?? currentDone);
+      let finalSavedDone: boolean | undefined;
+      try {
+        while (true) {
+          const desiredDone = desiredDoneByTaskIdRef.current.get(taskId);
 
-    clearScheduledInvalidate();
+          if (desiredDone === undefined) {
+            return;
+          }
 
-    if (!rollbackDoneByTaskIdRef.current.has(taskId)) {
-      rollbackDoneByTaskIdRef.current.set(taskId, currentDone);
-    }
+          await setTaskDone(taskId, desiredDone, userId ?? undefined);
+          finalSavedDone = desiredDone;
 
-    desiredDoneByTaskIdRef.current.set(taskId, nextDone);
-    setOptimisticTaskDone(taskId, nextDone);
-    markTaskPending(taskId);
-    updateTaskDoneEverywhere(taskId, nextDone);
+          if (desiredDoneByTaskIdRef.current.get(taskId) === desiredDone) {
+            break;
+          }
+        }
 
-    void Promise.all(
-      queryKeys.map((queryKey) => queryClient.cancelQueries({ queryKey }))
-    );
+        desiredDoneByTaskIdRef.current.delete(taskId);
+        rollbackDoneByTaskIdRef.current.delete(taskId);
+        clearOptimisticTaskDone(taskId);
+        unmarkTaskPending(taskId);
 
-    void persistLatestTaskDone(taskId);
-    return true;
-  }, [
-    clearScheduledInvalidate,
-    markTaskPending,
-    persistLatestTaskDone,
-    queryClient,
-    queryKeys,
-    updateTaskDoneEverywhere,
-  ]);
+        if (finalSavedDone !== undefined) {
+          onSuccess?.(taskId, finalSavedDone);
+        }
+
+        if (pendingTaskIdsRef.current.size === 0) {
+          scheduleInvalidate();
+        }
+      } catch (error) {
+        logger.error("Erreur lors de la mise à jour de la tâche:", error);
+        const rollbackDone = rollbackDoneByTaskIdRef.current.get(taskId);
+
+        desiredDoneByTaskIdRef.current.delete(taskId);
+        rollbackDoneByTaskIdRef.current.delete(taskId);
+        clearOptimisticTaskDone(taskId);
+        unmarkTaskPending(taskId);
+
+        if (rollbackDone !== undefined) {
+          updateTaskDoneEverywhere(taskId, rollbackDone);
+          onError?.(taskId, rollbackDone);
+        }
+
+        Alert.alert(errorTitle, errorMessage);
+      } finally {
+        inFlightTaskIdsRef.current = new Set(inFlightTaskIdsRef.current);
+        inFlightTaskIdsRef.current.delete(taskId);
+      }
+    },
+    [
+      errorMessage,
+      errorTitle,
+      onError,
+      onSuccess,
+      scheduleInvalidate,
+      unmarkTaskPending,
+      updateTaskDoneEverywhere,
+      userId,
+    ],
+  );
+
+  const toggleTaskDone = useCallback(
+    async (taskId: number, currentDone: boolean) => {
+      const currentOptimisticDone = getOptimisticTaskDone(taskId);
+      const nextDone = !(currentOptimisticDone ?? currentDone);
+
+      clearScheduledInvalidate();
+
+      if (!rollbackDoneByTaskIdRef.current.has(taskId)) {
+        rollbackDoneByTaskIdRef.current.set(taskId, currentDone);
+      }
+
+      desiredDoneByTaskIdRef.current.set(taskId, nextDone);
+      setOptimisticTaskDone(taskId, nextDone);
+      markTaskPending(taskId);
+      updateTaskDoneEverywhere(taskId, nextDone);
+
+      void Promise.all(
+        queryKeys.map((queryKey) => queryClient.cancelQueries({ queryKey })),
+      );
+
+      void persistLatestTaskDone(taskId);
+      return true;
+    },
+    [
+      clearScheduledInvalidate,
+      markTaskPending,
+      persistLatestTaskDone,
+      queryClient,
+      queryKeys,
+      updateTaskDoneEverywhere,
+    ],
+  );
 
   return {
     isTaskPending,

@@ -1,8 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Notifications from 'expo-notifications';
+import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { i18n } from "./i18n";
-import { NOTIFICATION_REMINDER_LIMITS, clampInteger, parseIntegerInput } from "./notificationLimits";
+import {
+  NOTIFICATION_REMINDER_LIMITS,
+  clampInteger,
+  parseIntegerInput,
+} from "./notificationLimits";
 // import { useStore } from "../store/store";
 
 // const store = useStore();
@@ -26,7 +30,10 @@ Notifications.setNotificationHandler({
 export async function requestNotificationPermissions() {
   const settings = await Notifications.getPermissionsAsync();
 
-  if (settings.granted || settings.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL) {
+  if (
+    settings.granted ||
+    settings.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL
+  ) {
     return true;
   }
 
@@ -51,7 +58,10 @@ function getRandomReminderVariant(key: "main" | "insistence"): ReminderVariant {
     returnObjects: true,
   }) as ReminderVariant[];
   const validVariants = Array.isArray(variants)
-    ? variants.filter((variant) => typeof variant.title === "string" && typeof variant.body === "string")
+    ? variants.filter(
+        (variant) =>
+          typeof variant.title === "string" && typeof variant.body === "string",
+      )
     : [];
 
   if (validVariants.length === 0) {
@@ -70,7 +80,9 @@ async function getStoredReminderIds() {
 
   try {
     const parsed = JSON.parse(rawIds);
-    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((value): value is string => typeof value === "string")
+      : [];
   } catch {
     return [];
   }
@@ -80,25 +92,35 @@ async function cancelStoredReminderIds() {
   const existingIds = await getStoredReminderIds();
 
   if (existingIds.length > 0) {
-    await Promise.all(existingIds.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => undefined)));
+    await Promise.all(
+      existingIds.map((id) =>
+        Notifications.cancelScheduledNotificationAsync(id).catch(
+          () => undefined,
+        ),
+      ),
+    );
   }
 
   await AsyncStorage.removeItem(REMINDER_IDS_STORAGE_KEY);
 }
 
 export async function scheduleDailyReminder(
-  hour: number, 
+  hour: number,
   minute: number,
   insistanceActive: boolean = false,
-  insistanceDelais: string = '',
-  insistanceRepetitions: string = '',
-  weekendsActive: boolean = true
+  insistanceDelais: string = "",
+  insistanceRepetitions: string = "",
+  weekendsActive: boolean = true,
 ) {
   await ensureNotificationChannel();
   await cancelStoredReminderIds();
   const scheduledIds: string[] = [];
 
-  const scheduleNotification = async (triggerHour: number, triggerMinute: number, isMain: boolean) => {
+  const scheduleNotification = async (
+    triggerHour: number,
+    triggerMinute: number,
+    isMain: boolean,
+  ) => {
     const variant = getRandomReminderVariant(isMain ? "main" : "insistence");
     const content = {
       title: variant.title,
@@ -113,7 +135,7 @@ export async function scheduleDailyReminder(
           type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: triggerHour,
           minute: triggerMinute,
-          channelId: 'daily-reminders',
+          channelId: "daily-reminders",
         },
       });
       scheduledIds.push(notificationId);
@@ -129,7 +151,7 @@ export async function scheduleDailyReminder(
             weekday,
             hour: triggerHour,
             minute: triggerMinute,
-            channelId: 'daily-reminders',
+            channelId: "daily-reminders",
           },
         });
         scheduledIds.push(notificationId);
@@ -158,8 +180,8 @@ export async function scheduleDailyReminder(
       );
 
       for (let i = 1; i <= repetitions; i++) {
-        const totalMinutes = minute + (delay * i);
-        const newHour = Math.floor(hour + (totalMinutes / 60)) % 24;
+        const totalMinutes = minute + delay * i;
+        const newHour = Math.floor(hour + totalMinutes / 60) % 24;
         const newMinute = totalMinutes % 60;
 
         await scheduleNotification(newHour, newMinute, false);
@@ -167,7 +189,10 @@ export async function scheduleDailyReminder(
     }
   }
 
-  await AsyncStorage.setItem(REMINDER_IDS_STORAGE_KEY, JSON.stringify(scheduledIds));
+  await AsyncStorage.setItem(
+    REMINDER_IDS_STORAGE_KEY,
+    JSON.stringify(scheduledIds),
+  );
 }
 
 // clear badge number on app open

@@ -1,6 +1,13 @@
 import { Host } from "@expo/ui";
 import { Button } from "@expo/ui/swift-ui";
-import { buttonStyle, containerShape, controlSize, frame, labelStyle, shapes } from "@expo/ui/swift-ui/modifiers";
+import {
+  buttonStyle,
+  containerShape,
+  controlSize,
+  frame,
+  labelStyle,
+  shapes,
+} from "@expo/ui/swift-ui/modifiers";
 import { memo } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -8,7 +15,9 @@ type ProfileSettingsButtonProps = {
   onPress: () => void;
 };
 
-export default memo(function ProfileSettingsButton({ onPress }: ProfileSettingsButtonProps) {
+export default memo(function ProfileSettingsButton({
+  onPress,
+}: ProfileSettingsButtonProps) {
   return (
     <View style={styles.container}>
       <Host matchContents ignoreSafeArea="all">

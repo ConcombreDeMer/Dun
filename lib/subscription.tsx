@@ -1,4 +1,12 @@
-import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { Alert, Platform } from "react-native";
 import Purchases, {
   CustomerInfo,
@@ -12,7 +20,7 @@ export const REVENUECAT_ENTITLEMENT_ID = "dun_plus";
 export type TrialEligibilityStatus = "eligible" | "ineligible" | "unknown";
 
 const BETA_PREMIUM_ENABLED = ["1", "true", "yes", "on"].includes(
-  process.env.EXPO_PUBLIC_BETA_PREMIUM?.trim().toLowerCase() ?? ""
+  process.env.EXPO_PUBLIC_BETA_PREMIUM?.trim().toLowerCase() ?? "",
 );
 
 type SubscriptionPackages = {
@@ -36,7 +44,9 @@ type SubscriptionContextValue = {
   isPremium: boolean;
   isPurchasing: boolean;
   isRestoring: boolean;
-  checkTrialEligibility: (productIdentifier: string) => Promise<TrialEligibilityStatus>;
+  checkTrialEligibility: (
+    productIdentifier: string,
+  ) => Promise<TrialEligibilityStatus>;
   loadOfferings: () => Promise<void>;
   packages: SubscriptionPackages;
   purchasePackage: (packageToBuy: PurchasesPackage) => Promise<boolean>;
@@ -45,7 +55,9 @@ type SubscriptionContextValue = {
   showManageSubscriptions: () => Promise<void>;
 };
 
-const SubscriptionContext = createContext<SubscriptionContextValue | undefined>(undefined);
+const SubscriptionContext = createContext<SubscriptionContextValue | undefined>(
+  undefined,
+);
 
 function getPremiumEntitlement(customerInfo: CustomerInfo | null) {
   return customerInfo?.entitlements.active[REVENUECAT_ENTITLEMENT_ID] ?? null;
@@ -65,8 +77,12 @@ type SubscriptionProviderProps = {
   children: ReactNode;
 };
 
-export function SubscriptionProvider({ appUserID, children }: SubscriptionProviderProps) {
-  const [currentOffering, setCurrentOffering] = useState<PurchasesOffering | null>(null);
+export function SubscriptionProvider({
+  appUserID,
+  children,
+}: SubscriptionProviderProps) {
+  const [currentOffering, setCurrentOffering] =
+    useState<PurchasesOffering | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isConfigured, setIsConfigured] = useState(false);
@@ -110,7 +126,10 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
       setCustomerInfo(nextCustomerInfo);
     } catch (e: any) {
       setError(e?.message ?? "Unable to load subscription information.");
-      logger.warn("Impossible de rafraîchir l'abonnement RevenueCat:", e?.message ?? e);
+      logger.warn(
+        "Impossible de rafraîchir l'abonnement RevenueCat:",
+        e?.message ?? e,
+      );
     } finally {
       setIsLoading(false);
     }
@@ -168,17 +187,21 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
     };
   }, [refreshSubscription]);
 
-  const purchasePackage = useCallback(async (packageToBuy: PurchasesPackage) => {
-    setIsPurchasing(true);
+  const purchasePackage = useCallback(
+    async (packageToBuy: PurchasesPackage) => {
+      setIsPurchasing(true);
 
-    try {
-      const { customerInfo: nextCustomerInfo } = await Purchases.purchasePackage(packageToBuy);
-      setCustomerInfo(nextCustomerInfo);
-      return Boolean(getPremiumEntitlement(nextCustomerInfo));
-    } finally {
-      setIsPurchasing(false);
-    }
-  }, []);
+      try {
+        const { customerInfo: nextCustomerInfo } =
+          await Purchases.purchasePackage(packageToBuy);
+        setCustomerInfo(nextCustomerInfo);
+        return Boolean(getPremiumEntitlement(nextCustomerInfo));
+      } finally {
+        setIsPurchasing(false);
+      }
+    },
+    [],
+  );
 
   const restorePurchases = useCallback(async () => {
     setIsRestoring(true);
@@ -192,90 +215,117 @@ export function SubscriptionProvider({ appUserID, children }: SubscriptionProvid
     }
   }, []);
 
-  const checkTrialEligibility = useCallback(async (productIdentifier: string): Promise<TrialEligibilityStatus> => {
-    if (!appUserID || !productIdentifier) {
-      return "unknown";
-    }
-
-    const ready = initializeRevenueCat(appUserID);
-    setIsConfigured(ready);
-
-    if (!ready) {
-      return "unknown";
-    }
-
-    try {
-      const eligibilityByProduct = await Purchases.checkTrialOrIntroductoryPriceEligibility([productIdentifier]);
-      const status = eligibilityByProduct[productIdentifier]?.status;
-
-      if (status === Purchases.INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_INELIGIBLE) {
-        return "ineligible";
+  const checkTrialEligibility = useCallback(
+    async (productIdentifier: string): Promise<TrialEligibilityStatus> => {
+      if (!appUserID || !productIdentifier) {
+        return "unknown";
       }
 
-      if (status === Purchases.INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE) {
-        return "eligible";
-      }
-    } catch (e: any) {
-      logger.warn("Impossible de vérifier l'éligibilité à l'offre d'introduction:", e?.message ?? e);
-    }
+      const ready = initializeRevenueCat(appUserID);
+      setIsConfigured(ready);
 
-    return "unknown";
-  }, [appUserID]);
+      if (!ready) {
+        return "unknown";
+      }
+
+      try {
+        const eligibilityByProduct =
+          await Purchases.checkTrialOrIntroductoryPriceEligibility([
+            productIdentifier,
+          ]);
+        const status = eligibilityByProduct[productIdentifier]?.status;
+
+        if (
+          status ===
+          Purchases.INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_INELIGIBLE
+        ) {
+          return "ineligible";
+        }
+
+        if (
+          status ===
+          Purchases.INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE
+        ) {
+          return "eligible";
+        }
+      } catch (e: any) {
+        logger.warn(
+          "Impossible de vérifier l'éligibilité à l'offre d'introduction:",
+          e?.message ?? e,
+        );
+      }
+
+      return "unknown";
+    },
+    [appUserID],
+  );
 
   const showManageSubscriptions = useCallback(async () => {
     if (Platform.OS !== "ios") {
-      Alert.alert("Unavailable", "Subscription management is only configured for iOS right now.");
+      Alert.alert(
+        "Unavailable",
+        "Subscription management is only configured for iOS right now.",
+      );
       return;
     }
 
     await Purchases.showManageSubscriptions();
   }, []);
 
-  const activeEntitlement = useMemo(() => getPremiumEntitlement(customerInfo), [customerInfo]);
+  const activeEntitlement = useMemo(
+    () => getPremiumEntitlement(customerInfo),
+    [customerInfo],
+  );
   const isPremium = BETA_PREMIUM_ENABLED || Boolean(activeEntitlement);
-  const packages = useMemo(() => getPackages(currentOffering), [currentOffering]);
+  const packages = useMemo(
+    () => getPackages(currentOffering),
+    [currentOffering],
+  );
 
-  const value = useMemo<SubscriptionContextValue>(() => ({
-    activeEntitlement,
-    canUseAdvancedStats: isPremium,
-    canUseNotificationReminders: isPremium,
-    canUseNotificationWeekends: isPremium,
-    canUsePremiumColorThemes: isPremium,
-    canUseTaskBox: isPremium,
-    customerInfo,
-    currentOffering,
-    error,
-    isConfigured,
-    isBetaPremium: BETA_PREMIUM_ENABLED,
-    isLoading,
-    isPremium,
-    isPurchasing,
-    isRestoring,
-    checkTrialEligibility,
-    loadOfferings,
-    packages,
-    purchasePackage,
-    refreshSubscription,
-    restorePurchases,
-    showManageSubscriptions,
-  }), [
-    activeEntitlement,
-    customerInfo,
-    currentOffering,
-    error,
-    isConfigured,
-    isLoading,
-    isPremium,
-    isPurchasing,
-    isRestoring,
-    checkTrialEligibility,
-    loadOfferings,
-    packages,
-    purchasePackage,
-    refreshSubscription,
-    restorePurchases,
-    showManageSubscriptions,
-  ]);
+  const value = useMemo<SubscriptionContextValue>(
+    () => ({
+      activeEntitlement,
+      canUseAdvancedStats: isPremium,
+      canUseNotificationReminders: isPremium,
+      canUseNotificationWeekends: isPremium,
+      canUsePremiumColorThemes: isPremium,
+      canUseTaskBox: isPremium,
+      customerInfo,
+      currentOffering,
+      error,
+      isConfigured,
+      isBetaPremium: BETA_PREMIUM_ENABLED,
+      isLoading,
+      isPremium,
+      isPurchasing,
+      isRestoring,
+      checkTrialEligibility,
+      loadOfferings,
+      packages,
+      purchasePackage,
+      refreshSubscription,
+      restorePurchases,
+      showManageSubscriptions,
+    }),
+    [
+      activeEntitlement,
+      customerInfo,
+      currentOffering,
+      error,
+      isConfigured,
+      isLoading,
+      isPremium,
+      isPurchasing,
+      isRestoring,
+      checkTrialEligibility,
+      loadOfferings,
+      packages,
+      purchasePackage,
+      refreshSubscription,
+      restorePurchases,
+      showManageSubscriptions,
+    ],
+  );
 
   return (
     <SubscriptionContext.Provider value={value}>
@@ -288,7 +338,9 @@ export function useSubscription() {
   const context = useContext(SubscriptionContext);
 
   if (!context) {
-    throw new Error("useSubscription doit être utilisé dans un SubscriptionProvider");
+    throw new Error(
+      "useSubscription doit être utilisé dans un SubscriptionProvider",
+    );
   }
 
   return context;

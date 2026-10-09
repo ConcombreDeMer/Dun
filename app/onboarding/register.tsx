@@ -1,9 +1,9 @@
-import PrimaryButton from '@/components/primaryButton';
-import SimpleInput from '@/components/textInput';
-import { getCharacterImageSource, getImageSource } from '@/lib/imageHelper';
+import PrimaryButton from "@/components/primaryButton";
+import SimpleInput from "@/components/textInput";
+import { getCharacterImageSource, getImageSource } from "@/lib/imageHelper";
 import * as Haptics from "expo-haptics";
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   Image,
   Keyboard,
@@ -11,44 +11,38 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
-} from 'react-native';
+  View,
+} from "react-native";
 import Animated, {
   FadeInUp,
   FadeOut,
-  FadeOutDown
-} from 'react-native-reanimated';
-import { useAppTranslation } from '../../lib/i18n';
-import { supabase } from '../../lib/supabase';
-import { useTheme } from '../../lib/ThemeContext';
+  FadeOutDown,
+} from "react-native-reanimated";
+import { useAppTranslation } from "../../lib/i18n";
+import { supabase } from "../../lib/supabase";
+import { useTheme } from "../../lib/ThemeContext";
 import { logger } from "@/lib/logger";
 
-
 export default function Register() {
-
   const router = useRouter();
   const { colors, actualTheme } = useTheme();
   const { t } = useAppTranslation();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+  const [error, setError] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const [page, setPage] = useState(0);
   const styles = createStyles(colors);
-
 
   const inputAnimationTitle = FadeInUp.springify().delay(500).duration(1500);
   const inputAnimation = FadeInUp.springify().delay(800).duration(1500);
   const inputAnimationNoDelay = FadeInUp.springify().duration(1500);
 
-
-
   useEffect(() => {
     setPage(1);
   }, []);
-
 
   const isValidEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -57,23 +51,25 @@ export default function Register() {
 
   const handleSignUp = async () => {
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       // Créer le compte avec Supabase Auth
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: password.trim(),
-        options: {
-          data: {
-            name: email.trim().split('@')[0], // Utiliser la partie avant @ comme nom d'utilisateur par défaut
+      const { data: authData, error: signUpError } = await supabase.auth.signUp(
+        {
+          email: email.trim(),
+          password: password.trim(),
+          options: {
+            data: {
+              name: email.trim().split("@")[0], // Utiliser la partie avant @ comme nom d'utilisateur par défaut
+            },
+            emailRedirectTo: "dun://auth/callback",
           },
-          emailRedirectTo: 'dun://auth/callback',
         },
-      });
+      );
 
       if (signUpError) {
-        logger.error('Erreur Supabase:', signUpError.message);
+        logger.error("Erreur Supabase:", signUpError.message);
         setError(signUpError.message);
         setLoading(false);
         return;
@@ -84,29 +80,29 @@ export default function Register() {
         // Sinon, il doit confirmer son email
         if (authData.user.email_confirmed_at) {
           setLoading(false);
-          router.replace('/home');
+          router.replace("/home");
         } else {
           // Email de vérification envoyé - Navigation vers la page de vérification
           setLoading(false);
           router.push({
-            pathname: '/onboarding/emailVerif',
-            params: { email: email.trim() }
+            pathname: "/onboarding/emailVerif",
+            params: { email: email.trim() },
           });
         }
       } else {
-        setError(t('onboarding.register.errors.createAccount'));
+        setError(t("onboarding.register.errors.createAccount"));
         setLoading(false);
       }
     } catch (err: any) {
-      logger.error('Exception lors de l\'inscription:', err);
-      setError(err.message || t('onboarding.register.errors.signupException'));
+      logger.error("Exception lors de l'inscription:", err);
+      setError(err.message || t("onboarding.register.errors.signupException"));
       setLoading(false);
     }
   };
 
   const handleAnimatePress = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setErrorMessage('');
+    setErrorMessage("");
 
     // Validation pour chaque page
     // if (page === 1) {
@@ -118,47 +114,49 @@ export default function Register() {
 
     if (page === 1) {
       if (!email.trim()) {
-        setErrorMessage(t('onboarding.register.errors.enterEmail'));
+        setErrorMessage(t("onboarding.register.errors.enterEmail"));
         return;
       }
       if (!isValidEmail(email.trim())) {
-        setErrorMessage(t('onboarding.register.errors.invalidEmail'));
+        setErrorMessage(t("onboarding.register.errors.invalidEmail"));
         return;
       }
       // vérifier si l'email est déjà utilisé
-      const { data: emailExists, error: fetchError } = await supabase
-        .rpc('email_exists', { email_input: email.trim() });
+      const { data: emailExists, error: fetchError } = await supabase.rpc(
+        "email_exists",
+        { email_input: email.trim() },
+      );
 
       if (fetchError) {
-        logger.error('Erreur:', fetchError);
-        setErrorMessage(t('onboarding.register.errors.checkingEmail'));
+        logger.error("Erreur:", fetchError);
+        setErrorMessage(t("onboarding.register.errors.checkingEmail"));
         return;
       }
 
       if (emailExists) {
-        setErrorMessage(t('onboarding.register.errors.emailUsed'));
+        setErrorMessage(t("onboarding.register.errors.emailUsed"));
         return;
       }
     }
 
     if (page === 2) {
       if (!password.trim()) {
-        setErrorMessage(t('onboarding.register.errors.enterPassword'));
+        setErrorMessage(t("onboarding.register.errors.enterPassword"));
         return;
       }
       if (password.length < 6) {
-        setErrorMessage(t('onboarding.register.errors.shortPassword'));
+        setErrorMessage(t("onboarding.register.errors.shortPassword"));
         return;
       }
     }
 
     if (page === 3) {
       if (!confirmPassword.trim()) {
-        setErrorMessage(t('onboarding.register.errors.confirmPassword'));
+        setErrorMessage(t("onboarding.register.errors.confirmPassword"));
         return;
       }
       if (password !== confirmPassword) {
-        setErrorMessage(t('onboarding.register.errors.passwordMismatch'));
+        setErrorMessage(t("onboarding.register.errors.passwordMismatch"));
         return;
       }
     }
@@ -166,7 +164,7 @@ export default function Register() {
     if (page < 5) {
       setPage(page + 1);
     }
-  }
+  };
 
   const handleBackPress = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -175,20 +173,15 @@ export default function Register() {
     } else {
       setPage(page - 1);
     }
-  }
+  };
 
   const handleStartPress = () => {
     router.back();
-  }
+  };
 
   return (
-
-    <Pressable
-      style={styles.content}
-      onPress={() => Keyboard.dismiss()}
-    >
-      <View style={{ flex: 1, width: '100%', height: '100%' }}>
-
+    <Pressable style={styles.content} onPress={() => Keyboard.dismiss()}>
+      <View style={{ flex: 1, width: "100%", height: "100%" }}>
         {/* ----------------------- HEADER ---------------------------- */}
 
         <Animated.View
@@ -202,9 +195,8 @@ export default function Register() {
           >
             <Image
               style={{ width: 24, height: 24 }}
-              source={require('../../assets/images/dark/cancel.png')}
-            >
-            </Image>
+              source={require("../../assets/images/dark/cancel.png")}
+            ></Image>
           </TouchableOpacity>
 
           <View style={styles.dotsContainer}>
@@ -214,15 +206,14 @@ export default function Register() {
                 style={[
                   styles.dot,
                   {
-                    backgroundColor: index === page ? colors.actionButton : colors.button,
-                  }
+                    backgroundColor:
+                      index === page ? colors.actionButton : colors.button,
+                  },
                 ]}
               />
             ))}
           </View>
         </Animated.View>
-
-
 
         {/* ----------------------- FORMULAIRE ---------------------------- */}
 
@@ -281,26 +272,25 @@ export default function Register() {
 
         {page === 1 && (
           <View style={styles.formContainer}>
-
-
             <Animated.View
               style={styles.imageContainer}
               entering={FadeInUp.springify().delay(300).duration(3000)}
               exiting={FadeOutDown.springify().duration(500)}
             >
               <Image
-                source={getCharacterImageSource('8', actualTheme)}
+                source={getCharacterImageSource("8", actualTheme)}
                 style={styles.characterImage}
                 resizeMode="contain"
               />
             </Animated.View>
 
-
             <Animated.View
               entering={inputAnimationTitle}
               exiting={FadeOutDown.springify()}
             >
-              <Text style={styles.label}>{t('onboarding.register.emailQuestion')}</Text>
+              <Text style={styles.label}>
+                {t("onboarding.register.emailQuestion")}
+              </Text>
             </Animated.View>
 
             <Animated.View
@@ -309,7 +299,7 @@ export default function Register() {
               style={styles.inputContainer}
             >
               <SimpleInput
-                placeholder={t('onboarding.tutorial.namePlaceholder')}
+                placeholder={t("onboarding.tutorial.namePlaceholder")}
                 placeholderTextColor={colors.textSecondary}
                 value={email}
                 onChangeText={setEmail}
@@ -317,8 +307,8 @@ export default function Register() {
                 scale="large"
                 bold
                 fontSize="2xl"
-                type={page === 1 ? 'email-address' : 'default'}
-                cap={page === 1 ? 'none' : 'sentences'}
+                type={page === 1 ? "email-address" : "default"}
+                cap={page === 1 ? "none" : "sentences"}
               />
               {errorMessage ? (
                 <Animated.Text
@@ -335,25 +325,25 @@ export default function Register() {
 
         {(page === 2 || page === 3) && (
           <View style={styles.formContainer}>
-
             <Animated.View
               style={styles.imageContainer}
               entering={FadeInUp.springify().delay(300).duration(3000)}
               exiting={FadeOutDown.springify().duration(500)}
             >
               <Image
-                source={getCharacterImageSource('7', actualTheme)}
+                source={getCharacterImageSource("7", actualTheme)}
                 style={styles.characterImage}
                 resizeMode="contain"
               />
             </Animated.View>
 
-
             <Animated.View
               entering={inputAnimationTitle}
               exiting={FadeOutDown.springify()}
             >
-              <Text style={styles.label}>{t('onboarding.register.passwordQuestion')}</Text>
+              <Text style={styles.label}>
+                {t("onboarding.register.passwordQuestion")}
+              </Text>
             </Animated.View>
 
             <Animated.View
@@ -362,7 +352,7 @@ export default function Register() {
               style={styles.inputContainer}
             >
               <SimpleInput
-                placeholder={t('onboarding.tutorial.namePlaceholder')}
+                placeholder={t("onboarding.tutorial.namePlaceholder")}
                 placeholderTextColor={colors.textSecondary}
                 value={password}
                 onChangeText={setPassword}
@@ -389,7 +379,9 @@ export default function Register() {
                 style={styles.inputContainer}
               >
                 <SimpleInput
-                  placeholder={t('onboarding.register.confirmPasswordPlaceholder')}
+                  placeholder={t(
+                    "onboarding.register.confirmPasswordPlaceholder",
+                  )}
                   placeholderTextColor={colors.textSecondary}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -420,24 +412,37 @@ export default function Register() {
             exiting={FadeOut.springify()}
           >
             <Image
-              source={getImageSource('success', actualTheme)}
+              source={getImageSource("success", actualTheme)}
               style={{ width: 100, height: 100 }}
             />
             <Text
-              style={{ marginTop: 20, fontSize: 24, fontWeight: '500', color: colors.text }}
+              style={{
+                marginTop: 20,
+                fontSize: 24,
+                fontWeight: "500",
+                color: colors.text,
+              }}
             >
-              {t('onboarding.register.readyTitle')}
+              {t("onboarding.register.readyTitle")}
             </Text>
             <Text
-              style={{ marginTop: 20, fontSize: 20, fontWeight: '300', color: colors.text }}
+              style={{
+                marginTop: 20,
+                fontSize: 20,
+                fontWeight: "300",
+                color: colors.text,
+              }}
             >
-              {t('onboarding.register.readySubtitle')}
+              {t("onboarding.register.readySubtitle")}
             </Text>
             {error && (
               <Animated.Text
                 entering={FadeInUp.springify()}
                 exiting={FadeOut.springify()}
-                style={[styles.errorText, { color: colors.danger, marginTop: 20 }]}
+                style={[
+                  styles.errorText,
+                  { color: colors.danger, marginTop: 20 },
+                ]}
               >
                 {error}
               </Animated.Text>
@@ -445,27 +450,24 @@ export default function Register() {
           </Animated.View>
         )}
 
-
         {/* --------------------- FOOTER ------------------------- */}
-
 
         <Animated.View
           style={styles.buttonSection2}
           entering={FadeInUp.springify().delay(1500).duration(1000)}
           exiting={FadeOutDown.springify().delay(100).duration(1500)}
         >
-
           <PrimaryButton
-            image='chevron.left'
+            image="chevron.left"
             onPress={handleBackPress}
-            size='XS'
+            size="XS"
           />
 
           {page < 4 && (
             <PrimaryButton
-              title={t('onboarding.register.next')}
+              title={t("onboarding.register.next")}
               onPress={handleAnimatePress}
-              size='M'
+              size="M"
             />
           )}
 
@@ -485,13 +487,16 @@ export default function Register() {
             // </TouchableOpacity>
 
             <PrimaryButton
-              title={loading ? t('common.status.loading') : t('onboarding.register.createProfile')}
+              title={
+                loading
+                  ? t("common.status.loading")
+                  : t("onboarding.register.createProfile")
+              }
               onPress={handleSignUp}
-              size='M'
+              size="M"
               disabled={loading}
             />
           )}
-
         </Animated.View>
       </View>
     </Pressable>
@@ -502,7 +507,7 @@ const createStyles = (colors: any) =>
   StyleSheet.create({
     content: {
       flex: 1,
-      justifyContent: 'space-between',
+      justifyContent: "space-between",
       paddingHorizontal: 23,
       paddingVertical: 23,
       backgroundColor: colors.background,
@@ -511,82 +516,81 @@ const createStyles = (colors: any) =>
       borderWidth: 1,
       borderRadius: 8,
       padding: 12,
-      width: '80%',
+      width: "80%",
       height: 60,
-      textAlign: 'center',
+      textAlign: "center",
       fontSize: 18,
-      fontWeight: '600',
+      fontWeight: "600",
       zIndex: 1,
     },
     buttonSection: {
       marginBottom: 30,
       zIndex: 2,
-      position: 'absolute',
+      position: "absolute",
       bottom: 50,
-      width: '90%',
-      alignSelf: 'center',
-      display: 'flex',
-      flexDirection: 'column',
+      width: "90%",
+      alignSelf: "center",
+      display: "flex",
+      flexDirection: "column",
     },
     pin: {
-      alignSelf: 'center',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignSelf: "center",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
       paddingHorizontal: 10,
       paddingVertical: 5,
       borderRadius: 20,
-      position: 'absolute',
+      position: "absolute",
       top: -10,
       right: 0,
       zIndex: 2,
       backgroundColor: colors.input,
       borderColor: colors.border,
       borderWidth: 1,
-
     },
     primaryButton: {
       paddingVertical: 16,
       borderRadius: 50,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       marginBottom: 12,
       borderColor: colors.actionButton,
-      borderWidth: 1.5
+      borderWidth: 1.5,
     },
     primaryButtonText: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     secondaryButton: {
       paddingVertical: 16,
       borderRadius: 50,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     secondaryButtonText: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     buttonSection2: {
       zIndex: 2,
-      position: 'absolute',
+      position: "absolute",
       bottom: 0,
-      width: '100%',
-      alignSelf: 'center',
-      display: 'flex',
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+      width: "100%",
+      alignSelf: "center",
+      display: "flex",
+      flexDirection: "row",
+      justifyContent: "space-between",
     },
     validateButton: {
       height: 70,
-      width: '77%',
+      width: "77%",
       borderRadius: 100,
       position: "relative",
       left: 0,
       alignItems: "center",
       justifyContent: "center",
-      alignSelf: 'flex-end',
+      alignSelf: "flex-end",
     },
     validateButtonText: {
       fontSize: 20,
@@ -595,81 +599,81 @@ const createStyles = (colors: any) =>
     },
     footerInfo: {
       fontSize: 12,
-      textAlign: 'center',
-      width: '100%',
+      textAlign: "center",
+      width: "100%",
       marginTop: 20,
     },
     animationContainer: {
-      height: '100%',
-      width: '100%',
-      justifyContent: 'center',
-      alignItems: 'center',
+      height: "100%",
+      width: "100%",
+      justifyContent: "center",
+      alignItems: "center",
       zIndex: 0,
-      position: 'absolute',
+      position: "absolute",
     },
 
     lottieAnimation: {
-      width: '100%',
-      height: '100%',
+      width: "100%",
+      height: "100%",
     },
     label: {
       fontSize: 22,
-      fontWeight: '300',
+      fontWeight: "300",
     },
     backButton: {
       height: 70,
       width: 70,
       backgroundColor: colors.actionButton,
       borderRadius: 100,
-      alignItems: 'center',
-      justifyContent: 'center',
-      display: 'flex',
+      alignItems: "center",
+      justifyContent: "center",
+      display: "flex",
     },
     backButtonText: {
       fontSize: 18,
     },
     formContainer: {
-      position: 'absolute',
-      bottom: '30%',
+      position: "absolute",
+      bottom: "30%",
       left: 0,
       right: 0,
       transform: [{ translateY: -100 }],
-      alignItems: 'center',
+      alignItems: "center",
       zIndex: 1,
-      display: 'flex',
-      flexDirection: 'column',
+      display: "flex",
+      flexDirection: "column",
       gap: 12,
     },
     inputContainer: {
-      width: '100%',
-      alignItems: 'center',
+      width: "100%",
+      alignItems: "center",
       marginTop: 10,
     },
     startButton: {
       height: 30,
       width: 30,
       borderRadius: 100,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
       zIndex: 2,
     },
     headerContainer: {
-      position: 'absolute',
-      width: '100%',
+      position: "absolute",
+      width: "100%",
       top: 40,
-      alignSelf: 'center',
+      alignSelf: "center",
       zIndex: 3,
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      display: 'flex',
-      flexDirection: 'row',
+      alignItems: "center",
+      justifyContent: "space-between",
+      display: "flex",
+      flexDirection: "row",
     },
     dotsContainer: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: 8,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     dot: {
       width: 8,
@@ -678,17 +682,17 @@ const createStyles = (colors: any) =>
     },
     errorText: {
       fontSize: 12,
-      fontWeight: '500',
+      fontWeight: "500",
       marginTop: 8,
-      textAlign: 'center',
+      textAlign: "center",
       zIndex: 0,
     },
 
     imageContainer: {
       flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      position: 'relative',
+      justifyContent: "center",
+      alignItems: "center",
+      position: "relative",
     },
 
     characterImage: {

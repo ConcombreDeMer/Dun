@@ -1,14 +1,12 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
 interface StoreState {
-
   // User
   user: {
     id: string;
-  }
+  };
 
   setUser: (user: { id: string }) => void;
-
 
   // Notifications
   selectedDate: Date | null;
@@ -25,15 +23,13 @@ interface StoreState {
 }
 
 export const useStore = create<StoreState>((set) => ({
-
   // User
   user: {
-    id: '',
+    id: "",
   },
   setUser: (user) => set({ user }),
 
   // Notifications
-
 
   selectedDate: null,
   setSelectedDate: (date) => set({ selectedDate: date }),
@@ -45,11 +41,12 @@ export const useStore = create<StoreState>((set) => ({
   setAlertsEnabled: (enabled) => set({ alertsEnabled: enabled }),
 
   // Store management
-  clearStore: () => set({
-    user: { id: '' },
-    selectedDate: null,
-    alertSetupHour: null,
-    alertSetupMinute: null,
-    alertsEnabled: false,
-  }),
+  clearStore: () =>
+    set({
+      user: { id: "" },
+      selectedDate: null,
+      alertSetupHour: null,
+      alertSetupMinute: null,
+      alertsEnabled: false,
+    }),
 }));

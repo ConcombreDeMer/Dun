@@ -12,7 +12,7 @@ const parsePublicBoolean = (value: string | undefined, fallback = false) => {
 
 export const REQUIRE_PREMIUM_ACCESS = parsePublicBoolean(
   process.env.EXPO_PUBLIC_REQUIRE_PREMIUM_ACCESS,
-  false
+  false,
 );
 
 export const FREE_DAILY_TASK_LIMIT = 6;

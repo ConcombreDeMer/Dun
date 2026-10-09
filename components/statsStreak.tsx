@@ -13,7 +13,12 @@ import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import PagerView from "react-native-pager-view";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import Squircle from "./Squircle";
 
 type StatsStreakProps = {
@@ -42,9 +47,8 @@ const isPerfectDay = (day: StatsDay) => {
   return total > 0 && done === total;
 };
 
-const isCountedStreakDate = (date: Date, today: Date) => (
-  normalizeDate(date).getTime() < today.getTime()
-);
+const isCountedStreakDate = (date: Date, today: Date) =>
+  normalizeDate(date).getTime() < today.getTime();
 
 const getWeekStart = (date: Date) => {
   const d = normalizeDate(date);
@@ -75,8 +79,16 @@ const buildStreakSlides = (period: StatsPeriod, today: Date): StreakSlide[] => {
   if (period === "Par mois") {
     return Array.from({ length: 13 }, (_, index) => {
       const monthOffset = index - 12;
-      const rangeStart = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
-      const rangeEnd = new Date(rangeStart.getFullYear(), rangeStart.getMonth() + 1, 0);
+      const rangeStart = new Date(
+        today.getFullYear(),
+        today.getMonth() + monthOffset,
+        1,
+      );
+      const rangeEnd = new Date(
+        rangeStart.getFullYear(),
+        rangeStart.getMonth() + 1,
+        0,
+      );
 
       return {
         id: `month-${rangeStart.getFullYear()}-${rangeStart.getMonth()}`,
@@ -101,11 +113,18 @@ const getGridColumns = (period: StatsPeriod, daysCount: number) => {
   return 29;
 };
 
-const getGridMetrics = (period: StatsPeriod, columns: number, width: number) => {
-  const preferredGap = period === "Par année" ? 3 : period === "Par mois" ? 8 : 10;
-  const minimumCellSize = period === "Par année" ? 5 : period === "Par mois" ? 14 : 18;
+const getGridMetrics = (
+  period: StatsPeriod,
+  columns: number,
+  width: number,
+) => {
+  const preferredGap =
+    period === "Par année" ? 3 : period === "Par mois" ? 8 : 10;
+  const minimumCellSize =
+    period === "Par année" ? 5 : period === "Par mois" ? 14 : 18;
   const safeColumns = Math.max(1, columns);
-  const rawCellSize = (width - preferredGap * Math.max(0, safeColumns - 1)) / safeColumns;
+  const rawCellSize =
+    (width - preferredGap * Math.max(0, safeColumns - 1)) / safeColumns;
 
   if (rawCellSize >= minimumCellSize) {
     return {
@@ -115,9 +134,10 @@ const getGridMetrics = (period: StatsPeriod, columns: number, width: number) => 
   }
 
   const cellSize = minimumCellSize;
-  const gap = safeColumns > 1
-    ? Math.max(2, (width - cellSize * safeColumns) / (safeColumns - 1))
-    : 0;
+  const gap =
+    safeColumns > 1
+      ? Math.max(2, (width - cellSize * safeColumns) / (safeColumns - 1))
+      : 0;
 
   return {
     cellSize,
@@ -145,37 +165,63 @@ export default function StatsStreak({
   const unavailableColor = colors.input;
   const daysMap = useMemo(() => buildDaysMap(daysData || []), [daysData]);
   const today = useMemo(() => normalizeDate(new Date()), []);
-  const streakSlides = useMemo(() => buildStreakSlides(period, today), [period, today]);
-  const safeSlideIndex = streakSlides.length > 0
-    ? Math.min(Math.max(activeSlideIndex, 0), streakSlides.length - 1)
-    : 0;
-
-  const streakPages = useMemo(() => streakSlides.map((slide) => {
-    const periodDays = buildDaysBetween(slide.rangeStart, slide.rangeEnd, daysMap);
-    const visibleDays = periodDays.slice(0, period === "Par année" ? 366 : undefined);
-    const countedStreakDays = visibleDays.filter((day) => (
-      isCountedStreakDate(new Date(day.date), today)
-    ));
-    const perfectDaysCount = countedStreakDays.filter(isPerfectDay).length;
-    const consistency = countedStreakDays.length > 0
-      ? Math.round((perfectDaysCount / countedStreakDays.length) * 100)
+  const streakSlides = useMemo(
+    () => buildStreakSlides(period, today),
+    [period, today],
+  );
+  const safeSlideIndex =
+    streakSlides.length > 0
+      ? Math.min(Math.max(activeSlideIndex, 0), streakSlides.length - 1)
       : 0;
 
-    return {
-      ...slide,
-      consistency,
-      countedStreakDaysCount: countedStreakDays.length,
-      perfectDaysCount,
-      visibleDays,
-    };
-  }), [daysMap, period, streakSlides, today]);
+  const streakPages = useMemo(
+    () =>
+      streakSlides.map((slide) => {
+        const periodDays = buildDaysBetween(
+          slide.rangeStart,
+          slide.rangeEnd,
+          daysMap,
+        );
+        const visibleDays = periodDays.slice(
+          0,
+          period === "Par année" ? 366 : undefined,
+        );
+        const countedStreakDays = visibleDays.filter((day) =>
+          isCountedStreakDate(new Date(day.date), today),
+        );
+        const perfectDaysCount = countedStreakDays.filter(isPerfectDay).length;
+        const consistency =
+          countedStreakDays.length > 0
+            ? Math.round((perfectDaysCount / countedStreakDays.length) * 100)
+            : 0;
+
+        return {
+          ...slide,
+          consistency,
+          countedStreakDaysCount: countedStreakDays.length,
+          perfectDaysCount,
+          visibleDays,
+        };
+      }),
+    [daysMap, period, streakSlides, today],
+  );
 
   const activePage = streakPages[safeSlideIndex];
-  const columns = Math.max(1, getGridColumns(period, activePage?.visibleDays.length ?? 0));
+  const columns = Math.max(
+    1,
+    getGridColumns(period, activePage?.visibleDays.length ?? 0),
+  );
   const hasMeasuredGrid = gridWidth > 0;
   const availableGridWidth = hasMeasuredGrid ? gridWidth : 1;
-  const { cellSize, gap: gridGap } = getGridMetrics(period, columns, availableGridWidth);
-  const rows = Math.max(1, Math.ceil((activePage?.visibleDays.length ?? 0) / columns));
+  const { cellSize, gap: gridGap } = getGridMetrics(
+    period,
+    columns,
+    availableGridWidth,
+  );
+  const rows = Math.max(
+    1,
+    Math.ceil((activePage?.visibleDays.length ?? 0) / columns),
+  );
   const pagerHeight = rows * cellSize + Math.max(0, rows - 1) * gridGap;
   const canGoPrevious = safeSlideIndex > 0;
   const canGoNext = safeSlideIndex < streakPages.length - 1;
@@ -211,12 +257,23 @@ export default function StatsStreak({
 
   return (
     <Squircle
-      style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}
+      style={[
+        styles.container,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
     >
       <View style={styles.header}>
         <View style={styles.streakValue}>
-          <Image source={require("../assets/images/stats/streak/high.png")} style={styles.image} />
-          <Text style={[styles.valueText, { color: colors.text, fontSize: fontSizes.xl }]}>
+          <Image
+            source={require("../assets/images/stats/streak/high.png")}
+            style={styles.image}
+          />
+          <Text
+            style={[
+              styles.valueText,
+              { color: colors.text, fontSize: fontSizes.xl },
+            ]}
+          >
             {value}
           </Text>
         </View>
@@ -226,7 +283,13 @@ export default function StatsStreak({
             accessibilityRole="button"
             disabled={!canGoPrevious}
             onPress={() => goToSlide(safeSlideIndex - 1)}
-            style={[styles.iconButton, { backgroundColor: colors.input, opacity: canGoPrevious ? 1 : 0.42 }]}
+            style={[
+              styles.iconButton,
+              {
+                backgroundColor: colors.input,
+                opacity: canGoPrevious ? 1 : 0.42,
+              },
+            ]}
           >
             <SymbolView name="chevron.left" size={13} tintColor={colors.text} />
           </Pressable>
@@ -234,12 +297,24 @@ export default function StatsStreak({
             accessibilityRole="button"
             disabled={!canGoNext}
             onPress={() => goToSlide(safeSlideIndex + 1)}
-            style={[styles.iconButton, { backgroundColor: colors.input, opacity: canGoNext ? 1 : 0.42 }]}
+            style={[
+              styles.iconButton,
+              { backgroundColor: colors.input, opacity: canGoNext ? 1 : 0.42 },
+            ]}
           >
-            <SymbolView name="chevron.right" size={13} tintColor={colors.text} />
+            <SymbolView
+              name="chevron.right"
+              size={13}
+              tintColor={colors.text}
+            />
           </Pressable>
           <View style={[styles.scorePill, { backgroundColor: colors.input }]}>
-            <Text style={[styles.scoreText, { color: colors.text, fontSize: fontSizes.sm }]}>
+            <Text
+              style={[
+                styles.scoreText,
+                { color: colors.text, fontSize: fontSizes.sm },
+              ]}
+            >
               {activePage?.consistency ?? 0}%
             </Text>
           </View>
@@ -262,7 +337,9 @@ export default function StatsStreak({
           <PagerView
             ref={pagerRef}
             initialPage={safeSlideIndex}
-            onPageSelected={(event) => onSlideIndexChange(event.nativeEvent.position)}
+            onPageSelected={(event) =>
+              onSlideIndexChange(event.nativeEvent.position)
+            }
             style={styles.pager}
           >
             {streakPages.map((page) => (
@@ -288,7 +365,11 @@ export default function StatsStreak({
                         style={[
                           styles.cell,
                           {
-                            backgroundColor: !isCounted ? unavailableColor : isPerfect ? perfectColor : missedColor,
+                            backgroundColor: !isCounted
+                              ? unavailableColor
+                              : isPerfect
+                                ? perfectColor
+                                : missedColor,
                             borderRadius: period === "Par année" ? 3 : 7,
                             height: cellSize,
                             opacity: !isCounted ? 0.72 : 1,
@@ -304,8 +385,15 @@ export default function StatsStreak({
           </PagerView>
         </Animated.View>
       </View>
-      <Text style={[styles.caption, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>
-        {t("stats.general.cards.perfectDays")} {activePage?.perfectDaysCount ?? 0}/{activePage?.countedStreakDaysCount ?? 0}
+      <Text
+        style={[
+          styles.caption,
+          { color: colors.textSecondary, fontSize: fontSizes.xs },
+        ]}
+      >
+        {t("stats.general.cards.perfectDays")}{" "}
+        {activePage?.perfectDaysCount ?? 0}/
+        {activePage?.countedStreakDaysCount ?? 0}
       </Text>
     </Squircle>
   );

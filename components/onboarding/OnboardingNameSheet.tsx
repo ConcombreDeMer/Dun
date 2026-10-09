@@ -19,7 +19,12 @@ export default function OnboardingNameSheet({
   placeholder,
 }: OnboardingNameSheetProps) {
   return (
-    <Modal animationType="slide" transparent visible={isVisible} onRequestClose={onClose}>
+    <Modal
+      animationType="slide"
+      transparent
+      visible={isVisible}
+      onRequestClose={onClose}
+    >
       <View style={styles.overlay}>
         <Squircle style={styles.inputSurface}>
           <TextInput

@@ -8,7 +8,13 @@ import { FREE_DAILY_TASK_LIMIT } from "./plan";
 import { useProfile } from "./profile";
 import { useSubscription } from "./subscription";
 import { TAG_USAGE_STATS_QUERY_KEY } from "./tags";
-import { createTask, deleteTask, isFreeDailyTaskLimitReached, moveTaskDate, resolveOverdueTask } from "./tasks";
+import {
+  createTask,
+  deleteTask,
+  isFreeDailyTaskLimitReached,
+  moveTaskDate,
+  resolveOverdueTask,
+} from "./tasks";
 
 type TaskCacheItem = {
   id: number;
@@ -55,11 +61,15 @@ type CreateTaskInput = {
 
 let nextTempTaskId = -1;
 
-const getNextLocalOrder = (tasks: TaskCacheItem[] | undefined, dateKey: string | null) => {
-  const dateTasks = tasks?.filter((task) => {
-    const taskDateKey = task.date ? toAppDateKey(task.date) : null;
-    return taskDateKey === dateKey;
-  }) ?? [];
+const getNextLocalOrder = (
+  tasks: TaskCacheItem[] | undefined,
+  dateKey: string | null,
+) => {
+  const dateTasks =
+    tasks?.filter((task) => {
+      const taskDateKey = task.date ? toAppDateKey(task.date) : null;
+      return taskDateKey === dateKey;
+    }) ?? [];
 
   if (dateTasks.length === 0) {
     return 1;
@@ -68,11 +78,17 @@ const getNextLocalOrder = (tasks: TaskCacheItem[] | undefined, dateKey: string |
   return Math.max(...dateTasks.map((task) => task.order || 0)) + 1;
 };
 
-const removeTaskFromCache = (tasks: TaskCacheItem[] | undefined, taskId: number) => {
+const removeTaskFromCache = (
+  tasks: TaskCacheItem[] | undefined,
+  taskId: number,
+) => {
   return tasks?.filter((task) => task.id !== taskId) ?? [];
 };
 
-const normalizeOrdersForDate = (tasks: TaskCacheItem[], dateKey: string | null) => {
+const normalizeOrdersForDate = (
+  tasks: TaskCacheItem[],
+  dateKey: string | null,
+) => {
   const dateTasks = tasks
     .filter((task) => {
       const taskDateKey = task.date ? toAppDateKey(task.date) : null;
@@ -80,7 +96,7 @@ const normalizeOrdersForDate = (tasks: TaskCacheItem[], dateKey: string | null) 
     })
     .sort((a, b) => (a.order || 0) - (b.order || 0));
   const nextOrderById = new Map(
-    dateTasks.map((task, index) => [task.id, index + 1])
+    dateTasks.map((task, index) => [task.id, index + 1]),
   );
 
   return tasks.map((task) => {
@@ -89,17 +105,19 @@ const normalizeOrdersForDate = (tasks: TaskCacheItem[], dateKey: string | null) 
   });
 };
 
-const isTaskCacheItem = (task: TaskMutationSnapshot | undefined): task is TaskCacheItem => {
+const isTaskCacheItem = (
+  task: TaskMutationSnapshot | undefined,
+): task is TaskCacheItem => {
   return task !== undefined && typeof task.order === "number";
 };
 
 const replaceTaskIdInCache = (
   tasks: TaskCacheItem[] | undefined,
   temporaryTaskId: number,
-  realTaskId: number
+  realTaskId: number,
 ) => {
   return (tasks ?? []).map((task) =>
-    task.id === temporaryTaskId ? { ...task, id: realTaskId } : task
+    task.id === temporaryTaskId ? { ...task, id: realTaskId } : task,
   );
 };
 
@@ -110,11 +128,19 @@ export const useOptimisticTaskMutations = () => {
   const { isPremium } = useSubscription();
   const lockPastDaysEnabled = profileQuery.data?.lockPastDaysEnabled ?? true;
   const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
-  const invalidateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const invalidateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const isMountedRef = useRef(true);
-  const [pendingCreateIds, setPendingCreateIds] = useState<Set<number>>(() => new Set());
-  const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<number>>(() => new Set());
-  const [pendingMoveIds, setPendingMoveIds] = useState<Set<number>>(() => new Set());
+  const [pendingCreateIds, setPendingCreateIds] = useState<Set<number>>(
+    () => new Set(),
+  );
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<number>>(
+    () => new Set(),
+  );
+  const [pendingMoveIds, setPendingMoveIds] = useState<Set<number>>(
+    () => new Set(),
+  );
 
   const scheduleInvalidate = useCallback(() => {
     if (invalidateTimeoutRef.current) {
@@ -140,213 +166,267 @@ export const useOptimisticTaskMutations = () => {
     };
   }, []);
 
-  const createTaskOptimistically = useCallback(async ({
-    name,
-    description = "",
-    dateKey,
-    tagIds = [],
-  }: CreateTaskInput) => {
-    const trimmedName = name.trim();
-    const trimmedDescription = description.trim();
+  const createTaskOptimistically = useCallback(
+    async ({
+      name,
+      description = "",
+      dateKey,
+      tagIds = [],
+    }: CreateTaskInput) => {
+      const trimmedName = name.trim();
+      const trimmedDescription = description.trim();
 
-    if (!trimmedName) {
-      throw new Error("Task name is required");
-    }
+      if (!trimmedName) {
+        throw new Error("Task name is required");
+      }
 
-    if (lockPastDaysEnabled && dateKey && isPastAppDateKey(dateKey)) {
-      throw new Error("Impossible de créer une tâche dans un jour passé");
-    }
+      if (lockPastDaysEnabled && dateKey && isPastAppDateKey(dateKey)) {
+        throw new Error("Impossible de créer une tâche dans un jour passé");
+      }
 
-    const tempId = nextTempTaskId--;
-    const now = new Date().toISOString();
-    await queryClient.cancelQueries({ queryKey: tasksQueryKey });
+      const tempId = nextTempTaskId--;
+      const now = new Date().toISOString();
+      await queryClient.cancelQueries({ queryKey: tasksQueryKey });
 
-    const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(tasksQueryKey);
+      const previousTasks =
+        queryClient.getQueryData<TaskCacheItem[]>(tasksQueryKey);
 
-    if (!isPremium && dateKey && isFreeDailyTaskLimitReached(previousTasks, dateKey)) {
-      throw new Error(i18n.t("createTask.alerts.dailyLimit", { limit: FREE_DAILY_TASK_LIMIT }));
-    }
+      if (
+        !isPremium &&
+        dateKey &&
+        isFreeDailyTaskLimitReached(previousTasks, dateKey)
+      ) {
+        throw new Error(
+          i18n.t("createTask.alerts.dailyLimit", {
+            limit: FREE_DAILY_TASK_LIMIT,
+          }),
+        );
+      }
 
-    const optimisticOrder = getNextLocalOrder(previousTasks, dateKey);
-    const optimisticTask: TaskCacheItem = {
-      id: tempId,
-      clientKey: `optimistic-task-${tempId}`,
-      name: trimmedName,
-      description: trimmedDescription,
-      tagIds,
-      done: false,
-      created_at: now,
-      completed_at: null,
-      resolved_at: null,
-      resolution: null,
-      carried_from_id: null,
-      delay_count: 0,
-      late_adjusted_at: null,
-      order: optimisticOrder,
-      date: dateKey,
-    };
-
-    if (isMountedRef.current) {
-      setPendingCreateIds((current) => {
-        const next = new Set(current);
-        next.add(tempId);
-        return next;
-      });
-    }
-
-    queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) => [
-      ...(current ?? []),
-      optimisticTask,
-    ]);
-
-    try {
-      const realTaskId = await createTask({
+      const optimisticOrder = getNextLocalOrder(previousTasks, dateKey);
+      const optimisticTask: TaskCacheItem = {
+        id: tempId,
+        clientKey: `optimistic-task-${tempId}`,
         name: trimmedName,
         description: trimmedDescription,
-        dateKey,
-        preferredOrder: optimisticOrder,
         tagIds,
-        userId: userId ?? undefined,
-      });
+        done: false,
+        created_at: now,
+        completed_at: null,
+        resolved_at: null,
+        resolution: null,
+        carried_from_id: null,
+        delay_count: 0,
+        late_adjusted_at: null,
+        order: optimisticOrder,
+        date: dateKey,
+      };
 
-      queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
-        replaceTaskIdInCache(current, tempId, realTaskId)
-      );
-      scheduleInvalidate();
-      return realTaskId;
-    } catch (error) {
-      queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
-        removeTaskFromCache(current, tempId)
-      );
-      throw error;
-    } finally {
       if (isMountedRef.current) {
         setPendingCreateIds((current) => {
           const next = new Set(current);
-          next.delete(tempId);
+          next.add(tempId);
           return next;
         });
       }
-    }
-  }, [isPremium, lockPastDaysEnabled, queryClient, scheduleInvalidate, tasksQueryKey, userId]);
 
-  const deleteTaskOptimistically = useCallback(async (taskId: number, taskSnapshot?: TaskMutationSnapshot) => {
-    await queryClient.cancelQueries({ queryKey: tasksQueryKey });
+      queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) => [
+        ...(current ?? []),
+        optimisticTask,
+      ]);
 
-    const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(tasksQueryKey);
-    const deletedTask = previousTasks?.find((task) => task.id === taskId) ?? taskSnapshot;
-
-    if (isMountedRef.current) {
-      setPendingDeleteIds((current) => {
-        const next = new Set(current);
-        next.add(taskId);
-        return next;
-      });
-    }
-
-    if (deletedTask) {
-      queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
-        deletedTask.date
-          ? normalizeOrdersForDate(
-            removeTaskFromCache(current, taskId),
-            toAppDateKey(deletedTask.date)
-          )
-          : removeTaskFromCache(current, taskId)
-      );
-    }
-
-    try {
-      await deleteTask(taskId, userId ?? undefined);
-      scheduleInvalidate();
-    } catch (error) {
-      if (deletedTask) {
-        queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) => {
-          if (current?.some((task) => task.id === taskId)) {
-            return current;
-          }
-
-          return isTaskCacheItem(deletedTask) ? [...(current ?? []), deletedTask] : current;
+      try {
+        const realTaskId = await createTask({
+          name: trimmedName,
+          description: trimmedDescription,
+          dateKey,
+          preferredOrder: optimisticOrder,
+          tagIds,
+          userId: userId ?? undefined,
         });
+
+        queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
+          replaceTaskIdInCache(current, tempId, realTaskId),
+        );
+        scheduleInvalidate();
+        return realTaskId;
+      } catch (error) {
+        queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
+          removeTaskFromCache(current, tempId),
+        );
+        throw error;
+      } finally {
+        if (isMountedRef.current) {
+          setPendingCreateIds((current) => {
+            const next = new Set(current);
+            next.delete(tempId);
+            return next;
+          });
+        }
       }
-      throw error;
-    } finally {
+    },
+    [
+      isPremium,
+      lockPastDaysEnabled,
+      queryClient,
+      scheduleInvalidate,
+      tasksQueryKey,
+      userId,
+    ],
+  );
+
+  const deleteTaskOptimistically = useCallback(
+    async (taskId: number, taskSnapshot?: TaskMutationSnapshot) => {
+      await queryClient.cancelQueries({ queryKey: tasksQueryKey });
+
+      const previousTasks =
+        queryClient.getQueryData<TaskCacheItem[]>(tasksQueryKey);
+      const deletedTask =
+        previousTasks?.find((task) => task.id === taskId) ?? taskSnapshot;
+
       if (isMountedRef.current) {
         setPendingDeleteIds((current) => {
           const next = new Set(current);
-          next.delete(taskId);
+          next.add(taskId);
           return next;
         });
       }
-    }
-  }, [queryClient, scheduleInvalidate, tasksQueryKey, userId]);
 
-  const moveTaskDateOptimistically = useCallback(async (taskId: number, dateKey: string | null, taskSnapshot?: TaskMutationSnapshot) => {
-    await queryClient.cancelQueries({ queryKey: tasksQueryKey });
-
-    const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(tasksQueryKey);
-    const movedTask = previousTasks?.find((task) => task.id === taskId) ?? taskSnapshot;
-
-    const currentDateKey = movedTask?.date ? toAppDateKey(movedTask.date) : null;
-
-    if (currentDateKey === dateKey) {
-      return;
-    }
-
-    if (isMountedRef.current) {
-      setPendingMoveIds((current) => {
-        const next = new Set(current);
-        next.add(taskId);
-        return next;
-      });
-    }
-
-    if (movedTask) {
-      queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) => {
-        const currentTasks = current ?? [];
-        const sourceDateKey = movedTask.date ? toAppDateKey(movedTask.date) : null;
-        const nextOrder = getNextLocalOrder(
-          currentTasks.filter((task) => task.id !== taskId),
-          dateKey
-        );
-        const nextTask: TaskCacheItem = { ...movedTask, date: dateKey, order: nextOrder };
-        const movedTasks = currentTasks.some((task) => task.id === taskId)
-          ? currentTasks.map((task) => task.id === taskId ? nextTask : task)
-          : [...currentTasks, nextTask];
-
-        return normalizeOrdersForDate(movedTasks, sourceDateKey);
-      });
-    }
-
-    try {
-      await moveTaskDate(taskId, dateKey, userId ?? undefined);
-      scheduleInvalidate();
-    } catch (error) {
-      if (movedTask) {
+      if (deletedTask) {
         queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
-          isTaskCacheItem(movedTask)
-            ? (current ?? []).map((task) => task.id === taskId ? movedTask : task)
-            : removeTaskFromCache(current, taskId)
+          deletedTask.date
+            ? normalizeOrdersForDate(
+                removeTaskFromCache(current, taskId),
+                toAppDateKey(deletedTask.date),
+              )
+            : removeTaskFromCache(current, taskId),
         );
       }
-      throw error;
-    } finally {
+
+      try {
+        await deleteTask(taskId, userId ?? undefined);
+        scheduleInvalidate();
+      } catch (error) {
+        if (deletedTask) {
+          queryClient.setQueryData<TaskCacheItem[]>(
+            tasksQueryKey,
+            (current) => {
+              if (current?.some((task) => task.id === taskId)) {
+                return current;
+              }
+
+              return isTaskCacheItem(deletedTask)
+                ? [...(current ?? []), deletedTask]
+                : current;
+            },
+          );
+        }
+        throw error;
+      } finally {
+        if (isMountedRef.current) {
+          setPendingDeleteIds((current) => {
+            const next = new Set(current);
+            next.delete(taskId);
+            return next;
+          });
+        }
+      }
+    },
+    [queryClient, scheduleInvalidate, tasksQueryKey, userId],
+  );
+
+  const moveTaskDateOptimistically = useCallback(
+    async (
+      taskId: number,
+      dateKey: string | null,
+      taskSnapshot?: TaskMutationSnapshot,
+    ) => {
+      await queryClient.cancelQueries({ queryKey: tasksQueryKey });
+
+      const previousTasks =
+        queryClient.getQueryData<TaskCacheItem[]>(tasksQueryKey);
+      const movedTask =
+        previousTasks?.find((task) => task.id === taskId) ?? taskSnapshot;
+
+      const currentDateKey = movedTask?.date
+        ? toAppDateKey(movedTask.date)
+        : null;
+
+      if (currentDateKey === dateKey) {
+        return;
+      }
+
       if (isMountedRef.current) {
         setPendingMoveIds((current) => {
           const next = new Set(current);
-          next.delete(taskId);
+          next.add(taskId);
           return next;
         });
       }
-    }
-  }, [queryClient, scheduleInvalidate, tasksQueryKey, userId]);
 
-  const isTaskDeletePending = useCallback((taskId: number) => {
-    return pendingDeleteIds.has(taskId);
-  }, [pendingDeleteIds]);
+      if (movedTask) {
+        queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) => {
+          const currentTasks = current ?? [];
+          const sourceDateKey = movedTask.date
+            ? toAppDateKey(movedTask.date)
+            : null;
+          const nextOrder = getNextLocalOrder(
+            currentTasks.filter((task) => task.id !== taskId),
+            dateKey,
+          );
+          const nextTask: TaskCacheItem = {
+            ...movedTask,
+            date: dateKey,
+            order: nextOrder,
+          };
+          const movedTasks = currentTasks.some((task) => task.id === taskId)
+            ? currentTasks.map((task) => (task.id === taskId ? nextTask : task))
+            : [...currentTasks, nextTask];
 
-  const isTaskMovePending = useCallback((taskId: number) => {
-    return pendingMoveIds.has(taskId);
-  }, [pendingMoveIds]);
+          return normalizeOrdersForDate(movedTasks, sourceDateKey);
+        });
+      }
+
+      try {
+        await moveTaskDate(taskId, dateKey, userId ?? undefined);
+        scheduleInvalidate();
+      } catch (error) {
+        if (movedTask) {
+          queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
+            isTaskCacheItem(movedTask)
+              ? (current ?? []).map((task) =>
+                  task.id === taskId ? movedTask : task,
+                )
+              : removeTaskFromCache(current, taskId),
+          );
+        }
+        throw error;
+      } finally {
+        if (isMountedRef.current) {
+          setPendingMoveIds((current) => {
+            const next = new Set(current);
+            next.delete(taskId);
+            return next;
+          });
+        }
+      }
+    },
+    [queryClient, scheduleInvalidate, tasksQueryKey, userId],
+  );
+
+  const isTaskDeletePending = useCallback(
+    (taskId: number) => {
+      return pendingDeleteIds.has(taskId);
+    },
+    [pendingDeleteIds],
+  );
+
+  const isTaskMovePending = useCallback(
+    (taskId: number) => {
+      return pendingMoveIds.has(taskId);
+    },
+    [pendingMoveIds],
+  );
 
   return {
     createTaskOptimistically,
@@ -365,9 +445,13 @@ export const useOptimisticOverdueTaskMutations = () => {
   const userId = useAuthUserId();
   const queryClient = useQueryClient();
   const tasksQueryKey = useMemo(() => ["tasks", userId] as const, [userId]);
-  const invalidateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const invalidateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const isMountedRef = useRef(true);
-  const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(() => new Set());
+  const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(
+    () => new Set(),
+  );
 
   const scheduleInvalidate = useCallback(() => {
     if (invalidateTimeoutRef.current) {
@@ -392,101 +476,114 @@ export const useOptimisticOverdueTaskMutations = () => {
     };
   }, []);
 
-  const resolveOverdueTaskOptimistically = useCallback(async (
-    taskId: number,
-    resolution: "deleted" | "postponed" | "late_completed" | "ignored",
-    taskSnapshot?: TaskMutationSnapshot,
-    targetDateKey = toAppDateKey(new Date())
-  ) => {
-    await queryClient.cancelQueries({ queryKey: tasksQueryKey });
+  const resolveOverdueTaskOptimistically = useCallback(
+    async (
+      taskId: number,
+      resolution: "deleted" | "postponed" | "late_completed" | "ignored",
+      taskSnapshot?: TaskMutationSnapshot,
+      targetDateKey = toAppDateKey(new Date()),
+    ) => {
+      await queryClient.cancelQueries({ queryKey: tasksQueryKey });
 
-    const previousTasks = queryClient.getQueryData<TaskCacheItem[]>(tasksQueryKey);
-    const overdueTask = previousTasks?.find((task) => task.id === taskId) ?? taskSnapshot;
-    const tempId = resolution === "postponed" ? nextTempTaskId-- : null;
-    const now = new Date().toISOString();
+      const previousTasks =
+        queryClient.getQueryData<TaskCacheItem[]>(tasksQueryKey);
+      const overdueTask =
+        previousTasks?.find((task) => task.id === taskId) ?? taskSnapshot;
+      const tempId = resolution === "postponed" ? nextTempTaskId-- : null;
+      const now = new Date().toISOString();
 
-    if (isMountedRef.current) {
-      setPendingTaskIds((current) => {
-        const next = new Set(current);
-        next.add(taskId);
-        return next;
-      });
-    }
-
-    if (overdueTask) {
-      queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) => {
-        const currentTasks = current ?? [];
-        const resolvedTasks = currentTasks.map((task) => {
-          if (task.id !== taskId) {
-            return task;
-          }
-
-          return {
-            ...task,
-            done: resolution === "late_completed",
-          completed_at: resolution === "late_completed" ? now : null,
-          resolved_at: now,
-          resolution,
-          late_adjusted_at: task.late_adjusted_at ?? null,
-        };
-        });
-
-        if (resolution !== "postponed" || tempId === null) {
-          return resolvedTasks;
-        }
-
-        const nextOrder = getNextLocalOrder(resolvedTasks, targetDateKey);
-        const postponedTask: TaskCacheItem = {
-          ...overdueTask,
-          id: tempId,
-          clientKey: `optimistic-task-${tempId}`,
-          done: false,
-          completed_at: null,
-          resolved_at: null,
-          resolution: null,
-          carried_from_id: taskId,
-          delay_count: (overdueTask.delay_count || 0) + 1,
-          late_adjusted_at: null,
-          date: targetDateKey,
-          order: nextOrder,
-        };
-
-        return [...resolvedTasks, postponedTask];
-      });
-    }
-
-    try {
-      const createdTaskId = await resolveOverdueTask(taskId, resolution, targetDateKey, userId ?? undefined);
-
-      if (resolution === "postponed" && tempId !== null && createdTaskId) {
-        queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
-          replaceTaskIdInCache(current, tempId, createdTaskId)
-        );
-      }
-
-      scheduleInvalidate();
-      return createdTaskId;
-    } catch (error) {
-      if (previousTasks) {
-        queryClient.setQueryData(tasksQueryKey, previousTasks);
-      } else {
-        queryClient.invalidateQueries({ queryKey: tasksQueryKey });
-      }
-      throw error;
-    } finally {
       if (isMountedRef.current) {
         setPendingTaskIds((current) => {
           const next = new Set(current);
-          next.delete(taskId);
+          next.add(taskId);
           return next;
         });
       }
-    }
-  }, [queryClient, scheduleInvalidate, tasksQueryKey, userId]);
 
-  const isOverdueTaskPending = useCallback((taskId: number) => {
-    return pendingTaskIds.has(taskId);
-  }, [pendingTaskIds]);
+      if (overdueTask) {
+        queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) => {
+          const currentTasks = current ?? [];
+          const resolvedTasks = currentTasks.map((task) => {
+            if (task.id !== taskId) {
+              return task;
+            }
+
+            return {
+              ...task,
+              done: resolution === "late_completed",
+              completed_at: resolution === "late_completed" ? now : null,
+              resolved_at: now,
+              resolution,
+              late_adjusted_at: task.late_adjusted_at ?? null,
+            };
+          });
+
+          if (resolution !== "postponed" || tempId === null) {
+            return resolvedTasks;
+          }
+
+          const nextOrder = getNextLocalOrder(resolvedTasks, targetDateKey);
+          const postponedTask: TaskCacheItem = {
+            ...overdueTask,
+            id: tempId,
+            clientKey: `optimistic-task-${tempId}`,
+            done: false,
+            completed_at: null,
+            resolved_at: null,
+            resolution: null,
+            carried_from_id: taskId,
+            delay_count: (overdueTask.delay_count || 0) + 1,
+            late_adjusted_at: null,
+            date: targetDateKey,
+            order: nextOrder,
+          };
+
+          return [...resolvedTasks, postponedTask];
+        });
+      }
+
+      try {
+        const createdTaskId = await resolveOverdueTask(
+          taskId,
+          resolution,
+          targetDateKey,
+          userId ?? undefined,
+        );
+
+        if (resolution === "postponed" && tempId !== null && createdTaskId) {
+          queryClient.setQueryData<TaskCacheItem[]>(tasksQueryKey, (current) =>
+            replaceTaskIdInCache(current, tempId, createdTaskId),
+          );
+        }
+
+        scheduleInvalidate();
+        return createdTaskId;
+      } catch (error) {
+        if (previousTasks) {
+          queryClient.setQueryData(tasksQueryKey, previousTasks);
+        } else {
+          queryClient.invalidateQueries({ queryKey: tasksQueryKey });
+        }
+        throw error;
+      } finally {
+        if (isMountedRef.current) {
+          setPendingTaskIds((current) => {
+            const next = new Set(current);
+            next.delete(taskId);
+            return next;
+          });
+        }
+      }
+    },
+    [queryClient, scheduleInvalidate, tasksQueryKey, userId],
+  );
+
+  const isOverdueTaskPending = useCallback(
+    (taskId: number) => {
+      return pendingTaskIds.has(taskId);
+    },
+    [pendingTaskIds],
+  );
 
   return {
     isOverdueTaskPending,

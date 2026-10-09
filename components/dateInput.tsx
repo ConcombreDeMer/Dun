@@ -2,290 +2,334 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { SquircleView } from "expo-squircle-view";
 import { useEffect, useState } from "react";
 import {
-    Alert,
-    Modal,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 import { useFont } from "../lib/FontContext";
 import { useAppTranslation } from "../lib/i18n";
 import { useTheme } from "../lib/ThemeContext";
 import PrimaryButton from "./primaryButton";
 
 interface DateInputProps {
-    value: Date;
-    onChange: (date: Date) => void;
-    disabled?: boolean;
-    label?: string;
-    bold?: boolean;
-    showTodayButton?: boolean;
-    minimumDate?: Date;
-    minimumDateAlertMessage?: string;
+  value: Date;
+  onChange: (date: Date) => void;
+  disabled?: boolean;
+  label?: string;
+  bold?: boolean;
+  showTodayButton?: boolean;
+  minimumDate?: Date;
+  minimumDateAlertMessage?: string;
 }
 
 // Fonction utilitaire pour comparer les dates efficacement
 const isSameDay = (date1: Date, date2: Date): boolean => {
-    return (
-        date1.getDate() === date2.getDate() &&
-        date1.getMonth() === date2.getMonth() &&
-        date1.getFullYear() === date2.getFullYear()
-    );
+  return (
+    date1.getDate() === date2.getDate() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getFullYear() === date2.getFullYear()
+  );
 };
 
 const isBeforeDay = (date: Date, minimumDate: Date): boolean => {
-    const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const normalizedMinimumDate = new Date(minimumDate.getFullYear(), minimumDate.getMonth(), minimumDate.getDate());
+  const normalizedDate = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
+  const normalizedMinimumDate = new Date(
+    minimumDate.getFullYear(),
+    minimumDate.getMonth(),
+    minimumDate.getDate(),
+  );
 
-    return normalizedDate < normalizedMinimumDate;
+  return normalizedDate < normalizedMinimumDate;
 };
 
-export default function DateInput({ value, onChange, disabled = false, label, bold = false, showTodayButton = false, minimumDate, minimumDateAlertMessage }: DateInputProps) {
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [tempDate, setTempDate] = useState(value);
-    const { t, language } = useAppTranslation();
-    const { colors } = useTheme();
-    const { fontSizes } = useFont();
+export default function DateInput({
+  value,
+  onChange,
+  disabled = false,
+  label,
+  bold = false,
+  showTodayButton = false,
+  minimumDate,
+  minimumDateAlertMessage,
+}: DateInputProps) {
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempDate, setTempDate] = useState(value);
+  const { t, language } = useAppTranslation();
+  const { colors } = useTheme();
+  const { fontSizes } = useFont();
 
-    // Animation pour la hauteur du bouton "Retour à aujourd'hui"
-    const todayButtonHeightValue = useSharedValue(0);
-    const todayButtonOpacityValue = useSharedValue(0);
+  // Animation pour la hauteur du bouton "Retour à aujourd'hui"
+  const todayButtonHeightValue = useSharedValue(0);
+  const todayButtonOpacityValue = useSharedValue(0);
 
-    const validateDate = (date: Date) => {
-        if (!minimumDate || !isBeforeDay(date, minimumDate)) {
-            return true;
+  const validateDate = (date: Date) => {
+    if (!minimumDate || !isBeforeDay(date, minimumDate)) {
+      return true;
+    }
+
+    Alert.alert(
+      t("common.alerts.errorTitle"),
+      minimumDateAlertMessage || t("createTask.alerts.pastDate"),
+    );
+    setTempDate(value);
+    return false;
+  };
+
+  const handleDateChange = (event: any, date?: Date) => {
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
+      if (date) {
+        if (!validateDate(date)) {
+          return;
         }
 
-        Alert.alert(
-            t("common.alerts.errorTitle"),
-            minimumDateAlertMessage || t("createTask.alerts.pastDate")
-        );
-        setTempDate(value);
-        return false;
+        onChange(date);
+      }
+      setTempDate(value);
+      return;
+    }
+
+    if (date) {
+      setTempDate(date);
+    }
+  };
+
+  const handleCloseDatePicker = () => {
+    if (!validateDate(tempDate)) {
+      return;
+    }
+
+    onChange(tempDate);
+    setShowDatePicker(false);
+  };
+
+  // Initialiser tempDate quand le picker s'ouvre
+  useEffect(() => {
+    if (showDatePicker) {
+      setTempDate(value);
+    }
+  }, [showDatePicker, value]);
+
+  // Mettre à jour la hauteur du bouton avec animation
+  useEffect(() => {
+    const shouldShow = !isSameDay(value, new Date());
+    todayButtonHeightValue.value = withSpring(shouldShow ? 30 : 0);
+    todayButtonOpacityValue.value = withSpring(shouldShow ? 1 : 0);
+  }, [value, todayButtonHeightValue, todayButtonOpacityValue]);
+
+  // Animation de hauteur du bouton "Retour à aujourd'hui"
+  const animatedTodayButtonStyle = useAnimatedStyle(() => {
+    return {
+      height: todayButtonHeightValue.value,
+      opacity: todayButtonOpacityValue.value,
     };
+  });
 
-    const handleDateChange = (event: any, date?: Date) => {
-        if (Platform.OS === "android") {
-            setShowDatePicker(false);
-            if (date) {
-                if (!validateDate(date)) {
-                    return;
-                }
+  const formattedDate = value.toLocaleDateString(
+    language === "en" ? "en-US" : "fr-FR",
+    {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    },
+  );
 
-                onChange(date);
-            }
-            setTempDate(value);
-            return;
-        }
+  return (
+    <View style={styles.dateContainer}>
+      {label && (
+        <Text
+          style={[
+            styles.label,
+            { color: colors.text, fontSize: fontSizes["2xl"] },
+          ]}
+        >
+          {label}
+        </Text>
+      )}
+      <SquircleView
+        cornerSmoothing={100} // 0-100
+        preserveSmoothing={true} // false matches figma, true has more rounding
+        style={{
+          width: "100%",
+          backgroundColor: colors.task,
+          borderColor: colors.border,
+          borderWidth: 1,
+          borderRadius: 15,
+          paddingVertical: 8,
+          paddingHorizontal: 8,
+        }}
+      >
+        <TouchableOpacity
+          style={[styles.dateButton, { backgroundColor: "transparent" }]}
+          onPress={() => setShowDatePicker(true)}
+          disabled={disabled}
+        >
+          <Text
+            style={[
+              styles.dateButtonText,
+              {
+                color: colors.text,
+                fontSize: fontSizes.lg,
+                fontFamily: "Satoshi-Medium",
+              },
+            ]}
+          >
+            {formattedDate}
+          </Text>
+        </TouchableOpacity>
+      </SquircleView>
 
-        if (date) {
-            setTempDate(date);
-        }
-    };
+      {showTodayButton && (
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => onChange(new Date())}
+        >
+          <Animated.View
+            style={[
+              styles.todayButton,
+              animatedTodayButtonStyle,
+              {
+                overflow: "hidden",
+                backgroundColor: colors.task,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.todayButtonText,
+                { color: colors.textSecondary, fontSize: fontSizes.xs },
+              ]}
+            >
+              {t("calendar.backToToday")}
+            </Text>
+          </Animated.View>
+        </TouchableOpacity>
+      )}
 
-    const handleCloseDatePicker = () => {
-        if (!validateDate(tempDate)) {
-            return;
-        }
-
-        onChange(tempDate);
-        setShowDatePicker(false);
-    };
-
-    // Initialiser tempDate quand le picker s'ouvre
-    useEffect(() => {
-        if (showDatePicker) {
-            setTempDate(value);
-        }
-    }, [showDatePicker, value]);
-
-    // Mettre à jour la hauteur du bouton avec animation
-    useEffect(() => {
-        const shouldShow = !isSameDay(value, new Date());
-        todayButtonHeightValue.value = withSpring(shouldShow ? 30 : 0);
-        todayButtonOpacityValue.value = withSpring(shouldShow ? 1 : 0);
-    }, [value, todayButtonHeightValue, todayButtonOpacityValue]);
-
-    // Animation de hauteur du bouton "Retour à aujourd'hui"
-    const animatedTodayButtonStyle = useAnimatedStyle(() => {
-        return {
-            height: todayButtonHeightValue.value,
-            opacity: todayButtonOpacityValue.value,
-        };
-    });
-
-    const formattedDate = value.toLocaleDateString(language === "en" ? "en-US" : "fr-FR", {
-        weekday: "short",
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-    });
-
-    return (
-        <View style={styles.dateContainer}>
-            {label &&
-                <Text style={[styles.label, { color: colors.text, fontSize: fontSizes['2xl'] }]}>
-                    {label}
-                </Text>
-            }
-            <SquircleView
+      {showDatePicker && Platform.OS === "ios" && (
+        <Modal
+          transparent
+          visible={showDatePicker}
+          animationType="fade"
+          onRequestClose={handleCloseDatePicker}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.datePickerOverlay}
+            onPress={handleCloseDatePicker}
+          >
+            <View style={styles.datePickerContainer}>
+              <SquircleView
                 cornerSmoothing={100} // 0-100
                 preserveSmoothing={true} // false matches figma, true has more rounding
-                style={{
-                    width: '100%',
-                    backgroundColor: colors.task,
-                    borderColor: colors.border,
-                    borderWidth: 1,
-                    borderRadius: 15,
-                    paddingVertical: 8,
-                    paddingHorizontal: 8,
-                }}
-            >
-                <TouchableOpacity
-                    style={[styles.dateButton, { backgroundColor: "transparent" }]}
-                    onPress={() => setShowDatePicker(true)}
-                    disabled={disabled}
-                >
-                    <Text style={[styles.dateButtonText, { color: colors.text, fontSize: fontSizes.lg, fontFamily: 'Satoshi-Medium' }]}>
-                        {formattedDate}
-                    </Text>
-                </TouchableOpacity>
-
-            </SquircleView>
-
-
-            {showTodayButton &&
-                <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={() => onChange(new Date())}
-                >
-                    <Animated.View
-                        style={[
-                            styles.todayButton,
-                            animatedTodayButtonStyle,
-                            {
-                                overflow: 'hidden',
-                                backgroundColor: colors.task,
-                            }
-                        ]}
-                    >
-                        <Text style={[styles.todayButtonText, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>{t("calendar.backToToday")}</Text>
-                    </Animated.View>
-                </TouchableOpacity>
-            }
-
-
-            {showDatePicker && Platform.OS === "ios" && (
-                <Modal
-                    transparent
-                    visible={showDatePicker}
-                    animationType="fade"
-                    onRequestClose={handleCloseDatePicker}
-                >
-                    <TouchableOpacity
-                        activeOpacity={1}
-                        style={styles.datePickerOverlay}
-                        onPress={handleCloseDatePicker}
-                    >
-                        <View style={styles.datePickerContainer}>
-                            <SquircleView
-                                cornerSmoothing={100} // 0-100
-                                preserveSmoothing={true} // false matches figma, true has more rounding
-                                style={[styles.datePickerContent, { backgroundColor: colors.card }]}
-                                onTouchEnd={(e) => e.stopPropagation()}
-                            >
-                                <DateTimePicker
-                                    value={tempDate}
-                                    mode="date"
-                                    display="spinner"
-                                    onChange={handleDateChange}
-                                />
-
-                                <PrimaryButton
-                                    size="S"
-                                    onPress={handleCloseDatePicker}
-                                    image="checkmark"
-                                    height={48}
-                                />
-                            </SquircleView>
-                        </View>
-                    </TouchableOpacity>
-                </Modal>
-            )}
-
-            {showDatePicker && Platform.OS === "android" && (
+                style={[
+                  styles.datePickerContent,
+                  { backgroundColor: colors.card },
+                ]}
+                onTouchEnd={(e) => e.stopPropagation()}
+              >
                 <DateTimePicker
-                    value={tempDate}
-                    mode="date"
-                    display="default"
-                    onChange={handleDateChange}
+                  value={tempDate}
+                  mode="date"
+                  display="spinner"
+                  onChange={handleDateChange}
                 />
-            )}
-        </View>
-    );
+
+                <PrimaryButton
+                  size="S"
+                  onPress={handleCloseDatePicker}
+                  image="checkmark"
+                  height={48}
+                />
+              </SquircleView>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
+
+      {showDatePicker && Platform.OS === "android" && (
+        <DateTimePicker
+          value={tempDate}
+          mode="date"
+          display="default"
+          onChange={handleDateChange}
+        />
+      )}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    dateContainer: {
-    },
-    label: {
-        fontFamily: "Satoshi-Regular",
-        marginBottom: 5,
-    },
-    dateButton: {
-        height: 48,
-        borderRadius: 8,
-        padding: 12,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    dateButtonText: {
-        textTransform: "capitalize",
-    },
-    todayButton: {
-        position: "relative",
-        height: 30,
-        alignSelf: "flex-end",
-        paddingHorizontal: 12,
-        borderRadius: 15,
-        marginTop: 8,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    todayButtonText: {
-        fontFamily: "Satoshi-Bold",
-    },
-    datePickerOverlay: {
-        flex: 1,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        justifyContent: "flex-end",
-    },
-    datePickerContainer: {
-        paddingBottom: 20,
-        borderRadius: 10,
-        marginBottom: 10,
-    },
-    datePickerContent: {
-        paddingBottom: 10,
-        borderRadius: 30,
-        marginLeft: "auto",
-        marginRight: "auto",
-        width: "90%",
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-    },
-    datePickerCloseButton: {
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        margin: 10,
-        borderRadius: 8,
-        alignItems: "center",
-    },
-    datePickerCloseText: {
-        fontSize: 16,
-    },
+  dateContainer: {},
+  label: {
+    fontFamily: "Satoshi-Regular",
+    marginBottom: 5,
+  },
+  dateButton: {
+    height: 48,
+    borderRadius: 8,
+    padding: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  dateButtonText: {
+    textTransform: "capitalize",
+  },
+  todayButton: {
+    position: "relative",
+    height: 30,
+    alignSelf: "flex-end",
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    marginTop: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  todayButtonText: {
+    fontFamily: "Satoshi-Bold",
+  },
+  datePickerOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  datePickerContainer: {
+    paddingBottom: 20,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  datePickerContent: {
+    paddingBottom: 10,
+    borderRadius: 30,
+    marginLeft: "auto",
+    marginRight: "auto",
+    width: "90%",
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+  },
+  datePickerCloseButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    margin: 10,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  datePickerCloseText: {
+    fontSize: 16,
+  },
 });

@@ -23,7 +23,10 @@ export function fromAppDateKey(value: string): Date {
   return new Date(value);
 }
 
-export function isSameAppDate(left: Date | string, right: Date | string): boolean {
+export function isSameAppDate(
+  left: Date | string,
+  right: Date | string,
+): boolean {
   return toAppDateKey(left) === toAppDateKey(right);
 }
 
@@ -31,7 +34,10 @@ export function getTodayAppDateKey(): string {
   return toAppDateKey(new Date());
 }
 
-export function isPastAppDateKey(dateKey: string, todayKey = getTodayAppDateKey()): boolean {
+export function isPastAppDateKey(
+  dateKey: string,
+  todayKey = getTodayAppDateKey(),
+): boolean {
   return dateKey < todayKey;
 }
 

@@ -3,17 +3,17 @@ import * as Haptics from "expo-haptics";
 import { SquircleButton } from "expo-squircle-view";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    FlatList,
-    PanResponder,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  FlatList,
+  PanResponder,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
 } from "react-native-reanimated";
 import { useAuthUserId } from "../lib/AuthSessionContext";
 import { calendarDaysQueryKey } from "../lib/daysQueryKeys";
@@ -34,64 +34,82 @@ const CALENDAR_DAY_ROW_GAP = 2;
 const CALENDAR_GRID_BOTTOM_PADDING = 6;
 
 interface CalendarProps {
-    onDateSelect?: (date: Date) => void;
-    days?: any[];
-    slider?: boolean;
-    initialDate?: Date;
-    onExpandedChange?: (isExpanded: boolean) => void;
+  onDateSelect?: (date: Date) => void;
+  days?: any[];
+  slider?: boolean;
+  initialDate?: Date;
+  onExpandedChange?: (isExpanded: boolean) => void;
 }
 
 // Fonction utilitaire pour créer une date en UTC
 const createUTCDate = (year: number, month: number, day: number): Date => {
-    return new Date(Date.UTC(year, month, day));
+  return new Date(Date.UTC(year, month, day));
 };
 
 // Fonction utilitaire pour obtenir la clé du jour (format YYYY-MM-DD)
 const getDayKey = (date: Date): string => {
-    const utcDate = new Date(date.toISOString());
-    const month = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(utcDate.getUTCDate()).padStart(2, '0');
-    return `${utcDate.getUTCFullYear()}-${month}-${day}`;
+  const utcDate = new Date(date.toISOString());
+  const month = String(utcDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(utcDate.getUTCDate()).padStart(2, "0");
+  return `${utcDate.getUTCFullYear()}-${month}-${day}`;
 };
 
 // Fonction utilitaire pour comparer les dates efficacement
 const isSameDay = (date1: Date, date2: Date): boolean => {
-    return (
-        date1.getDate() === date2.getDate() &&
-        date1.getMonth() === date2.getMonth() &&
-        date1.getFullYear() === date2.getFullYear()
-    );
+  return (
+    date1.getDate() === date2.getDate() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getFullYear() === date2.getFullYear()
+  );
 };
 
 const isSameMonth = (date1: Date, date2: Date): boolean => {
-    return (
-        date1.getMonth() === date2.getMonth() &&
-        date1.getFullYear() === date2.getFullYear()
-    );
+  return (
+    date1.getMonth() === date2.getMonth() &&
+    date1.getFullYear() === date2.getFullYear()
+  );
 };
 
 const getMonthStart = (date: Date): Date => {
-    return new Date(date.getFullYear(), date.getMonth());
+  return new Date(date.getFullYear(), date.getMonth());
 };
 
 // Composant affichage date en mode collapsed - MEMOIZED
-const CollapsedDateDisplay = memo(({ selectedDate, colors, fontSizes, locale }: any) => {
+const CollapsedDateDisplay = memo(
+  ({ selectedDate, colors, fontSizes, locale }: any) => {
     const dateStr = useMemo(() => {
-        return selectedDate.toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short" });
+      return selectedDate.toLocaleDateString(locale, {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+      });
     }, [locale, selectedDate]);
 
     return (
-        <Text style={[styles.collapsedText, { color: colors.text, fontSize: fontSizes['4xl'] }]}>
-            {dateStr}
-        </Text>
+      <Text
+        style={[
+          styles.collapsedText,
+          { color: colors.text, fontSize: fontSizes["4xl"] },
+        ]}
+      >
+        {dateStr}
+      </Text>
     );
-}, (prev, next) => {
-    return isSameDay(prev.selectedDate, next.selectedDate) && prev.colors === next.colors && prev.fontSizes === next.fontSizes && prev.locale === next.locale;
-});
-CollapsedDateDisplay.displayName = 'CollapsedDateDisplay';
+  },
+  (prev, next) => {
+    return (
+      isSameDay(prev.selectedDate, next.selectedDate) &&
+      prev.colors === next.colors &&
+      prev.fontSizes === next.fontSizes &&
+      prev.locale === next.locale
+    );
+  },
+);
+CollapsedDateDisplay.displayName = "CollapsedDateDisplay";
 
 // Composant jour memoïzé avec comparateur personnalisé
-const DayCell = memo(({
+const DayCell = memo(
+  ({
     dayNumber,
     index,
     currentMonth,
@@ -99,76 +117,75 @@ const DayCell = memo(({
     colors,
     taskMap,
     onPress,
-    fontSizes
-}: any) => {
+    fontSizes,
+  }: any) => {
     if (dayNumber === null) {
-        return <View key={`empty-${index}`} style={styles.emptyDay} />;
+      return <View key={`empty-${index}`} style={styles.emptyDay} />;
     }
 
     const date = createUTCDate(
-        currentMonth.getFullYear(),
-        currentMonth.getMonth(),
-        dayNumber
+      currentMonth.getFullYear(),
+      currentMonth.getMonth(),
+      dayNumber,
     );
 
     const isSelected = isSameDay(selectedDate, date);
     const isToday = isSameDay(new Date(), date);
     const dayKey = getDayKey(date);
 
-
     return (
-        <TouchableOpacity
-            key={`day-${dayNumber}`}
-            style={[
-                styles.day,
-                isSelected && {
-                    backgroundColor: colors.button,
-                    borderRadius: 8,
-                },
-                isToday && !isSelected && {
-                    borderColor: "rgba(255, 255, 255, 0.5)",
-                    borderWidth: 1,
-                },
-            ]}
-            onPress={onPress}
+      <TouchableOpacity
+        key={`day-${dayNumber}`}
+        style={[
+          styles.day,
+          isSelected && {
+            backgroundColor: colors.button,
+            borderRadius: 8,
+          },
+          isToday &&
+            !isSelected && {
+              borderColor: "rgba(255, 255, 255, 0.5)",
+              borderWidth: 1,
+            },
+        ]}
+        onPress={onPress}
+      >
+        <Text
+          style={[
+            styles.dayText,
+            {
+              color: isSelected ? "white" : "rgba(255, 255, 255, 0.8)",
+              fontWeight: isToday ? "bold" : "normal",
+              fontSize: fontSizes.lg,
+            },
+          ]}
         >
-            <Text
-                style={[
-                    styles.dayText,
-                    {
-                        color: isSelected ? "white" : "rgba(255, 255, 255, 0.8)",
-                        fontWeight: isToday ? "bold" : "normal",
-                        fontSize: fontSizes.lg,
-                    },
-                ]}
-            >
-                {dayNumber}
-            </Text>
+          {dayNumber}
+        </Text>
 
-            {/* Point indicateur si le jour a des tâches */}
-            {taskMap[dayKey] && (
-                <TaskIndicator
-                    type={taskMap[dayKey].type}
-                />
-            )}
-        </TouchableOpacity>
+        {/* Point indicateur si le jour a des tâches */}
+        {taskMap[dayKey] && <TaskIndicator type={taskMap[dayKey].type} />}
+      </TouchableOpacity>
     );
-}, (prevProps, nextProps) => {
+  },
+  (prevProps, nextProps) => {
     // Retourner true si les props sont identiques (ne pas re-render)
     return (
-        prevProps.dayNumber === nextProps.dayNumber &&
-        prevProps.index === nextProps.index &&
-        prevProps.currentMonth === nextProps.currentMonth &&
-        isSameDay(prevProps.selectedDate, nextProps.selectedDate) &&
-        prevProps.colors === nextProps.colors &&
-        prevProps.taskMap === nextProps.taskMap &&
-        prevProps.fontSizes === nextProps.fontSizes
+      prevProps.dayNumber === nextProps.dayNumber &&
+      prevProps.index === nextProps.index &&
+      prevProps.currentMonth === nextProps.currentMonth &&
+      isSameDay(prevProps.selectedDate, nextProps.selectedDate) &&
+      prevProps.colors === nextProps.colors &&
+      prevProps.taskMap === nextProps.taskMap &&
+      prevProps.fontSizes === nextProps.fontSizes
     );
-});
-DayCell.displayName = 'DayCell';
+  },
+);
+DayCell.displayName = "DayCell";
 
 // Composant jour slider memoïzé avec comparateur personnalisé
-const SliderDayCell = memo(({
+const SliderDayCell = memo(
+  ({
     date,
     isSelected,
     isToday,
@@ -177,740 +194,816 @@ const SliderDayCell = memo(({
     taskInfo,
     onPress,
     getDayName,
-    fontSizes
-}: any) => {
-    const sliderLabelColor = actualTheme === 'dark' ? 'rgba(255, 255, 255, 0.72)' : colors.button;
+    fontSizes,
+  }: any) => {
+    const sliderLabelColor =
+      actualTheme === "dark" ? "rgba(255, 255, 255, 0.72)" : colors.button;
 
     return (
-        <SquircleButton
-            
-            style={[
-                styles.sliderDay,
-                isSelected && {
-                    backgroundColor: "white",
-                    borderRadius: 12,
-                },
-                isToday && !isSelected && {
-                    borderColor: colors.button,
-                    borderWidth: 1,
-                },
-            ]}
-            onPress={onPress}
+      <SquircleButton
+        style={[
+          styles.sliderDay,
+          isSelected && {
+            backgroundColor: "white",
+            borderRadius: 12,
+          },
+          isToday &&
+            !isSelected && {
+              borderColor: colors.button,
+              borderWidth: 1,
+            },
+        ]}
+        onPress={onPress}
+      >
+        <Text
+          style={[
+            styles.sliderDayName,
+            {
+              color: isSelected ? colors.button : sliderLabelColor,
+              fontSize: fontSizes.sm,
+            },
+          ]}
         >
-            <Text style={[styles.sliderDayName, { color: isSelected ? colors.button : sliderLabelColor, fontSize: fontSizes.sm }]}>
-                {getDayName(date.getDay())}
-            </Text>
-            <Text
-                style={[
-                    styles.sliderDayNumber,
-                    {
-                        color: isSelected ? "black" : "white",
-                        fontSize: fontSizes.xl,
-                    },
-                ]}
-            >
-                {date.getDate()}
-            </Text>
-            {/* Point indicateur si le jour a des tâches */}
-            {taskInfo && (
-                <TaskIndicator
-                    type={taskInfo.type}
-                />
-            )}
-        </SquircleButton>
+          {getDayName(date.getDay())}
+        </Text>
+        <Text
+          style={[
+            styles.sliderDayNumber,
+            {
+              color: isSelected ? "black" : "white",
+              fontSize: fontSizes.xl,
+            },
+          ]}
+        >
+          {date.getDate()}
+        </Text>
+        {/* Point indicateur si le jour a des tâches */}
+        {taskInfo && <TaskIndicator type={taskInfo.type} />}
+      </SquircleButton>
     );
-}, (prevProps, nextProps) => {
+  },
+  (prevProps, nextProps) => {
     // Retourner true si les props sont identiques (ne pas re-render)
     return (
-        isSameDay(prevProps.date, nextProps.date) &&
-        prevProps.isSelected === nextProps.isSelected &&
-        prevProps.isToday === nextProps.isToday &&
-        prevProps.colors === nextProps.colors &&
-        prevProps.actualTheme === nextProps.actualTheme &&
-        prevProps.taskInfo === nextProps.taskInfo &&
-        prevProps.fontSizes === nextProps.fontSizes
+      isSameDay(prevProps.date, nextProps.date) &&
+      prevProps.isSelected === nextProps.isSelected &&
+      prevProps.isToday === nextProps.isToday &&
+      prevProps.colors === nextProps.colors &&
+      prevProps.actualTheme === nextProps.actualTheme &&
+      prevProps.taskInfo === nextProps.taskInfo &&
+      prevProps.fontSizes === nextProps.fontSizes
     );
-});
-SliderDayCell.displayName = 'SliderDayCell';
+  },
+);
+SliderDayCell.displayName = "SliderDayCell";
 
 export default function CalendarComponent({
-    onDateSelect,
-    slider = false,
-    initialDate,
-    onExpandedChange,
+  onDateSelect,
+  slider = false,
+  initialDate,
+  onExpandedChange,
 }: CalendarProps) {
-    const { colors, actualTheme } = useTheme();
-    const { fontSizes } = useFont();
-    const { t, language } = useAppTranslation();
-    const locale = language === "en" ? "en-US" : "fr-FR";
-    // Initialiser la date sélectionnée une seule fois
-    const [selectedDate, setSelectedDate] = useState<Date>(() => initialDate || new Date());
-    const [currentMonth, setCurrentMonth] = useState<Date>(() => initialDate || new Date());
+  const { colors, actualTheme } = useTheme();
+  const { fontSizes } = useFont();
+  const { t, language } = useAppTranslation();
+  const locale = language === "en" ? "en-US" : "fr-FR";
+  // Initialiser la date sélectionnée une seule fois
+  const [selectedDate, setSelectedDate] = useState<Date>(
+    () => initialDate || new Date(),
+  );
+  const [currentMonth, setCurrentMonth] = useState<Date>(
+    () => initialDate || new Date(),
+  );
 
-    // Synchroniser avec la date stockée en local / externe
-    useEffect(() => {
-        if (initialDate && !isSameDay(initialDate, selectedDate)) {
-            setSelectedDate(initialDate);
-            setCurrentMonth(initialDate);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- sync only when initialDate changes; adding selectedDate would revert every local selection to initialDate
-    }, [initialDate]);
+  // Synchroniser avec la date stockée en local / externe
+  useEffect(() => {
+    if (initialDate && !isSameDay(initialDate, selectedDate)) {
+      setSelectedDate(initialDate);
+      setCurrentMonth(initialDate);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync only when initialDate changes; adding selectedDate would revert every local selection to initialDate
+  }, [initialDate]);
 
-    const [isExpanded, setIsExpanded] = useState(false);
-    const sliderRef = useRef<FlatList>(null);
-    const panResponderRef = useRef<any>(null);
-    const isExpandedRef = useRef(false);
-    const calendarHeightRef = useRef(0);
-    const isInitialScrollRef = useRef(true); // Track si c'est le premier scroll
-    const userId = useAuthUserId();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const sliderRef = useRef<FlatList>(null);
+  const panResponderRef = useRef<any>(null);
+  const isExpandedRef = useRef(false);
+  const calendarHeightRef = useRef(0);
+  const isInitialScrollRef = useRef(true); // Track si c'est le premier scroll
+  const userId = useAuthUserId();
 
-    // Animation pour la hauteur du bouton "Retour à aujourd'hui"
-    const todayButtonHeightValue = useSharedValue(0);
-    const todayButtonOpacityValue = useSharedValue(0);
+  // Animation pour la hauteur du bouton "Retour à aujourd'hui"
+  const todayButtonHeightValue = useSharedValue(0);
+  const todayButtonOpacityValue = useSharedValue(0);
 
-    // Animation pour le calendrier entier lors du drag
-    const calendarScaleRef = useSharedValue(1);
+  // Animation pour le calendrier entier lors du drag
+  const calendarScaleRef = useSharedValue(1);
 
-
-
-	const getDays = async () => {
-		if (!userId) {
-			return [];
-		}
-
-		const { data, error } = await supabase
-			.from("Days")
-			.select("*")
-			.eq("user_id", userId)
-			.order("date", { ascending: true });
-        if (error) {
-            logger.error('Erreur lors de la récupération des jours:', error);
-            return [];
-        }
-        return data;
+  const getDays = async () => {
+    if (!userId) {
+      return [];
     }
 
-    const daysQuery = useQuery({
-        queryKey: calendarDaysQueryKey(userId),
-        queryFn: getDays,
-        enabled: !!userId,
-        gcTime: 1000 * 60 * 5,
-        staleTime: 1000 * 60 * 1,
+    const { data, error } = await supabase
+      .from("Days")
+      .select("*")
+      .eq("user_id", userId)
+      .order("date", { ascending: true });
+    if (error) {
+      logger.error("Erreur lors de la récupération des jours:", error);
+      return [];
+    }
+    return data;
+  };
+
+  const daysQuery = useQuery({
+    queryKey: calendarDaysQueryKey(userId),
+    queryFn: getDays,
+    enabled: !!userId,
+    gcTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 1,
+  });
+
+  // Vérifier si un jour a des tâches - CACHED avec useMemo
+  const taskIndicatorByDay = useMemo<{
+    [key: string]: { type: number };
+  }>(() => {
+    // Attendre que les données soient chargées
+    if (!daysQuery.data) {
+      return {};
+    }
+
+    const map: { [key: string]: { type: number } } = {};
+    const days = daysQuery.data;
+
+    days.forEach((day) => {
+      if (day.total === day.done_count && day.total > 0) {
+        map[day.date] = { type: 3 }; // Toutes les tâches complétées
+      } else if (day.total > 0) {
+        map[day.date] = { type: 2 }; // Tâches en cours
+      } else {
+        map[day.date] = { type: 1 }; // Pas de tâches
+      }
+    });
+    return map;
+  }, [daysQuery.data]);
+
+  // Animation height - reanimated shared values
+  const heightValue = useSharedValue(0);
+
+  // Mettre à jour la hauteur du bouton avec animation
+  useEffect(() => {
+    const shouldShow = !isSameDay(selectedDate, new Date());
+    todayButtonHeightValue.value = withSpring(shouldShow ? 30 : 0);
+    todayButtonOpacityValue.value = withSpring(shouldShow ? 1 : 0);
+  }, [selectedDate, todayButtonHeightValue, todayButtonOpacityValue]);
+
+  // Mettre à jour la ref quand isExpanded change
+  useEffect(() => {
+    isExpandedRef.current = isExpanded;
+  }, [isExpanded]);
+
+  // Setup PanResponder for drag handle - avec cleanup
+  useEffect(() => {
+    if (!slider) return;
+
+    const panResponder = PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (event, gestureState) => {
+        // Animer le calendrier selon la direction du drag
+        // Si drag vers le bas (expand): scale à 0.98
+        // Si drag vers le haut (collapse): scale à 1.02
+        const scaleValue = gestureState.dy > 0 ? 0.98 : 1.02;
+        calendarScaleRef.value = withSpring(scaleValue);
+
+        // Utiliser les refs pour avoir les valeurs actuelles
+        const height = calendarHeightRef.current;
+        if (isExpandedRef.current) {
+          // Quand on est expanded, drag vers le haut rétracts
+          const dragDistance = Math.max(
+            0,
+            Math.min(height, height + gestureState.dy),
+          );
+          heightValue.value = dragDistance / height;
+        } else {
+          // Quand on n'est pas expanded, drag vers le bas déploie
+          const dragDistance = Math.max(0, Math.min(height, gestureState.dy));
+          heightValue.value = dragDistance / height;
+        }
+      },
+      onPanResponderRelease: (event, gestureState) => {
+        // Réinitialiser la scale du calendrier
+        calendarScaleRef.value = withSpring(1);
+
+        const height = calendarHeightRef.current;
+        if (isExpandedRef.current) {
+          // Quand on est expanded, si on drag vers le haut de plus de 30% de la hauteur, on rétracte
+          if (gestureState.dy < -(height * 0.3)) {
+            heightValue.value = withSpring(0);
+            setIsExpanded(false);
+            onExpandedChange?.(false);
+          } else {
+            // Sinon, on revient à expanded
+            heightValue.value = withSpring(1);
+            onExpandedChange?.(true);
+          }
+        } else {
+          // Quand on n'est pas expanded, si on drag vers le bas de plus de 30% de la hauteur, on déploie
+          if (gestureState.dy > height * 0.3) {
+            heightValue.value = withSpring(1);
+            setIsExpanded(true);
+            onExpandedChange?.(true);
+          } else {
+            // Sinon, on revient à collapsed
+            heightValue.value = withSpring(0);
+            onExpandedChange?.(false);
+          }
+        }
+      },
     });
 
+    panResponderRef.current = panResponder;
 
-    // Vérifier si un jour a des tâches - CACHED avec useMemo
-    const taskIndicatorByDay = useMemo<{ [key: string]: { type: number } }>(() => {
-        // Attendre que les données soient chargées
-        if (!daysQuery.data) {
-            return {};
-        }
+    // Cleanup: réinitialiser la ref quand le composant unmount ou slider change
+    return () => {
+      panResponderRef.current = null;
+    };
+  }, [slider, calendarScaleRef, heightValue, onExpandedChange]);
 
-        const map: { [key: string]: { type: number } } = {};
-        const days = daysQuery.data;
+  // Obtenir les jours du mois - MEMOIZED
+  const getDaysInMonth = useCallback((date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  }, []);
 
-        days.forEach((day) => {
-            if (day.total === day.done_count && day.total > 0) {
-                map[day.date] = { type: 3 }; // Toutes les tâches complétées
-            } else if (day.total > 0) {
-                map[day.date] = { type: 2 }; // Tâches en cours
-            } else {
-                map[day.date] = { type: 1 }; // Pas de tâches
+  // Obtenir le premier jour du mois - MEMOIZED
+  const getFirstDayOfMonth = useCallback((date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  }, []);
+
+  // Naviguer vers le mois précédent
+  const previousMonth = useCallback(() => {
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1),
+    );
+  }, [currentMonth]);
+
+  // Naviguer vers le mois suivant
+  const nextMonth = useCallback(() => {
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1),
+    );
+  }, [currentMonth]);
+
+  const getMonthName = useCallback(
+    (date: Date) => {
+      return date.toLocaleDateString(locale, { month: "long" });
+    },
+    [locale],
+  );
+
+  const getDayName = useCallback(
+    (index: number) => {
+      const referenceDate = new Date(Date.UTC(2024, 0, 7 + index));
+      return referenceDate.toLocaleDateString(locale, { weekday: "short" });
+    },
+    [locale],
+  );
+
+  // Générer la grille du calendrier - MEMOIZED
+  const calendarDays = useMemo(() => {
+    const daysInMonth = getDaysInMonth(currentMonth);
+    const firstDayOfMonth = getFirstDayOfMonth(currentMonth);
+    const days: (number | null)[] = Array(firstDayOfMonth).fill(null);
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(i);
+    }
+
+    return days;
+  }, [currentMonth, getDaysInMonth, getFirstDayOfMonth]);
+
+  const dayNames = useMemo(() => {
+    return Array.from({ length: 7 }, (_, index) => getDayName(index));
+  }, [getDayName]);
+
+  // Générer une liste de jours infinie - MEMOIZED et LIMITED (90 jours seulement)
+  const infiniteDays = useMemo(() => {
+    const baseDate = new Date(); // Date d'aujourd'hui
+    const days: Date[] = [];
+
+    // Générer 90 jours total (45 passé, 45 futur) pour réduire la consommation RAM
+    for (let i = -45; i < 45; i++) {
+      const date = new Date(baseDate);
+      date.setDate(date.getDate() + i);
+      days.push(date);
+    }
+    return days;
+  }, []);
+
+  // Calculer le nombre de lignes nécessaires pour afficher tout le mois.
+  const weeksInMonth = useMemo(() => {
+    const daysInMonth = getDaysInMonth(currentMonth);
+    const firstDayOfMonth = getFirstDayOfMonth(currentMonth);
+    return Math.ceil((firstDayOfMonth + daysInMonth) / 7);
+  }, [currentMonth, getDaysInMonth, getFirstDayOfMonth]);
+
+  const calendarHeight = useMemo(() => {
+    const gridHeight =
+      weeksInMonth * CALENDAR_DAY_ROW_HEIGHT +
+      (weeksInMonth - 1) * CALENDAR_DAY_ROW_GAP +
+      CALENDAR_GRID_BOTTOM_PADDING;
+    return CALENDAR_HEADER_HEIGHT + CALENDAR_WEEKDAYS_HEIGHT + gridHeight;
+  }, [weeksInMonth]);
+
+  const expandedContentHeight = calendarHeight + CALENDAR_CONTENT_MARGIN_TOP;
+  const animatedCalendarHeight = useSharedValue(calendarHeight);
+  const animatedExpandedContentHeight = useSharedValue(expandedContentHeight);
+
+  // Mettre à jour la ref de calendarHeight
+  useEffect(() => {
+    calendarHeightRef.current = expandedContentHeight;
+    animatedCalendarHeight.value = withSpring(calendarHeight);
+    animatedExpandedContentHeight.value = withSpring(expandedContentHeight);
+  }, [
+    animatedCalendarHeight,
+    animatedExpandedContentHeight,
+    calendarHeight,
+    expandedContentHeight,
+  ]);
+
+  // Trouver l'index du jour sélectionné - MEMOIZED
+  const getSelectedDateIndex = useCallback(() => {
+    const index = infiniteDays.findIndex((d) => isSameDay(d, selectedDate));
+    // Si la date n'est pas trouvée, retourner un index valide (milieu de la liste)
+    return index >= 0 ? index : Math.floor(infiniteDays.length / 2);
+  }, [selectedDate, infiniteDays]);
+
+  // Scroll vers le jour sélectionné au changement - avec cleanup du timeout
+  useEffect(() => {
+    if (!slider || !sliderRef.current) return;
+
+    const index = getSelectedDateIndex();
+    // Vérifier que l'index est valide avant de scroller
+    if (index >= 0 && index < infiniteDays.length) {
+      // Au premier montage, non-animé + délai; aux sélections suivantes, animé
+      const isFirstScroll = isInitialScrollRef.current;
+      const timeoutId = setTimeout(
+        () => {
+          try {
+            sliderRef.current?.scrollToIndex({
+              index,
+              animated: !isFirstScroll,
+              viewPosition: 0.5,
+            });
+            // Marquer le premier scroll comme complété
+            if (isFirstScroll) {
+              isInitialScrollRef.current = false;
             }
-        });
-        return map;
+          } catch {
+            // Ignorer les erreurs si l'index est invalide
+          }
+        },
+        isFirstScroll ? 100 : 0,
+      );
 
-    }, [daysQuery.data]);
+      // Cleanup: annuler le timeout quand le composant unmount ou les dépendances changent
+      return () => clearTimeout(timeoutId);
+    }
+  }, [selectedDate, slider, infiniteDays.length, getSelectedDateIndex]);
 
+  // Gestion de la sélection de date
+  const handleDateSelect = useCallback(
+    (date: Date) => {
+      const nextDate = new Date(date);
+      setSelectedDate(nextDate);
+      setCurrentMonth((previousMonth) => {
+        return isSameMonth(nextDate, previousMonth)
+          ? previousMonth
+          : getMonthStart(nextDate);
+      });
 
+      onDateSelect?.(nextDate);
+    },
+    [onDateSelect],
+  );
 
-    // Animation height - reanimated shared values
-    const heightValue = useSharedValue(0);
+  // Animation style pour la hauteur du slider background
+  const animatedSliderStyle = useAnimatedStyle(() => {
+    const height =
+      SLIDER_COLLAPSED_HEIGHT +
+      heightValue.value * animatedExpandedContentHeight.value;
+    return {
+      minHeight: height,
+    };
+  });
 
-    // Mettre à jour la hauteur du bouton avec animation
-    useEffect(() => {
-        const shouldShow = !isSameDay(selectedDate, new Date());
-        todayButtonHeightValue.value = withSpring(shouldShow ? 30 : 0);
-        todayButtonOpacityValue.value = withSpring(shouldShow ? 1 : 0);
-    }, [selectedDate, todayButtonHeightValue, todayButtonOpacityValue]);
+  // Animation style pour le contenu du calendrier
+  const animatedContentStyle = useAnimatedStyle(() => {
+    return {
+      opacity: heightValue.value,
+      height: heightValue.value * animatedCalendarHeight.value,
+    };
+  });
 
-    // Mettre à jour la ref quand isExpanded change
-    useEffect(() => {
-        isExpandedRef.current = isExpanded;
-    }, [isExpanded]);
+  // Animation de hauteur du bouton "Retour à aujourd'hui"
+  const animatedTodayButtonStyle = useAnimatedStyle(() => {
+    return {
+      height: todayButtonHeightValue.value,
+      opacity: todayButtonOpacityValue.value,
+    };
+  });
 
-    // Setup PanResponder for drag handle - avec cleanup
-    useEffect(() => {
-        if (!slider) return;
+  // Animation de scale du calendrier
+  const animatedCalendarScaleStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: calendarScaleRef.value }],
+    };
+  });
 
-        const panResponder = PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
-            onMoveShouldSetPanResponder: () => true,
-            onPanResponderMove: (event, gestureState) => {
-                // Animer le calendrier selon la direction du drag
-                // Si drag vers le bas (expand): scale à 0.98
-                // Si drag vers le haut (collapse): scale à 1.02
-                const scaleValue = gestureState.dy > 0 ? 0.98 : 1.02;
-                calendarScaleRef.value = withSpring(scaleValue);
-
-                // Utiliser les refs pour avoir les valeurs actuelles
-                const height = calendarHeightRef.current;
-                if (isExpandedRef.current) {
-                    // Quand on est expanded, drag vers le haut rétracts
-                    const dragDistance = Math.max(0, Math.min(height, height + gestureState.dy));
-                    heightValue.value = dragDistance / height;
-                } else {
-                    // Quand on n'est pas expanded, drag vers le bas déploie
-                    const dragDistance = Math.max(0, Math.min(height, gestureState.dy));
-                    heightValue.value = dragDistance / height;
-                }
-            },
-            onPanResponderRelease: (event, gestureState) => {
-                // Réinitialiser la scale du calendrier
-                calendarScaleRef.value = withSpring(1);
-
-                const height = calendarHeightRef.current;
-                if (isExpandedRef.current) {
-                    // Quand on est expanded, si on drag vers le haut de plus de 30% de la hauteur, on rétracte
-                    if (gestureState.dy < -(height * 0.3)) {
-                        heightValue.value = withSpring(0);
-                        setIsExpanded(false);
-                        onExpandedChange?.(false);
-                    } else {
-                        // Sinon, on revient à expanded
-                        heightValue.value = withSpring(1);
-                        onExpandedChange?.(true);
-                    }
-                } else {
-                    // Quand on n'est pas expanded, si on drag vers le bas de plus de 30% de la hauteur, on déploie
-                    if (gestureState.dy > (height * 0.3)) {
-                        heightValue.value = withSpring(1);
-                        setIsExpanded(true);
-                        onExpandedChange?.(true);
-                    } else {
-                        // Sinon, on revient à collapsed
-                        heightValue.value = withSpring(0);
-                        onExpandedChange?.(false);
-                    }
-                }
-            },
-        });
-
-        panResponderRef.current = panResponder;
-
-        // Cleanup: réinitialiser la ref quand le composant unmount ou slider change
-        return () => {
-            panResponderRef.current = null;
-        };
-    }, [slider, calendarScaleRef, heightValue, onExpandedChange]);
-
-    // Obtenir les jours du mois - MEMOIZED
-    const getDaysInMonth = useCallback((date: Date) => {
-        return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    }, []);
-
-    // Obtenir le premier jour du mois - MEMOIZED
-    const getFirstDayOfMonth = useCallback((date: Date) => {
-        return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-    }, []);
-
-    // Naviguer vers le mois précédent
-    const previousMonth = useCallback(() => {
-        setCurrentMonth(
-            new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1)
+  // Créer les enfants de la grille des jours - MEMOIZED
+  const dayGridItems = useMemo(() => {
+    return calendarDays.map((day, index) => {
+      if (day === null) {
+        return (
+          <View
+            key={`empty-${currentMonth.getFullYear()}-${currentMonth.getMonth()}-${index}`}
+            style={styles.emptyDay}
+          />
         );
-    }, [currentMonth]);
+      }
 
-    // Naviguer vers le mois suivant
-    const nextMonth = useCallback(() => {
-        setCurrentMonth(
-            new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)
-        );
-    }, [currentMonth]);
+      const date = createUTCDate(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth(),
+        day,
+      );
 
-    const getMonthName = useCallback((date: Date) => {
-        return date.toLocaleDateString(locale, { month: "long" });
-    }, [locale]);
-
-    const getDayName = useCallback((index: number) => {
-        const referenceDate = new Date(Date.UTC(2024, 0, 7 + index));
-        return referenceDate.toLocaleDateString(locale, { weekday: "short" });
-    }, [locale]);
-
-    // Générer la grille du calendrier - MEMOIZED
-    const calendarDays = useMemo(() => {
-        const daysInMonth = getDaysInMonth(currentMonth);
-        const firstDayOfMonth = getFirstDayOfMonth(currentMonth);
-        const days: (number | null)[] = Array(firstDayOfMonth).fill(null);
-
-        for (let i = 1; i <= daysInMonth; i++) {
-            days.push(i);
-        }
-
-        return days;
-    }, [currentMonth, getDaysInMonth, getFirstDayOfMonth]);
-
-    const dayNames = useMemo(() => {
-        return Array.from({ length: 7 }, (_, index) => getDayName(index));
-    }, [getDayName]);
-
-    // Générer une liste de jours infinie - MEMOIZED et LIMITED (90 jours seulement)
-    const infiniteDays = useMemo(() => {
-        const baseDate = new Date(); // Date d'aujourd'hui
-        const days: Date[] = [];
-
-        // Générer 90 jours total (45 passé, 45 futur) pour réduire la consommation RAM
-        for (let i = -45; i < 45; i++) {
-            const date = new Date(baseDate);
-            date.setDate(date.getDate() + i);
-            days.push(date);
-        }
-        return days;
-    }, []);
-
-    // Calculer le nombre de lignes nécessaires pour afficher tout le mois.
-    const weeksInMonth = useMemo(() => {
-        const daysInMonth = getDaysInMonth(currentMonth);
-        const firstDayOfMonth = getFirstDayOfMonth(currentMonth);
-        return Math.ceil((firstDayOfMonth + daysInMonth) / 7);
-    }, [currentMonth, getDaysInMonth, getFirstDayOfMonth]);
-
-    const calendarHeight = useMemo(() => {
-        const gridHeight = weeksInMonth * CALENDAR_DAY_ROW_HEIGHT + (weeksInMonth - 1) * CALENDAR_DAY_ROW_GAP + CALENDAR_GRID_BOTTOM_PADDING;
-        return CALENDAR_HEADER_HEIGHT + CALENDAR_WEEKDAYS_HEIGHT + gridHeight;
-    }, [weeksInMonth]);
-
-    const expandedContentHeight = calendarHeight + CALENDAR_CONTENT_MARGIN_TOP;
-    const animatedCalendarHeight = useSharedValue(calendarHeight);
-    const animatedExpandedContentHeight = useSharedValue(expandedContentHeight);
-
-    // Mettre à jour la ref de calendarHeight
-    useEffect(() => {
-        calendarHeightRef.current = expandedContentHeight;
-        animatedCalendarHeight.value = withSpring(calendarHeight);
-        animatedExpandedContentHeight.value = withSpring(expandedContentHeight);
-    }, [animatedCalendarHeight, animatedExpandedContentHeight, calendarHeight, expandedContentHeight]);
-
-    // Trouver l'index du jour sélectionné - MEMOIZED
-    const getSelectedDateIndex = useCallback(() => {
-        const index = infiniteDays.findIndex((d) => isSameDay(d, selectedDate));
-        // Si la date n'est pas trouvée, retourner un index valide (milieu de la liste)
-        return index >= 0 ? index : Math.floor(infiniteDays.length / 2);
-    }, [selectedDate, infiniteDays]);
-
-    // Scroll vers le jour sélectionné au changement - avec cleanup du timeout
-    useEffect(() => {
-        if (!slider || !sliderRef.current) return;
-
-        const index = getSelectedDateIndex();
-        // Vérifier que l'index est valide avant de scroller
-        if (index >= 0 && index < infiniteDays.length) {
-            // Au premier montage, non-animé + délai; aux sélections suivantes, animé
-            const isFirstScroll = isInitialScrollRef.current;
-            const timeoutId = setTimeout(() => {
-                try {
-                    sliderRef.current?.scrollToIndex({
-                        index,
-                        animated: !isFirstScroll,
-                        viewPosition: 0.5,
-                    });
-                    // Marquer le premier scroll comme complété
-                    if (isFirstScroll) {
-                        isInitialScrollRef.current = false;
-                    }
-                } catch {
-                    // Ignorer les erreurs si l'index est invalide
-                }
-            }, isFirstScroll ? 100 : 0);
-
-            // Cleanup: annuler le timeout quand le composant unmount ou les dépendances changent
-            return () => clearTimeout(timeoutId);
-        }
-    }, [selectedDate, slider, infiniteDays.length, getSelectedDateIndex]);
-
-    // Gestion de la sélection de date
-    const handleDateSelect = useCallback((date: Date) => {
-        const nextDate = new Date(date);
-        setSelectedDate(nextDate);
-        setCurrentMonth((previousMonth) => {
-            return isSameMonth(nextDate, previousMonth) ? previousMonth : getMonthStart(nextDate);
-        });
-
-        onDateSelect?.(nextDate);
-    }, [onDateSelect]);
-
-    // Animation style pour la hauteur du slider background
-    const animatedSliderStyle = useAnimatedStyle(() => {
-        const height = SLIDER_COLLAPSED_HEIGHT + heightValue.value * animatedExpandedContentHeight.value;
-        return {
-            minHeight: height,
-        };
+      return (
+        <DayCell
+          key={`day-${currentMonth.getFullYear()}-${currentMonth.getMonth()}-${day}`}
+          dayNumber={day}
+          index={index}
+          currentMonth={currentMonth}
+          selectedDate={selectedDate}
+          colors={colors}
+          taskMap={taskIndicatorByDay}
+          fontSizes={fontSizes}
+          onPress={() => handleDateSelect(date)}
+        />
+      );
     });
+  }, [
+    calendarDays,
+    currentMonth,
+    selectedDate,
+    colors,
+    taskIndicatorByDay,
+    fontSizes,
+    handleDateSelect,
+  ]);
 
-    // Animation style pour le contenu du calendrier
-    const animatedContentStyle = useAnimatedStyle(() => {
-        return {
-            opacity: heightValue.value,
-            height: heightValue.value * animatedCalendarHeight.value,
-        };
-    });
+  return (
+    <View style={[styles.container]}>
+      {/* Slider avec calendrier intérieur */}
+      <Squircle
+        style={[
+          styles.sliderBackground,
+          animatedSliderStyle,
+          animatedCalendarScaleStyle,
+        ]}
+      >
+        {slider ? (
+          <>
+            {/* FlatList des jours - optimisée */}
 
-    // Animation de hauteur du bouton "Retour à aujourd'hui"
-    const animatedTodayButtonStyle = useAnimatedStyle(() => {
-        return {
-            height: todayButtonHeightValue.value,
-            opacity: todayButtonOpacityValue.value,
-        };
-    });
-
-    // Animation de scale du calendrier
-    const animatedCalendarScaleStyle = useAnimatedStyle(() => {
-        return {
-            transform: [{ scale: calendarScaleRef.value }],
-        };
-    });
-
-    // Créer les enfants de la grille des jours - MEMOIZED
-    const dayGridItems = useMemo(() => {
-        return calendarDays.map((day, index) => {
-            if (day === null) {
+            <FlatList
+              ref={sliderRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={infiniteDays}
+              keyExtractor={(item, index) => `${item.toISOString()}-${index}`}
+              renderItem={({ item: date }) => {
+                const isSelected = isSameDay(selectedDate, date);
+                const isToday = isSameDay(new Date(), date);
+                const dayKey = getDayKey(date);
                 return (
-                    <View
-                        key={`empty-${currentMonth.getFullYear()}-${currentMonth.getMonth()}-${index}`}
-                        style={styles.emptyDay}
-                    />
-                );
-            }
-
-            const date = createUTCDate(
-                currentMonth.getFullYear(),
-                currentMonth.getMonth(),
-                day
-            );
-
-            return (
-                <DayCell
-                    key={`day-${currentMonth.getFullYear()}-${currentMonth.getMonth()}-${day}`}
-                    dayNumber={day}
-                    index={index}
-                    currentMonth={currentMonth}
-                    selectedDate={selectedDate}
+                  <SliderDayCell
+                    date={date}
+                    isSelected={isSelected}
+                    isToday={isToday}
                     colors={colors}
-                    taskMap={taskIndicatorByDay}
+                    actualTheme={actualTheme}
+                    taskInfo={taskIndicatorByDay[dayKey]}
                     fontSizes={fontSizes}
                     onPress={() => handleDateSelect(date)}
-                />
-            );
-        });
-    }, [calendarDays, currentMonth, selectedDate, colors, taskIndicatorByDay, fontSizes, handleDateSelect]);
+                    getDayName={getDayName}
+                  />
+                );
+              }}
+              scrollEventThrottle={16}
+              getItemLayout={(data, index) => ({
+                length: 68,
+                offset: 68 * index,
+                index,
+              })}
+              windowSize={10}
+              maxToRenderPerBatch={5}
+              updateCellsBatchingPeriod={50}
+              removeClippedSubviews={true}
+              style={styles.flatListSlider}
+            />
 
-    return (
-
-
-
-        <View style={[styles.container]}>
-            {/* Slider avec calendrier intérieur */}
+            {/* Contenu du calendrier - grossit vers le bas */}
             <Squircle
-                style={[styles.sliderBackground, animatedSliderStyle, animatedCalendarScaleStyle]}
+              style={[animatedContentStyle, styles.calendarContentInside]}
             >
-                {slider ? (
-                    <>
-                        {/* FlatList des jours - optimisée */}
+              <View>
+                {/* En-tête du calendrier */}
+                <View
+                  style={[
+                    styles.header,
+                    { borderBottomColor: "rgba(255, 255, 255, 0.2)" },
+                  ]}
+                >
+                  <TouchableOpacity
+                    onPress={previousMonth}
+                    style={styles.navButton}
+                  >
+                    <Text
+                      style={{
+                        color: "rgba(255, 255, 255, 0.7)",
+                        fontSize: fontSizes.xl,
+                      }}
+                    >
+                      ←
+                    </Text>
+                  </TouchableOpacity>
 
+                  <Text
+                    style={[
+                      styles.monthYear,
+                      {
+                        color: "white",
+                        fontSize: fontSizes.base,
+                      },
+                    ]}
+                  >
+                    {getMonthName(currentMonth)} {currentMonth.getFullYear()}
+                  </Text>
 
-                        <FlatList
-                            ref={sliderRef}
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            data={infiniteDays}
-                            keyExtractor={(item, index) => `${item.toISOString()}-${index}`}
-                            renderItem={({ item: date }) => {
-                                const isSelected = isSameDay(selectedDate, date);
-                                const isToday = isSameDay(new Date(), date);
-                                const dayKey = getDayKey(date);
-                                return (
-                                    <SliderDayCell
-                                        date={date}
-                                        isSelected={isSelected}
-                                        isToday={isToday}
-                                        colors={colors}
-                                        actualTheme={actualTheme}
-                                        taskInfo={taskIndicatorByDay[dayKey]}
-                                        fontSizes={fontSizes}
-                                        onPress={() => handleDateSelect(date)}
-                                        getDayName={getDayName}
-                                    />
-                                );
+                  <TouchableOpacity
+                    onPress={nextMonth}
+                    style={styles.navButton}
+                  >
+                    <Text
+                      style={{
+                        color: "rgba(255, 255, 255, 0.7)",
+                        fontSize: fontSizes.xl,
+                      }}
+                    >
+                      →
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
+                {/* Jours de la semaine */}
+                <View style={styles.weekDaysContainer}>
+                  {dayNames.map((day) => (
+                    <View key={day} style={styles.weekDayCell}>
+                      <Text
+                        style={[
+                          styles.weekDayText,
+                          {
+                            color: "rgba(255, 255, 255, 0.6)",
+                            fontSize: fontSizes.sm,
+                          },
+                        ]}
+                      >
+                        {day}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
 
-                            }}
-                            scrollEventThrottle={16}
-                            getItemLayout={(data, index) => ({
-                                length: 68,
-                                offset: 68 * index,
-                                index,
-                            })}
-                            windowSize={10}
-                            maxToRenderPerBatch={5}
-                            updateCellsBatchingPeriod={50}
-                            removeClippedSubviews={true}
-                            style={styles.flatListSlider}
-                        />
-
-                        {/* Contenu du calendrier - grossit vers le bas */}
-                        <Squircle style={[animatedContentStyle, styles.calendarContentInside]}>
-                            <View>
-                                {/* En-tête du calendrier */}
-                                <View style={[styles.header, { borderBottomColor: "rgba(255, 255, 255, 0.2)" }]}>
-                                    <TouchableOpacity onPress={previousMonth} style={styles.navButton}>
-                                        <Text style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: fontSizes.xl }}>←</Text>
-                                    </TouchableOpacity>
-
-                                    <Text
-                                        style={[
-                                            styles.monthYear,
-                                            {
-                                                color: "white",
-                                                fontSize: fontSizes.base,
-                                            },
-                                        ]}
-                                    >
-                                        {getMonthName(currentMonth)} {currentMonth.getFullYear()}
-                                    </Text>
-
-                                    <TouchableOpacity onPress={nextMonth} style={styles.navButton}>
-                                        <Text style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: fontSizes.xl }}>→</Text>
-                                    </TouchableOpacity>
-                                </View>
-
-                                {/* Jours de la semaine */}
-                                <View style={styles.weekDaysContainer}>
-                                    {dayNames.map((day) => (
-                                        <View key={day} style={styles.weekDayCell}>
-                                            <Text
-                                                style={[
-                                                    styles.weekDayText,
-                                                    {
-                                                        color: "rgba(255, 255, 255, 0.6)",
-                                                        fontSize: fontSizes.sm,
-                                                    },
-                                                ]}
-                                            >
-                                                {day}
-                                            </Text>
-                                        </View>
-                                    ))}
-                                </View>
-
-                                {/* Grille des jours */}
-                                <View style={styles.calendarGrid}>
-                                    {dayGridItems}
-                                </View>
-                            </View>
-                        </Squircle>
-
-                        {/* Handle bar wrapper draggable - au bottom */}
-                        <View
-                            style={styles.handleBarWrapper}
-                            {...(slider ? panResponderRef.current?.panHandlers : {})}
-                        >
-                            <View style={styles.handleBar} />
-                        </View>
-                    </>
-                ) : (
-                    <CollapsedDateDisplay selectedDate={selectedDate} colors={colors} fontSizes={fontSizes} locale={locale} />
-                )}
+                {/* Grille des jours */}
+                <View style={styles.calendarGrid}>{dayGridItems}</View>
+              </View>
             </Squircle>
 
-            <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={async () => {
-                    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    const today = new Date();
-                    handleDateSelect(today);
-                }}
+            {/* Handle bar wrapper draggable - au bottom */}
+            <View
+              style={styles.handleBarWrapper}
+              {...(slider ? panResponderRef.current?.panHandlers : {})}
             >
-                <Animated.View
-                    style={[
-                        styles.todayButton,
-                        animatedTodayButtonStyle,
-                        {
-                            overflow: 'hidden',
-                        }
-                    ]}
-                >
-                    <Text style={[styles.todayButtonText, { color: colors.textSecondary, fontSize: fontSizes.xs }]}>{t("calendar.backToToday")}</Text>
-                </Animated.View>
-            </TouchableOpacity>
+              <View style={styles.handleBar} />
+            </View>
+          </>
+        ) : (
+          <CollapsedDateDisplay
+            selectedDate={selectedDate}
+            colors={colors}
+            fontSizes={fontSizes}
+            locale={locale}
+          />
+        )}
+      </Squircle>
 
-        </View>
-    );
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={async () => {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          const today = new Date();
+          handleDateSelect(today);
+        }}
+      >
+        <Animated.View
+          style={[
+            styles.todayButton,
+            animatedTodayButtonStyle,
+            {
+              overflow: "hidden",
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.todayButtonText,
+              { color: colors.textSecondary, fontSize: fontSizes.xs },
+            ]}
+          >
+            {t("calendar.backToToday")}
+          </Text>
+        </Animated.View>
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        borderRadius: 8,
-        paddingHorizontal: 20,
-    },
-    collapsedHeader: {
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-        paddingVertical: 10,
-        position: "relative",
-        gap: 8,
-    },
-    sliderBackground: {
-        backgroundColor: "#272727ff",
-        borderRadius: 30,
-        paddingHorizontal: 12,
-        paddingTop: 12,
-        flexDirection: "column",
-    },
-    flatListSlider: {
-        height: 80,
-    },
-    calendarContentInside: {
-        marginTop: CALENDAR_CONTENT_MARGIN_TOP,
-        backgroundColor: "#353535ff",
-        borderRadius: 25,
-        overflow: "hidden",
-        alignSelf: "center",
-    },
-    handleBarWrapper: {
-        height: 30,
-        paddingVertical: 10,
-        marginTop: -20,
-        alignItems: "center",
-        justifyContent: "flex-end",
-        width: "120%",
-        alignSelf: "center",
-    },
-    handleBar: {
-        width: 40,
-        height: 4,
-        backgroundColor: "rgba(255, 255, 255, 0.5)",
-        borderRadius: 2,
-    },
-    collapsedText: {
-        fontFamily: 'Satoshi-Regular',
-        paddingHorizontal: 8,
-    },
-    weekSliderContainer: {
-        flexGrow: 0,
-        height: 80,
-    },
-    sliderDay: {
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        justifyContent: "center",
-        alignItems: "center",
-        marginHorizontal: 2,
-        borderRadius: 12,
-        width: 64,
-        height: 80,
-    },
-    sliderDayName: {
-        fontFamily: "Satoshi-Medium",
-        marginBottom: 2,
-    },
-    sliderDayNumber: {
-        fontFamily: "Satoshi-Bold",
-    },
-    sliderTaskIndicator: {
-        width: 5,
-        height: 5,
-        borderRadius: 2.5,
-        position: "absolute",
-        bottom: 8,
-    },
-    sliderContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        flex: 1,
-        justifyContent: "space-between",
-    },
-    sliderButton: {
-        padding: 8,
-        borderRadius: 6,
-    },
-    todayButton: {
-        position: "relative",
-        height: 30,
-        alignSelf: "flex-end",
-        paddingHorizontal: 12,
-        borderRadius: 15,
-        backgroundColor: "#272727ff",
-        marginTop: 8,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    todayButtonText: {
-        fontFamily: "Satoshi-Bold",
-    },
-    toggleButton: {
-        height: 44,
-        width: 44,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    header: {
-        height: CALENDAR_HEADER_HEIGHT,
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingVertical: 8,
-        paddingHorizontal: 8,
-        borderBottomWidth: 1,
-    },
-    navButton: {
-        padding: 4,
-        borderRadius: 6,
-    },
-    monthYear: {
-        fontFamily: "Satoshi-Bold",
-    },
-    weekDaysContainer: {
-        height: CALENDAR_WEEKDAYS_HEIGHT,
-        flexDirection: "row",
-        paddingHorizontal: 8,
-    },
-    weekDayCell: {
-        flex: 1,
-        alignItems: "center",
-        paddingVertical: 2,
-    },
-    weekDayText: {
-        fontFamily: "Satoshi-Medium",
-    },
-    calendarGrid: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        paddingHorizontal: 8,
-        paddingBottom: CALENDAR_GRID_BOTTOM_PADDING,
-    },
-    day: {
-        width: "14.28%",
-        aspectRatio: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        borderRadius: 6,
-        position: "relative",
-        marginBottom: CALENDAR_DAY_ROW_GAP,
-    },
-    emptyDay: {
-        width: "14.28%",
-        aspectRatio: 1,
-        marginBottom: CALENDAR_DAY_ROW_GAP,
-    },
-    dayText: {
-        fontFamily: "Satoshi-Medium",
-    },
-    taskIndicator: {
-        width: 5,
-        height: 5,
-        borderRadius: 2.5,
-        position: "absolute",
-        bottom: 2,
-    },
+  container: {
+    borderRadius: 8,
+    paddingHorizontal: 20,
+  },
+  collapsedHeader: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 10,
+    position: "relative",
+    gap: 8,
+  },
+  sliderBackground: {
+    backgroundColor: "#272727ff",
+    borderRadius: 30,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    flexDirection: "column",
+  },
+  flatListSlider: {
+    height: 80,
+  },
+  calendarContentInside: {
+    marginTop: CALENDAR_CONTENT_MARGIN_TOP,
+    backgroundColor: "#353535ff",
+    borderRadius: 25,
+    overflow: "hidden",
+    alignSelf: "center",
+  },
+  handleBarWrapper: {
+    height: 30,
+    paddingVertical: 10,
+    marginTop: -20,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    width: "120%",
+    alignSelf: "center",
+  },
+  handleBar: {
+    width: 40,
+    height: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    borderRadius: 2,
+  },
+  collapsedText: {
+    fontFamily: "Satoshi-Regular",
+    paddingHorizontal: 8,
+  },
+  weekSliderContainer: {
+    flexGrow: 0,
+    height: 80,
+  },
+  sliderDay: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 2,
+    borderRadius: 12,
+    width: 64,
+    height: 80,
+  },
+  sliderDayName: {
+    fontFamily: "Satoshi-Medium",
+    marginBottom: 2,
+  },
+  sliderDayNumber: {
+    fontFamily: "Satoshi-Bold",
+  },
+  sliderTaskIndicator: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    position: "absolute",
+    bottom: 8,
+  },
+  sliderContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "space-between",
+  },
+  sliderButton: {
+    padding: 8,
+    borderRadius: 6,
+  },
+  todayButton: {
+    position: "relative",
+    height: 30,
+    alignSelf: "flex-end",
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    backgroundColor: "#272727ff",
+    marginTop: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  todayButtonText: {
+    fontFamily: "Satoshi-Bold",
+  },
+  toggleButton: {
+    height: 44,
+    width: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  header: {
+    height: CALENDAR_HEADER_HEIGHT,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+  },
+  navButton: {
+    padding: 4,
+    borderRadius: 6,
+  },
+  monthYear: {
+    fontFamily: "Satoshi-Bold",
+  },
+  weekDaysContainer: {
+    height: CALENDAR_WEEKDAYS_HEIGHT,
+    flexDirection: "row",
+    paddingHorizontal: 8,
+  },
+  weekDayCell: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 2,
+  },
+  weekDayText: {
+    fontFamily: "Satoshi-Medium",
+  },
+  calendarGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: 8,
+    paddingBottom: CALENDAR_GRID_BOTTOM_PADDING,
+  },
+  day: {
+    width: "14.28%",
+    aspectRatio: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 6,
+    position: "relative",
+    marginBottom: CALENDAR_DAY_ROW_GAP,
+  },
+  emptyDay: {
+    width: "14.28%",
+    aspectRatio: 1,
+    marginBottom: CALENDAR_DAY_ROW_GAP,
+  },
+  dayText: {
+    fontFamily: "Satoshi-Medium",
+  },
+  taskIndicator: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    position: "absolute",
+    bottom: 2,
+  },
 });
