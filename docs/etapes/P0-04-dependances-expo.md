@@ -158,6 +158,17 @@ Vérifié et correct (par l'agent principal, sans se fier au rapport) :
 - **Build Debug** sur simulateur (implémenteur) : il se lance sur l'onboarding, sans crash, avec le bundle du Metro de l'implémenteur (port 8082).
 - **Test fonctionnel** : fait par Yanis sur son iPhone (`npm run ios:device-dev`). Le « + » ouvre de nouveau la modale de création. Sur le simulateur, l'agent principal n'a pas pu atteindre les onglets, car il faut se connecter pour passer l'onboarding.
 
+## Revue de code finale (demande de Yanis)
+
+Revue `code-review` de la PR #30 (effort élevé), après le correctif du tour 2. Aucun problème bloquant.
+
+| ID | Gravité | Fichier:ligne | Problème | Décision de Yanis |
+|---|---|---|---|---|
+| RC-1 | Non bloquant | `app/(tabs)/_layout.tsx:19` | `handlePress` attend `Haptics.impactAsync` avant `openCreateModal()`, et l'appel du listener n'est ni attendu ni protégé : si l'haptique échoue, la modale ne s'ouvre pas. Le défaut existait avant l'étape. | ajouté à la roadmap (phase 2, case « Création et édition de tâche ») |
+| RC-2 | Non bloquant | `app/(tabs)/_layout.tsx:61` | Aucun test automatique ne vérifie que le « + » ouvre la modale : la régression du tour 2 est passée à travers `npm run check` et la CI. | ajouté à la roadmap (phase 2, même case) |
+| RC-3 | Non bloquant | `package.json:17` | Un `node_modules` existant garde le dossier créé par l'ancien postinstall après un simple `npm install`. Impact quasi nul : la machine de Yanis est propre, et `npm ci` repart de zéro. | non retenu |
+| RC-4 | Non bloquant | `app/(tabs)/_layout.tsx:62` | Le `?.` de `e.data?.isPrevented` est inutile : les types garantissent la présence de `data`. | non retenu |
+
 ## Résultat
 
 ### Ce qui a été fait

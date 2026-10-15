@@ -146,7 +146,7 @@ src/
 ### Fonctionnalités à reconstruire sur la base locale
 Pour chacune : la découper en composants de moins de 300 lignes et supprimer l'ancien code Supabase.
 - [ ] Home : calendrier, liste du jour, progression.
-- [ ] Création et édition de tâche ; une seule modale au lieu de `popUpTask` et `liquidCreateModal`.
+- [ ] Création et édition de tâche ; une seule modale au lieu de `popUpTask` et `liquidCreateModal`. Le bouton « + » ouvre la modale avant de lancer le retour haptique, sans l'attendre : aujourd'hui, un échec de l'haptique empêche l'ouverture. Un test Jest vérifie que le « + » ouvre la modale (régression non détectée par la CI en [P0-04](etapes/P0-04-dependances-expo.md), revue de code finale).
 - [ ] Box, sans limite.
 - [ ] Daily : revue des tâches en retard, reporter, terminer en retard, supprimer.
 - [ ] Repos : activer, annuler, consulter la date de fin.
