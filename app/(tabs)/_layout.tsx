@@ -34,11 +34,6 @@ function Tabs() {
         isDark ? "rgba(255, 255, 255, 0.16)" : "rgba(0, 0, 0, 0.10)"
       }
       disableTransparentOnScrollEdge
-      unstable_nativeProps={{
-        onTabSelectionPrevented: () => {
-          handlePress();
-        },
-      }}
     >
       <NativeTabs.Trigger name="home">
         <NativeTabs.Trigger.Label hidden>Home</NativeTabs.Trigger.Label>
@@ -59,7 +54,16 @@ function Tabs() {
           selectedColor={tabTintColor}
         />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="create-task" disabled role="search">
+      <NativeTabs.Trigger
+        name="create-task"
+        disabled
+        role="search"
+        listeners={{
+          tabPress: (e) => {
+            if (e.data?.isPrevented) handlePress();
+          },
+        }}
+      >
         <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           sf={{ default: "plus", selected: "gearshape.fill" }}

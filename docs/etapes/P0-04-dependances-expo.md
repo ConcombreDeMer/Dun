@@ -132,6 +132,32 @@ Vérifié et correct (par l'agent principal, sans se fier au rapport) :
 - **CA9** : `npm run check` relancé par l'agent principal : sortie 0, 3 suites, 10 tests, aucun avertissement.
 - Le simulateur est remis en apparence claire. L'app Release (vraies valeurs de `.env.production`, lues par Expo au build) y reste installée.
 
+## Revue — tour 2 (demande de Yanis)
+
+Yanis a testé la PR sur son iPhone avec `npm run ios:device-dev`. **Régression** : le bouton « + » de la barre d'onglets réagit au toucher, mais n'ouvre plus la modale de création. Un agent lancé par Yanis a trouvé la cause, et l'agent principal l'a vérifiée dans `node_modules`. Ce tour ne compte pas dans la limite des 3 tours de correction. Pour ce tour, le plan est amendé : `app/(tabs)/_layout.tsx` peut changer (CA8 ne vaut plus pour ce fichier).
+
+Cause :
+- Le « + » n'est pas un vrai onglet : le trigger `create-task` est `disabled`. L'app captait le toucher en passant son propre `onTabSelectionPrevented` par `unstable_nativeProps` (`app/(tabs)/_layout.tsx:37-41`).
+- Dans `expo-router` 56.2.21, `NativeTabsView.ios.js` étale d'abord `...rawHostRestProps` (nos `unstable_nativeProps`), puis pose son propre `onTabSelectionPrevented`. Le gestionnaire de l'app est donc écrasé, et `handlePress` n'est plus jamais appelé.
+- `expo-router` relaie maintenant ce toucher sous la forme d'un événement `tabPress`, avec `data.isPrevented: true` (`NativeBottomTabsNavigator.js:110-122`). C'est l'API publique prévue (`listeners` sur `NativeTabs.Trigger`, `types.d.ts`).
+
+| ID | Gravité | Fichier:ligne | Problème | Correction attendue |
+|---|---|---|---|---|
+| R2-1 | Demande de Yanis (régression) | `app/(tabs)/_layout.tsx:37-41`, `:62` | Le « + » n'ouvre plus la modale de création depuis la montée d'`expo-router` en 56.2.21. | (1) Supprimer `unstable_nativeProps={{ onTabSelectionPrevented: … }}` de `<NativeTabs>`. (2) Sur `<NativeTabs.Trigger name="create-task" disabled role="search">`, ajouter `listeners={{ tabPress: (e) => { if (e.data?.isPrevented) handlePress(); } }}`. Garder `disabled`. Typage strict, sans `any` : si besoin, utiliser les types exportés par `expo-router` (`NativeTabNavigationEventMap` ou équivalent). (3) Ne toucher ni `lib/createModalController.tsx` ni `components/liquidCreateModal.tsx`. (4) `npm run check` passe. |
+
+### Revue des corrections du tour 2
+
+Vérifié et correct (par l'agent principal, sans se fier au rapport) :
+- **R2-1 (1) et (2)** : `git diff app/(tabs)/_layout.tsx` (+10 / −6) :
+  - `unstable_nativeProps` est retiré de `<NativeTabs>` ;
+  - le trigger `create-task` garde `disabled` et `role="search"`, et gagne `listeners.tabPress`, qui appelle `handlePress()` seulement si `e.data?.isPrevented`.
+- **Typage** : `listeners` est déclaré sur `NativeTabs.Trigger` (`expo-router/build/native-tabs/types.d.ts:638`), avec `NativeTabNavigationEventMap`. Le type de `e` est déduit, sans `any`.
+- **Câblage** : `withLayoutContext.js:33-38` transmet toutes les props du trigger (`...child.props`, donc `listeners`) à l'écran de navigation. `NativeBottomTabsNavigator.js:110-122` émet `tabPress` vers ce trigger, avec `isPrevented: true`, quand le natif bloque l'onglet désactivé.
+- **R2-1 (3)** : seul `app/(tabs)/_layout.tsx` change dans le code.
+- **R2-1 (4)** : `npm run check` relancé par l'agent principal : sortie 0, 3 suites, 10 tests, aucun avertissement.
+- **Build Debug** sur simulateur (implémenteur) : il se lance sur l'onboarding, sans crash, avec le bundle du Metro de l'implémenteur (port 8082).
+- **Test fonctionnel** : fait par Yanis sur son iPhone (`npm run ios:device-dev`). Le « + » ouvre de nouveau la modale de création. Sur le simulateur, l'agent principal n'a pas pu atteindre les onglets, car il faut se connecter pour passer l'onboarding.
+
 ## Résultat
 
 ### Ce qui a été fait
@@ -140,11 +166,13 @@ Vérifié et correct (par l'agent principal, sans se fier au rapport) :
 - **Postinstall** : `scripts/fix-expo-macros-plugin.js` est supprimé, avec l'entrée `postinstall`. `expo-modules-core` est installé à la racine de `node_modules` : le lien n'a plus d'objet.
 - **Pods** (local, ignoré par Git) : `ios/Pods` est réinstallé à neuf et `Podfile.lock` est réaligné.
 - **Crash au lancement** (R2-2 de P0-03) : corrigé. Les builds Debug et Release se lancent sur le simulateur.
+- **Régression du bouton « + »** (tour 2) : causée par `expo-router` 56.2.21, corrigée dans `app/(tabs)/_layout.tsx`. Le toucher sur l'onglet désactivé `create-task` passe maintenant par l'événement public `tabPress` (`isPrevented`), et non plus par `unstable_nativeProps`.
 
 ### Vérification finale
 - `npx expo install --check` : aucun écart, sortie 0.
 - `npm ci` puis `npm run check` : sortie 0, aucun avertissement.
 - Simulateur iPhone 17 Pro (iOS 26.2) : Debug et Release se lancent sur l'onboarding, en clair et en sombre, sans crash.
+- iPhone de Yanis (`npm run ios:device-dev`) : l'app fonctionne, et le « + » ouvre la modale de création après le correctif du tour 2.
 
 ### Décisions
 - Sentry : garder la version 8 et l'exclure de la vérification d'Expo (Yanis, à la planification).
@@ -165,4 +193,6 @@ Vérifié et correct (par l'agent principal, sans se fier au rapport) :
 - **Sentry** est exclu de `expo install --check`. Lors de la prochaine montée de SDK, revérifier la version attendue par Expo et retirer l'exclusion si elle n'a plus lieu d'être.
 - **README (P0-05)** : il ne doit plus mentionner de `postinstall`. Les étapes P0-01 et P0-02 et `docs/audit.md` en parlent encore : ce sont des archives, à laisser telles quelles.
 - **Simulateur** : l'app Release installée pointe vers la base prod (`.env.production`). Pour travailler en dev, installer un build Debug.
+- **`unstable_nativeProps`** : comme son nom l'indique, cette API n'est pas stable. `expo-router` peut écraser ce qu'on y passe (cause de la régression du tour 2). Préférer les API publiques (`listeners`, options du trigger), et tester le « + » après chaque montée d'`expo-router`.
+- **Accès aux onglets sur simulateur** : l'onboarding exige une connexion. Un agent ne peut pas saisir de mot de passe : Yanis doit se connecter lui-même avant un test des onglets. La phase 2 supprimera cette contrainte (onboarding sans compte).
 - La phase 0 se termine avec la section « Documentation et Git » (README, ménage des branches), puis le constat du critère de fin de phase.
