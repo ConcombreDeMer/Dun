@@ -9,9 +9,9 @@ Cette roadmap applique l'offre décrite dans [`offre-commerciale-v1-pour-agents.
 
 ## État d'avancement
 
-- **Phase en cours** : 0 — Assainir.
-- **Dernière étape terminée** : [P0-04 — Aligner les dépendances Expo](etapes/P0-04-dependances-expo.md).
-- **Prochaine étape** : la section « Documentation et Git » (README, ménage des branches), puis le constat du critère de fin de phase.
+- **Phase en cours** : 0 — Assainir, terminée. Son critère de fin est constaté dans [P0-05](etapes/P0-05-readme-branches.md), sous réserve que la CI reste verte sur le commit de fusion de P0-05. Reste le build TestFlight interne de fin de phase.
+- **Dernière étape terminée** : [P0-05 — README et ménage des branches](etapes/P0-05-readme-branches.md).
+- **Prochaine étape** : phase 1 — Noyau métier testé, en commençant par « Dates et journées » (`dateKey`, suppression de `DAILY_ROLLOVER_HOUR`).
 
 Cette section est mise à jour à la fin de chaque étape par l'agent principal (voir [Workflow](#workflow)).
 
@@ -90,10 +90,10 @@ src/
 - [x] Vérifier que les commits `1e20054` et `8ff5dc7` n'ont jamais été poussés. Dans le doute, régénérer le secret client Google OAuth. → [P0-03](etapes/P0-03-environnements.md)
 
 ### Documentation et Git
-- [ ] Réécrire le README : installation, commandes, architecture réelle, environnements. Y expliquer comment reconstruire `ios/Pods` quand on alterne Debug et Release : les pods précompilés peuvent garder la variante de l'autre configuration (constaté en [P0-04, R1-1](etapes/P0-04-dependances-expo.md)).
+- [x] Réécrire le README : installation, commandes, architecture réelle, environnements. Y expliquer comment reconstruire `ios/Pods` quand on alterne Debug et Release : les pods précompilés peuvent garder la variante de l'autre configuration (constaté en [P0-04, R1-1](etapes/P0-04-dependances-expo.md)). → [P0-05](etapes/P0-05-readme-branches.md)
 - [x] Écrire les instructions des agents et les conventions dans `CLAUDE.md`, avec le skill `/etape-suivante` et le sous-agent `implementeur` → [P0-00](etapes/P0-00-workflow-agents.md)
 - [x] Mettre à jour la section « Vérification » de `CLAUDE.md` une fois `npm run check` créé. → [P0-02](etapes/P0-02-outillage.md)
-- [ ] Supprimer les branches fusionnées ou abandonnées : `codex/*`, `create-task-v2`, `create-task-v3`, etc. Archiver par un tag celles qu'on veut garder pour mémoire.
+- [x] Supprimer les branches fusionnées ou abandonnées : `codex/*`, `create-task-v2`, `create-task-v3`, etc. Archiver par un tag celles qu'on veut garder pour mémoire. → [P0-05](etapes/P0-05-readme-branches.md)
 
 **Terminé quand :** la CI est verte sur `master` et `npm run check` passe sans aucun avertissement.
 
