@@ -10,8 +10,8 @@ Cette roadmap applique l'offre décrite dans [`offre-commerciale-v1-pour-agents.
 ## État d'avancement
 
 - **Phase en cours** : 0 — Assainir.
-- **Dernière étape terminée** : [P0-03 — Environnements dev et prod](etapes/P0-03-environnements.md).
-- **Prochaine étape** : l'alignement des dépendances Expo (dernière case de la section « Outillage »), qui débloque le lancement de l'app native. Ensuite, la section « Documentation et Git » (README, ménage des branches), puis le constat du critère de fin de phase.
+- **Dernière étape terminée** : [P0-04 — Aligner les dépendances Expo](etapes/P0-04-dependances-expo.md).
+- **Prochaine étape** : la section « Documentation et Git » (README, ménage des branches), puis le constat du critère de fin de phase.
 
 Cette section est mise à jour à la fin de chaque étape par l'agent principal (voir [Workflow](#workflow)).
 
@@ -82,7 +82,7 @@ src/
 - [x] Ajouter Jest (`jest-expo`) et `@testing-library/react-native`, avec un premier test. → [P0-02](etapes/P0-02-outillage.md)
 - [x] Ajouter les scripts `typecheck`, `lint`, `test`, `format:check` et `check` (qui enchaîne les quatre). → [P0-02](etapes/P0-02-outillage.md)
 - [x] Supprimer le `.github/workflows/quality.yml` non suivi et le remplacer par une CI simple : `npm ci`, puis `npm run check`, à chaque PR et sur `master`. Garder `.nvmrc`. → [P0-02](etapes/P0-02-outillage.md)
-- [ ] Aligner les dépendances Expo sur le SDK 56 (`npx expo install --check` sans écart, cas de `@sentry/react-native` à trancher), réaligner les pods iOS et vérifier le lancement sur simulateur : l'app native plante au lancement (constaté en [P0-03, R2-2](etapes/P0-03-environnements.md)).
+- [x] Aligner les dépendances Expo sur le SDK 56 (`npx expo install --check` sans écart, cas de `@sentry/react-native` à trancher), réaligner les pods iOS et vérifier le lancement sur simulateur : l'app native plante au lancement (constaté en [P0-03, R2-2](etapes/P0-03-environnements.md)). → [P0-04](etapes/P0-04-dependances-expo.md)
 
 ### Environnements
 - [x] Séparer dev et prod avec les fichiers `.env.development` et `.env.production` d'Expo, choisis automatiquement selon le type de build (Debug / Release), au lieu de lignes commentées dans `.env`. Pas d'EAS : les builds se font avec Xcode. → [P0-03](etapes/P0-03-environnements.md)
@@ -90,7 +90,7 @@ src/
 - [x] Vérifier que les commits `1e20054` et `8ff5dc7` n'ont jamais été poussés. Dans le doute, régénérer le secret client Google OAuth. → [P0-03](etapes/P0-03-environnements.md)
 
 ### Documentation et Git
-- [ ] Réécrire le README : installation, commandes, architecture réelle, environnements.
+- [ ] Réécrire le README : installation, commandes, architecture réelle, environnements. Y expliquer comment reconstruire `ios/Pods` quand on alterne Debug et Release : les pods précompilés peuvent garder la variante de l'autre configuration (constaté en [P0-04, R1-1](etapes/P0-04-dependances-expo.md)).
 - [x] Écrire les instructions des agents et les conventions dans `CLAUDE.md`, avec le skill `/etape-suivante` et le sous-agent `implementeur` → [P0-00](etapes/P0-00-workflow-agents.md)
 - [x] Mettre à jour la section « Vérification » de `CLAUDE.md` une fois `npm run check` créé. → [P0-02](etapes/P0-02-outillage.md)
 - [ ] Supprimer les branches fusionnées ou abandonnées : `codex/*`, `create-task-v2`, `create-task-v3`, etc. Archiver par un tag celles qu'on veut garder pour mémoire.
@@ -157,7 +157,7 @@ Pour chacune : la découper en composants de moins de 300 lignes et supprimer l'
 - [ ] Rappel quotidien local : heure et jours choisis, week-end compris.
 
 ### Onboarding et sauvegarde
-- [ ] Onboarding sans compte, qui enregistre le nom **et l'objectif**. Supprimer l'étape `trial` et les écrans d'inscription obligatoires (ils reviendront en phase 4 pour activer le cloud).
+- [ ] Onboarding sans compte, qui enregistre le nom **et l'objectif**. Supprimer l'étape `trial` et les écrans d'inscription obligatoires (ils reviendront en phase 4 pour activer le cloud). Rendre le thème sombre cohérent : aujourd'hui, l'onboarding force les couleurs claires mais la mascotte passe en blanc (constaté en [P0-04, R1-2](etapes/P0-04-dependances-expo.md)).
 - [ ] Export manuel en fichier JSON local (via la feuille de partage), et restauration depuis ce fichier, avec un format versionné.
 - [ ] Supprimer Zustand s'il ne sert plus, ainsi que `AuthSessionContext` et les appels `supabase` dans `app/`.
 
@@ -221,6 +221,7 @@ Aucun utilisateur à préserver : on repart de zéro dans le projet prod.
 
 ### Compte et synchronisation
 - [ ] Le compte (Apple, Google, email) est demandé seulement pour activer ou récupérer la copie cloud. L'identifiant RevenueCat est relié au compte.
+- [ ] Réduire les schémas d'URI d'`app.json` (`exp+dun`, `dun`, `com.dunapp.Dun`) : Linking avertit qu'il en trouve plusieurs (constaté en [P0-04, R1-3](etapes/P0-04-dependances-expo.md)). À trancher avec la connexion Google, qui en dépend.
 - [ ] **Push** : l'outbox locale est envoyée par lots, puis vidée après accusé de réception.
 - [ ] **Pull** : un curseur `updated_at` par table ; la dernière écriture gagne.
 - [ ] Première activation : envoyer toute la base locale. Nouvel appareil : restaurer la copie cloud.
@@ -259,6 +260,7 @@ Aucun utilisateur à préserver : on repart de zéro dans le projet prod.
   - étiquettes de confidentialité (données locales, compte optionnel, Sentry) ;
   - politique de confidentialité et conditions publiées.
 - [ ] Bêta TestFlight externe, puis correction des retours.
+- [ ] **Dépendances** : traiter les vulnérabilités signalées par `npm audit` (81 au 15 octobre 2026) et le conflit de dépendances pairs autour de `test-renderer` / `react-reconciler` (constaté en [P0-04, R1-4](etapes/P0-04-dependances-expo.md)).
 - [ ] Rédiger `docs/release-checklist.md` et la valider entièrement.
 
 **Terminé quand :** la checklist de publication est entièrement cochée et le build de production est soumis.
