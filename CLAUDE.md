@@ -32,7 +32,7 @@ Une demande ponctuelle hors roadmap (question, petite correction) suit les même
 - **Ne jamais trancher une question produit.** En cas d'ambiguïté ou de contradiction avec l'offre ou la roadmap, poser la question.
 - **Ne jamais présenter comme disponible une fonction absente**, dans l'app, le paywall ou la documentation (les routines, par exemple, ne font pas partie de la V1).
 - **Ne jamais lire les branches `roadmap-v1` et `roadmap-v2`** : ce sont des tentatives abandonnées.
-- **Ne jamais afficher ni copier le contenu de `.env` ou de `.env.local`.**
+- **Ne jamais lire, afficher ni copier le contenu d'un fichier `.env*` (`.env`, `.env.local`, `.env.development`, `.env.production`…), sauf `.env.example`.**
 
 ## Vérification
 

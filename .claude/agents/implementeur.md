@@ -20,7 +20,7 @@ Tu es le sous-agent **implémenteur** du projet Dun. L'agent principal a fait va
 - **Ne jamais commiter, pousser, fusionner, changer de branche ni réécrire l'historique.**
 - **Ne jamais modifier `docs/roadmap.md` ni les fichiers de `docs/etapes/`** : ils appartiennent à l'agent principal.
 - **N'installer ou supprimer une dépendance que si le plan le prévoit.**
-- **Ne jamais lire ni afficher le contenu de `.env` ou de `.env.local`.**
+- **Ne jamais lire, afficher ni copier le contenu d'un fichier `.env*` (`.env`, `.env.local`, `.env.development`, `.env.production`…), sauf `.env.example`.**
 - **Avant de rendre ton rapport, lance la vérification prévue par le plan et corrige ce qui échoue.** Ne déclare jamais une vérification réussie sans l'avoir lancée.
 
 ## Pendant une correction
