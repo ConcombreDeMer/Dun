@@ -10,8 +10,8 @@ Cette roadmap applique l'offre décrite dans [`offre-commerciale-v1-pour-agents.
 ## État d'avancement
 
 - **Phase en cours** : 0 — Assainir.
-- **Dernière étape terminée** : [P0-02 — Outillage](etapes/P0-02-outillage.md).
-- **Prochaine étape** : la première case non cochée de la phase 0 (section « Environnements »).
+- **Dernière étape terminée** : [P0-03 — Environnements dev et prod](etapes/P0-03-environnements.md).
+- **Prochaine étape** : l'alignement des dépendances Expo (dernière case de la section « Outillage »), qui débloque le lancement de l'app native. Ensuite, la section « Documentation et Git » (README, ménage des branches), puis le constat du critère de fin de phase.
 
 Cette section est mise à jour à la fin de chaque étape par l'agent principal (voir [Workflow](#workflow)).
 
@@ -82,11 +82,12 @@ src/
 - [x] Ajouter Jest (`jest-expo`) et `@testing-library/react-native`, avec un premier test. → [P0-02](etapes/P0-02-outillage.md)
 - [x] Ajouter les scripts `typecheck`, `lint`, `test`, `format:check` et `check` (qui enchaîne les quatre). → [P0-02](etapes/P0-02-outillage.md)
 - [x] Supprimer le `.github/workflows/quality.yml` non suivi et le remplacer par une CI simple : `npm ci`, puis `npm run check`, à chaque PR et sur `master`. Garder `.nvmrc`. → [P0-02](etapes/P0-02-outillage.md)
+- [ ] Aligner les dépendances Expo sur le SDK 56 (`npx expo install --check` sans écart, cas de `@sentry/react-native` à trancher), réaligner les pods iOS et vérifier le lancement sur simulateur : l'app native plante au lancement (constaté en [P0-03, R2-2](etapes/P0-03-environnements.md)).
 
 ### Environnements
-- [ ] Ajouter les profils EAS `development`, `preview` et `production`, avec les variables d'environnement EAS au lieu de lignes commentées dans `.env`.
-- [ ] Créer deux projets Supabase, dev et prod, et documenter le passage de l'un à l'autre.
-- [ ] Vérifier que les commits `1e20054` et `8ff5dc7` n'ont jamais été poussés. Dans le doute, régénérer le secret client Google OAuth.
+- [x] Séparer dev et prod avec les fichiers `.env.development` et `.env.production` d'Expo, choisis automatiquement selon le type de build (Debug / Release), au lieu de lignes commentées dans `.env`. Pas d'EAS : les builds se font avec Xcode. → [P0-03](etapes/P0-03-environnements.md)
+- [x] Créer deux projets Supabase, dev et prod, et documenter le passage de l'un à l'autre. → [P0-03](etapes/P0-03-environnements.md)
+- [x] Vérifier que les commits `1e20054` et `8ff5dc7` n'ont jamais été poussés. Dans le doute, régénérer le secret client Google OAuth. → [P0-03](etapes/P0-03-environnements.md)
 
 ### Documentation et Git
 - [ ] Réécrire le README : installation, commandes, architecture réelle, environnements.
@@ -250,7 +251,7 @@ Aucun utilisateur à préserver : on repart de zéro dans le projet prod.
   - export et import.
 
   Les lancer en CI sur les PR de `master` si le coût reste raisonnable, sinon avant chaque build.
-- [ ] **Sentry** : releases, sourcemaps envoyées par EAS, environnement `production` / `preview`.
+- [ ] **Sentry** : releases, sourcemaps envoyées par la phase de build Xcode, environnement `production` / `development`.
 - [ ] **Accessibilité** : Dynamic Type (la taille du texte de l'app comprise), libellés VoiceOver sur les cases à cocher et les boutons-icônes, contrastes des palettes.
 - [ ] **Performance** : démarrage à froid, listes longues (un an de tâches), animations du calendrier.
 - [ ] **App Store** :

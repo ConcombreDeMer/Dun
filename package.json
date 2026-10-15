@@ -6,6 +6,7 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "ios:device-dev": "node ./scripts/ios-device-dev.js",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
