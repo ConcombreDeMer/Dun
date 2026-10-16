@@ -1,341 +1,171 @@
 <div align="center">
-  <img src="./assets/images/icon.png" alt="Dun App Icon" width="120" height="120" style="border-radius: 24px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2)">
-  
-  # ✨ Dun ✨
-  
-  <p align="center">
-    <strong>Restez productif, jour après jour</strong>
-  </p>
-  
-  <div align="center">
-    <img alt="Expo" src="https://img.shields.io/badge/Expo-54.0-000.svg?style=flat-square&logo=expo">
-    <img alt="React Native" src="https://img.shields.io/badge/React%20Native-0.81-61dafb.svg?style=flat-square&logo=react">
-    <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.9-3178c6.svg?style=flat-square&logo=typescript">
-    <img alt="License" src="https://img.shields.io/badge/License-Proprietary-red.svg?style=flat-square">
-  </div>
+  <img src="./assets/images/icon.png" alt="Icône de Dun" width="72" height="72">
 
-  <p align="center">
-    Une application minimaliste et moderne pour gérer vos tâches quotidiennes avec style. Suivez vos progrès avec un système intuitif et une expérience utilisateur fluide.
-  </p>
+# Dun
 
-  [✨ Features](#-features-principales) • [🚀 Démarrage](#-démarrage-rapide) • [📱 Architecture](#-architecture) • [🎨 Design](#-design-system)
+Application iPhone pour organiser et suivre ses journées.
 
 </div>
 
----
+## Ce que fait Dun
 
-## 🚀 Démarrage rapide
+- **Tâches datées et Box** : chaque tâche appartient à une journée, ou attend sans date dans la Box.
+- **Calendrier** : naviguer d'une journée à l'autre et revoir les journées passées.
+- **Daily** : à l'ouverture, un bilan de la veille pour terminer, reporter ou supprimer les tâches restées en suspens. Activable ou désactivable.
+- **Verrouillage des jours passés** : protège l'historique une fois la journée close. Activable ou désactivable.
+- **Repos** : mettre ses journées en pause jusqu'à une date choisie.
+- **Tags** : classer ses tâches.
+- **Rappel quotidien** : une notification à l'heure choisie.
+- **Statistiques** : par semaine, par mois et par année.
+- **Affichage** : thèmes clair, sombre et système, palettes de couleurs, langue (français ou anglais), taille du texte, calendrier en curseur ou compact, progression linéaire ou circulaire.
+- **Export et import** : sauvegarder ses données dans un fichier, puis les restaurer.
 
-### Prérequis
-- [Node.js](https://nodejs.org/) (v18+) — Environnement JavaScript
-- [Expo CLI](https://docs.expo.dev/get-started/installation/) — Framework React Native
-- iOS Simulator ou Android Emulator (optionnel)
+### V1 en préparation
 
-### Installation en 3 étapes
+Dun est en cours de refonte pour sa première version publique. La cible est décrite dans l'[offre commerciale](offre-commerciale-v1-pour-agents.md) et le chemin pour y arriver dans la [roadmap](docs/roadmap.md) : une app utilisable sans compte et hors ligne, avec une version gratuite et un abonnement Dun+. Ce n'est pas encore le cas : aujourd'hui, l'app demande un compte et lit ses données sur Supabase.
 
-```bash
-# 1️⃣ Installez les dépendances
-npm install
+## Prérequis
 
-# 2️⃣ Lancez l'application
-npm start
+La V1 vise uniquement l'iPhone.
 
-# 3️⃣ Choisissez votre plateforme
-# → Appuyez sur 'i' pour iOS
-# → Appuyez sur 'a' pour Android  
-# → Appuyez sur 'w' pour Web
-# → Scannez QR pour Expo Go
-```
+- macOS avec Xcode et un simulateur iOS ;
+- Node.js, dans la version indiquée par [`.nvmrc`](.nvmrc) (24) ;
+- CocoaPods (`pod`).
 
-### Configuration produit
+## Installation
 
-Le modele d'acces premium obligatoire peut etre active rapidement avec une variable publique Expo:
+1. Installer les dépendances :
 
-```bash
-EXPO_PUBLIC_REQUIRE_PREMIUM_ACCESS=true
-```
+   ```bash
+   npm ci
+   ```
 
-Par defaut, si la variable est absente ou differente de `true`, `1`, `yes` ou `on`, l'application laisse les comptes gratuits acceder au produit avec les limites definies dans `lib/plan.ts`.
+2. Créer les fichiers de variables à partir du modèle, puis les remplir (valeurs dev dans l'un, prod dans l'autre). La marche à suivre est dans [`docs/environnements.md`](docs/environnements.md).
 
----
+   ```bash
+   cp .env.example .env.development
+   cp .env.example .env.production
+   ```
 
-## 📱 Architecture
+3. Compiler et lancer l'app sur le simulateur :
 
-### Stack Technologique
+   ```bash
+   npx expo run:ios
+   ```
 
-| Catégorie | Technologie | Rôle |
-|-----------|-------------|------|
-| **Framework** | Expo v54 + React Native 0.81 | Mobile cross-platform |
-| **Routage** | Expo Router (file-based) | Navigation déclarative |
-| **Language** | TypeScript v5.9 | Typage strict |
-| **Auth** | Supabase | Authentification & sessions |
-| **DB** | PostgreSQL (Supabase) | Données persistantes |
-| **State** | Zustand + React Query | Gestion d'état global & serveur |
-| **Animations** | Reanimated v4 + Lottie | Animations fluides 60fps |
-| **UI** | React Navigation + Gesture Handler | Navigation native & gestes |
-| **Fonts** | Satoshi Variable | Typographie premium |
+   La première fois, le prebuild génère le dossier `ios/`. Ce dossier n'est pas suivi par Git : il est reconstruit depuis `app.json` et les plugins de `plugins/` (Continuous Native Generation).
 
-### Arborescence du Projet
+## Commandes
 
-```
-📦 dun/
-├── 📂 app/                          # Routes (Expo Router)
-│   ├── 📄 _layout.tsx               # Layout principal + ThemeProvider
-│   ├── 📄 index.tsx                 # 🏠 Écran principal (tâches)
-│   ├── 📄 create-task.tsx           # ➕ Créer une tâche
-│   ├── 📄 edit-task.tsx             # ✏️ Modifier une tâche
-│   ├── 📄 details.tsx               # 📊 Détails d'une journée
-│   ├── 📄 settings.tsx              # ⚙️ Paramètres
-│   ├── 📂 auth/
-│   │   └── 📄 callback.tsx          # 🔐 Callback OAuth/Email
-│   ├── 📂 onboarding/               # 🎯 Flow d'inscription
-│   │   ├── 📄 start.tsx
-│   │   ├── 📄 login.tsx
-│   │   ├── 📄 register.tsx
-│   │   └── ...
-│   └── 📂 stats/                    # 📈 Dashboard statistiques
-├── 📂 components/                   # Composants réutilisables
-│   ├── 📄 TaskItem.tsx              # Item liste de tâche
-│   ├── 📄 calendar.tsx              # Sélecteur de date
-│   ├── 📄 progressBar.tsx           # Barre de progression
-│   ├── 📄 navbar.tsx                # Navigation inférieure
-│   └── ...
-├── 📂 lib/                          # Logique partagée
-│   ├── 📄 ThemeContext.tsx          # 🎨 Gestion thème
-│   ├── 📄 FontContext.tsx           # 🔤 Gestion polices
-│   ├── 📄 supabase.ts               # 🔗 Client Supabase
-│   └── 📄 imageHelper.ts            # 🖼️ Utils images
-├── 📂 store/                        # État global (Zustand)
-│   └── 📄 store.ts
-└── 📂 assets/                       # Ressources statiques
-    ├── 📂 fonts/                    # Polices Satoshi
-    ├── 📂 images/                   # Images & icônes
-    ├── 📂 animations/               # Animations Lottie
-    └── 📂 icon.icon/                # App icon
-```
+| Commande                 | Rôle                                                                                        |
+| ------------------------ | ------------------------------------------------------------------------------------------- |
+| `npm start`              | Lance Metro (`expo start`).                                                                 |
+| `npm run ios`            | Compile et lance l'app iOS en Debug (`expo run:ios`).                                       |
+| `npm run ios:device-dev` | Installe un build Release sur l'iPhone branché, avec la base de dev.                        |
+| `npm run typecheck`      | Vérifie les types (`tsc --noEmit`).                                                         |
+| `npm run lint`           | Lance ESLint, sans aucun avertissement toléré.                                              |
+| `npm run test`           | Lance les tests Jest.                                                                       |
+| `npm run format`         | Formate le code avec Prettier.                                                              |
+| `npm run format:check`   | Vérifie le formatage sans rien modifier.                                                    |
+| `npm run check`          | Enchaîne `typecheck`, `lint`, `format:check` et `test`. C'est la vérification de référence. |
+| `npm run i18n:generate`  | Régénère `lib/i18n/resources.ts` depuis `locales/*.yaml`.                                   |
+| `npm run android`        | Non pris en charge.                                                                         |
+| `npm run web`            | Non pris en charge.                                                                         |
 
----
+## Environnements
 
-## 🎨 Design System
+Dun a deux environnements, chacun avec son projet Supabase. Expo choisit le fichier de variables selon le type de build :
 
-### 🌓 Thème et Couleurs
+| Environnement | Type de build                                | Fichier lu         |
+| ------------- | -------------------------------------------- | ------------------ |
+| dev           | Metro, `npx expo run:ios`, Debug Xcode       | `.env.development` |
+| prod          | Archive Release Xcode, TestFlight, App Store | `.env.production`  |
 
-L'application supporte **3 modes** de thème avec une palette cohérente:
+Seule exception : `npm run ios:device-dev` installe un build Release avec les valeurs de `.env.development`.
 
-<table>
-<tr>
-<td align="center"><b>Light Mode</b></td>
-<td align="center"><b>Dark Mode</b></td>
-<td align="center"><b>System</b></td>
-</tr>
-<tr>
-<td>
-  ☀️ Interface claire<br/>
-  Minimaliste & aérée<br/>
-  Idéale le jour
-</td>
-<td>
-  🌙 Interface sombre<br/>
-  Dégradés subtils<br/>
-  Confortable la nuit
-</td>
-<td>
-  🔄 Suit le système<br/>
-  Adaptation auto<br/>
-  Sans friction
-</td>
-</tr>
-</table>
+Les variables `EXPO_PUBLIC_*` sont copiées en clair dans l'app : on n'y met **jamais de secret**.
 
-**Configuration**: `lib/ThemeContext.tsx`
-```tsx
-const { colors, theme, actualTheme, toggleTheme } = useTheme();
-```
+Le détail (ordre de priorité des fichiers, pièges, secrets serveur, CLI Supabase) est dans [`docs/environnements.md`](docs/environnements.md).
 
-### 🔤 Typographie
+## Builds iOS et pods
 
-Utilisation exclusive de **Satoshi Variable** (5 poids):
+- **Debug** charge le code JavaScript depuis Metro. **Release** l'embarque dans l'app.
+- Après un changement de dépendances (ou d'un fichier `.env*`), relancer Metro en vidant son cache :
 
-| Poids | Type | Utilisation |
-|-------|------|-------------|
-| **400** | Regular | Corps de texte courant |
-| **500** | Medium | Interactions, sous-titres |
-| **700** | Bold | Titres secondaires |
-| **900** | Black | Titres principaux |
-| **Variable** | Multi-poids | Animations sans rerender |
+  ```bash
+  npx expo start --clear
+  ```
 
----
+### Reconstruire `ios/Pods` après un passage Debug ↔ Release
 
-## 🔐 Authentification
+Quand on alterne les builds Debug et Release, les pods précompilés (`React-Core-prebuilt`, `ExpoModulesCore.xcframework`) peuvent garder la variante de l'autre configuration.
 
-Intégration **Supabase Auth** complète avec plusieurs flux:
+Symptômes :
 
-```
-┌─────────────┐
-│  Onboarding │
-└──────┬──────┘
-       ↓
-   ┌───────────────────────────┐
-   │  Inscription / Connexion  │
-   └──────┬────────────────────┘
-          ↓
-   ┌──────────────────────────┐
-   │  Vérification Email OTP  │
-   └──────┬───────────────────┘
-          ↓
-   ┌──────────────────────────┐
-   │  Dashboard Principal     │
-   └──────────────────────────┘
-```
+- échec de l'édition de liens, avec un symbole `Sealable::Sealable()` introuvable ;
+- crash au lancement de l'app, dans `Props::Props()`.
 
-### Fonctionnalités supportées
-- ✅ **Email/Password** — Authentification basique
-- ✅ **OTP Email** — Vérification par code
-- ✅ **Password Reset** — Récupération de compte
-- ✅ **OAuth** — Support futur (Google, GitHub, etc.)
-- ✅ **Session Persistence** — AsyncStorage + Supabase sync
-
----
-
-## ✨ Features Principales
-
-<div align="flex-start">
-
-### 📝 Gestion des Tâches
-Créez, modifiez et complétez vos tâches avec une UX premium
-- ✅ Créer des tâches quotidiennes
-- ✅ Marquer comme complétées
-- ✅ Drag & drop pour réorganiser
-- ✅ Modifier/Supprimer en temps réel
-- ✅ Sync Supabase instantanée
-
-### 📅 Calendrier Interactif  
-Naviguez les jours avec fluidité
-- 📅 Sélection de date fluide
-- 📊 Historique des jours
-- 📈 Statistiques de completion
-- 🏆 Vue par semaine/mois
-
-### ⚙️ Paramètres Avancés
-Personnalisez votre expérience
-- 🌓 Thème (Light/Dark/System)
-- 📧 Gestion du compte
-- 🔔 Préférences notifications
-- 🎨 Personnalisation UI
-
-### 📈 Statistiques Détaillées
-Suivez votre productivité
-- 📉 Graphiques de progression
-- 🔥 Système de "streak"
-- 📋 Analyse de completion
-- 📊 Tendances hebdomadaires
-
-</div>
-
----
-
-## 🔄 Gestion des Données
-
-### ⚡ React Query - Server State Management
-
-```tsx
-// Pattern: Requête avec cache automatique
-const taskQuery = useQuery({
-  queryKey: ['tasks', dateKey],      // Cache key
-  queryFn: getTasks,                 // Fonction fetch
-});
-
-// Optimistic updates → UX sans latence
-queryClient.setQueryData(['tasks', dateKey], newData);
-```
-
-**Avantages**:
-- 🚀 Caching automatique
-- 🔁 Refetch intelligent  
-- 🧠 Deduplication des requêtes
-- 📱 Gestion hors ligne
-
-### 🛠️ Zustand - Client State Management
-
-```tsx
-// État global léger et performant
-const selectedDate = useStore((state) => state.selectedDate);
-const setSelectedDate = useStore((state) => state.setSelectedDate);
-```
-
-**Avantages**:
-- ⚡ Minimaliste (~200 bytes)
-- 🎯 Sélecteurs optimisés
-- 💾 Persistance AsyncStorage
-- 🔌 Devtools intégrés
-
----
-
-## 🎬 Performance & Animations
-
-<table>
-<tr><th>Aspect</th><th>Technologie</th><th>Bénéfice</th></tr>
-<tr><td>🎥 Animations</td><td>Reanimated v4</td><td>60fps sur thread natif</td></tr>
-<tr><td>👆 Gestes</td><td>Gesture Handler</td><td>Drag & drop ultra-fluide</td></tr>
-<tr><td>📦 Cache</td><td>React Query</td><td>Sync intelligente serveur</td></tr>
-<tr><td>⏱️ UX</td><td>Optimistic Updates</td><td>Pas de latence perceptible</td></tr>
-<tr><td>🎞️ Lottie</td><td>Animations JSON</td><td>Petites, vectorielles</td></tr>
-</table>
-
----
-
-## 📦 Scripts NPM
+Correction :
 
 ```bash
-# 🚀 Développement
-npm start              # Lance Expo avec menu interactif
-npm run ios           # Compile & lance sur iOS Simulator
-npm run android       # Compile & lance sur Android Emulator
-npm run web           # Démarre la version web
-
-# 🔍 Qualité de code
-npm run lint          # ESLint + check TypeScript
-npm run reset-project # Réinitialise le projet (backup recommandé)
+cd ios && rm -rf Pods && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 pod install
 ```
 
----
-
-## 🗄️ Base de Données (Supabase PostgreSQL)
-
-### 📋 Tables Principales
-
-| Table | Purpose | Clé Étrangère |
-|-------|---------|---------------|
-| **Profiles** | Profils utilisateurs (thème, langue, preferences) | `id` = user_id |
-| **Tasks** | Tâches quotidiennes avec ordre & status | `user_id`, `date` |
-| **Days** | Historique journalier + statistiques | `user_id`, `date` |
-
-### 🔒 Sécurité avec RLS
-
-Row Level Security (RLS) est activé sur **toutes les tables** pour:
-- ✅ Isolation complète par utilisateur
-- ✅ Requêtes multiples en sécurité
-- ✅ Zéro risque de data leak
-- ✅ Validation côté DB
-
-```sql
--- Exemple: Chaque utilisateur ne voit que ses tâches
-CREATE POLICY user_tasks ON Tasks
-  USING (auth.uid() = user_id);
-```
-
----
-
-### 🚀 Prêt à vous lancer ?
+Si le problème persiste, fermer Xcode, supprimer le dossier DerivedData du projet, puis recompiler :
 
 ```bash
-npm install && npm start
+rm -rf ~/Library/Developer/Xcode/DerivedData/Dun-*
 ```
 
-**Made with ❤️ using Expo + React Native**
+## Architecture
 
-[⬆ back to top](#-dun)
+### Stack
 
-</div>
+Versions lues dans [`package.json`](package.json).
 
-**Made with ❤️ by Nay**
+| Rôle                     | Outil                                 |
+| ------------------------ | ------------------------------------- |
+| Framework                | Expo 56, React Native 0.85, React 19  |
+| Langage                  | TypeScript 6, en mode strict          |
+| Navigation               | Expo Router                           |
+| Compte et données        | Supabase                              |
+| Données serveur en cache | React Query                           |
+| État global              | Zustand                               |
+| Animations               | Reanimated                            |
+| Abonnement               | RevenueCat (`react-native-purchases`) |
+| Suivi des erreurs        | Sentry                                |
+| Traductions              | i18next, avec des fichiers YAML       |
+
+### Arborescence
+
+```
+app/          Routes Expo Router : onglets, onboarding, réglages, Box, Daily, Repos
+components/   Composants d'interface
+lib/          Logique partagée : Supabase, tâches, statistiques, notifications,
+              abonnement, thème, traductions
+  i18n/       Ressources générées depuis locales/ (ne pas modifier à la main)
+store/        État global Zustand
+locales/      Textes de l'app en français et en anglais (YAML)
+assets/       Polices, images, animations Lottie, icône
+supabase/     Migrations SQL et fonctions Edge (Deno)
+plugins/      Plugins de configuration Expo, appliqués au prebuild
+scripts/      Scripts Node (génération des traductions, build iPhone en dev)
+docs/         Roadmap, fichiers d'étape, environnements, audit
+```
+
+Ce code sera réorganisé au fil de la roadmap : la structure visée est décrite dans l'[architecture cible](docs/roadmap.md#architecture-cible).
+
+## Traductions
+
+Tout texte visible passe par les fichiers [`locales/fr.yaml`](locales/fr.yaml) et [`locales/en.yaml`](locales/en.yaml). Après une modification, régénérer les ressources :
+
+```bash
+npm run i18n:generate
+```
+
+## Contribuer
+
+- Les règles du projet, pour les humains comme pour les agents, sont dans [`CLAUDE.md`](CLAUDE.md).
+- Le travail suit la [roadmap](docs/roadmap.md), étape par étape, avec le skill `/etape-suivante` ([`.claude/skills/etape-suivante/SKILL.md`](.claude/skills/etape-suivante/SKILL.md)). Chaque étape a son fichier dans [`docs/etapes/`](docs/etapes/).
+- Messages de commit en commits conventionnels (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`), préfixés par l'étape quand il y en a une, par exemple `docs(P0-05): …`.
+- La CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) lance `npm run check` à chaque PR et sur `master`. Il doit passer sans erreur ni avertissement.
