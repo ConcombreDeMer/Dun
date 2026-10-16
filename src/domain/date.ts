@@ -51,6 +51,33 @@ export function isDateKey(value: string): boolean {
 const MIN_INSTANT = keyToUtcDate("0001-01-02").getTime();
 const MAX_INSTANT = keyToUtcDate("9999-12-31").getTime();
 
+/*
+ * One formatter per time zone, built on first use: building an
+ * `Intl.DateTimeFormat` is costly, and `dateKey` runs for every task and
+ * every calendar cell. This is memoization only, the module stays pure.
+ */
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+/* Throws a `RangeError` for an unknown time zone, which is not cached. */
+function formatterFor(timeZone: string): Intl.DateTimeFormat {
+  let formatter = formatters.get(timeZone);
+  if (formatter === undefined) {
+    /*
+     * The locale only fixes the calendar (Gregorian) and the digits (Latin);
+     * the parts are read by type, never by position.
+     */
+    formatter = new Intl.DateTimeFormat("en-US-u-ca-gregory-nu-latn", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    formatters.set(timeZone, formatter);
+  }
+
+  return formatter;
+}
+
 /**
  * Key of the local day of `date` in the IANA time zone `timeZone`
  * (for example `Europe/Paris`). The day ends at midnight in that zone.
@@ -65,16 +92,7 @@ export function dateKey(date: Date, timeZone: string): DateKey {
     throw new RangeError("dateKey: invalid or out of range date");
   }
 
-  /*
-   * The locale only fixes the calendar (Gregorian) and the digits (Latin);
-   * the parts are read by type, never by position.
-   */
-  const parts = new Intl.DateTimeFormat("en-US-u-ca-gregory-nu-latn", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
+  const parts = formatterFor(timeZone).formatToParts(date);
 
   const values: Record<string, string> = {};
   for (const part of parts) {

@@ -142,6 +142,8 @@ src/
 - [ ] Écrire le schéma Drizzle : `tasks` (date nulle = Box), `tags`, `task_tags`, `day_records`, `rest_periods`, `goal`, `settings`, `reminders`, `outbox`. Toutes les tables ont `id` UUID, `created_at`, `updated_at` et `deleted_at`.
 - [ ] Écrire un repository par entité. Les écrans ne parlent qu'aux hooks de `features/`, qui appellent `domain/` et `data/`.
 - [ ] Clôturer les journées : au lancement et au retour au premier plan, enregistrer les journées closes depuis la dernière ouverture dans `day_records`.
+- [ ] Vérifier sur simulateur et sur iPhone que `dateKey` (`Intl.DateTimeFormat#formatToParts` avec `timeZone`) fonctionne sous Hermes, au premier branchement de `src/domain/date.ts` dans l'app. Il n'est testé que sous Node (constaté en [P1-01](etapes/P1-01-dates.md), revue de la PR #33).
+- [ ] Faire passer l'ouverture de la journée et le déclenchement du Daily par `openDayKey` et `dayKeysToClose`. Aujourd'hui, `app/index.tsx` compare `last_opened !== today` : après un voyage vers l'ouest, il relance le Daily d'une journée close et réécrit `last_opened` en arrière, contrairement à l'offre (constaté en [P1-01](etapes/P1-01-dates.md), revue de la PR #33).
 
 ### Fonctionnalités à reconstruire sur la base locale
 Pour chacune : la découper en composants de moins de 300 lignes et supprimer l'ancien code Supabase.

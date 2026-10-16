@@ -292,6 +292,23 @@ describe("dateKey", () => {
     expect(dateKey(last, "Etc/GMT-14")).toBe("9999-12-31");
   });
 
+  it("réutilise un fuseau déjà vu sans changer le résultat", () => {
+    const instant = at("2026-10-15T22:30:00Z");
+    expect(dateKey(instant, "Asia/Kolkata")).toBe("2026-10-16");
+    expect(dateKey(instant, "Asia/Kolkata")).toBe("2026-10-16");
+    expect(dateKey(at("2026-10-15T12:00:00Z"), "Asia/Kolkata")).toBe(
+      "2026-10-15",
+    );
+    expect(dateKey(instant, "America/Los_Angeles")).toBe("2026-10-15");
+    expect(dateKey(instant, "Asia/Kolkata")).toBe("2026-10-16");
+  });
+
+  it("refuse un fuseau inconnu, à chaque appel", () => {
+    const instant = at("2026-10-16T12:00:00Z");
+    expect(() => dateKey(instant, "Mars/Phobos")).toThrow(RangeError);
+    expect(() => dateKey(instant, "Mars/Phobos")).toThrow(RangeError);
+  });
+
   it("refuse un fuseau inconnu", () => {
     expect(() => dateKey(at("2026-10-16T12:00:00Z"), "Mars/Olympus")).toThrow(
       RangeError,

@@ -209,13 +209,13 @@ Aucun problème bloquant : pas de tour de correction.
 - **`src/domain/date.test.ts`** (nouveau) : 26 tests, dont trois `describe` nommés d'après les puces de l'offre et le scénario Paris → New York → Paris.
 - **`DAILY_ROLLOVER_HOUR` et `toDailyDateKey` supprimés** (`lib/date.ts`). Les 4 appels passent à `getTodayAppDateKey()` (`app/index.tsx`, `lib/daily.ts`). Le Daily se déclenche maintenant à minuit, et non plus à 4 h.
 - **Couverture** :
-  - `npm run test` lance `jest --coverage` ;
+  - `npm run test:coverage` lance `jest --coverage`, et c'est lui que lance `npm run check`. `npm run test` reste `jest`, pour les exécutions partielles (tour Yanis 1) ;
   - seuil de 100 % sur `src/domain` dans `jest.config.js` ;
   - `coverage/` ignoré par Git, Prettier et ESLint.
 - **Documentation du code** : `CLAUDE.md` (Vérification) et `README.md` (commande `test`, `src/domain/` dans l'arborescence).
 
 ### Vérification finale
-- `npm run check` sort en 0 : 4 suites, 36 tests, `src/domain` couvert à 100 % (instructions, branches, fonctions, lignes).
+- `npm run check` sort en 0 : 4 suites, 38 tests après le tour Yanis 1, `src/domain` couvert à 100 % (instructions, branches, fonctions, lignes).
 - Seuil actif : `npx jest --coverage src/domain -t "isDateKey"` sort en 1.
 - `grep -rn "DAILY_ROLLOVER_HOUR\|toDailyDateKey\|istanbul ignore" app components lib store src` : aucun résultat.
 - `git status` : aucun fichier de couverture.
@@ -241,8 +241,32 @@ Aucun problème bloquant : pas de tour de correction.
 ## Pour l'étape suivante
 - **P1-02** : `isRestDay` et `dayStatus(tasks, restPeriods, dateKey, now)`. Pour calculer la journée ouverte, réutiliser `openDayKey` et `dateKey` de `src/domain/date.ts` ; ne pas recalculer de date à la main.
 - **Nommage des tests** : les `describe` reprennent mot pour mot les puces de l'offre, pour préparer le critère de fin de phase 1. Les tests sont en français.
-- **Couverture** : tout nouveau fichier de `src/domain` doit être couvert à 100 %, sinon `npm run check` échoue. `istanbul ignore` est interdit.
+- **Couverture** : tout nouveau fichier de `src/domain` doit être couvert à 100 %, sinon `npm run check` échoue (via `npm run test:coverage`). `istanbul ignore` est interdit. Pour lancer un seul fichier de test, utiliser `npm run test -- <fichier>`.
 - **Hermes** : `dateKey` utilise `Intl.DateTimeFormat#formatToParts` avec `timeZone` et la locale `en-US-u-ca-gregory-nu-latn`. Ce n'est vérifié que sous Node. Il faudra le vérifier sur simulateur au premier branchement dans l'app (phase 2).
 - **Dette voulue** : deux calculs de la date locale coexistent, `lib/date.ts` (heure locale de l'appareil) et `src/domain/date.ts` (fuseau explicite). La phase 2 branchera les écrans sur le domaine et supprimera `lib/date.ts`.
 - **Fuseau de l'iPhone** : aucun module ne le lit encore. En phase 2, `Intl.DateTimeFormat().resolvedOptions().timeZone` (ou `expo-localization`) le fournira, hors de `src/domain`.
+- **Constats de la revue de la PR #33 non corrigés dans cette étape** (décision de Yanis : les noter ici) :
+  - `app/index.tsx:79` : le routage du Daily compare `last_opened !== today`. Après un voyage vers l'ouest, il relance le Daily d'une journée close et réécrit `last_opened` en arrière. À corriger en branchant `openDayKey` (phase 2, clôture des journées). **Ajouté à la roadmap, phase 2 (décision de Yanis).**
+  - `app/index.tsx:43` : le Repos se termine à l'horodatage exact (`restEndDate > now`, fixé à maintenant + 24 h), pas à minuit avec la date de fin incluse. À traiter avec `isRestDay` (P1-02), puis avec l'écran Repos (phase 2).
+  - `lib/daily.ts:154` : le passage de 4 h à minuit se fait sans migration. Les `last_opened` et les revues Daily écrits avec l'ancienne règle peuvent déclencher un Daily de plus une fois. Sans effet réel, puisqu'il n'y a pas d'utilisateurs.
+  - `src/domain/date.ts` : `formatToParts` avec `timeZone` et la locale `-u-ca-gregory-nu-latn` n'est vérifié que sous Node. Il faudra le vérifier sous Hermes au premier branchement (voir plus haut). **Ajouté à la roadmap, phase 2 (décision de Yanis).**
+  - `lib/daily.ts:76` : `addDays` et `getDateDiffInDays` en double avec `addDays` du domaine. À remplacer quand le Daily sera reconstruit (phase 2).
+  - `lib/date.ts:32` : le passage du Daily à minuit, qui passe par `getTodayAppDateKey` et `lib/daily.ts`, n'a pas de test. Il sera couvert quand les écrans liront `src/domain` (phase 2).
+  - `src/domain/date.ts:157` : `dayKeysToClose` revalide chaque clé deux fois par jour parcouru. C'est négligeable aujourd'hui ; à simplifier si la clôture devient coûteuse.
 - **Metro** : si l'app affiche `Unable to resolve module ./node_modules/expo-router/entry`, relancer Metro avec `npx expo start --clear`.
+
+## Revue de la PR #33 et corrections demandées par Yanis — tour 1
+
+La revue de code de la PR #33 (commit `e5ebdc9`) a relevé 9 constats. Yanis a demandé d'en corriger 2. Les 7 autres sont notés dans « Pour l'étape suivante ».
+
+| ID | Fichier | Problème | Correction | Vérification |
+|---|---|---|---|---|
+| Y1-1 | `package.json:13` | Avec `test` = `jest --coverage`, toute exécution partielle échouait sur le seuil de couverture. | `test` redevient `jest`. Le nouveau script `test:coverage` lance `jest --coverage`, et `check` le lance à la place de `test`. `CLAUDE.md`, `README.md` et le commentaire de `jest.config.js` sont mis à jour. | `npm run test -- components/headline.test.tsx` sort en 0. `npx jest --coverage src/domain -t isDateKey` sort en 1 : le seuil reste actif. |
+| Y1-2 | `src/domain/date.ts:72` | `dateKey` construisait un `Intl.DateTimeFormat` à chaque appel. | Cache privé `formatterFor(timeZone)`, avec un formateur par fuseau. Un fuseau inconnu lève toujours une `RangeError` et n'est pas mis en cache. 2 tests ajoutés. | `npm run check` sort en 0 : 38 tests, `src/domain` à 100 %. |
+
+Vérifié et correct :
+- le diff ne touche que `package.json`, `jest.config.js`, `CLAUDE.md`, `README.md` et `src/domain/` ;
+- la CI lance `npm run check`, donc le seuil s'applique toujours aux PR ;
+- aucun fichier de couverture dans `git status`.
+
+Le fichier de test fait maintenant 333 lignes. Yanis a déjà choisi de le laisser tel quel (R1-1).
