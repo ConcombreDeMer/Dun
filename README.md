@@ -76,10 +76,10 @@ La V1 vise uniquement l'iPhone.
 
 Dun a deux environnements, chacun avec son projet Supabase. Expo choisit le fichier de variables selon le type de build :
 
-| Environnement | Type de build                                | Fichier lu         |
-| ------------- | -------------------------------------------- | ------------------ |
-| dev           | Metro, `npx expo run:ios`, Debug Xcode       | `.env.development` |
-| prod          | Archive Release Xcode, TestFlight, App Store | `.env.production`  |
+| Environnement | Type de build                                         | Fichier lu         |
+| ------------- | ----------------------------------------------------- | ------------------ |
+| dev           | Metro, `npx expo run:ios`, Debug Xcode                | `.env.development` |
+| prod          | Release Xcode (Run ou archive), TestFlight, App Store | `.env.production`  |
 
 Seule exception : `npm run ios:device-dev` installe un build Release avec les valeurs de `.env.development`.
 
