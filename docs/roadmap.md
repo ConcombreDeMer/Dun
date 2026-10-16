@@ -10,8 +10,8 @@ Cette roadmap applique l'offre décrite dans [`offre-commerciale-v1-pour-agents.
 ## État d'avancement
 
 - **Phase en cours** : 1 — Noyau métier testé. La phase 0 est close : CI verte sur `master` et build Release vérifié sur iPhone le 16 octobre 2026, à la place du build TestFlight (voir [P1-01](etapes/P1-01-dates.md)).
-- **Dernière étape terminée** : [P1-01 — Clés de date et journées à minuit](etapes/P1-01-dates.md).
-- **Prochaine étape** : `isRestDay` et `dayStatus` (fin de « Dates et journées » et section « Repos »).
+- **Dernière étape terminée** : [P1-02 — Repos et statut d'une journée](etapes/P1-02-repos-statut.md).
+- **Prochaine étape** : `streak` et `goalProgress` (section « Série et objectif »).
 
 Cette section est mise à jour à la fin de chaque étape par l'agent principal (voir [Workflow](#workflow)).
 
@@ -106,7 +106,7 @@ src/
 ### Dates et journées
 - [x] `dateKey(date, timeZone)` : clé `YYYY-MM-DD` de la journée locale, clôture à minuit. Supprimer `DAILY_ROLLOVER_HOUR`. → [P1-01](etapes/P1-01-dates.md)
 - [x] Une nouvelle journée suit le fuseau de l'iPhone ; une journée déjà enregistrée garde sa date. Tests avec un passage de Paris à New York et retour. → [P1-01](etapes/P1-01-dates.md)
-- [ ] `dayStatus(tasks, restPeriods, dateKey, now)` → `success | failed | empty | rest | provisional` :
+- [x] `dayStatus(tasks, restPeriods, dateKey, openKey)` → `success | failed | empty | rest | provisional` (`openKey` : journée ouverte, donnée par `openDayKey`) : → [P1-02](etapes/P1-02-repos-statut.md)
   - seule une journée **close** à 100 % est un succès ;
   - une journée en cours à 100 % est provisoire ;
   - une journée vide hors Repos est un échec, de même qu'une journée incomplète.
@@ -119,7 +119,7 @@ src/
   - la première réussite datée et la série en cours sont distinctes.
 
 ### Repos
-- [ ] `isRestDay(restPeriods, dateKey)` :
+- [x] `isRestDay(restPeriods, dateKey)` : → [P1-02](etapes/P1-02-repos-statut.md)
   - un Repos activé pendant une journée ouverte rend toute la journée neutre ;
   - la date de fin est incluse ;
   - une annulation avant minuit rend la journée en cours normale ;
@@ -151,7 +151,7 @@ Pour chacune : la découper en composants de moins de 300 lignes et supprimer l'
 - [ ] Création et édition de tâche ; une seule modale au lieu de `popUpTask` et `liquidCreateModal`. Le bouton « + » ouvre la modale avant de lancer le retour haptique, sans l'attendre : aujourd'hui, un échec de l'haptique empêche l'ouverture. Un test Jest vérifie que le « + » ouvre la modale (régression non détectée par la CI en [P0-04](etapes/P0-04-dependances-expo.md), revue de code finale).
 - [ ] Box, sans limite.
 - [ ] Daily : revue des tâches en retard, reporter, terminer en retard, supprimer.
-- [ ] Repos : activer, annuler, consulter la date de fin.
+- [ ] Repos : activer, annuler, consulter et changer la date de fin, en appelant les fonctions de `src/domain/rest.ts` (décision de Yanis en [P1-02](etapes/P1-02-repos-statut.md)).
 - [ ] Tags : créer, modifier, supprimer, 3 maximum par tâche.
 - [ ] Statistiques de la semaine.
 - [ ] Réglages d'affichage : thème, langue, taille du texte, calendrier, progression, palette. Fusionner `ThemeContext` et `FontContext` dans un seul module de préférences lu depuis `settings`.
