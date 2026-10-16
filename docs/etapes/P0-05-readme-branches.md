@@ -9,7 +9,7 @@
 ### Contexte
 
 P0-01 à P0-04 ont nettoyé le code, installé l'outillage (`npm run check`, CI), séparé dev et prod (`docs/environnements.md`) et aligné Expo sur le SDK 56. Il reste la section « Documentation et Git » de la phase 0 :
-- le README date d'Expo 54 / RN 0.81. Il décrit des fichiers supprimés (`progressBar`), un script retiré (`reset-project`), Android, le web et Expo Go, et une icône absente (`assets/images/icon.png`) ;
+- le README date d'Expo 54 / RN 0.81. Il décrit des fichiers supprimés (`progressBar`), un script retiré (`reset-project`), Android, le web et Expo Go ;
 - le dépôt compte une quarantaine de branches, locales et distantes.
 
 P0-04 a laissé deux consignes pour le README : documenter la reconstruction de `ios/Pods` quand on alterne Debug et Release (R1-1), et ne plus mentionner de `postinstall`.
@@ -34,7 +34,7 @@ P0-04 a laissé deux consignes pour le README : documenter la reconstruction de 
 ### Périmètre
 
 Cases de la roadmap couvertes, recopiées mot pour mot :
-- [ ] Réécrire le README : installation, commandes, architecture réelle, environnements. Y expliquer comment reconstruire `ios/Pods` quand on alterne Debug et Release : les pods précompilés peuvent garder la variante de l'autre configuration (constaté en [P0-04, R1-1](etapes/P0-04-dependances-expo.md)).
+- [ ] Réécrire le README : installation, commandes, architecture réelle, environnements. Y expliquer comment reconstruire `ios/Pods` quand on alterne Debug et Release : les pods précompilés peuvent garder la variante de l'autre configuration (constaté en [P0-04, R1-1](P0-04-dependances-expo.md)).
 - [ ] Supprimer les branches fusionnées ou abandonnées : `codex/*`, `create-task-v2`, `create-task-v3`, etc. Archiver par un tag celles qu'on veut garder pour mémoire.
 
 Plus le constat du critère de fin de phase 0 : « la CI est verte sur `master` et `npm run check` passe sans aucun avertissement ».
@@ -224,10 +224,10 @@ git push origin archive/ai archive/ia archive/create-task-v2 archive/liquid-glas
 gh pr close 25 --comment "Archivée sous le tag archive/roadmap-v2 (P0-05)"
 ```
 
-3. Supprimer les 36 branches distantes : 30 sont fusionnées dans `origin/master`, les 6 autres sont archivées par un tag.
+3. Supprimer les 35 branches distantes : 29 sont fusionnées dans `origin/master`, les 6 autres sont archivées par un tag. `squircle` n'y figure plus : elle a disparu du dépôt distant entre la préparation et la revue de la PR. Son commit local reste conservé par `archive/squircle`.
 
 ```bash
-git push origin --delete ai bugs-extermination chore/p0-01-menage chore/p0-02-outillage chore/p0-03-environnements chore/p0-04-dependances-expo chore/workflow-agents codex/ajouter-import-de-donnes codex/ajouter-limite-quotidienne codex/ajouter-toggle-verrouillage-jours codex/bloquer-tches-dans-le-pass codex/corrige-importdata codex/corriger-pastilles-calendrier codex/diagnostiquer-crash-ram codex/diagnostiquer-erreurs-supabase codex/diagnostiquer-reconnexion-app codex/fusionner-stats-et-rglages codex/harmoniser-les-headers-des-crans codex/identifier-les-cas-premiumgratuit codex/migrer-vers-premium-unique codex/planifier-le-verrouillage-premium codex/refondre-les-streaks-des-stats codex/refondre-onboarding codex/remplacer-nativetabs-par-bouton-box codex/vrifier-config-expo create-task-v2 create-task-v3 ia liquid-glass new-daily notifications onboarding-with-dun roadmap-v1 roadmap-v2 squircle task-details-v2
+git push origin --delete ai bugs-extermination chore/p0-01-menage chore/p0-02-outillage chore/p0-03-environnements chore/p0-04-dependances-expo chore/workflow-agents codex/ajouter-import-de-donnes codex/ajouter-limite-quotidienne codex/ajouter-toggle-verrouillage-jours codex/bloquer-tches-dans-le-pass codex/corrige-importdata codex/corriger-pastilles-calendrier codex/diagnostiquer-crash-ram codex/diagnostiquer-erreurs-supabase codex/diagnostiquer-reconnexion-app codex/fusionner-stats-et-rglages codex/harmoniser-les-headers-des-crans codex/identifier-les-cas-premiumgratuit codex/migrer-vers-premium-unique codex/planifier-le-verrouillage-premium codex/refondre-les-streaks-des-stats codex/refondre-onboarding codex/remplacer-nativetabs-par-bouton-box codex/vrifier-config-expo create-task-v2 create-task-v3 ia liquid-glass new-daily notifications onboarding-with-dun roadmap-v1 roadmap-v2 task-details-v2
 ```
 
 4. Nettoyer les références distantes locales :
@@ -276,3 +276,27 @@ git push origin --delete docs/p0-05-readme-branches && git branch -d docs/p0-05-
 - **`app/daily.tsx`** garde un mode simulé désactivé (`useMock`, `lib/dailyMock.ts`), à supprimer lors de la reconstruction du Daily (phase 2).
 - **Le README décrit l'architecture actuelle.** À mettre à jour quand `src/` apparaîtra (phase 1).
 - **La phase 1 commence par « Dates et journées »** : `dateKey(date, timeZone)` et la suppression de `DAILY_ROLLOVER_HOUR`.
+
+## Revue de la PR #31
+
+Faite à la demande de Yanis, sur `0b518f1`.
+
+| ID | Gravité | Fichier:ligne | Problème | Correction |
+|---|---|---|---|---|
+| PR-1 | Bloquant | `docs/etapes/P0-05-readme-branches.md:37` | Le lien vers P0-04, recopié tel quel de la roadmap, était cassé : il se résolvait en `docs/etapes/etapes/…`. | Lien rendu relatif au dossier `docs/etapes/`. |
+| PR-2 | Bloquant | `docs/etapes/P0-05-readme-branches.md:12` | Le contexte disait `assets/images/icon.png` absente : c'est faux, le fichier existe (voir R1-1). | Mention retirée. |
+| PR-3 | Bloquant | « Commandes pour Yanis », point 3 | `squircle` n'existe plus sur le dépôt distant : la commande de suppression aurait signalé une erreur. | Retirée de la liste, qui passe à 35 branches. |
+| PR-4 | Non bloquant | PR #31 | Le corps de la PR est vide, alors que le workflow prévoit le fichier d'étape. | `gh pr edit 31 --body-file docs/etapes/P0-05-readme-branches.md`, une fois ce correctif poussé. |
+
+Vérifié et correct :
+- **Contenu** : la branche distante est identique à la branche relue (`0b518f1`). Les 3 fichiers attendus sont modifiés : `README.md`, ce fichier et `docs/roadmap.md`.
+- **Commit** : message conventionnel, avec le trailer de co-autorat.
+- **Diff** : `git diff --check` ne signale rien.
+- **CI de la PR** : verte (run 38772668253).
+- **État de la PR** : `MERGEABLE`.
+- **Liens** : tous les autres liens relatifs de ce fichier existent.
+- **Ménage distant, pas encore fait** (attendu à ce stade) :
+  - aucun tag `archive/*` sur le dépôt distant ;
+  - la PR #25 est ouverte ;
+  - 35 branches restent à supprimer.
+
