@@ -31,7 +31,7 @@ L'export et la restauration manuels restent gratuits. La copie cloud et sa récu
 - Une journée se clôt à **minuit**. Seules les journées closes à 100 % comptent pour l'objectif ; une journée en cours à 100 % reste provisoire. Une journée vide hors Repos ou incomplète rompt la série.
 - La journée où l'objectif est confirmé peut compter si elle se clôt à 100 %, même si des tâches ont été faites avant cette confirmation. La première réussite datée et la série courante sont distinctes. L'objectif et les statistiques utilisent la même règle de série.
 - Le Repos activé pendant une journée ouverte rend cette journée entière neutre pour l'objectif et les statistiques. Sa date de fin est incluse. Une annulation avant minuit rend la journée en cours normale, sans modifier les jours déjà clos. Aucun Repos ne s'ajoute rétroactivement à une journée close.
-- Les nouvelles journées suivent le fuseau de l'iPhone. Une journée déjà enregistrée garde sa date et ne se rouvre pas lors d'un voyage.
+- Les nouvelles journées suivent le fuseau de l'iPhone. Une journée déjà enregistrée garde sa date et ne se rouvre pas lors d'un voyage. La journée ouverte est la plus tardive entre la date locale de l'iPhone et le lendemain de la dernière journée close : après un voyage vers l'ouest, la journée en cours se prolonge jusqu'à minuit heure locale au lieu de revenir à une date déjà close.
 - Les personnes ayant déjà un compte choisissent un nouvel objectif lors de la migration de leurs données : l'ancien objectif et l'historique de Repos ne sont pas inventés.
 
 ## Droits Dun+ et expiration

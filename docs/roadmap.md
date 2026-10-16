@@ -9,9 +9,9 @@ Cette roadmap applique l'offre décrite dans [`offre-commerciale-v1-pour-agents.
 
 ## État d'avancement
 
-- **Phase en cours** : 0 — Assainir, terminée. Son critère de fin est constaté dans [P0-05](etapes/P0-05-readme-branches.md), sous réserve que la CI reste verte sur le commit de fusion de P0-05. Reste le build TestFlight interne de fin de phase.
-- **Dernière étape terminée** : [P0-05 — README et ménage des branches](etapes/P0-05-readme-branches.md).
-- **Prochaine étape** : phase 1 — Noyau métier testé, en commençant par « Dates et journées » (`dateKey`, suppression de `DAILY_ROLLOVER_HOUR`).
+- **Phase en cours** : 1 — Noyau métier testé. La phase 0 est close : CI verte sur `master` et build Release vérifié sur iPhone le 16 octobre 2026, à la place du build TestFlight (voir [P1-01](etapes/P1-01-dates.md)).
+- **Dernière étape terminée** : [P1-01 — Clés de date et journées à minuit](etapes/P1-01-dates.md).
+- **Prochaine étape** : `isRestDay` et `dayStatus` (fin de « Dates et journées » et section « Repos »).
 
 Cette section est mise à jour à la fin de chaque étape par l'agent principal (voir [Workflow](#workflow)).
 
@@ -104,8 +104,8 @@ src/
 **But :** traduire chaque règle de l'offre en fonctions pures testées, dans `src/domain`. Ce code ne dépend ni de React ni du stockage. Il devient la spécification exécutable de Dun.
 
 ### Dates et journées
-- [ ] `dateKey(date, timeZone)` : clé `YYYY-MM-DD` de la journée locale, clôture à minuit. Supprimer `DAILY_ROLLOVER_HOUR`.
-- [ ] Une nouvelle journée suit le fuseau de l'iPhone ; une journée déjà enregistrée garde sa date. Tests avec un passage de Paris à New York et retour.
+- [x] `dateKey(date, timeZone)` : clé `YYYY-MM-DD` de la journée locale, clôture à minuit. Supprimer `DAILY_ROLLOVER_HOUR`. → [P1-01](etapes/P1-01-dates.md)
+- [x] Une nouvelle journée suit le fuseau de l'iPhone ; une journée déjà enregistrée garde sa date. Tests avec un passage de Paris à New York et retour. → [P1-01](etapes/P1-01-dates.md)
 - [ ] `dayStatus(tasks, restPeriods, dateKey, now)` → `success | failed | empty | rest | provisional` :
   - seule une journée **close** à 100 % est un succès ;
   - une journée en cours à 100 % est provisoire ;

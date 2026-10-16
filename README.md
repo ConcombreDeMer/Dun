@@ -64,7 +64,7 @@ La V1 vise uniquement l'iPhone.
 | `npm run ios:device-dev` | Installe un build Release sur l'iPhone branché, avec la base de dev.                        |
 | `npm run typecheck`      | Vérifie les types (`tsc --noEmit`).                                                         |
 | `npm run lint`           | Lance ESLint, sans aucun avertissement toléré.                                              |
-| `npm run test`           | Lance les tests Jest.                                                                       |
+| `npm run test`           | Lance les tests Jest avec la couverture ; `src/domain` doit rester couvert à 100 %.         |
 | `npm run format`         | Formate le code avec Prettier.                                                              |
 | `npm run format:check`   | Vérifie le formatage sans rien modifier.                                                    |
 | `npm run check`          | Enchaîne `typecheck`, `lint`, `format:check` et `test`. C'est la vérification de référence. |
@@ -145,6 +145,8 @@ lib/          Logique partagée : Supabase, tâches, statistiques, notifications
               abonnement, thème, traductions
   i18n/       Ressources générées depuis locales/ (ne pas modifier à la main)
 store/        État global Zustand
+src/
+  domain/     Règles métier pures et testées (dates et journées)
 locales/      Textes de l'app en français et en anglais (YAML)
 assets/       Polices, images, animations Lottie, icône
 supabase/     Migrations SQL et fonctions Edge (Deno)

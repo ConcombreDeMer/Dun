@@ -8,11 +8,11 @@ module.exports = defineConfig([
   expoConfig,
   {
     /*
-     * Global ignores. `dist` is build output. `supabase/functions` holds
-     * Deno code (URL imports, `Deno` global), linted by `deno lint` with
-     * `supabase/functions/deno.json`.
+     * Global ignores. `dist` is build output and `coverage` is test
+     * coverage output. `supabase/functions` holds Deno code (URL imports,
+     * `Deno` global), linted by `deno lint` with `supabase/functions/deno.json`.
      */
-    ignores: ["dist/*", "supabase/functions/**"],
+    ignores: ["dist/*", "coverage/*", "supabase/functions/**"],
   },
   {
     rules: {

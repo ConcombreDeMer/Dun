@@ -1,5 +1,4 @@
 const APP_DATE_KEY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-const DAILY_ROLLOVER_HOUR = 4;
 
 export function toAppDateKey(value: Date | string): string {
   if (typeof value === "string" && APP_DATE_KEY_REGEX.test(value)) {
@@ -39,16 +38,4 @@ export function isPastAppDateKey(
   todayKey = getTodayAppDateKey(),
 ): boolean {
   return dateKey < todayKey;
-}
-
-export function toDailyDateKey(value: Date | string): string {
-  if (typeof value === "string" && APP_DATE_KEY_REGEX.test(value)) {
-    return value;
-  }
-
-  const date = typeof value === "string" ? new Date(value) : value;
-  const dailyDate = new Date(date);
-  dailyDate.setHours(dailyDate.getHours() - DAILY_ROLLOVER_HOUR);
-
-  return toAppDateKey(dailyDate);
 }
