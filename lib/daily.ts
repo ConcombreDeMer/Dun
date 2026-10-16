@@ -1,4 +1,4 @@
-import { toAppDateKey, toDailyDateKey } from "./date";
+import { getTodayAppDateKey, toAppDateKey } from "./date";
 import { supabase } from "./supabase";
 import {
   finalizeDailyReview,
@@ -151,7 +151,7 @@ export const getDailyData = async (
   userId?: string | null,
 ): Promise<DailyData> => {
   const resolvedUserId = userId ?? (await getUserId());
-  const todayKey = toDailyDateKey(new Date());
+  const todayKey = getTodayAppDateKey();
   const yesterdayKey = addDays(todayKey, -1);
   const firstCompletionDayKey = addDays(todayKey, -7);
   const streakLookupStartKey = addDays(todayKey, -365);
@@ -237,7 +237,7 @@ export const getDailyData = async (
 
 export const postponeDailyPendingTask = async (
   taskId: number,
-  targetDateKey = toDailyDateKey(new Date()),
+  targetDateKey = getTodayAppDateKey(),
   userId?: string | null,
 ) => {
   const resolvedUserId = userId ?? (await getUserId());
@@ -372,7 +372,7 @@ export const setDailyPendingTaskDone = async (
 
 export const completeDailyReview = async (userId?: string | null) => {
   const resolvedUserId = userId ?? (await getUserId());
-  const todayKey = toDailyDateKey(new Date());
+  const todayKey = getTodayAppDateKey();
 
   await finalizeDailyReview(todayKey, resolvedUserId);
 

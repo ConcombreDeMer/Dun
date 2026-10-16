@@ -57,20 +57,21 @@ La V1 vise uniquement l'iPhone.
 
 ## Commandes
 
-| Commande                 | Rôle                                                                                        |
-| ------------------------ | ------------------------------------------------------------------------------------------- |
-| `npm start`              | Lance Metro (`expo start`).                                                                 |
-| `npm run ios`            | Compile et lance l'app iOS en Debug (`expo run:ios`).                                       |
-| `npm run ios:device-dev` | Installe un build Release sur l'iPhone branché, avec la base de dev.                        |
-| `npm run typecheck`      | Vérifie les types (`tsc --noEmit`).                                                         |
-| `npm run lint`           | Lance ESLint, sans aucun avertissement toléré.                                              |
-| `npm run test`           | Lance les tests Jest.                                                                       |
-| `npm run format`         | Formate le code avec Prettier.                                                              |
-| `npm run format:check`   | Vérifie le formatage sans rien modifier.                                                    |
-| `npm run check`          | Enchaîne `typecheck`, `lint`, `format:check` et `test`. C'est la vérification de référence. |
-| `npm run i18n:generate`  | Régénère `lib/i18n/resources.ts` depuis `locales/*.yaml`.                                   |
-| `npm run android`        | Non pris en charge.                                                                         |
-| `npm run web`            | Non pris en charge.                                                                         |
+| Commande                 | Rôle                                                                                                 |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `npm start`              | Lance Metro (`expo start`).                                                                          |
+| `npm run ios`            | Compile et lance l'app iOS en Debug (`expo run:ios`).                                                |
+| `npm run ios:device-dev` | Installe un build Release sur l'iPhone branché, avec la base de dev.                                 |
+| `npm run typecheck`      | Vérifie les types (`tsc --noEmit`).                                                                  |
+| `npm run lint`           | Lance ESLint, sans aucun avertissement toléré.                                                       |
+| `npm run test`           | Lance les tests Jest, sans couverture (utile pour une exécution partielle).                          |
+| `npm run test:coverage`  | Lance les tests Jest avec la couverture ; `src/domain` doit rester couvert à 100 %.                  |
+| `npm run format`         | Formate le code avec Prettier.                                                                       |
+| `npm run format:check`   | Vérifie le formatage sans rien modifier.                                                             |
+| `npm run check`          | Enchaîne `typecheck`, `lint`, `format:check` et `test:coverage`. C'est la vérification de référence. |
+| `npm run i18n:generate`  | Régénère `lib/i18n/resources.ts` depuis `locales/*.yaml`.                                            |
+| `npm run android`        | Non pris en charge.                                                                                  |
+| `npm run web`            | Non pris en charge.                                                                                  |
 
 ## Environnements
 
@@ -145,6 +146,8 @@ lib/          Logique partagée : Supabase, tâches, statistiques, notifications
               abonnement, thème, traductions
   i18n/       Ressources générées depuis locales/ (ne pas modifier à la main)
 store/        État global Zustand
+src/
+  domain/     Règles métier pures et testées (dates et journées)
 locales/      Textes de l'app en français et en anglais (YAML)
 assets/       Polices, images, animations Lottie, icône
 supabase/     Migrations SQL et fonctions Edge (Deno)

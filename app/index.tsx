@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { View } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
-import { toDailyDateKey } from "../lib/date";
+import { getTodayAppDateKey } from "../lib/date";
 import {
   fetchProfile,
   patchProfileCache,
@@ -30,7 +30,7 @@ export default function Index() {
           return;
         }
 
-        const today = toDailyDateKey(new Date());
+        const today = getTodayAppDateKey();
 
         const profile = await queryClient.fetchQuery({
           queryKey: profileQueryKey(userId),

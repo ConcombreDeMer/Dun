@@ -47,9 +47,11 @@ Il enchaîne, et s'arrête au premier échec :
 1. `npm run typecheck` : `tsc --noEmit` ;
 2. `npm run lint` : `eslint . --max-warnings 0` ;
 3. `npm run format:check` : `prettier --check .` (corriger avec `npm run format`) ;
-4. `npm run test` : `jest`.
+4. `npm run test:coverage` : `jest --coverage`. La couverture de `src/domain` doit rester à 100 % (lignes, branches, fonctions, instructions), sinon la vérification échoue. Les commentaires `istanbul ignore` sont interdits.
 
 Il doit passer sans aucune erreur ni aucun avertissement.
+
+`npm run test` (`jest`, sans couverture ni seuil) sert aux exécutions partielles, par exemple `npm run test -- src/domain/date.test.ts`.
 
 Quand une modification touche l'interface, la vérifier sur le simulateur iOS, en thème clair et en thème sombre.
 

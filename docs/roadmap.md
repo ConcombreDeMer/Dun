@@ -9,9 +9,9 @@ Cette roadmap applique l'offre décrite dans [`offre-commerciale-v1-pour-agents.
 
 ## État d'avancement
 
-- **Phase en cours** : 0 — Assainir, terminée. Son critère de fin est constaté dans [P0-05](etapes/P0-05-readme-branches.md), sous réserve que la CI reste verte sur le commit de fusion de P0-05. Reste le build TestFlight interne de fin de phase.
-- **Dernière étape terminée** : [P0-05 — README et ménage des branches](etapes/P0-05-readme-branches.md).
-- **Prochaine étape** : phase 1 — Noyau métier testé, en commençant par « Dates et journées » (`dateKey`, suppression de `DAILY_ROLLOVER_HOUR`).
+- **Phase en cours** : 1 — Noyau métier testé. La phase 0 est close : CI verte sur `master` et build Release vérifié sur iPhone le 16 octobre 2026, à la place du build TestFlight (voir [P1-01](etapes/P1-01-dates.md)).
+- **Dernière étape terminée** : [P1-01 — Clés de date et journées à minuit](etapes/P1-01-dates.md).
+- **Prochaine étape** : `isRestDay` et `dayStatus` (fin de « Dates et journées » et section « Repos »).
 
 Cette section est mise à jour à la fin de chaque étape par l'agent principal (voir [Workflow](#workflow)).
 
@@ -104,8 +104,8 @@ src/
 **But :** traduire chaque règle de l'offre en fonctions pures testées, dans `src/domain`. Ce code ne dépend ni de React ni du stockage. Il devient la spécification exécutable de Dun.
 
 ### Dates et journées
-- [ ] `dateKey(date, timeZone)` : clé `YYYY-MM-DD` de la journée locale, clôture à minuit. Supprimer `DAILY_ROLLOVER_HOUR`.
-- [ ] Une nouvelle journée suit le fuseau de l'iPhone ; une journée déjà enregistrée garde sa date. Tests avec un passage de Paris à New York et retour.
+- [x] `dateKey(date, timeZone)` : clé `YYYY-MM-DD` de la journée locale, clôture à minuit. Supprimer `DAILY_ROLLOVER_HOUR`. → [P1-01](etapes/P1-01-dates.md)
+- [x] Une nouvelle journée suit le fuseau de l'iPhone ; une journée déjà enregistrée garde sa date. Tests avec un passage de Paris à New York et retour. → [P1-01](etapes/P1-01-dates.md)
 - [ ] `dayStatus(tasks, restPeriods, dateKey, now)` → `success | failed | empty | rest | provisional` :
   - seule une journée **close** à 100 % est un succès ;
   - une journée en cours à 100 % est provisoire ;
@@ -142,6 +142,8 @@ src/
 - [ ] Écrire le schéma Drizzle : `tasks` (date nulle = Box), `tags`, `task_tags`, `day_records`, `rest_periods`, `goal`, `settings`, `reminders`, `outbox`. Toutes les tables ont `id` UUID, `created_at`, `updated_at` et `deleted_at`.
 - [ ] Écrire un repository par entité. Les écrans ne parlent qu'aux hooks de `features/`, qui appellent `domain/` et `data/`.
 - [ ] Clôturer les journées : au lancement et au retour au premier plan, enregistrer les journées closes depuis la dernière ouverture dans `day_records`.
+- [ ] Vérifier sur simulateur et sur iPhone que `dateKey` (`Intl.DateTimeFormat#formatToParts` avec `timeZone`) fonctionne sous Hermes, au premier branchement de `src/domain/date.ts` dans l'app. Il n'est testé que sous Node (constaté en [P1-01](etapes/P1-01-dates.md), revue de la PR #33).
+- [ ] Faire passer l'ouverture de la journée et le déclenchement du Daily par `openDayKey` et `dayKeysToClose`. Aujourd'hui, `app/index.tsx` compare `last_opened !== today` : après un voyage vers l'ouest, il relance le Daily d'une journée close et réécrit `last_opened` en arrière, contrairement à l'offre (constaté en [P1-01](etapes/P1-01-dates.md), revue de la PR #33).
 
 ### Fonctionnalités à reconstruire sur la base locale
 Pour chacune : la découper en composants de moins de 300 lignes et supprimer l'ancien code Supabase.
