@@ -263,9 +263,9 @@ git push origin --delete docs/p0-05-readme-branches && git branch -d docs/p0-05-
 ### Problèmes non bloquants
 | ID | Problème | Décision de Yanis |
 |---|---|---|
-| R1-1 | Icône du README différente de l'icône iOS actuelle | à décider |
-| R1-2 | Le Markdown est exclu de Prettier | à décider |
-| R1-3 | Ligne prod du tableau des environnements incomplète | à décider |
+| R1-1 | Icône du README différente de l'icône iOS actuelle | corrigé : Yanis a fourni la nouvelle icône (1024×1024), qui remplace `assets/images/icon.png` (tour Yanis 1) |
+| R1-2 | Le Markdown est exclu de Prettier | ignoré pour l'instant |
+| R1-3 | Ligne prod du tableau des environnements incomplète | corrigé (tour Yanis 1) |
 
 ## Pour l'étape suivante
 - **Build TestFlight interne de fin de phase 0** : la roadmap le prévoit avant la phase 1. C'est à Yanis de le faire.
@@ -299,4 +299,31 @@ Vérifié et correct :
   - aucun tag `archive/*` sur le dépôt distant ;
   - la PR #25 est ouverte ;
   - 35 branches restent à supprimer.
+
+## Corrections demandées par Yanis — tour 1
+
+La PR #31 a été fusionnée avant ce tour. Ces corrections passent donc par une seconde PR, sur la branche `docs/p0-05-icone-readme` créée depuis `master` (`ef8ae4c`).
+
+Décisions de Yanis sur les problèmes non bloquants :
+- R1-1 : corriger, avec la nouvelle icône qu'il a fournie ;
+- R1-2 : ignorer pour l'instant ;
+- R1-3 : corriger.
+
+| ID | Fichier | Correction | Vérification |
+|---|---|---|---|
+| R1-1 | `assets/images/icon.png` | Remplacé par la nouvelle icône, la coche (`new_icon.png` renommé, il ne reste aucun `new_icon.png`). Aucun chemin ne change. | `file` : PNG 1024 × 1024. `README.md:2` l'affiche toujours en 72×72. |
+| R1-3 | `README.md:82` | Ligne prod : « Release Xcode (Run ou archive), TestFlight, App Store ». | Conforme à `docs/environnements.md:14`. |
+
+Effet de bord, voulu : `app.json:7` (`"icon"` à la racine) pointe aussi sur ce fichier. L'icône par défaut hors iOS devient la coche, au format 1024×1024 recommandé par Expo. iOS ne change pas : il utilise `ios.icon` (`assets/icon.icon`).
+
+Vérification :
+- `npm run check` sort en 0 ;
+- `prettier --check --ignore-path /dev/null README.md` passe ;
+- les chemins du README existent tous.
+
+Nouveau point non bloquant :
+
+| ID | Problème | Recommandation |
+|---|---|---|
+| Y1-1 | Le nouvel `icon.png` pèse 1,2 Mo (PNG 16 bits, 4,7 Ko avant). | Le compresser lors de la préparation des fiches App Store (phase 5), ou l'ignorer. |
 
