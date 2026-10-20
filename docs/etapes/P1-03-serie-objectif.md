@@ -181,13 +181,14 @@ Aucun problème bloquant : pas de tour de correction.
 ### Problèmes non bloquants
 | ID | Problème | Décision de Yanis |
 |---|---|---|
-| R1-1 | Jours antérieurs à la confirmation non validés | à décider |
-| R1-2 | `nextStreak` sans `default` pour un statut inconnu à l'exécution | à décider |
-| R1-3 | `assertConsecutiveDays` exporté | à décider |
+| R1-1 | Jours antérieurs à la confirmation non validés | ignoré pour l'instant, suivi dans l'issue [#38](https://github.com/ConcombreDeMer/Dun/issues/38) |
+| R1-2 | `nextStreak` sans `default` pour un statut inconnu à l'exécution | ajouté à la roadmap (phase 2, « Base locale ») |
+| R1-3 | `assertConsecutiveDays` exporté | ignoré pour l'instant, suivi dans l'issue [#38](https://github.com/ConcombreDeMer/Dun/issues/38) |
 
 ### Décisions de Yanis après la main rendue
 - **Affichage de l'objectif** : en haut de l'onglet Statistiques, dans un composant dédié qui reprend le design des autres cartes de l'écran. Ajouté à la phase 2 de la roadmap.
 - **Textes « Qu'est-ce qu'un streak ? »** : à corriger pour le Repos et la journée vide. Ajouté à la phase 2 de la roadmap.
+- **Problèmes non bloquants** : R1-1 et R1-3 ignorés pour l'instant, suivis dans l'issue [#38](https://github.com/ConcombreDeMer/Dun/issues/38) ; R1-2 ajouté à la phase 2 de la roadmap (« Base locale »).
 
 ## Pour l'étape suivante
 - **Fin de la phase 1** : son critère exige un test nommé d'après chaque puce de « Objectif, journées et Repos ». Toutes en ont un, sauf celle de la migration (« Les personnes ayant déjà un compte… »), que la roadmap déclare sans objet. Il faut que Yanis décide, avant de clore la phase, de la retirer de l'offre ou de l'exclure explicitement du critère.
