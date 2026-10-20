@@ -10,8 +10,8 @@ Cette roadmap applique l'offre décrite dans [`offre-commerciale-v1-pour-agents.
 ## État d'avancement
 
 - **Phase en cours** : 1 — Noyau métier testé. La phase 0 est close : CI verte sur `master` et build Release vérifié sur iPhone le 16 octobre 2026, à la place du build TestFlight (voir [P1-01](etapes/P1-01-dates.md)).
-- **Dernière étape terminée** : [P1-02 — Repos et statut d'une journée](etapes/P1-02-repos-statut.md).
-- **Prochaine étape** : `streak` et `goalProgress` (section « Série et objectif »).
+- **Dernière étape terminée** : [P1-03 — Série et objectif](etapes/P1-03-serie-objectif.md).
+- **Prochaine étape** : section « Tâches et statistiques » (verrouillage des jours passés, report).
 
 Cette section est mise à jour à la fin de chaque étape par l'agent principal (voir [Workflow](#workflow)).
 
@@ -112,8 +112,8 @@ src/
   - une journée vide hors Repos est un échec, de même qu'une journée incomplète.
 
 ### Série et objectif
-- [ ] `streak(dayStatuses)` : **une seule règle**, utilisée par l'objectif et par les statistiques. Le Repos est neutre : il ne compte pas, mais ne rompt pas la série.
-- [ ] `goalProgress(goal, dayStatuses)` :
+- [x] `streak(dayStatuses)` : **une seule règle**, utilisée par l'objectif et par les statistiques. Le Repos est neutre : il ne compte pas, mais ne rompt pas la série. → [P1-03](etapes/P1-03-serie-objectif.md)
+- [x] `goalProgress(goal, dayStatuses)` : → [P1-03](etapes/P1-03-serie-objectif.md)
   - cibles 1, 2, 3, 4, 7 ou 14 ;
   - la journée de confirmation compte si elle se clôt à 100 %, même si des tâches ont été faites avant la confirmation ;
   - la première réussite datée et la série en cours sont distinctes.
@@ -142,6 +142,7 @@ src/
 - [ ] Écrire le schéma Drizzle : `tasks` (date nulle = Box), `tags`, `task_tags`, `day_records`, `rest_periods`, `goal`, `settings`, `reminders`, `outbox`. Toutes les tables ont `id` UUID, `created_at`, `updated_at` et `deleted_at`.
 - [ ] Écrire un repository par entité. Les écrans ne parlent qu'aux hooks de `features/`, qui appellent `domain/` et `data/`.
 - [ ] Clôturer les journées : au lancement et au retour au premier plan, enregistrer les journées closes depuis la dernière ouverture dans `day_records`.
+- [ ] Valider les statuts de journée lus en base (`day_records`) avant de les passer à `streak` ou `goalProgress` : `nextStreak` n'a pas de cas par défaut, et un statut inconnu y donnerait une série `NaN` au lieu d'une erreur (constaté en [P1-03, R1-2](etapes/P1-03-serie-objectif.md)).
 - [ ] Vérifier sur simulateur et sur iPhone que `dateKey` (`Intl.DateTimeFormat#formatToParts` avec `timeZone`) fonctionne sous Hermes, au premier branchement de `src/domain/date.ts` dans l'app. Il n'est testé que sous Node (constaté en [P1-01](etapes/P1-01-dates.md), revue de la PR #33).
 - [ ] Faire passer l'ouverture de la journée et le déclenchement du Daily par `openDayKey` et `dayKeysToClose`. Aujourd'hui, `app/index.tsx` compare `last_opened !== today` : après un voyage vers l'ouest, il relance le Daily d'une journée close et réécrit `last_opened` en arrière, contrairement à l'offre (constaté en [P1-01](etapes/P1-01-dates.md), revue de la PR #33).
 
@@ -154,6 +155,9 @@ Pour chacune : la découper en composants de moins de 300 lignes et supprimer l'
 - [ ] Repos : activer, annuler, consulter et changer la date de fin, en appelant les fonctions de `src/domain/rest.ts` (décision de Yanis en [P1-02](etapes/P1-02-repos-statut.md)).
 - [ ] Tags : créer, modifier, supprimer, 3 maximum par tâche.
 - [ ] Statistiques de la semaine.
+- [ ] Série : remplacer les deux calculs actuels par `streak` (`src/domain/streak.ts`), à partir des statuts de `dayStatus`, puis les supprimer : `calculateCurrentStreak` (`app/(tabs)/stats/index.tsx:104`) dans les Statistiques et `computeBaseStreak` (`lib/daily.ts:135`) dans le Daily. La grille de la carte de série (`isPerfectDay`, `components/statsStreak.tsx:43`) colore elle aussi ses jours d'après `dayStatus`. Aujourd'hui, aucun de ces calculs ne tient compte du Repos (constaté en [P1-03](etapes/P1-03-serie-objectif.md)).
+- [ ] Objectif en haut de l'onglet Statistiques, sous l'en-tête du profil et avant le choix de la période. Un composant de `src/features/goal` affiche et suit l'objectif à partir de `goalProgress` : cible, série en cours et date d'atteinte. Son design reprend celui des autres cartes de l'écran (`Squircle`, comme `StatsStreak` et `StatsCard`), en clair et en sombre. Il est visible en version gratuite (décision de Yanis en [P1-03](etapes/P1-03-serie-objectif.md)).
+- [ ] Textes de « Qu'est-ce qu'un streak ? » (`streakExplain`, FR et EN) : dire que le Repos ne compte pas mais ne rompt pas la série, et qu'une journée vide la rompt, comme `streak`. Aujourd'hui, ils affirment que « chaque jour compte » (constaté en [P1-03](etapes/P1-03-serie-objectif.md)).
 - [ ] Réglages d'affichage : thème, langue, taille du texte, calendrier, progression, palette. Fusionner `ThemeContext` et `FontContext` dans un seul module de préférences lu depuis `settings`.
 - [ ] Écran Affichage : le titre « Affichage » chevauche son sous-titre (constaté en [P0-02, R2-1](etapes/P0-02-outillage.md)).
 - [ ] Rappel quotidien local : heure et jours choisis, week-end compris.
