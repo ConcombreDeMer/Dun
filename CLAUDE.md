@@ -69,6 +69,7 @@ Elles s'appliquent au code neuf ou réécrit. Le code existant est migré au fil
 - **Typage** : TypeScript strict, aucun `any` nouveau.
 - **Textes** : tout texte visible passe par `locales/fr.yaml` et `locales/en.yaml`, puis `npm run i18n:generate`.
 - **Dates** : utiliser les clés `YYYY-MM-DD` en heure locale. La journée se termine à minuit, partout.
+- **Reporter** : une seule sémantique, `moveTask` (`src/domain/postpone.ts`) : la tâche change de date et `delay_count` augmente d'un seulement pour une tâche non faite d'une journée close déplacée vers la journée ouverte ou plus tard. Jamais de copie de la tâche.
 - **Noms de fichiers** :
   - composants en `PascalCase.tsx` ;
   - hooks en `useCamelCase.ts` ;
