@@ -188,6 +188,8 @@ Aucun problème bloquant : pas de tour de correction.
 ### Décisions de Yanis après la main rendue
 - **Affichage de l'objectif** : en haut de l'onglet Statistiques, dans un composant dédié qui reprend le design des autres cartes de l'écran. Ajouté à la phase 2 de la roadmap.
 - **Textes « Qu'est-ce qu'un streak ? »** : à corriger pour le Repos et la journée vide. Ajouté à la phase 2 de la roadmap.
+- **Remplacement des calculs de série actuels** : ajouté explicitement à la phase 2 de la roadmap (Statistiques, Daily et grille de la carte de série).
+- **Ordre de la phase 2** : conservé. La série et l'objectif deviendront fonctionnels au fil de la phase 2, sans branchement provisoire sur les écrans Supabase actuels.
 - **Problèmes non bloquants** : R1-1 et R1-3 ignorés pour l'instant, suivis dans l'issue [#38](https://github.com/ConcombreDeMer/Dun/issues/38) ; R1-2 ajouté à la phase 2 de la roadmap (« Base locale »).
 
 ## Pour l'étape suivante
