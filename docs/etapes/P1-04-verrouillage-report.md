@@ -373,9 +373,9 @@ Aucun problème bloquant.
 | R1-1 | `assertKeys` exporté par `postpone.ts` | résolu au tour 2 (plus exporté) |
 | R1-2 | Décocher depuis le Daily `allowed` | sans objet (`lock.ts` supprimé) |
 | R1-3 | Déplacement vers la même journée close `refused` | sans objet (`lock.ts` supprimé) |
-| R2-1 | Conversion `as ClosedDayStatus` dans `closeDay` | à décider |
-| R2-2 | Repos invalide : erreur non préfixée `closeDay:` | à décider |
-| R3-1 | Report reconnu par « date postérieure », pas « jour ouvert ou plus tard » | à décider |
+| R2-1 | Conversion `as ClosedDayStatus` dans `closeDay` | ignoré pour l'instant, suivi dans l'issue [#40](https://github.com/ConcombreDeMer/Dun/issues/40) |
+| R2-2 | Repos invalide : erreur non préfixée `closeDay:` | ignoré pour l'instant, suivi dans l'issue [#41](https://github.com/ConcombreDeMer/Dun/issues/41) |
+| R3-1 | Report reconnu par « date postérieure », pas « jour ouvert ou plus tard » | ignoré pour l'instant, suivi dans l'issue [#42](https://github.com/ConcombreDeMer/Dun/issues/42) |
 
 ## Pour l'étape suivante
 - **P1-05 — Statistiques** : dernière case de la phase 1. Elles se calculent sur les `DayRecord` (statut et tâches figés à minuit), pas sur les tâches actuelles : prévues = `tasks.length`, faites = tâches `done`. Restent à fixer avec Yanis :
