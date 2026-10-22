@@ -33,7 +33,7 @@ L'export et la restauration manuels restent gratuits. La copie cloud et sa récu
 - Le Repos activé pendant une journée ouverte rend cette journée entière neutre pour l'objectif et les statistiques. Sa date de fin est incluse. Une annulation avant minuit rend la journée en cours normale, sans modifier les jours déjà clos. Aucun Repos ne s'ajoute rétroactivement à une journée close.
 - À sa clôture, une journée est enregistrée avec ses tâches, leur état et leurs tags. L'objectif, la série et les statistiques s'appuient sur cet enregistrement, qui ne change plus.
 - Les tâches d'une journée close restent modifiables, sans verrouillage ; ces modifications ne changent pas son enregistrement.
-- Une journée dont les tâches ou leur état ont changé après sa clôture le signale ; son enregistrement reste consultable.
+- Une journée dont les tâches ou leur état ont changé après sa clôture, hors report, le signale ; son enregistrement reste consultable.
 - Reporter une tâche, c'est déplacer une tâche non faite d'une journée close vers la journée ouverte ou plus tard ; son nombre de reports augmente d'un. Changer la date d'une autre tâche n'est pas un report.
 - Les nouvelles journées suivent le fuseau de l'iPhone. Une journée déjà enregistrée garde sa date et ne se rouvre pas lors d'un voyage. La journée ouverte est la plus tardive entre la date locale de l'iPhone et le lendemain de la dernière journée close : après un voyage vers l'ouest, la journée en cours se prolonge jusqu'à minuit heure locale au lieu de revenir à une date déjà close.
 - Les personnes ayant déjà un compte choisissent un nouvel objectif lors de la migration de leurs données : l'ancien objectif et l'historique de Repos ne sont pas inventés.

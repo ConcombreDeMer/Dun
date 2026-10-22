@@ -106,29 +106,48 @@ export function closeDay(
 }
 
 /**
- * Whether the current tasks of the day differ from its record: a task was
- * added, removed (deleted, postponed or moved) or its done state changed.
- * Names, tags and order are ignored.
+ * Whether the tasks of the day differ from its record: a task was added,
+ * removed (deleted, or moved to the Box or to another day) or its done state
+ * changed. Names, tags and order are ignored.
  *
- * Only the tasks dated `record.key` are compared.
+ * A postpone is not a difference: a task not done at midnight, now found at a
+ * later date than `record.key`, whatever its current state.
+ *
+ * `tasks` holds all the tasks that are not deleted, whatever their date, so
+ * that a postponed task can be told from a deleted one.
  *
  * Throws a `RangeError` if `record.key` is invalid, or if an `id` appears
- * twice in the record or in the tasks of the day.
+ * twice in the record or in the tasks dated `record.key`.
  */
 export function recordDiffers(
   record: DayRecord,
   tasks: readonly (DayTask & { id: string })[],
 ): boolean {
-  if (!isDateKey(record.key)) {
-    throw new RangeError(`recordDiffers: invalid date key (${record.key})`);
+  const { key } = record;
+  if (!isDateKey(key)) {
+    throw new RangeError(`recordDiffers: invalid date key (${key})`);
   }
   assertUniqueIds("recordDiffers", record.tasks);
-  const dayTasks = tasks.filter((task) => task.date === record.key);
+  const dayTasks = tasks.filter((task) => task.date === key);
   assertUniqueIds("recordDiffers", dayTasks);
 
-  if (dayTasks.length !== record.tasks.length) {
-    return true;
+  const current = new Map(dayTasks.map((task) => [task.id, task.done]));
+  const later = new Set(
+    tasks
+      .filter((task) => task.date !== null && task.date > key)
+      .map((task) => task.id),
+  );
+
+  let found = 0;
+  for (const { id, done } of record.tasks) {
+    if (current.has(id)) {
+      if (current.get(id) !== done) {
+        return true;
+      }
+      found++;
+    } else if (done || !later.has(id)) {
+      return true;
+    }
   }
-  const recorded = new Map(record.tasks.map((task) => [task.id, task.done]));
-  return dayTasks.some((task) => recorded.get(task.id) !== task.done);
+  return found !== dayTasks.length;
 }

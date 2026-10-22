@@ -282,36 +282,90 @@ Vérifié et correct :
 
 Aucun problème bloquant.
 
+## Révision 2 — relecture d'ensemble avant le merge
+
+À la demande de Yanis, relecture critique de tout le domaine (`date`, `rest`, `dayStatus`, `streak`, `goal`, `postpone`, `dayRecord`), de l'offre et de la roadmap. Les règles sont cohérentes entre elles (voyage, Repos, objectif, report et enregistrement croisés). Points relevés :
+
+- **A** : la case « Série » de la phase 2 disait encore de partir de `dayStatus` sur les tâches actuelles, au lieu des enregistrements ; la case « Export manuel » ne mentionnait pas les enregistrements.
+- **B** : la clôture « au lancement et au retour au premier plan » laisse passer une coche faite à 0 h 01 sur un écran resté ouvert : elle entrerait dans l'enregistrement de la veille.
+- **C** : `dayKeysToClose(null, …)` renvoie `[]` : sans ancrage de la dernière journée close à l'onboarding, aucune journée n'est jamais enregistrée.
+- **D** : la roadmap supprime `resolved_at`, qui servait aussi de mémoire au Daily (chaque tâche en retard proposée une seule fois, `lib/daily.ts:177-180`, `lib/tasks.ts:745-769`).
+- **E** : chaque report déclenchait le bandeau sur sa journée d'origine, donc presque chaque Daily. Contrairement à ce que l'agent principal avait affirmé au moment de la décision, exclure les reports ne demande aucune donnée de plus : l'enregistrement contient déjà les tâches non faites à minuit.
+- **F** : en phase 4, deux appareils hors ligne peuvent clôturer la même journée avec des états différents.
+
+### Décisions de Yanis (révision 2)
+
+12. **Le retard ne s'accumule que par un report explicite.** Une tâche laissée sans action dans le Daily reste non faite sur son jour d'origine, sans report automatique.
+13. **Le Daily propose une seule fois** les tâches non faites des journées tout juste closes (`dayKeysToClose`). Une tâche laissée ne revient plus. Aucune marque par tâche n'est stockée : la suppression de `resolved_at` est maintenue.
+14. **Le bandeau exclut les reports** : une tâche enregistrée non faite, retrouvée à une date plus tardive, n'est pas une différence.
+15. **A, B, C, D et F** sont reportés dans la roadmap sur cette branche, avant le merge.
+
+### Plan de correction (révision 2)
+
+#### R8. `recordDiffers` exclut les reports (`src/domain/dayRecord.ts`)
+
+- Une tâche de l'enregistrement **non faite à minuit**, retrouvée parmi `tasks` avec une date **postérieure** à `record.key` (pas `null`), est un report : elle n'est pas une différence, quel que soit son état actuel.
+- Toute autre absence reste une différence : tâche supprimée (absente de `tasks`), déplacée vers la Box, vers une date antérieure, ou tâche **faite** à minuit déplacée ailleurs.
+- `tasks` doit donc contenir toutes les tâches non supprimées, pas seulement celles du jour : le dire dans la documentation de la fonction.
+- Erreurs inchangées ; un `id` en double dans `tasks` hors de la journée n'a pas à être vérifié.
+
+#### R9. Tests (`src/domain/dayRecord.test.ts`)
+
+- Le cas « reporter » passe de « signalé » à « non signalé » ; ajouter : report puis tâche faite le jour suivant → non signalé ; report et coche en retard d'une autre tâche → signalé ; tâche non faite déplacée vers la Box ou vers un jour antérieur → signalé ; tâche faite déplacée vers un jour postérieur → signalé ; tâche reportée puis supprimée → signalé.
+- Le `describe` de la puce de l'offre suit sa nouvelle formulation (R10).
+
+#### R10. Offre
+
+« Une journée dont les tâches ou leur état ont changé après sa clôture le signale ; son enregistrement reste consultable. » devient « Une journée dont les tâches ou leur état ont changé après sa clôture, hors report, le signale ; son enregistrement reste consultable. »
+
+#### R11. Documentation (agent principal)
+
+Fichier d'étape et `docs/roadmap.md` : A, B, C, D (règle du Daily), E (case du bandeau) et F (phase 4).
+
+### Critères d'acceptation (révision 2)
+
+- **CA-R10** : `recordDiffers` ne signale pas une tâche non faite à minuit retrouvée à une date postérieure ; il signale une suppression, un déplacement vers la Box ou vers une date antérieure, le déplacement d'une tâche faite, une coche ou décoche, un ajout. Chaque cas a son test.
+- **CA-R11** : l'offre contient la phrase « …après sa clôture, hors report, le signale… », reprise mot pour mot par un `describe`.
+- **CA-R12** : `npm run check` passe sans erreur ni avertissement, `src/domain` à 100 % ; aucun fichier modifié hors de `src/domain/dayRecord*.ts`, l'offre, le fichier d'étape et `docs/roadmap.md`.
+
+## Revue — tour 3 (révision 2)
+
+Ce tour fait suite à la demande de Yanis avant le merge ; il ne compte pas dans la limite de 3 tours.
+
+| ID | Gravité | Fichier:ligne | Problème | Correction attendue |
+|---|---|---|---|---|
+| R3-1 | Non bloquant | `src/domain/dayRecord.ts:135-140` | Le report est reconnu par « non faite à minuit et retrouvée à une date postérieure à la journée », pas par la définition exacte du report (« vers la journée ouverte ou plus tard »). Une tâche non faite déplacée vers un jour clos plus tardif (rare, depuis le calendrier) ne déclenche donc pas le bandeau sur sa journée d'origine ; la journée d'arrivée, elle, l'affiche (tâche ajoutée). Comparer au jour ouvert actuel serait faux : une tâche reportée à jeudi, restée non faite, ferait apparaître le bandeau sur sa journée d'origine dès que jeudi serait clos. Le critère exact demanderait de mémoriser le jour ouvert au moment du déplacement. C'est la conséquence du plan R8, pas un écart de l'implémenteur. | Ignorer ; le changement reste signalé sur la journée d'arrivée. |
+
+Vérifié et correct :
+- **CA-R10** : `recordDiffers` (`dayRecord.ts:124-153`) : une tâche de l'enregistrement présente dans la journée est comparée sur son état ; absente, elle n'est ignorée que si elle était non faite à minuit et existe à une date postérieure ; les tâches du jour absentes de l'enregistrement sont des ajouts (`found !== dayTasks.length`). Tests : report vers jeudi et vendredi, report puis tâche faite le lendemain → non signalé ; suppression, report puis suppression, Box, date antérieure, tâche faite déplacée, coche, décoche, ajout (seul, avec un report, à totaux égaux) → signalé.
+- **CA-R11** : la phrase « …après sa clôture, hors report, le signale… » est dans l'offre, et le `describe` la reprend à l'identique (`grep -F`).
+- **CA-R12** : `npm run check` sort en 0 (10 suites, 195 tests), `src/domain` à 100 % sur les 4 mesures ; `grep -rn "istanbul ignore" src` vide ; `git status --short` ne liste que `dayRecord.ts`, `dayRecord.test.ts`, l'offre, ce fichier d'étape et `docs/roadmap.md`.
+- R11 (roadmap) : A, B, C, D, E et F reportés (cases « Clôturer les journées », « Daily », « Série », bandeau, « Onboarding », « Export manuel », et nouvelle case de réconciliation en phase 4).
+
+Aucun problème bloquant.
+
 ## Résultat
 
 ### Ce qui a été fait
 - **`src/domain/postpone.ts`** (nouveau) : `MovableTask`, `isPostpone` et `moveTask`, la seule façon de changer la date d'une tâche. `delayCount + 1` seulement pour une tâche non faite d'une journée close déplacée vers la journée ouverte ou plus tard ; jamais de copie de la tâche.
 - **`src/domain/dayRecord.ts`** (nouveau) :
   - `closeDay` : l'enregistrement d'une journée close, son statut et la photo de ses tâches (`id`, nom, état, tags avec nom et couleur), dans l'ordre ;
-  - `recordDiffers` : vrai si les tâches présentes ou leur état ont changé depuis l'enregistrement ; le nom, les tags et l'ordre sont ignorés.
+  - `recordDiffers` : vrai si les tâches présentes ou leur état ont changé depuis l'enregistrement, hors report ; le nom, les tags et l'ordre sont ignorés.
 - **Tests** (nouveaux) : `postpone.test.ts` et `dayRecord.test.ts`, 6 `describe` qui reprennent mot pour mot les phrases de l'offre.
-- **Offre** : 3 lignes du tableau (historique avec l'enregistrement des journées, « Daily et Repos » sans verrouillage, statistiques gratuites inchangées) et 4 puces (enregistrement, tâches modifiables, journée modifiée signalée, report).
+- **Offre** : 3 lignes du tableau (historique avec l'enregistrement des journées, « Daily et Repos » sans verrouillage, statistiques gratuites inchangées) et 4 puces (enregistrement, tâches modifiables, journée modifiée signalée hors report, report).
 - **`CLAUDE.md`** : la sémantique unique de « reporter », dans les Conventions.
+- **Roadmap** : phases 1 à 4 mises à jour (voir « Décisions »).
 - Le premier tour (`lock.ts` : verrouillage activable, réajustements) a été retiré à la demande de Yanis.
 
 ### Vérification finale
-- `npm run check` sort en 0 : 10 suites, 187 tests, `src/domain` couvert à 100 % (instructions, branches, fonctions, lignes).
+- `npm run check` sort en 0 : 10 suites, 195 tests, `src/domain` couvert à 100 % (instructions, branches, fonctions, lignes).
 - Recherche d'imports et d'appels interdits : seulement `./date`, `./dayStatus` et `./rest`.
 - `grep -rn "istanbul ignore" src` : aucun résultat.
 
 ### Décisions
 - **Planification** : décision 4 (report) conservée ; décisions 1, 2, 3, 5 et 6 (verrouillage) abandonnées.
-- **Après la main rendue** (Yanis), décisions 7 à 11 de la révision :
-  - verrouillage retiré : les tâches des journées closes restent librement modifiables ;
-  - enregistrement à minuit : statut, plus photo des tâches (nom, état, tags) ;
-  - bandeau et bouton de consultation pour une journée modifiée après sa clôture, report compris, gratuit ;
-  - taux de réajustement retiré ;
-  - une tâche supprimée reste visible dans l'enregistrement de sa journée.
-- **Roadmap** mise à jour en conséquence :
-  - phase 1 : la case du verrouillage est remplacée, et les statistiques se calculent sur les enregistrements ;
-  - phase 2 : schéma, clôture, bandeau et bouton, suppression du verrouillage de l'app ;
-  - phase 3 : tableau de répartition ;
-  - choix structurants.
+- **Révision 1** (décisions 7 à 11) : verrouillage retiré ; enregistrement à minuit (statut et photo des tâches avec nom, état, tags) ; bandeau et bouton de consultation pour une journée modifiée, gratuit ; taux de réajustement retiré ; une tâche supprimée reste dans l'enregistrement de sa journée.
+- **Révision 2** (décisions 12 à 15) : le retard ne s'accumule que par un report explicite ; le Daily propose une seule fois les tâches non faites des journées tout juste closes, sans marque par tâche ; le bandeau exclut les reports ; roadmap complétée (clôture avant toute écriture, ancrage de la première journée, série depuis les enregistrements, export, réconciliation en phase 4).
 
 ### Problèmes non bloquants
 | ID | Problème | Décision de Yanis |
@@ -321,23 +375,22 @@ Aucun problème bloquant.
 | R1-3 | Déplacement vers la même journée close `refused` | sans objet (`lock.ts` supprimé) |
 | R2-1 | Conversion `as ClosedDayStatus` dans `closeDay` | à décider |
 | R2-2 | Repos invalide : erreur non préfixée `closeDay:` | à décider |
+| R3-1 | Report reconnu par « date postérieure », pas « jour ouvert ou plus tard » | à décider |
 
 ## Pour l'étape suivante
 - **P1-05 — Statistiques** : dernière case de la phase 1. Elles se calculent sur les `DayRecord` (statut et tâches figés à minuit), pas sur les tâches actuelles : prévues = `tasks.length`, faites = tâches `done`. Restent à fixer avec Yanis :
   - début de semaine (lundi dans le code actuel) ;
-  - journées incluses (Repos, vides, journée ouverte, qui n'a pas encore d'enregistrement) ;
+  - journées incluses (Repos, vides, journée ouverte, qui n'a pas encore d'enregistrement, jours antérieurs au premier enregistrement) ;
   - formule de complétion (ratio global aujourd'hui, `lib/calculateStats.ts:115-164`) ;
   - série d'une période (en cours ou plus longue) ;
   - sort des préférences `includeToday`, `includeEmptyDays`, etc., que l'offre ne mentionne pas.
 
   Le taux de réajustement n'existe plus.
-- **`achievedKey` ne bouge plus** : la question laissée par P1-03 est réglée. Les statuts viennent des enregistrements, figés à minuit.
-- **Branchement en phase 2** :
-  - `closeDay` à la clôture ;
-  - `recordDiffers` pour le bandeau ;
+- **`achievedKey` ne bouge plus** : la question laissée par P1-03 est réglée, les statuts viennent des enregistrements.
+- **Branchement en phase 2** (cases de la roadmap à jour) :
+  - `closeDay` au lancement, au retour au premier plan et avant toute écriture ; l'onboarding ancre la dernière journée close à la veille de l'installation ;
+  - `recordDiffers` reçoit **toutes** les tâches non supprimées, pas seulement celles du jour : sinon un report serait pris pour une suppression ;
   - `moveTask` pour tout changement de date ;
-  - suppression de tout le verrouillage de l'app (cases ajoutées à la roadmap).
-
-  Un report retire la tâche de sa journée d'origine, qui affichera donc le bandeau : c'est voulu, avec un texte générique.
-- **Photo des tâches et synchronisation (phase 4)** : les enregistrements doivent être synchronisés, exportés et restaurés comme le reste. Une tâche supprimée reste dans l'enregistrement de sa journée.
-- **Fin de la phase 1** : la puce de la migration reste sans test (voir P1-03).
+  - le Daily propose une seule fois les tâches non faites des journées tout juste closes ; `resolved_at` peut disparaître avec le verrouillage.
+- **Phase 4** : réconcilier les enregistrements de journées entre appareils (case ajoutée).
+- **Fin de la phase 1** : la puce de la migration reste sans test (voir P1-03) ; Yanis doit décider de la retirer de l'offre ou de l'exclure du critère.

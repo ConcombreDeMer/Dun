@@ -50,6 +50,15 @@ function closeWednesday(tasks = [...wednesday(), ...others()]): DayRecord {
   return closeDay(tasks, [], WED_14, OPEN);
 }
 
+/* All the tasks, with the unfinished task of Wednesday postponed to `targetKey`. */
+function postponeB(targetKey: string): ClosingTask[] {
+  return [...wednesday(), ...others()].map((task) =>
+    task.id === "b"
+      ? moveTask({ ...task, delayCount: 0 }, targetKey, OPEN)
+      : task,
+  );
+}
+
 const WEDNESDAY_RECORD: DayRecord = {
   key: WED_14,
   status: "failed",
@@ -158,18 +167,19 @@ describe("Les tâches d'une journée close restent modifiables, sans verrouillag
         { id: "d", date: WED_14, name: "Ranger", done: false, tags: [] },
       ],
     ],
-    [
-      "reporter",
-      (tasks) =>
-        tasks.map((task) =>
-          task.id === "b"
-            ? moveTask({ ...task, delayCount: 0 }, THU_15, OPEN)
-            : task,
-        ),
-    ],
   ])("%s : la journée diffère, l'enregistrement reste le même", (_, change) => {
     const changed = change(wednesday());
     expect(recordDiffers(record, changed)).toBe(true);
+    expect(record).toEqual(WEDNESDAY_RECORD);
+  });
+
+  it("reporter : la journée ne diffère pas, l'enregistrement reste le même", () => {
+    const changed = [...wednesday(), ...others()].map((task) =>
+      task.id === "b"
+        ? moveTask({ ...task, delayCount: 0 }, THU_15, OPEN)
+        : task,
+    );
+    expect(recordDiffers(record, changed)).toBe(false);
     expect(record).toEqual(WEDNESDAY_RECORD);
   });
 
@@ -188,7 +198,7 @@ describe("Les tâches d'une journée close restent modifiables, sans verrouillag
   });
 });
 
-describe("Une journée dont les tâches ou leur état ont changé après sa clôture le signale ; son enregistrement reste consultable.", () => {
+describe("Une journée dont les tâches ou leur état ont changé après sa clôture, hors report, le signale ; son enregistrement reste consultable.", () => {
   const record = closeWednesday();
 
   it("les mêmes tâches dans le même état ne signalent rien", () => {
@@ -217,6 +227,59 @@ describe("Une journée dont les tâches ou leur état ont changé après sa clô
     const changed = wednesday().map((task) =>
       task.id === "a" ? { ...task, date: TUE_13 } : task,
     );
+    expect(recordDiffers(record, changed)).toBe(true);
+  });
+
+  it("une tâche non faite à minuit reportée plus tard ne signale rien", () => {
+    expect(recordDiffers(record, postponeB(THU_15))).toBe(false);
+    expect(recordDiffers(record, postponeB(FRI_16))).toBe(false);
+  });
+
+  it("une tâche reportée puis faite le jour suivant ne signale rien", () => {
+    const changed = postponeB(THU_15).map((task) =>
+      task.id === "b" ? { ...task, done: true } : task,
+    );
+    expect(recordDiffers(record, changed)).toBe(false);
+  });
+
+  it("un report et la coche en retard d'une autre tâche sont signalés", () => {
+    const changed = postponeB(THU_15).map((task) =>
+      task.id === "a" ? { ...task, done: false } : task,
+    );
+    expect(recordDiffers(record, changed)).toBe(true);
+  });
+
+  it("un report et l'ajout d'une tâche sont signalés", () => {
+    const changed: ClosingTask[] = [
+      ...postponeB(THU_15),
+      { id: "d", date: WED_14, name: "Ranger", done: false, tags: [] },
+    ];
+    expect(recordDiffers(record, changed)).toBe(true);
+  });
+
+  it("une tâche non faite déplacée vers la Box est signalée", () => {
+    const changed = wednesday().map((task) =>
+      task.id === "b" ? { ...task, date: null } : task,
+    );
+    expect(recordDiffers(record, changed)).toBe(true);
+  });
+
+  it("une tâche non faite déplacée vers un jour antérieur est signalée", () => {
+    const changed = wednesday().map((task) =>
+      task.id === "b" ? { ...task, date: TUE_13 } : task,
+    );
+    expect(recordDiffers(record, changed)).toBe(true);
+  });
+
+  it("une tâche faite déplacée vers un jour postérieur est signalée", () => {
+    const changed = wednesday().map((task) =>
+      task.id === "a" ? { ...task, date: FRI_16 } : task,
+    );
+    expect(recordDiffers(record, changed)).toBe(true);
+  });
+
+  it("une tâche reportée puis supprimée est signalée", () => {
+    const changed = postponeB(THU_15).filter((task) => task.id !== "b");
     expect(recordDiffers(record, changed)).toBe(true);
   });
 
