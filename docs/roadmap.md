@@ -10,8 +10,8 @@ Cette roadmap applique l'offre décrite dans [`offre-commerciale-v1-pour-agents.
 ## État d'avancement
 
 - **Phase en cours** : 1 — Noyau métier testé. La phase 0 est close : CI verte sur `master` et build Release vérifié sur iPhone le 16 octobre 2026, à la place du build TestFlight (voir [P1-01](etapes/P1-01-dates.md)).
-- **Dernière étape terminée** : [P1-03 — Série et objectif](etapes/P1-03-serie-objectif.md).
-- **Prochaine étape** : section « Tâches et statistiques » (verrouillage des jours passés, report).
+- **Dernière étape terminée** : [P1-04 — Report et enregistrement des journées closes](etapes/P1-04-verrouillage-report.md). Le verrouillage des jours passés est retiré (décision de Yanis).
+- **Prochaine étape** : P1-05, statistiques de la semaine, du mois et de l'année (dernière case de la phase 1).
 
 Cette section est mise à jour à la fin de chaque étape par l'agent principal (voir [Workflow](#workflow)).
 
@@ -61,7 +61,7 @@ src/
 - **`updated_at` et `deleted_at` sur chaque ligne.** La suppression est logique : la synchronisation peut ainsi propager les suppressions.
 - **Un ordre par indexation fractionnaire** (clé texte entre deux voisines). Insérer ou déplacer une tâche ne modifie qu'une ligne, sans renuméroter toute la journée.
 - **Synchronisation en « dernière écriture gagnante », par ligne.** Pour un seul utilisateur sur plusieurs appareils, les conflits sont rares ; inutile de construire un moteur de fusion complexe.
-- **Les journées closes sont enregistrées** (`day_records`) avec leur date locale et leur résultat. Une journée close garde sa date, même après un voyage (offre : « Une journée déjà enregistrée garde sa date »).
+- **Les journées closes sont enregistrées** (`day_records`) avec leur date locale, leur résultat et la photo de leurs tâches (nom, état, tags). Cet enregistrement ne change plus : l'objectif, la série et les statistiques s'appuient dessus. Une journée close garde sa date, même après un voyage (offre : « Une journée déjà enregistrée garde sa date »).
 
 ---
 
@@ -126,9 +126,9 @@ src/
   - aucun Repos n'est appliqué rétroactivement à une journée close.
 
 ### Tâches et statistiques
-- [ ] Verrouillage des jours passés (activable) : quelles actions sont permises sur une tâche d'un jour clos.
-- [ ] **Une seule sémantique pour « reporter »** : déplacer la tâche et incrémenter `delay_count`. Écrire la décision dans `CLAUDE.md`.
-- [ ] Statistiques de la semaine, du mois et de l'année : complétion, charge, journées parfaites, série. Les périodes sont identifiées par `week | month | year`, plus par des libellés.
+- [x] ~~Verrouillage des jours passés (activable) : quelles actions sont permises sur une tâche d'un jour clos.~~ Remplacé par l'enregistrement des journées closes : `closeDay` (statut et photo des tâches à minuit) et `recordDiffers` (journée modifiée après sa clôture). Les tâches passées restent librement modifiables, sans verrouillage (décision de Yanis). → [P1-04](etapes/P1-04-verrouillage-report.md)
+- [x] **Une seule sémantique pour « reporter »** : déplacer la tâche et incrémenter `delay_count`. Écrire la décision dans `CLAUDE.md`. → [P1-04](etapes/P1-04-verrouillage-report.md)
+- [ ] Statistiques de la semaine, du mois et de l'année : complétion, charge, journées parfaites, série. Les périodes sont identifiées par `week | month | year`, plus par des libellés. Elles se calculent sur les enregistrements des journées closes (`DayRecord`, [P1-04](etapes/P1-04-verrouillage-report.md)), pas sur les tâches actuelles.
 
 **Terminé quand :** chaque puce des sections « Objectif, journées et Repos » de l'offre correspond à au moins un test nommé d'après elle, et la couverture de `src/domain` est de 100 %.
 
@@ -139,9 +139,9 @@ src/
 **But :** l'app gratuite complète fonctionne hors ligne, sans compte et sans aucun appel à Supabase.
 
 ### Base locale
-- [ ] Écrire le schéma Drizzle : `tasks` (date nulle = Box), `tags`, `task_tags`, `day_records`, `rest_periods`, `goal`, `settings`, `reminders`, `outbox`. Toutes les tables ont `id` UUID, `created_at`, `updated_at` et `deleted_at`.
+- [ ] Écrire le schéma Drizzle : `tasks` (date nulle = Box), `tags`, `task_tags`, `day_records` (avec la photo des tâches de `closeDay` : nom, état, tags avec nom et couleur), `rest_periods`, `goal`, `settings`, `reminders`, `outbox`. Toutes les tables ont `id` UUID, `created_at`, `updated_at` et `deleted_at`.
 - [ ] Écrire un repository par entité. Les écrans ne parlent qu'aux hooks de `features/`, qui appellent `domain/` et `data/`.
-- [ ] Clôturer les journées : au lancement et au retour au premier plan, enregistrer les journées closes depuis la dernière ouverture dans `day_records`.
+- [ ] Clôturer les journées : au lancement, au retour au premier plan **et avant toute écriture**, enregistrer les journées closes depuis la dernière ouverture dans `day_records`, avec `closeDay`. Sans la clôture avant écriture, une tâche cochée à 0 h 01 sur un écran resté ouvert entrerait dans l'enregistrement de la veille. Rafraîchir l'écran à minuit. La dernière journée close est ancrée à la veille de l'installation par l'onboarding : `dayKeysToClose(null, …)` renvoie `[]`, donc sans cet ancrage aucune journée ne serait jamais enregistrée (constaté en [P1-04](etapes/P1-04-verrouillage-report.md)).
 - [ ] Valider les statuts de journée lus en base (`day_records`) avant de les passer à `streak` ou `goalProgress` : `nextStreak` n'a pas de cas par défaut, et un statut inconnu y donnerait une série `NaN` au lieu d'une erreur (constaté en [P1-03, R1-2](etapes/P1-03-serie-objectif.md)).
 - [ ] Vérifier sur simulateur et sur iPhone que `dateKey` (`Intl.DateTimeFormat#formatToParts` avec `timeZone`) fonctionne sous Hermes, au premier branchement de `src/domain/date.ts` dans l'app. Il n'est testé que sous Node (constaté en [P1-01](etapes/P1-01-dates.md), revue de la PR #33).
 - [ ] Faire passer l'ouverture de la journée et le déclenchement du Daily par `openDayKey` et `dayKeysToClose`. Aujourd'hui, `app/index.tsx` compare `last_opened !== today` : après un voyage vers l'ouest, il relance le Daily d'une journée close et réécrit `last_opened` en arrière, contrairement à l'offre (constaté en [P1-01](etapes/P1-01-dates.md), revue de la PR #33).
@@ -151,20 +151,22 @@ Pour chacune : la découper en composants de moins de 300 lignes et supprimer l'
 - [ ] Home : calendrier, liste du jour, progression.
 - [ ] Création et édition de tâche ; une seule modale au lieu de `popUpTask` et `liquidCreateModal`. Le bouton « + » ouvre la modale avant de lancer le retour haptique, sans l'attendre : aujourd'hui, un échec de l'haptique empêche l'ouverture. Un test Jest vérifie que le « + » ouvre la modale (régression non détectée par la CI en [P0-04](etapes/P0-04-dependances-expo.md), revue de code finale).
 - [ ] Box, sans limite.
-- [ ] Daily : revue des tâches en retard, reporter, terminer en retard, supprimer.
+- [ ] Daily : revue des tâches en retard, reporter, terminer en retard, supprimer. Il propose **une seule fois** les tâches non faites des journées tout juste closes (`dayKeysToClose`). Une tâche laissée sans action reste non faite sur son jour d'origine, sans report automatique, et ne revient plus : aucune marque par tâche n'est stockée. Le retard (`delay_count`) n'augmente que par un report explicite, avec `moveTask` (décision de Yanis en [P1-04](etapes/P1-04-verrouillage-report.md)).
 - [ ] Repos : activer, annuler, consulter et changer la date de fin, en appelant les fonctions de `src/domain/rest.ts` (décision de Yanis en [P1-02](etapes/P1-02-repos-statut.md)).
 - [ ] Tags : créer, modifier, supprimer, 3 maximum par tâche.
 - [ ] Statistiques de la semaine.
-- [ ] Série : remplacer les deux calculs actuels par `streak` (`src/domain/streak.ts`), à partir des statuts de `dayStatus`, puis les supprimer : `calculateCurrentStreak` (`app/(tabs)/stats/index.tsx:104`) dans les Statistiques et `computeBaseStreak` (`lib/daily.ts:135`) dans le Daily. La grille de la carte de série (`isPerfectDay`, `components/statsStreak.tsx:43`) colore elle aussi ses jours d'après `dayStatus`. Aujourd'hui, aucun de ces calculs ne tient compte du Repos (constaté en [P1-03](etapes/P1-03-serie-objectif.md)).
+- [ ] Série : remplacer les deux calculs actuels par `streak` (`src/domain/streak.ts`), à partir des statuts enregistrés des journées closes (`DayRecord.status`, [P1-04](etapes/P1-04-verrouillage-report.md)), complétés par `dayStatus` pour la seule journée ouverte, puis les supprimer : `calculateCurrentStreak` (`app/(tabs)/stats/index.tsx:104`) dans les Statistiques et `computeBaseStreak` (`lib/daily.ts:135`) dans le Daily. La grille de la carte de série (`isPerfectDay`, `components/statsStreak.tsx:43`) colore elle aussi ses jours d'après les statuts enregistrés. Aujourd'hui, aucun de ces calculs ne tient compte du Repos (constaté en [P1-03](etapes/P1-03-serie-objectif.md)).
 - [ ] Objectif en haut de l'onglet Statistiques, sous l'en-tête du profil et avant le choix de la période. Un composant de `src/features/goal` affiche et suit l'objectif à partir de `goalProgress` : cible, série en cours et date d'atteinte. Son design reprend celui des autres cartes de l'écran (`Squircle`, comme `StatsStreak` et `StatsCard`), en clair et en sombre. Il est visible en version gratuite (décision de Yanis en [P1-03](etapes/P1-03-serie-objectif.md)).
 - [ ] Textes de « Qu'est-ce qu'un streak ? » (`streakExplain`, FR et EN) : dire que le Repos ne compte pas mais ne rompt pas la série, et qu'une journée vide la rompt, comme `streak`. Aujourd'hui, ils affirment que « chaque jour compte » (constaté en [P1-03](etapes/P1-03-serie-objectif.md)).
 - [ ] Réglages d'affichage : thème, langue, taille du texte, calendrier, progression, palette. Fusionner `ThemeContext` et `FontContext` dans un seul module de préférences lu depuis `settings`.
 - [ ] Écran Affichage : le titre « Affichage » chevauche son sous-titre (constaté en [P0-02, R2-1](etapes/P0-02-outillage.md)).
 - [ ] Rappel quotidien local : heure et jours choisis, week-end compris.
+- [ ] Journée modifiée après sa clôture : quand `recordDiffers` est vrai, un bandeau le signale sur la journée passée, avec un texte générique, et un bouton ouvre son enregistrement en lecture seule (tâches, état, tags tels qu'à minuit). Un report ne déclenche pas le bandeau. Gratuit (décisions de Yanis en [P1-04](etapes/P1-04-verrouillage-report.md)).
+- [ ] Supprimer le verrouillage des jours passés de l'app : réglage `lockPastDaysEnabled` et ses textes, confirmations et badge de réajustement, taux de réajustement des statistiques, `resolved_at` et `resolution`, `resolveOverdueTask`, `lib/lateAdjustmentConfirmation.ts`, et les contrôles de verrou de `lib/tasks.ts`. Tout changement de date passe par `moveTask` (décision de Yanis en [P1-04](etapes/P1-04-verrouillage-report.md)).
 
 ### Onboarding et sauvegarde
-- [ ] Onboarding sans compte, qui enregistre le nom **et l'objectif**. Supprimer l'étape `trial` et les écrans d'inscription obligatoires (ils reviendront en phase 4 pour activer le cloud). Rendre le thème sombre cohérent : aujourd'hui, l'onboarding force les couleurs claires mais la mascotte passe en blanc (constaté en [P0-04, R1-2](etapes/P0-04-dependances-expo.md)).
-- [ ] Export manuel en fichier JSON local (via la feuille de partage), et restauration depuis ce fichier, avec un format versionné.
+- [ ] Onboarding sans compte, qui enregistre le nom **et l'objectif**, et ancre la dernière journée close à la veille de l'installation (voir « Clôturer les journées »). Supprimer l'étape `trial` et les écrans d'inscription obligatoires (ils reviendront en phase 4 pour activer le cloud). Rendre le thème sombre cohérent : aujourd'hui, l'onboarding force les couleurs claires mais la mascotte passe en blanc (constaté en [P0-04, R1-2](etapes/P0-04-dependances-expo.md)).
+- [ ] Export manuel en fichier JSON local (via la feuille de partage), et restauration depuis ce fichier, avec un format versionné. L'export inclut les enregistrements des journées closes (`day_records` et la photo de leurs tâches) : sans eux, la série, l'objectif et les statistiques seraient perdus.
 - [ ] Supprimer Zustand s'il ne sert plus, ainsi que `AuthSessionContext` et les appels `supabase` dans `app/`.
 
 **Terminé quand :** sur une installation neuve en mode avion, on peut faire l'onboarding, créer des tâches et des tags, utiliser la Box, réussir une journée, passer le Daily le lendemain, activer le Repos, voir les statistiques de la semaine, exporter puis restaurer. Tout cela sans erreur et sans aucune requête réseau (vérifié dans Sentry et dans les journaux).
@@ -183,7 +185,7 @@ Pour chacune : la découper en composants de moins de 300 lignes et supprimer l'
 | Gratuit | Dun+ |
 |---|---|
 | Tâches et Box sans limite, calendrier, historique | Synchronisation entre appareils |
-| Daily, verrouillage et Repos activables | — |
+| Daily activable et Repos | — |
 | Objectif de l'onboarding | — |
 | 5 tags créés au maximum, 3 par tâche | Tags sans plafond, 3 par tâche |
 | Rappel quotidien, week-end compris | Répétitions du rappel |
@@ -230,6 +232,7 @@ Aucun utilisateur à préserver : on repart de zéro dans le projet prod.
 - [ ] Réduire les schémas d'URI d'`app.json` (`exp+dun`, `dun`, `com.dunapp.Dun`) : Linking avertit qu'il en trouve plusieurs (constaté en [P0-04, R1-3](etapes/P0-04-dependances-expo.md)). À trancher avec la connexion Google, qui en dépend.
 - [ ] **Push** : l'outbox locale est envoyée par lots, puis vidée après accusé de réception.
 - [ ] **Pull** : un curseur `updated_at` par table ; la dernière écriture gagne.
+- [ ] Réconcilier les enregistrements de journées (`day_records`) entre appareils : deux appareils hors ligne peuvent clôturer la même journée avec des états différents, et « la dernière écriture gagne » choisirait selon l'ordre d'arrivée. Définir la règle (par exemple une seule ligne par date) et, si besoin, nuancer la phrase de l'offre « qui ne change plus » (constaté en [P1-04](etapes/P1-04-verrouillage-report.md)).
 - [ ] Première activation : envoyer toute la base locale. Nouvel appareil : restaurer la copie cloud.
 - [ ] Un indicateur de synchronisation dans Profil, avec l'heure de la dernière synchronisation et les erreurs éventuelles.
 
