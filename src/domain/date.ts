@@ -129,6 +129,23 @@ export function addDays(key: DateKey, days: number): DateKey {
 }
 
 /**
+ * Day of the week of `key`, from Monday = 1 to Sunday = 7, whatever the
+ * language: weeks run from Monday to Sunday.
+ *
+ * Calendar arithmetic in UTC, so the time zone has no effect. Throws a
+ * `RangeError` if `key` is not a valid key.
+ */
+export function weekday(key: DateKey): 1 | 2 | 3 | 4 | 5 | 6 | 7 {
+  if (!isDateKey(key)) {
+    throw new RangeError(`weekday: invalid date key (${key})`);
+  }
+
+  /* `getUTCDay` counts from Sunday = 0. */
+  const day = keyToUtcDate(key).getUTCDay();
+  return (day === 0 ? 7 : day) as 1 | 2 | 3 | 4 | 5 | 6;
+}
+
+/**
  * Key of the open day.
  *
  * A closed day never reopens. The open day is the later of:

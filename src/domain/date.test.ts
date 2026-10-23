@@ -4,6 +4,7 @@ import {
   dayKeysToClose,
   isDateKey,
   openDayKey,
+  weekday,
 } from "./date";
 
 const PARIS = "Europe/Paris";
@@ -261,6 +262,32 @@ describe("addDays", () => {
     expect(() => addDays("9999-12-31", 1)).toThrow(RangeError);
     expect(() => addDays("0000-01-01", -1)).toThrow(RangeError);
     expect(() => addDays("2026-10-16", 1e10)).toThrow(RangeError);
+  });
+});
+
+describe("weekday", () => {
+  it("compte du lundi = 1 au dimanche = 7", () => {
+    expect(weekday("2026-10-12")).toBe(1);
+    expect(weekday("2026-10-13")).toBe(2);
+    expect(weekday("2026-10-14")).toBe(3);
+    expect(weekday("2026-10-15")).toBe(4);
+    expect(weekday("2026-10-16")).toBe(5);
+    expect(weekday("2026-10-17")).toBe(6);
+    expect(weekday("2026-10-18")).toBe(7);
+  });
+
+  it("passe les années et le 29 février", () => {
+    expect(weekday("2026-12-31")).toBe(4);
+    expect(weekday("2027-01-03")).toBe(7);
+    expect(weekday("2028-02-29")).toBe(2);
+    expect(weekday("2000-02-29")).toBe(2);
+    expect(weekday("0001-01-01")).toBe(1);
+    expect(weekday("9999-12-31")).toBe(5);
+  });
+
+  it("refuse une clé invalide", () => {
+    expect(() => weekday("2026-02-29")).toThrow(/^weekday: invalid date key/);
+    expect(() => weekday("12/10/2026")).toThrow(RangeError);
   });
 });
 

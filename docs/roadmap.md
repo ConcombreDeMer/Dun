@@ -4,14 +4,14 @@ Cette roadmap applique l'offre décrite dans [`offre-commerciale-v1-pour-agents.
 
 **Hypothèses.**
 - Développement solo, à temps plein.
-- Personne n'utilise l'app aujourd'hui, donc aucune donnée réelle n'est à préserver. L'étape « les personnes ayant déjà un compte choisissent un nouvel objectif lors de la migration » de l'offre devient sans objet ; on peut la retirer du document commercial ou la laisser comme cas théorique.
+- Personne n'utilise l'app aujourd'hui, donc aucune donnée réelle n'est à préserver. L'étape « les personnes ayant déjà un compte choisissent un nouvel objectif lors de la migration » est sans objet : elle a été retirée de l'offre (décision de Yanis en [P1-05](etapes/P1-05-statistiques.md)).
 - La journée se clôt à minuit partout : Daily, objectif et statistiques suivent la même règle.
 
 ## État d'avancement
 
-- **Phase en cours** : 1 — Noyau métier testé. La phase 0 est close : CI verte sur `master` et build Release vérifié sur iPhone le 16 octobre 2026, à la place du build TestFlight (voir [P1-01](etapes/P1-01-dates.md)).
-- **Dernière étape terminée** : [P1-04 — Report et enregistrement des journées closes](etapes/P1-04-verrouillage-report.md). Le verrouillage des jours passés est retiré (décision de Yanis).
-- **Prochaine étape** : P1-05, statistiques de la semaine, du mois et de l'année (dernière case de la phase 1).
+- **Phase en cours** : 2 — Données locales, app sans compte. La phase 1 est close : chaque puce de « Objectif, journées et Repos » de l'offre a au moins un test nommé d'après elle et `src/domain` est couvert à 100 % (tableau dans [P1-05](etapes/P1-05-statistiques.md)). Le build TestFlight de fin de phase est sans objet, car la phase 1 ne touche pas au code de l'app (proposition de P1-05, à confirmer par Yanis). La phase 0 est close : CI verte sur `master` et build Release vérifié sur iPhone le 16 octobre 2026, à la place du build TestFlight (voir [P1-01](etapes/P1-01-dates.md)).
+- **Dernière étape terminée** : [P1-05 — Statistiques de la semaine, du mois et de l'année](etapes/P1-05-statistiques.md).
+- **Prochaine étape** : P2-01, premières cases de la phase 2 (schéma Drizzle et base locale).
 
 Cette section est mise à jour à la fin de chaque étape par l'agent principal (voir [Workflow](#workflow)).
 
@@ -128,7 +128,7 @@ src/
 ### Tâches et statistiques
 - [x] ~~Verrouillage des jours passés (activable) : quelles actions sont permises sur une tâche d'un jour clos.~~ Remplacé par l'enregistrement des journées closes : `closeDay` (statut et photo des tâches à minuit) et `recordDiffers` (journée modifiée après sa clôture). Les tâches passées restent librement modifiables, sans verrouillage (décision de Yanis). → [P1-04](etapes/P1-04-verrouillage-report.md)
 - [x] **Une seule sémantique pour « reporter »** : déplacer la tâche et incrémenter `delay_count`. Écrire la décision dans `CLAUDE.md`. → [P1-04](etapes/P1-04-verrouillage-report.md)
-- [ ] Statistiques de la semaine, du mois et de l'année : complétion, charge, journées parfaites, série. Les périodes sont identifiées par `week | month | year`, plus par des libellés. Elles se calculent sur les enregistrements des journées closes (`DayRecord`, [P1-04](etapes/P1-04-verrouillage-report.md)), pas sur les tâches actuelles.
+- [x] Statistiques de la semaine, du mois et de l'année : complétion, charge, journées parfaites, série. Les périodes sont identifiées par `week | month | year`, plus par des libellés. Elles se calculent sur les enregistrements des journées closes (`DayRecord`, [P1-04](etapes/P1-04-verrouillage-report.md)), pas sur les tâches actuelles. → [P1-05](etapes/P1-05-statistiques.md)
 
 **Terminé quand :** chaque puce des sections « Objectif, journées et Repos » de l'offre correspond à au moins un test nommé d'après elle, et la couverture de `src/domain` est de 100 %.
 
@@ -154,7 +154,7 @@ Pour chacune : la découper en composants de moins de 300 lignes et supprimer l'
 - [ ] Daily : revue des tâches en retard, reporter, terminer en retard, supprimer. Il propose **une seule fois** les tâches non faites des journées tout juste closes (`dayKeysToClose`). Une tâche laissée sans action reste non faite sur son jour d'origine, sans report automatique, et ne revient plus : aucune marque par tâche n'est stockée. Le retard (`delay_count`) n'augmente que par un report explicite, avec `moveTask` (décision de Yanis en [P1-04](etapes/P1-04-verrouillage-report.md)).
 - [ ] Repos : activer, annuler, consulter et changer la date de fin, en appelant les fonctions de `src/domain/rest.ts` (décision de Yanis en [P1-02](etapes/P1-02-repos-statut.md)).
 - [ ] Tags : créer, modifier, supprimer, 3 maximum par tâche.
-- [ ] Statistiques de la semaine.
+- [ ] Statistiques de la semaine. Brancher `period`, `periodBuckets` et `periodStats` (`src/domain/period.ts`, `src/domain/stats.ts`), puis supprimer `lib/calculateStats.ts` et le taux de réajustement. Les préférences prennent les valeurs par défaut du domaine (`DEFAULT_STATS_PREFERENCES`) : `includeFutureDays` et `includeRestDays` passent à désactivées (décisions de Yanis en [P1-05](etapes/P1-05-statistiques.md)).
 - [ ] Série : remplacer les deux calculs actuels par `streak` (`src/domain/streak.ts`), à partir des statuts enregistrés des journées closes (`DayRecord.status`, [P1-04](etapes/P1-04-verrouillage-report.md)), complétés par `dayStatus` pour la seule journée ouverte, puis les supprimer : `calculateCurrentStreak` (`app/(tabs)/stats/index.tsx:104`) dans les Statistiques et `computeBaseStreak` (`lib/daily.ts:135`) dans le Daily. La grille de la carte de série (`isPerfectDay`, `components/statsStreak.tsx:43`) colore elle aussi ses jours d'après les statuts enregistrés. Aujourd'hui, aucun de ces calculs ne tient compte du Repos (constaté en [P1-03](etapes/P1-03-serie-objectif.md)).
 - [ ] Objectif en haut de l'onglet Statistiques, sous l'en-tête du profil et avant le choix de la période. Un composant de `src/features/goal` affiche et suit l'objectif à partir de `goalProgress` : cible, série en cours et date d'atteinte. Son design reprend celui des autres cartes de l'écran (`Squircle`, comme `StatsStreak` et `StatsCard`), en clair et en sombre. Il est visible en version gratuite (décision de Yanis en [P1-03](etapes/P1-03-serie-objectif.md)).
 - [ ] Textes de « Qu'est-ce qu'un streak ? » (`streakExplain`, FR et EN) : dire que le Repos ne compte pas mais ne rompt pas la série, et qu'une journée vide la rompt, comme `streak`. Aujourd'hui, ils affirment que « chaque jour compte » (constaté en [P1-03](etapes/P1-03-serie-objectif.md)).
