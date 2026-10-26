@@ -9,9 +9,9 @@ Cette roadmap applique l'offre décrite dans [`offre-commerciale-v1-pour-agents.
 
 ## État d'avancement
 
-- **Phase en cours** : 2 — Données locales, app sans compte. La phase 1 est close : chaque puce de « Objectif, journées et Repos » de l'offre a au moins un test nommé d'après elle et `src/domain` est couvert à 100 % (tableau dans [P1-05](etapes/P1-05-statistiques.md)). Le build TestFlight de fin de phase 1 n'a pas été fait : `src/domain` n'est pas encore branché sur l'app, et le seul changement de l'app (le Daily à minuit au lieu de 4 h, [P1-01](etapes/P1-01-dates.md)) est mécanique et vérifié sur simulateur. Yanis accepte ce risque (26 octobre 2026). La phase 0 est close : CI verte sur `master` et build Release vérifié sur iPhone le 16 octobre 2026, à la place du build TestFlight (voir [P1-01](etapes/P1-01-dates.md)).
-- **Dernière étape terminée** : [P1-05 — Statistiques de la semaine, du mois et de l'année](etapes/P1-05-statistiques.md).
-- **Prochaine étape** : P2-01, premières cases de la phase 2 (schéma Drizzle et base locale).
+- **Phase en cours** : 2 — Données locales, app sans compte. La base locale existe (schéma et migrations appliquées au lancement), mais aucun écran ne s'en sert encore. La phase 1 est close : chaque puce de « Objectif, journées et Repos » de l'offre a au moins un test nommé d'après elle et `src/domain` est couvert à 100 % (tableau dans [P1-05](etapes/P1-05-statistiques.md)). Le build TestFlight de fin de phase 1 n'a pas été fait : `src/domain` n'est pas encore branché sur l'app, et le seul changement de l'app (le Daily à minuit au lieu de 4 h, [P1-01](etapes/P1-01-dates.md)) est mécanique et vérifié sur simulateur. Yanis accepte ce risque (26 octobre 2026). La phase 0 est close : CI verte sur `master` et build Release vérifié sur iPhone le 16 octobre 2026, à la place du build TestFlight (voir [P1-01](etapes/P1-01-dates.md)).
+- **Dernière étape terminée** : [P2-01 — Schéma Drizzle et base locale](etapes/P2-01-schema-local.md).
+- **Prochaine étape** : P2-02, un repository par entité (UUID v7, ordre fractionnaire).
 
 Cette section est mise à jour à la fin de chaque étape par l'agent principal (voir [Workflow](#workflow)).
 
@@ -139,7 +139,8 @@ src/
 **But :** l'app gratuite complète fonctionne hors ligne, sans compte et sans aucun appel à Supabase.
 
 ### Base locale
-- [ ] Écrire le schéma Drizzle : `tasks` (date nulle = Box), `tags`, `task_tags`, `day_records` (avec la photo des tâches de `closeDay` : nom, état, tags avec nom et couleur), `rest_periods`, `goal`, `settings`, `reminders`, `outbox`. Toutes les tables ont `id` UUID, `created_at`, `updated_at` et `deleted_at`.
+- [x] Écrire le schéma Drizzle : `tasks` (date nulle = Box), `tags`, `task_tags`, `day_records` (avec la photo des tâches de `closeDay` : nom, état, tags avec nom et couleur), `rest_periods`, `goal`, `settings`, `reminders`. Toutes les tables ont `id` UUID, `created_at`, `updated_at` et `deleted_at`. La table `outbox` est reportée en phase 4, avec la case « Push » (décision de Yanis en [P2-01](etapes/P2-01-schema-local.md)). → [P2-01](etapes/P2-01-schema-local.md)
+- [ ] Aligner les dépendances Expo sur les derniers correctifs du SDK 56 (`npx expo install --check` sans écart), dans une étape `chore` à part : `expo`, `expo-auth-session`, `expo-linking`, `expo-router`, `expo-splash-screen` et `jest-expo` étaient en retard au 26 octobre 2026 (constaté en [P2-01, R1-5](etapes/P2-01-schema-local.md)).
 - [ ] Écrire un repository par entité. Les écrans ne parlent qu'aux hooks de `features/`, qui appellent `domain/` et `data/`.
 - [ ] Clôturer les journées : au lancement, au retour au premier plan **et avant toute écriture**, enregistrer les journées closes depuis la dernière ouverture dans `day_records`, avec `closeDay`. Sans la clôture avant écriture, une tâche cochée à 0 h 01 sur un écran resté ouvert entrerait dans l'enregistrement de la veille. Rafraîchir l'écran à minuit. La dernière journée close est ancrée à la veille de l'installation par l'onboarding : `dayKeysToClose(null, …)` renvoie `[]`, donc sans cet ancrage aucune journée ne serait jamais enregistrée (constaté en [P1-04](etapes/P1-04-verrouillage-report.md)).
 - [ ] Journées antérieures au premier jour d'utilisation : refuser la création d'une tâche et le déplacement d'une tâche (depuis la Box ou un autre jour) vers une journée antérieure à la première journée couverte par les enregistrements, avec une règle de `src/domain` testée, appelée par la création et par `moveTask`. La limite est le lendemain de l'ancrage de l'onboarding ; elle recule jusqu'au premier enregistrement après une restauration (export, puis copie cloud en phase 4). Le calendrier affiche ces journées grisées, sans action possible. Le report n'est pas concerné, il va toujours vers la journée ouverte ou plus tard (décisions de Yanis en [P1-05](etapes/P1-05-statistiques.md)).
@@ -161,7 +162,7 @@ Pour chacune : la découper en composants de moins de 300 lignes et supprimer l'
 - [ ] Textes de « Qu'est-ce qu'un streak ? » (`streakExplain`, FR et EN) : dire que le Repos ne compte pas mais ne rompt pas la série, et qu'une journée vide la rompt, comme `streak`. Aujourd'hui, ils affirment que « chaque jour compte » (constaté en [P1-03](etapes/P1-03-serie-objectif.md)).
 - [ ] Réglages d'affichage : thème, langue, taille du texte, calendrier, progression, palette. Fusionner `ThemeContext` et `FontContext` dans un seul module de préférences lu depuis `settings`.
 - [ ] Écran Affichage : le titre « Affichage » chevauche son sous-titre (constaté en [P0-02, R2-1](etapes/P0-02-outillage.md)).
-- [ ] Rappel quotidien local : heure et jours choisis, week-end compris.
+- [ ] Rappel quotidien local : heure et jours choisis, week-end compris. Déplacer les bornes des rappels (`NOTIFICATION_REMINDER_LIMITS`, `lib/notificationLimits.ts`) dans `src/domain` : le schéma local les importe depuis `lib/` (constaté en [P2-01, R1-4](etapes/P2-01-schema-local.md)).
 - [ ] Journée modifiée après sa clôture : quand `recordDiffers` est vrai, un bandeau le signale sur la journée passée, avec un texte générique, et un bouton ouvre son enregistrement en lecture seule (tâches, état, tags tels qu'à minuit). Un report ne déclenche pas le bandeau. Gratuit (décisions de Yanis en [P1-04](etapes/P1-04-verrouillage-report.md)).
 - [ ] Supprimer le verrouillage des jours passés de l'app : réglage `lockPastDaysEnabled` et ses textes, confirmations et badge de réajustement, taux de réajustement des statistiques, `resolved_at` et `resolution`, `resolveOverdueTask`, `lib/lateAdjustmentConfirmation.ts`, et les contrôles de verrou de `lib/tasks.ts`. Tout changement de date passe par `moveTask` (décision de Yanis en [P1-04](etapes/P1-04-verrouillage-report.md)).
 
@@ -231,7 +232,7 @@ Aucun utilisateur à préserver : on repart de zéro dans le projet prod.
 ### Compte et synchronisation
 - [ ] Le compte (Apple, Google, email) est demandé seulement pour activer ou récupérer la copie cloud. L'identifiant RevenueCat est relié au compte.
 - [ ] Réduire les schémas d'URI d'`app.json` (`exp+dun`, `dun`, `com.dunapp.Dun`) : Linking avertit qu'il en trouve plusieurs (constaté en [P0-04, R1-3](etapes/P0-04-dependances-expo.md)). À trancher avec la connexion Google, qui en dépend.
-- [ ] **Push** : l'outbox locale est envoyée par lots, puis vidée après accusé de réception.
+- [ ] **Push** : l'outbox locale (table `outbox`, créée à ce moment, voir [P2-01](etapes/P2-01-schema-local.md)) est envoyée par lots, puis vidée après accusé de réception.
 - [ ] **Pull** : un curseur `updated_at` par table ; la dernière écriture gagne.
 - [ ] Réconcilier les enregistrements de journées (`day_records`) entre appareils : deux appareils hors ligne peuvent clôturer la même journée avec des états différents, et « la dernière écriture gagne » choisirait selon l'ordre d'arrivée. Définir la règle (par exemple une seule ligne par date) et, si besoin, nuancer la phrase de l'offre « qui ne change plus » (constaté en [P1-04](etapes/P1-04-verrouillage-report.md)).
 - [ ] Première activation : envoyer toute la base locale. Nouvel appareil : restaurer la copie cloud.

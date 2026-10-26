@@ -3,6 +3,10 @@ module.exports = function (api) {
 
   return {
     presets: ["babel-preset-expo"],
-    plugins: ["react-native-reanimated/plugin"],
+    plugins: [
+      /* Inlines the drizzle-kit migrations (`.sql`) as strings. */
+      ["inline-import", { extensions: [".sql"] }],
+      "react-native-reanimated/plugin",
+    ],
   };
 };

@@ -1014,3 +1014,6 @@ stats:
         description: "Il peut signaler une période floue, des journées mal préparées ou un besoin de corriger votre système de planification."
       - title: "Utilisez-le comme un signal"
         description: "Si le taux monte, observez pourquoi vous revenez souvent sur l'historique : oubli, surcharge, changement de priorité ou simple correction."
+databaseError:
+  title: "Impossible d'ouvrir tes données"
+  message: "Redémarre Dun. Si le problème continue, contacte le support."

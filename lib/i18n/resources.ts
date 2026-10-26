@@ -1320,6 +1320,10 @@ export const resources = {
             }
           ]
         }
+      },
+      "databaseError": {
+        "title": "Couldn't open your data",
+        "message": "Restart Dun. If the problem continues, contact support."
       }
     }
   },
@@ -2644,6 +2648,10 @@ export const resources = {
             }
           ]
         }
+      },
+      "databaseError": {
+        "title": "Impossible d'ouvrir tes données",
+        "message": "Redémarre Dun. Si le problème continue, contacte le support."
       }
     }
   }

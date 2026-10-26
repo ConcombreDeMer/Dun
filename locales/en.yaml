@@ -1014,3 +1014,6 @@ stats:
         description: "It may point to a blurry period, poorly prepared days, or a need to improve your planning system."
       - title: "Use it as a signal"
         description: "If the rate rises, look at why you often return to history: forgotten tasks, overload, priority changes, or simple corrections."
+databaseError:
+  title: "Couldn't open your data"
+  message: "Restart Dun. If the problem continues, contact support."
