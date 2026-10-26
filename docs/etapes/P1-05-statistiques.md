@@ -6,7 +6,7 @@
 
 ## Plan validé
 
-Plan validé par Yanis le 22 octobre 2026. Les points de « Questions et risques » n'ont pas reçu de réponse explicite : l'implémentation suit les propositions du plan, à confirmer par Yanis à la main rendue.
+Plan validé par Yanis le 22 octobre 2026. Les points de « Questions et risques » n'ont pas reçu de réponse explicite : l'implémentation suit les propositions du plan, confirmées par Yanis le 26 octobre 2026 (voir « Décisions »).
 
 ### Contexte
 C'est la dernière case de la phase 1. P1-04 a créé `DayRecord` (`src/domain/dayRecord.ts`), c'est-à-dire le statut et la photo des tâches de chaque journée close, figés à minuit. L'offre dit que les statistiques s'appuient sur cet enregistrement. Aujourd'hui, les statistiques sont calculées dans l'app (`lib/calculateStats.ts`, `components/statsBarGraph.tsx`) à partir des tâches actuelles, avec des préférences d'inclusion et un taux de réajustement qui n'existe plus. Cette étape écrit la règle dans `src/domain`, en TypeScript pur et testé. Le branchement dans l'app se fera en phase 2.
@@ -151,7 +151,7 @@ npm run check
 
 ### Questions et risques
 - **Journées closes sans enregistrement** : je propose de les ignorer partout. Avec l'ancrage de l'onboarding, ce ne sont que les jours d'avant l'installation. Les compter comme vides ferait baisser la charge de la première semaine. À confirmer.
-- **Période « Global »** : l'app la propose, mais ni l'offre ni la roadmap ne la mentionnent. `periodStats` accepte n'importe quelle `DateRange`, donc la question pourra être tranchée en phase 2. Faut-il la garder ?
+- **Période « Global »** : l'app la propose, mais ni l'offre ni la roadmap ne la mentionnent. `periodStats` accepte n'importe quelle `DateRange`, donc la question pourra être tranchée en phase 2. Faut-il la garder ? (Yanis, 26 octobre : décision reportée au branchement en phase 2.)
 - **Build TestFlight de fin de phase** : la phase 1 ne touche pas au code de l'app. Je propose de le noter « sans objet » dans « État d'avancement », comme le build Release a remplacé TestFlight en phase 0. D'accord ?
 - **Changement de comportement assumé** : en phase 2, `includeFutureDays` et `includeRestDays` passeront de activées à désactivées par défaut. Personne n'utilise l'app, donc aucune préférence enregistrée n'est à migrer.
 - **Formulation de l'offre** : la phrase ajoutée sur le Repos (point 5) est une proposition, à amender si besoin.
@@ -220,7 +220,7 @@ Chaque puce de « Objectif, journées et Repos » de l'offre a au moins un `desc
 | 3. La journée où l'objectif est confirmé… | « La journée où l'objectif est confirmé peut compter si elle se clôt à 100 %, même si des tâches ont été faites avant cette confirmation. » et « La première réussite datée et la série courante sont distinctes. » (`goal`) ; « L'objectif et les statistiques utilisent la même règle de série. » (`streak`, `stats.streak`) |
 | 4. Le Repos activé pendant une journée ouverte… | « Le Repos activé pendant une journée ouverte rend cette journée entière neutre pour l'objectif et les statistiques. » (`rest`, `streak`, `stats.days`) ; « Dans les statistiques, une préférence désactivée par défaut permet d'inclure les tâches des journées de Repos ; elles ne comptent jamais pour la série ni pour les journées parfaites. » (`stats.days`) ; « Sa date de fin est incluse. », « Une annulation avant minuit rend la journée en cours normale, sans modifier les jours déjà clos. » et « Aucun Repos ne s'ajoute rétroactivement à une journée close. » (`rest`) |
 | 5. À sa clôture, une journée est enregistrée… | « À sa clôture, une journée est enregistrée avec ses tâches, leur état et leurs tags. » (`dayRecord`) ; « L'objectif, la série et les statistiques s'appuient sur cet enregistrement, qui ne change plus. » (`dayRecord`, `stats`) |
-| 6. Les tâches d'une journée close restent modifiables… | même texte (`dayRecord`) |
+| 6. Les tâches d'une journée close restent modifiables… | « Les tâches d'une journée close restent modifiables, sans verrouillage ; ces modifications ne changent pas son enregistrement. » (`dayRecord`). La 2e phrase (« Les journées antérieures au premier jour d'utilisation… »), ajoutée le 26 octobre, sera testée avec sa case de la phase 2. |
 | 7. Une journée dont les tâches ou leur état ont changé… | même texte (`dayRecord`) |
 | 8. Reporter une tâche… | même texte, et « Changer la date d'une autre tâche n'est pas un report. » (`postpone`) |
 | 9. Les nouvelles journées suivent le fuseau de l'iPhone… | « Les nouvelles journées suivent le fuseau de l'iPhone » et « Une journée déjà enregistrée garde sa date et ne se rouvre pas lors d'un voyage » (`date`). La 3e phrase (« La journée ouverte est la plus tardive… ») est testée sous « openDayKey et dayKeysToClose » (`date`) et « Avec la journée ouverte après un voyage vers l'ouest » (`dayStatus`), sans `describe` à son texte exact. |
@@ -229,7 +229,12 @@ Couverture de `src/domain` : 100 %. La phase 1 est close.
 
 ### Décisions
 - Décisions 1 à 9 de la planification (voir ci-dessus).
-- Journées closes sans enregistrement ignorées partout, période « Global » laissée à la phase 2, build TestFlight de fin de phase sans objet : propositions du plan, appliquées, que Yanis doit confirmer.
+- Période « Global » : sa décision est reportée au branchement des statistiques en phase 2 (confirmé par Yanis le 26 octobre 2026).
+- Build TestFlight de fin de phase 1 : non fait. `src/domain` n'est pas branché sur l'app ; le seul changement de l'app pendant la phase 1 est le Daily à minuit au lieu de 4 h (P1-01), mécanique et vérifié sur simulateur. Yanis accepte ce risque (26 octobre 2026).
+- Journées closes sans enregistrement : `periodStats` les ignore partout (confirmé par Yanis le 26 octobre 2026). Yanis décide en plus qu'elles ne reçoivent plus de tâche :
+  - une phrase est ajoutée à la puce de l'offre sur les journées closes modifiables : « Les journées antérieures au premier jour d'utilisation, sans enregistrement, ne reçoivent pas de tâche. » ;
+  - une case est ajoutée en phase 2 de la roadmap : création et déplacement refusés vers ces journées, par une règle de `src/domain` ; limite recalculée après une restauration ; journées grisées dans le calendrier ;
+  - la règle « ignorées partout » de `periodStats` reste valable et sert de filet de sécurité.
 - `stats.test.ts` est découpé en 4 fichiers (R1-1).
 
 ### Problèmes non bloquants
@@ -247,6 +252,7 @@ Couverture de `src/domain` : 100 %. La phase 1 est close.
   - `tasks` reçoit les tâches non supprimées ; seules celles de la journée ouverte et des jours futurs sont lues ;
   - `openKey` vient de `openDayKey`.
 - **Graphique** : `periodBuckets` donne les tranches, et `periodStats` se calcule par tranche. Les libellés (« Du … au … », jours, mois) et les arrondis restent dans `features/stats`.
+- **Journées antérieures au premier jour d'utilisation** (case de la phase 2) : la règle de refus va dans `src/domain`, avec un `describe` au texte exact de la nouvelle phrase de l'offre. Elle doit prendre la limite en paramètre (premier jour couvert), et non la date d'installation, à cause de la restauration.
 - **Issue #38** : traiter avec elle le préfixe des `RangeError` aux bornes du calendrier (R1-5), qui vaut aussi pour `openDayKey` et `dayKeysToClose`.
 - **Préférences** : `useStatsPreferences` et `StatsPreferencesModal` gardent les 4 préférences, avec les valeurs par défaut de `DEFAULT_STATS_PREFERENCES`. Le taux de réajustement disparaît.
 - **Période « Global »** : absente de l'offre. À trancher avec Yanis au branchement ; `periodStats` accepte n'importe quelle `DateRange`.
