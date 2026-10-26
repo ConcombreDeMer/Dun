@@ -30,13 +30,12 @@ L'export et la restauration manuels restent gratuits. La copie cloud et sa récu
 - Le premier objectif correspond à la cible choisie à l'onboarding : **1, 2, 3, 4, 7 ou 14 journées réussies**.
 - Une journée se clôt à **minuit**. Seules les journées closes à 100 % comptent pour l'objectif ; une journée en cours à 100 % reste provisoire. Une journée vide hors Repos ou incomplète rompt la série.
 - La journée où l'objectif est confirmé peut compter si elle se clôt à 100 %, même si des tâches ont été faites avant cette confirmation. La première réussite datée et la série courante sont distinctes. L'objectif et les statistiques utilisent la même règle de série.
-- Le Repos activé pendant une journée ouverte rend cette journée entière neutre pour l'objectif et les statistiques. Sa date de fin est incluse. Une annulation avant minuit rend la journée en cours normale, sans modifier les jours déjà clos. Aucun Repos ne s'ajoute rétroactivement à une journée close.
+- Le Repos activé pendant une journée ouverte rend cette journée entière neutre pour l'objectif et les statistiques. Dans les statistiques, une préférence désactivée par défaut permet d'inclure les tâches des journées de Repos ; elles ne comptent jamais pour la série ni pour les journées parfaites. Sa date de fin est incluse. Une annulation avant minuit rend la journée en cours normale, sans modifier les jours déjà clos. Aucun Repos ne s'ajoute rétroactivement à une journée close.
 - À sa clôture, une journée est enregistrée avec ses tâches, leur état et leurs tags. L'objectif, la série et les statistiques s'appuient sur cet enregistrement, qui ne change plus.
-- Les tâches d'une journée close restent modifiables, sans verrouillage ; ces modifications ne changent pas son enregistrement.
+- Les tâches d'une journée close restent modifiables, sans verrouillage ; ces modifications ne changent pas son enregistrement. Les journées antérieures au premier jour d'utilisation, sans enregistrement, ne reçoivent pas de tâche.
 - Une journée dont les tâches ou leur état ont changé après sa clôture, hors report, le signale ; son enregistrement reste consultable.
 - Reporter une tâche, c'est déplacer une tâche non faite d'une journée close vers la journée ouverte ou plus tard ; son nombre de reports augmente d'un. Changer la date d'une autre tâche n'est pas un report.
 - Les nouvelles journées suivent le fuseau de l'iPhone. Une journée déjà enregistrée garde sa date et ne se rouvre pas lors d'un voyage. La journée ouverte est la plus tardive entre la date locale de l'iPhone et le lendemain de la dernière journée close : après un voyage vers l'ouest, la journée en cours se prolonge jusqu'à minuit heure locale au lieu de revenir à une date déjà close.
-- Les personnes ayant déjà un compte choisissent un nouvel objectif lors de la migration de leurs données : l'ancien objectif et l'historique de Repos ne sont pas inventés.
 
 ## Droits Dun+ et expiration
 
