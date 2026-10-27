@@ -70,6 +70,7 @@ La V1 vise uniquement l'iPhone.
 | `npm run format:check`   | Vérifie le formatage sans rien modifier.                                                             |
 | `npm run check`          | Enchaîne `typecheck`, `lint`, `format:check` et `test:coverage`. C'est la vérification de référence. |
 | `npm run i18n:generate`  | Régénère `lib/i18n/resources.ts` depuis `locales/*.yaml`.                                            |
+| `npm run db:generate`    | Génère les migrations de la base locale depuis `src/data/schema.ts` (`drizzle-kit generate`).        |
 | `npm run android`        | Non pris en charge.                                                                                  |
 | `npm run web`            | Non pris en charge.                                                                                  |
 
@@ -148,6 +149,9 @@ lib/          Logique partagée : Supabase, tâches, statistiques, notifications
 store/        État global Zustand
 src/
   domain/     Règles métier pures et testées (dates et journées)
+  data/       Base locale SQLite : schéma Drizzle, ouverture, migrations
+    migrations/  Migrations générées par drizzle-kit (ne pas modifier à la main)
+  ui/         Écrans et composants de la nouvelle architecture
 locales/      Textes de l'app en français et en anglais (YAML)
 assets/       Polices, images, animations Lottie, icône
 supabase/     Migrations SQL et fonctions Edge (Deno)
@@ -157,6 +161,19 @@ docs/         Roadmap, fichiers d'étape, environnements, audit
 ```
 
 Ce code sera réorganisé au fil de la roadmap : la structure visée est décrite dans l'[architecture cible](docs/roadmap.md#architecture-cible).
+
+## Base locale
+
+Les données locales sont dans une base SQLite (`dun.db`, avec `expo-sqlite`), décrite avec Drizzle dans [`src/data/schema.ts`](src/data/schema.ts). Au lancement, l'app applique les migrations embarquées avant de masquer le splash ; en cas d'échec, elle affiche un écran d'erreur, sans effacer de données.
+
+- Après toute modification de `schema.ts`, régénérer les migrations, puis les ajouter au commit :
+
+  ```bash
+  npm run db:generate
+  ```
+
+- Les fichiers de `src/data/migrations/` sont générés par drizzle-kit : ne jamais les modifier à la main.
+- `expo-sqlite` est un module natif : après son ajout (ou une mise à jour), relancer `cd ios && pod install`, puis recompiler l'app.
 
 ## Traductions
 

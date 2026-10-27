@@ -27,6 +27,8 @@ import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 import { usePremiumDowngradeCompliance } from "../lib/usePremiumDowngradeCompliance";
 import { useStore } from "../store/store";
 import { logger } from "@/lib/logger";
+import { useLocalDatabase } from "@/src/data/useLocalDatabase";
+import DatabaseErrorScreen from "@/src/ui/DatabaseErrorScreen";
 
 Sentry.init({
   dsn: "https://22e24a375245f570d6a9c3e6ebfb71af@o4511662072594432.ingest.de.sentry.io/4511662116896848",
@@ -123,6 +125,7 @@ function RootLayoutContent() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const previousUserIdRef = useRef<string | null | undefined>(undefined);
+  const { ready: isDatabaseReady, error: databaseError } = useLocalDatabase();
 
   const [fontsLoaded] = useFonts({
     "Satoshi-Regular": require("../assets/fonts/Satoshi-Regular.otf"),
@@ -214,11 +217,27 @@ function RootLayoutContent() {
     };
   }, []);
 
+  // Échec des migrations de la base locale : journalisé, aucune donnée effacée
   useEffect(() => {
-    if (fontsLoaded && !isLoading && !isAuthLoading && isI18nReady) {
+    if (databaseError) {
+      logger.error("Erreur base locale:", databaseError);
+      Sentry.captureException(databaseError);
+    }
+  }, [databaseError]);
+
+  const isDatabaseSettled = isDatabaseReady || databaseError !== undefined;
+
+  useEffect(() => {
+    if (
+      fontsLoaded &&
+      !isLoading &&
+      !isAuthLoading &&
+      isI18nReady &&
+      isDatabaseSettled
+    ) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, isLoading, isAuthLoading, isI18nReady]);
+  }, [fontsLoaded, isLoading, isAuthLoading, isI18nReady, isDatabaseSettled]);
 
   // Redirection basée sur l'authentification
   useEffect(() => {
@@ -258,8 +277,18 @@ function RootLayoutContent() {
     checkUserAndRedirect();
   }, [isAuthLoading, pathname, queryClient, router, session]);
 
-  if (!fontsLoaded || isLoading || isAuthLoading || !isI18nReady) {
+  if (
+    !fontsLoaded ||
+    isLoading ||
+    isAuthLoading ||
+    !isI18nReady ||
+    !isDatabaseSettled
+  ) {
     return null;
+  }
+
+  if (databaseError) {
+    return <DatabaseErrorScreen />;
   }
 
   return (
