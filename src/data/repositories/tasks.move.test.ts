@@ -180,6 +180,29 @@ describe("place", () => {
     expect(repo.get("task-1").get()?.updatedAt).toEqual(T0);
   });
 
+  it("refuses no neighbor at all in a day that has other tasks, without modifying anything", () => {
+    const before = repo.get("task-1").get();
+    options.advance();
+
+    expectDataError(
+      () => repo.place("task-1", null, null),
+      "invalid_neighbors",
+    );
+    expect(repo.get("task-1").get()).toEqual(before);
+  });
+
+  it("accepts no neighbor at all when the task is alone in its day", () => {
+    repo.remove("task-2");
+    repo.remove("task-3");
+    repo.create({ name: "Vendredi", date: FRI_30 });
+    const at = options.advance();
+
+    repo.place("task-1", null, null);
+
+    expect(day()).toEqual(["A"]);
+    expect(repo.get("task-1").get()?.updatedAt).toEqual(at);
+  });
+
   it("refuses a missing task", () => {
     expectDataError(() => repo.place("missing", null, null), "not_found");
   });

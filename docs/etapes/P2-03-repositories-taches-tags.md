@@ -196,6 +196,24 @@ Vérifié et correct :
 
 Aucun problème bloquant : pas de tour de correction.
 
+## Revue — tour 2
+
+Correction demandée par Yanis après la remise : R1-2, traitée comme bloquante. R1-1 et R1-3 sont reportés (cases « Journées antérieures au premier jour d'utilisation » et « Tags » de la roadmap), et R1-4 est ignoré.
+
+| ID | Gravité | Fichier:ligne | Problème | Correction attendue |
+|---|---|---|---|---|
+| — | — | — | Aucun problème. | — |
+
+Vérifié et correct :
+- **R1-2 corrigé** (`src/data/repositories/tasks.ts:186-199`) : quand les deux voisines valent `null`, `place` cherche une autre tâche non supprimée de la même journée (ou de la Box). S'il en trouve une, il lève `invalid_neighbors` avant toute écriture. Une tâche seule garde le comportement d'avant. La JSDoc est à jour.
+- Deux tests dans `tasks.move.test.ts` :
+  - un refus dans une journée non vide, la ligne relue restant identique (`order_key` et `updated_at` compris) ;
+  - une acceptation quand la tâche est seule dans sa journée, alors qu'une autre tâche existe un autre jour.
+- `npm run check` sort avec le code 0 (relancé par l'agent principal) : 28 suites, 433 tests, `src/domain` à 100 %.
+- Le diff du tour ne touche que `tasks.ts` et `tasks.move.test.ts`.
+
+Aucun problème bloquant restant.
+
 ## Résultat
 
 ### Ce qui a été fait
@@ -205,7 +223,7 @@ Aucun problème bloquant : pas de tour de correction.
 - **`src/data/errors.ts`** : `DataError` (`not_found`, `duplicate_tag_name`, `invalid_neighbors`) et `isUniqueViolation`.
 - **`src/domain/tags.ts`** : `MAX_TAGS_PER_TASK = 3` et `assertTaskTagIds` (« trois tags maximum sur une tâche »).
 - **`src/data/repositories/`** :
-  - `createTaskRepository` : `listDay`, `listBox`, `listRange`, `get`, `create` (en tête), `update`, `move` (par `moveTask`), `place` et `remove` ;
+  - `createTaskRepository` : `listDay`, `listBox`, `listRange`, `get`, `create` (en tête), `update`, `move` (par `moveTask`), `place` (sans voisines seulement si la tâche est seule dans sa journée, R1-2) et `remove` ;
   - `createTagRepository` : `list`, `create`, `update` et `remove` ;
   - `createTaskTagRepository` : `listForTasks` et `setForTask` ;
   - les options communes sont dans `repository.ts`.
@@ -214,7 +232,7 @@ Aucun problème bloquant : pas de tour de correction.
 - **`README.md`** : section « Base locale » complétée (repositories, `createTestDatabase`).
 
 ### Vérification finale
-- `npm run check` : succès (typecheck, ESLint sans avertissement, Prettier, 28 suites et 431 tests). `src/domain` est à 100 %. Seul l'`ExperimentalWarning` de `node:sqlite`, déjà toléré (P2-01, R1-2), apparaît.
+- `npm run check` : succès (typecheck, ESLint sans avertissement, Prettier, 28 suites et 433 tests). `src/domain` est à 100 %. Seul l'`ExperimentalWarning` de `node:sqlite`, déjà toléré (P2-01, R1-2), apparaît.
 - `npm run db:generate` : « No schema changes, nothing to migrate ».
 - Pas de vérification sur simulateur : aucun écran n'importe le nouveau code, et l'interface ne change pas.
 
@@ -229,10 +247,10 @@ Aucun problème bloquant : pas de tour de correction.
 ### Problèmes non bloquants
 | ID | Problème | Décision de Yanis |
 |---|---|---|
-| R1-1 | `create` ne valide pas la `DateKey`. | à décider |
-| R1-2 | `place(id, null, null)` accepté dans une journée non vide. | à décider |
-| R1-3 | Détection du nom de tag en double non vérifiée sur `expo-sqlite`. | à décider |
-| R1-4 | L'adaptateur de test compterait `changes = 0` pour une écriture avec `RETURNING`. | à décider |
+| R1-1 | `create` ne valide pas la `DateKey`. | reporté : à traiter avec la case « Journées antérieures au premier jour d'utilisation » |
+| R1-2 | `place(id, null, null)` accepté dans une journée non vide. | corrigé (tour 2) |
+| R1-3 | Détection du nom de tag en double non vérifiée sur `expo-sqlite`. | reporté : à vérifier au premier branchement de l'écran des tags |
+| R1-4 | L'adaptateur de test compterait `changes = 0` pour une écriture avec `RETURNING`. | ignoré |
 
 ## Pour l'étape suivante
 - **P2-04** : appliquer la même forme aux repositories de `day_records`, `rest_periods`, `goal`, `settings` et `reminders` :

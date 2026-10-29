@@ -10,7 +10,7 @@
  * Box) has the smallest key.
  */
 
-import { and, asc, between, eq, isNull, type SQL } from "drizzle-orm";
+import { and, asc, between, eq, isNull, ne, type SQL } from "drizzle-orm";
 import type { DateKey } from "../../domain/date";
 import { moveTask } from "../../domain/postpone";
 import { DataError } from "../errors";
@@ -163,7 +163,8 @@ export function createTaskRepository(options: RepositoryOptions) {
      * the end of the list). Only the placed task is modified.
      *
      * Throws `invalid_neighbors` if a neighbor is missing, deleted, from
-     * another day, or if the neighbors are not in order.
+     * another day, or if the neighbors are not in order. Both neighbors may be
+     * `null` only when the task is alone in its day (or in the Box).
      */
     place(id: string, previousId: string | null, nextId: string | null): void {
       const task = find(id);
@@ -181,6 +182,21 @@ export function createTaskRepository(options: RepositoryOptions) {
         }
         return neighbor.orderKey;
       };
+
+      if (previousId === null && nextId === null) {
+        const other = db
+          .select({ id: tasks.id })
+          .from(tasks)
+          .where(and(onDate(task.date), ne(tasks.id, id), notDeleted))
+          .limit(1)
+          .get();
+        if (other !== undefined) {
+          throw new DataError(
+            "invalid_neighbors",
+            `Task ${id} is not alone in its day: neighbors are required`,
+          );
+        }
+      }
 
       const before = neighborKey(previousId);
       const after = neighborKey(nextId);
