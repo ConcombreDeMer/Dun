@@ -175,6 +175,15 @@ Les données locales sont dans une base SQLite (`dun.db`, avec `expo-sqlite`), d
 - Les fichiers de `src/data/migrations/` sont générés par drizzle-kit : ne jamais les modifier à la main.
 - `expo-sqlite` est un module natif : après son ajout (ou une mise à jour), relancer `cd ios && pod install`, puis recompiler l'app.
 
+Les écritures et les lectures passent par les repositories de [`src/data/repositories/`](src/data/repositories/), un par table :
+
+- chaque repository est une fabrique (`createTaskRepository({ db, now, newId })`) : les tests injectent une horloge et des identifiants fixes ;
+- les lectures renvoient une requête Drizzle non exécutée, à exécuter avec `.all()` ou `.get()`, ou à passer à `useLiveQuery` ;
+- les identifiants sont des UUID v7 générés sur l'appareil, et l'ordre d'une liste passe par une clé fractionnaire (`order_key`) ;
+- supprimer renseigne `deleted_at` : aucune ligne n'est effacée, et les lectures ignorent les lignes supprimées.
+
+Les tests des repositories tournent sur `createTestDatabase()` ([`src/data/testing/testDatabase.ts`](src/data/testing/testDatabase.ts)) : une base `node:sqlite` en mémoire, avec les migrations embarquées et le même pilote Drizzle que l'app.
+
 ## Traductions
 
 Tout texte visible passe par les fichiers [`locales/fr.yaml`](locales/fr.yaml) et [`locales/en.yaml`](locales/en.yaml). Après une modification, régénérer les ressources :
