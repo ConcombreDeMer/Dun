@@ -8,7 +8,9 @@ export type DataErrorCode =
   /* Another tag that is not deleted already has this name. */
   | "duplicate_tag_name"
   /* The neighbors given to place a row are invalid. */
-  | "invalid_neighbors";
+  | "invalid_neighbors"
+  /* The day is already recorded: a closed day is recorded only once. */
+  | "already_recorded";
 
 export class DataError extends Error {
   readonly code: DataErrorCode;
