@@ -89,6 +89,24 @@ describe("set", () => {
     expect(typeof misuse).toBe("function");
   });
 
+  it.each([
+    ["NaN", NaN],
+    ["Infinity", Infinity],
+    ["-Infinity", -Infinity],
+    ["a number nested in an object", { sizes: [1, { scale: NaN }] }],
+    ["a number nested in an array", [1, 2, Infinity]],
+  ])("refuses %s, and writes nothing", (_, value) => {
+    repo.set("theme", "dark");
+
+    expect(() => repo.set("theme", value)).toThrow(
+      /^settings\.set: number not finite/,
+    );
+    expect(() => repo.set("other", value)).toThrow(RangeError);
+    expect(allRows()).toEqual([
+      expect.objectContaining({ key: "theme", value: "dark", updatedAt: T0 }),
+    ]);
+  });
+
   it("reads a JSON value back as it was written", () => {
     const value = { weekStart: 1, hidden: ["stats"], compact: true };
 

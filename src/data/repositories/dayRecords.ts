@@ -9,7 +9,7 @@
  */
 
 import { and, asc, between, desc, eq, isNotNull, isNull } from "drizzle-orm";
-import type { DateKey } from "../../domain/date";
+import { isDateKey, type DateKey } from "../../domain/date";
 import type { DayRecord } from "../../domain/dayRecord";
 import { DataError } from "../errors";
 import { dayRecords } from "../schema";
@@ -68,9 +68,16 @@ export function createDayRecordRepository(options: RepositoryOptions) {
      * A soft-deleted row of the same key is reused: same `id` and
      * `created_at`, new status and tasks, `deleted_at` back to `null`.
      * Throws `already_recorded` if a day is already recorded and not
-     * deleted; nothing is written then.
+     * deleted, and a `RangeError` if a key is not a valid date key; nothing
+     * is written then.
      */
     record(records: readonly DayRecord[]): void {
+      for (const { key } of records) {
+        if (!isDateKey(key)) {
+          throw new RangeError(`dayRecords.record: invalid date key (${key})`);
+        }
+      }
+
       db.transaction((tx) => {
         const at = now();
 

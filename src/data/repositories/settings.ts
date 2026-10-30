@@ -25,6 +25,20 @@ export type SettingValue =
 
 const notDeleted = isNull(settings.deletedAt);
 
+/**
+ * Whether `value` holds a number that is not finite, at any depth.
+ * `JSON.stringify` would write it as `null`.
+ */
+function hasNonFiniteNumber(value: SettingValue): boolean {
+  if (typeof value === "number") {
+    return !Number.isFinite(value);
+  }
+  if (typeof value !== "object") {
+    return false;
+  }
+  return Object.values(value).some(hasNonFiniteNumber);
+}
+
 export function createSettingsRepository(options: RepositoryOptions) {
   const { db, now, newId } = repositoryDefaults(options);
 
@@ -49,8 +63,16 @@ export function createSettingsRepository(options: RepositoryOptions) {
     /**
      * Creates the setting `key`, or replaces its value. A soft-deleted row
      * of the same key is reused, with `deleted_at` back to `null`.
+     *
+     * Throws a `RangeError` if `value` holds a number that is not finite
+     * (`NaN`, `Infinity`), at any depth; nothing is written then.
      */
     set(key: string, value: SettingValue): void {
+      if (hasNonFiniteNumber(value)) {
+        throw new RangeError(
+          `settings.set: number not finite in the value of "${key}"`,
+        );
+      }
       const at = now();
 
       db.insert(settings)

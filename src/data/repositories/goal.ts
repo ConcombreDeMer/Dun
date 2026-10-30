@@ -7,6 +7,7 @@
  */
 
 import { desc, eq, isNull } from "drizzle-orm";
+import { isDateKey } from "../../domain/date";
 import type { Goal } from "../../domain/goal";
 import { goal } from "../schema";
 import { repositoryDefaults, type RepositoryOptions } from "./repository";
@@ -34,9 +35,14 @@ export function createGoalRepository(options: RepositoryOptions) {
 
     /**
      * Sets the goal: updates the active one (same `id`), or creates it.
-     * Returns the row.
+     * Returns the row. Throws a `RangeError` if `confirmedKey` is not a valid
+     * date key; nothing is written then.
      */
     set({ target, confirmedKey }: Goal): GoalRow {
+      if (!isDateKey(confirmedKey)) {
+        throw new RangeError(`goal.set: invalid date key (${confirmedKey})`);
+      }
+
       return db.transaction((tx) => {
         const at = now();
         const current = tx

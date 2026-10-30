@@ -91,6 +91,24 @@ describe("set", () => {
     ]);
   });
 
+  it("refuses an invalid confirmed key, and writes nothing", () => {
+    expect(() => repo.set({ target: 3, confirmedKey: "2026-02-30" })).toThrow(
+      /^goal\.set: invalid date key/,
+    );
+    expect(() => repo.set({ target: 3, confirmedKey: "demain" })).toThrow(
+      RangeError,
+    );
+    expect(allRows()).toEqual([]);
+  });
+
+  it("refuses an invalid confirmed key for an existing goal", () => {
+    const row = repo.set({ target: 3, confirmedKey: THU_29 });
+    options.advance();
+
+    expect(() => repo.set({ target: 7, confirmedKey: "" })).toThrow(RangeError);
+    expect(allRows()).toEqual([row]);
+  });
+
   it("is refused by the database for a target out of the list", () => {
     expect(() =>
       repo.set({ target: 5 as GoalTarget, confirmedKey: THU_29 }),

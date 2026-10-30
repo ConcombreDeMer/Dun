@@ -158,6 +158,35 @@ Vérifié et correct :
 
 Aucun problème bloquant restant.
 
+## Revue — tour 2
+
+Revue de code de la branche (30 octobre 2026), à la demande de Yanis, qui demande de corriger ce qui est essentiel. Les trois points de correction sont traités comme bloquants.
+
+| ID | Gravité | Fichier:ligne | Problème | Correction attendue |
+|---|---|---|---|---|
+| R2-1 | Bloquant | `src/data/repositories/goal.ts:39` (`set`) | `confirmedKey` est enregistré sans vérifier que c'est une `DateKey`. Ensuite, `goalProgress` lève une `RangeError` à chaque lecture de l'objectif. | Refuser une clé invalide par une `RangeError` (`isDateKey` de `src/domain/date.ts`), avant toute écriture. Un test. |
+| R2-2 | Bloquant | `src/data/repositories/dayRecords.ts:72` (`record`) | La clé d'une journée n'est pas validée. Un enregistrement ne se modifie ni ne se supprime, donc une clé invalide resterait en base pour de bon. | Valider toutes les clés du lot avec `isDateKey` avant toute écriture. Sinon `RangeError`, et rien n'est écrit. Un test. |
+| R2-3 | Bloquant | `src/data/repositories/settings.ts:21` (`SettingValue`) | `NaN` et `Infinity` passent le type `number`. `JSON.stringify` les écrit en `"null"`, qui est relu comme `null` : l'invariant de R1-1 est contourné. | Refuser dans `set` tout nombre non fini, y compris imbriqué dans un tableau ou un objet, par une `RangeError` avant l'écriture. Tests pour `NaN`, `Infinity` et un nombre imbriqué. |
+| R2-4 | Non bloquant | `settings.ts`, `goal.ts`, `reminders.ts` (`set`) | `updated_at` est réécrit même quand la valeur ne change pas : la synchronisation enverrait de nouveau ces lignes. | À traiter avec la phase 4 (« Push » et « Pull »). |
+| R2-5 | Non bloquant | `goal.ts`, `reminders.ts` | Même logique de ligne unique (`newestFirst`, `get`, `set`) copiée dans deux fichiers. | Factoriser si un troisième cas apparaît, ou avec la règle de synchronisation. |
+| R2-6 | Non bloquant | `reminders.ts:50` (`set`) | Les sept colonnes métier sont listées deux fois. | Ignorer ou simplifier plus tard. |
+| R2-7 | Non bloquant | `restPeriods.ts:18` | Le type `Transaction` est défini localement. | Le partager dans `repository.ts` dès qu'un autre repository en a besoin. |
+
+### Vérification du tour 2
+
+| ID | Gravité | Fichier:ligne | Problème | Correction attendue |
+|---|---|---|---|---|
+| — | — | — | Aucun problème. | — |
+
+Vérifié et correct :
+- **R2-1 corrigé** (`goal.ts:42-44`) : `isDateKey(confirmedKey)` est vérifié avant la transaction. Le test couvre une clé invalide sans objectif existant, puis avec un objectif existant ; la ligne reste inchangée.
+- **R2-2 corrigé** (`dayRecords.ts:75-79`) : toutes les clés du lot sont vérifiées avant la transaction. Le test couvre une clé valide suivie de `2026-10-32` : aucune journée n'est écrite.
+- **R2-3 corrigé** (`settings.ts:32-40` et `:71-75`) : `hasNonFiniteNumber` parcourt tableaux et objets. Les tests couvrent `NaN`, `Infinity`, `-Infinity` et deux cas imbriqués, avec ou sans clé existante ; la base reste inchangée.
+- `npm run check` sort avec le code 0 (relancé par l'agent principal) : 33 suites et 506 tests, `src/domain` à 100 %.
+- Le diff du tour ne touche que `goal`, `dayRecords`, `settings` et leurs tests.
+
+Aucun problème bloquant restant.
+
 ## Résultat
 
 ### Ce qui a été fait
@@ -170,14 +199,16 @@ Aucun problème bloquant restant.
 - **Tests** : un fichier par repository, sur `createTestDatabase()` et `testRepositoryOptions()`.
 
 ### Vérification finale
-- `npm run check` : succès (typecheck, ESLint sans avertissement, Prettier, 33 suites et 498 tests). `src/domain` est à 100 %. Seul l'`ExperimentalWarning` de `node:sqlite`, déjà toléré (P2-01, R1-2), apparaît.
+- `npm run check` : succès (typecheck, ESLint sans avertissement, Prettier, 33 suites et 506 tests). `src/domain` est à 100 %. Seul l'`ExperimentalWarning` de `node:sqlite`, déjà toléré (P2-01, R1-2), apparaît.
 - `npm run db:generate` : « No schema changes, nothing to migrate ».
 - `grep -rnE "src/data/(repositories|testing)" app lib components` et `grep -rn "\.delete(" src/data/repositories` ne renvoient rien.
 - Pas de vérification sur simulateur : aucun écran n'importe le nouveau code.
 
 ### Décisions
 - Plan validé sans amendement : une journée déjà enregistrée est refusée (`already_recorded`, lot entier annulé) ; l'objectif et le rappel ont une seule ligne active, mise à jour en place, sans historique.
-- `SettingValue` exclut `null` : la colonne est `NOT NULL`, et Drizzle n'encode pas `null` en JSON (R1-1).
+- `SettingValue` exclut `null` : la colonne est `NOT NULL`, et Drizzle n'encode pas `null` en JSON (R1-1). `set` refuse aussi les nombres non finis, que `JSON.stringify` écrirait en `null` (R2-3).
+- Les dates reçues par `goal.set` et `dayRecords.record` sont validées par `isDateKey`, avec une `RangeError` avant toute écriture (R2-1, R2-2).
+- Revue de code demandée par Yanis : seuls les points de correction (R2-1 à R2-3) sont corrigés, comme il l'a demandé (« ce qui te semble essentiel »).
 - Le suffixe `Row` (`DayRecordRow`, `RestPeriodRow`, `GoalRow`) évite le conflit avec les types de `src/domain`.
 
 ### Problèmes non bloquants
@@ -186,11 +217,15 @@ Aucun problème bloquant restant.
 | R1-2 | `changeRestEnd` ne vérifie pas le chevauchement quand on allonge un Repos. | ajouté à la roadmap (phase 4, « Compte et synchronisation ») |
 | R1-3 | Second critère de tri `id` décroissant dans `goal.get` et `reminders.get`. | gardé tel quel |
 | R1-4 | `record`, `cancel`, `changeEnd`, `settings.set` et `remove` ne renvoient rien. | gardé tel quel |
+| R2-4 | `updated_at` réécrit même quand la valeur ne change pas. | non corrigé (jugé non essentiel) ; recommandation : à traiter en phase 4 |
+| R2-5 | Logique de ligne unique copiée entre `goal` et `reminders`. | non corrigé (jugé non essentiel) ; recommandation : ignorer pour l'instant |
+| R2-6 | Colonnes du rappel listées deux fois dans `reminders.set`. | non corrigé (jugé non essentiel) ; recommandation : ignorer |
+| R2-7 | Type `Transaction` défini localement dans `restPeriods.ts`. | non corrigé (jugé non essentiel) ; recommandation : le partager au premier besoin |
 
 ## Pour l'étape suivante
 - **La case « Écrire un repository par entité » est close.** Les hooks de `features/` s'écrivent avec leur écran, sur les fabriques de `src/data/repositories/`.
 - **Clôture des journées** : `dayRecords.lastKey()` donne la dernière journée enregistrée, mais pas l'ancrage de l'onboarding (la veille de l'installation, sans enregistrement). Il faudra le stocker, par exemple dans `settings`, et prendre le plus tardif des deux pour `openDayKey` et `dayKeysToClose`. `record` refuse une journée déjà enregistrée : en cas de clôtures concurrentes (lancement et retour au premier plan), relire `lastKey` dans la même passe.
 - **Statuts lus en base** : `dayRecords` renvoie le `status` tel qu'il est stocké. La validation avant `streak` et `goalProgress` reste à faire (case dédiée).
-- **Synchronisation (phase 4)** : deux appareils peuvent créer chacun leur ligne `goal`, `reminders` ou `settings` (`id` différents). `get()` reste déterministe, mais il donnerait deux objectifs actifs en base, et un conflit sur `settings_key_unique`. La règle est à définir avec les cases « Push » et « Pull ». Même chose pour l'allongement d'un Repos (R1-2).
+- **Synchronisation (phase 4)** : `set` réécrit `updated_at` même sans changement de valeur (R2-4). Deux appareils peuvent créer chacun leur ligne `goal`, `reminders` ou `settings` (`id` différents). `get()` reste déterministe, mais il donnerait deux objectifs actifs en base, et un conflit sur `settings_key_unique`. La règle est à définir avec les cases « Push » et « Pull ». Même chose pour l'allongement d'un Repos (R1-2).
 - **`settings`** : le typage par clé (et les valeurs par défaut) vient avec la case « Réglages d'affichage ». `SettingValue` exclut `null` : pour « pas de valeur », utiliser `remove`.
 - **Premier branchement d'un écran** : les vérifications listées en P2-03 restent à faire (Metro et `fractional-indexing`, `isUniqueViolation` sur `expo-sqlite`, `newId` sous Hermes). S'y ajoute `onConflictDoUpdate … setWhere` sur `expo-sqlite`, testé seulement sous `node:sqlite`.

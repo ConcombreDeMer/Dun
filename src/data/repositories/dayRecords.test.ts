@@ -100,6 +100,14 @@ describe("record", () => {
     ]);
   });
 
+  it("refuses an invalid key, and writes none of the batch", () => {
+    expect(() => repo.record([empty(TUE_27), empty("2026-10-32")])).toThrow(
+      /^dayRecords\.record: invalid date key/,
+    );
+    expect(() => repo.record([empty("27/10/2026")])).toThrow(RangeError);
+    expect(options.db.select().from(dayRecords).all()).toEqual([]);
+  });
+
   it("refuses the same day twice in a batch", () => {
     expectDataError(
       () => repo.record([empty(TUE_27), empty(TUE_27)]),
