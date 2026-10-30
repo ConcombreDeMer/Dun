@@ -214,6 +214,48 @@ Vérifié et correct :
 
 Aucun problème bloquant restant.
 
+## Revue — tour 3
+
+Revue de code de la PR #46 (30 octobre 2026). Yanis demande de corriger ses points 1 et 2 dans cette PR, traités comme bloquants. Les autres points de cette revue ne sont pas transmis.
+
+| ID | Gravité | Fichier:ligne | Problème | Correction attendue |
+|---|---|---|---|---|
+| R3-1 | Bloquant | `src/data/repositories/tasks.ts:169` (`place`) | `place` ne vérifie pas que les voisines se suivent. Journée C, B, A : `place(C, B, null)` alors que B n'est pas la dernière donne à C la clé `a0`, celle de A. Les deux tâches sont ensuite départagées par `id`, et plus aucune tâche ne peut être placée entre elles. Même défaut avec une seule voisine en tête, ou deux voisines séparées par une autre tâche. | Un contrôle général : aucune autre tâche non supprimée de la même journée (ou de la Box), hors la tâche placée, ne doit avoir une `order_key` strictement comprise entre celle de `previousId` et celle de `nextId` (`null` = pas de borne de ce côté). Sinon `invalid_neighbors`, avant toute écriture. |
+| R3-2 | Bloquant | `src/data/repositories/tasks.ts:186-199` (`place`) | La correction de R1-2 traite à part le cas où les deux voisines valent `null`. C'est un cas particulier du contrôle de R3-1. | Supprimer ce cas particulier : le contrôle général de R3-1 le couvre (sans bornes, toute autre tâche de la journée est « entre »). Les deux tests de R1-2 doivent continuer à passer. Mettre la JSDoc de `place` à jour. |
+
+Tests attendus dans `tasks.move.test.ts`, chacun vérifiant que la ligne relue est inchangée :
+- une seule voisine `previousId` qui n'est pas la dernière de la journée ;
+- une seule voisine `nextId` qui n'est pas la première ;
+- deux voisines séparées par une autre tâche ;
+- une tâche supprimée entre les deux voisines ne bloque pas le placement ;
+- la tâche placée elle-même, située entre les voisines, ne bloque pas le placement (déjà couvert par « places a task at the head and at the end », à garder).
+
+Les autres points de la revue de code ne sont pas transmis. Ils attendent la décision de Yanis :
+- copie à la main de la liste `transformIgnorePatterns` de `jest-expo` ;
+- application des migrations en double entre `testDatabase.ts` et `schema.test.ts` (voulu par le plan) ;
+- `isUniqueViolation` sans garde contre une chaîne de `cause` circulaire ;
+- `listRange` silencieux sur des bornes inversées ou invalides ;
+- le message `not_found` de `setForTask` liste tous les tags demandés.
+
+### Vérification du tour 3
+
+| ID | Gravité | Fichier:ligne | Problème | Correction attendue |
+|---|---|---|---|---|
+| — | — | — | Aucun problème. | — |
+
+Vérifié et correct :
+- **R3-1 corrigé** (`src/data/repositories/tasks.ts:198-221`). Après la validation des deux voisines, une seule requête cherche une autre tâche non supprimée de la même journée (ou de la Box), hors la tâche placée, avec `gt(order_key, before)` et `lt(order_key, after)`. Une borne `null` est omise, ce qu'`and()` de Drizzle accepte. Si la requête trouve une tâche, `place` lève `invalid_neighbors` avant toute écriture. Des voisines dans le désordre ne trouvent aucune tâche « entre », puis échouent comme avant dans `orderKeyBetween`.
+- **R3-2 corrigé** : le cas particulier des deux `null` est supprimé, et la JSDoc décrit la règle générale. Les deux tests de R1-2 passent sans modification.
+- Tests ajoutés dans `tasks.move.test.ts`. Pour chaque refus, la ligne relue reste identique alors que l'horloge a avancé :
+  - `place(C, B, null)` est refusé : c'est l'exemple du bug ;
+  - `place(A, null, B)` est refusé ;
+  - D, C, B, A puis `place(D, C, A)` est refusé ;
+  - avec B supprimée, `place(D, C, A)` est accepté et donne C, D, A.
+- `npm run check` sort avec le code 0 (relancé par l'agent principal) : 28 suites, 437 tests, `src/domain` à 100 %.
+- Le diff du tour ne touche que `tasks.ts` (258 lignes) et `tasks.move.test.ts` (252 lignes).
+
+Aucun problème bloquant restant.
+
 ## Résultat
 
 ### Ce qui a été fait
@@ -223,7 +265,7 @@ Aucun problème bloquant restant.
 - **`src/data/errors.ts`** : `DataError` (`not_found`, `duplicate_tag_name`, `invalid_neighbors`) et `isUniqueViolation`.
 - **`src/domain/tags.ts`** : `MAX_TAGS_PER_TASK = 3` et `assertTaskTagIds` (« trois tags maximum sur une tâche »).
 - **`src/data/repositories/`** :
-  - `createTaskRepository` : `listDay`, `listBox`, `listRange`, `get`, `create` (en tête), `update`, `move` (par `moveTask`), `place` (sans voisines seulement si la tâche est seule dans sa journée, R1-2) et `remove` ;
+  - `createTaskRepository` : `listDay`, `listBox`, `listRange`, `get`, `create` (en tête), `update`, `move` (par `moveTask`), `place` (les voisines doivent se suivre : aucune autre tâche de la journée entre elles, R1-2 puis R3-1) et `remove` ;
   - `createTagRepository` : `list`, `create`, `update` et `remove` ;
   - `createTaskTagRepository` : `listForTasks` et `setForTask` ;
   - les options communes sont dans `repository.ts`.
@@ -232,7 +274,7 @@ Aucun problème bloquant restant.
 - **`README.md`** : section « Base locale » complétée (repositories, `createTestDatabase`).
 
 ### Vérification finale
-- `npm run check` : succès (typecheck, ESLint sans avertissement, Prettier, 28 suites et 433 tests). `src/domain` est à 100 %. Seul l'`ExperimentalWarning` de `node:sqlite`, déjà toléré (P2-01, R1-2), apparaît.
+- `npm run check` : succès (typecheck, ESLint sans avertissement, Prettier, 28 suites et 437 tests). `src/domain` est à 100 %. Seul l'`ExperimentalWarning` de `node:sqlite`, déjà toléré (P2-01, R1-2), apparaît.
 - `npm run db:generate` : « No schema changes, nothing to migrate ».
 - Pas de vérification sur simulateur : aucun écran n'importe le nouveau code, et l'interface ne change pas.
 
@@ -248,7 +290,7 @@ Aucun problème bloquant restant.
 | ID | Problème | Décision de Yanis |
 |---|---|---|
 | R1-1 | `create` ne valide pas la `DateKey`. | reporté : à traiter avec la case « Journées antérieures au premier jour d'utilisation » |
-| R1-2 | `place(id, null, null)` accepté dans une journée non vide. | corrigé (tour 2) |
+| R1-2 | `place(id, null, null)` accepté dans une journée non vide. | corrigé (tour 2), puis généralisé par R3-1 (tour 3) |
 | R1-3 | Détection du nom de tag en double non vérifiée sur `expo-sqlite`. | reporté : à vérifier au premier branchement de l'écran des tags |
 | R1-4 | L'adaptateur de test compterait `changes = 0` pour une écriture avec `RETURNING`. | ignoré |
 

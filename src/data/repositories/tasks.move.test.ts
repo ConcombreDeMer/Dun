@@ -203,6 +203,49 @@ describe("place", () => {
     expect(repo.get("task-1").get()?.updatedAt).toEqual(at);
   });
 
+  describe("refuses neighbors that do not follow each other, without modifying anything", () => {
+    const refuses = (
+      id: string,
+      previousId: string | null,
+      nextId: string | null,
+    ) => {
+      const before = repo.get(id).get();
+      options.advance();
+
+      expectDataError(
+        () => repo.place(id, previousId, nextId),
+        "invalid_neighbors",
+      );
+      expect(repo.get(id).get()).toEqual(before);
+    };
+
+    it("a single previous neighbor that is not the last one", () => {
+      /* B is followed by A: C cannot get A's place. */
+      refuses("task-3", "task-2", null);
+    });
+
+    it("a single next neighbor that is not the first one", () => {
+      /* B is preceded by C. */
+      refuses("task-1", null, "task-2");
+    });
+
+    it("two neighbors with another task between them", () => {
+      /* Day D, C, B, A: B sits between C and A. */
+      repo.create({ name: "D", date: THU_29 });
+
+      refuses("task-4", "task-3", "task-1");
+    });
+  });
+
+  it("is not blocked by a deleted task between the neighbors", () => {
+    repo.create({ name: "D", date: THU_29 });
+    repo.remove("task-2");
+
+    repo.place("task-4", "task-3", "task-1");
+
+    expect(day()).toEqual(["C", "D", "A"]);
+  });
+
   it("refuses a missing task", () => {
     expectDataError(() => repo.place("missing", null, null), "not_found");
   });

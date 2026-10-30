@@ -10,7 +10,17 @@
  * Box) has the smallest key.
  */
 
-import { and, asc, between, eq, isNull, ne, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  between,
+  eq,
+  gt,
+  isNull,
+  lt,
+  ne,
+  type SQL,
+} from "drizzle-orm";
 import type { DateKey } from "../../domain/date";
 import { moveTask } from "../../domain/postpone";
 import { DataError } from "../errors";
@@ -162,9 +172,11 @@ export function createTaskRepository(options: RepositoryOptions) {
      * Places a task between two tasks of the same day (`null` = the start or
      * the end of the list). Only the placed task is modified.
      *
-     * Throws `invalid_neighbors` if a neighbor is missing, deleted, from
-     * another day, or if the neighbors are not in order. Both neighbors may be
-     * `null` only when the task is alone in its day (or in the Box).
+     * Throws `invalid_neighbors`, before any write, if a neighbor is missing,
+     * deleted or from another day, if the neighbors are not in order, or if
+     * they do not follow each other: no other task of the day (or of the
+     * Box) may sit between them. So both neighbors are `null` only when the
+     * task is alone in its day.
      */
     place(id: string, previousId: string | null, nextId: string | null): void {
       const task = find(id);
@@ -183,23 +195,31 @@ export function createTaskRepository(options: RepositoryOptions) {
         return neighbor.orderKey;
       };
 
-      if (previousId === null && nextId === null) {
-        const other = db
-          .select({ id: tasks.id })
-          .from(tasks)
-          .where(and(onDate(task.date), ne(tasks.id, id), notDeleted))
-          .limit(1)
-          .get();
-        if (other !== undefined) {
-          throw new DataError(
-            "invalid_neighbors",
-            `Task ${id} is not alone in its day: neighbors are required`,
-          );
-        }
-      }
-
       const before = neighborKey(previousId);
       const after = neighborKey(nextId);
+
+      /* Another task strictly between the neighbors (`null` = no bound). */
+      const inBetween = db
+        .select({ id: tasks.id })
+        .from(tasks)
+        .where(
+          and(
+            onDate(task.date),
+            ne(tasks.id, id),
+            notDeleted,
+            before === null ? undefined : gt(tasks.orderKey, before),
+            after === null ? undefined : lt(tasks.orderKey, after),
+          ),
+        )
+        .limit(1)
+        .get();
+      if (inBetween !== undefined) {
+        throw new DataError(
+          "invalid_neighbors",
+          `Neighbors of task ${id} do not follow each other`,
+        );
+      }
+
       let orderKey: string;
       try {
         orderKey = orderKeyBetween(before, after);
